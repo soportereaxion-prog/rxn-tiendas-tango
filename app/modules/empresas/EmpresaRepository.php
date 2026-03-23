@@ -38,4 +38,49 @@ class EmpresaRepository
         
         $empresa->id = (int) $this->db->lastInsertId();
     }
+
+    public function findById(int $id): ?Empresa
+    {
+        $stmt = $this->db->prepare("SELECT * FROM empresas WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $empresa = $stmt->fetchObject(Empresa::class);
+        return $empresa ?: null;
+    }
+
+    public function findByCodigo(string $codigo, ?int $excludeId = null): ?Empresa
+    {
+        $sql = "SELECT * FROM empresas WHERE codigo = :codigo";
+        $params = [':codigo' => $codigo];
+        
+        if ($excludeId !== null) {
+            $sql .= " AND id != :excludeId";
+            $params[':excludeId'] = $excludeId;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $empresa = $stmt->fetchObject(Empresa::class);
+        return $empresa ?: null;
+    }
+
+    public function update(Empresa $empresa): void
+    {
+        $sql = "UPDATE empresas SET 
+                codigo = :codigo, 
+                nombre = :nombre, 
+                razon_social = :razon_social, 
+                cuit = :cuit, 
+                activa = :activa 
+                WHERE id = :id";
+                
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':codigo' => $empresa->codigo,
+            ':nombre' => $empresa->nombre,
+            ':razon_social' => $empresa->razon_social,
+            ':cuit' => $empresa->cuit,
+            ':activa' => $empresa->activa,
+            ':id' => $empresa->id,
+        ]);
+    }
 }

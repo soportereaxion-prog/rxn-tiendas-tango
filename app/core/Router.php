@@ -28,6 +28,18 @@ class Router
             return;
         }
 
+        // Fallback: Evaluación de rutas dinámicas (Ej: /empresas/{id})
+        foreach ($this->routes[$method] ?? [] as $route => $handler) {
+            $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<\1>[a-zA-Z0-9_-]+)', $route);
+            $pattern = '#^' . $pattern . '$#';
+            
+            if (preg_match($pattern, $uri, $matches)) {
+                $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+                call_user_func_array($handler, array_values($params));
+                return;
+            }
+        }
+
         http_response_code(404);
         echo '404 Not Found';
     }

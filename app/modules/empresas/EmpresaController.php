@@ -34,8 +34,8 @@ class EmpresaController extends Controller
     {
         try {
             $this->service->create($_POST);
-            // Redirigir al listado
-            header('Location: /rxnTiendasIA/public/empresas');
+            // Redirigir al listado con feedback
+            header('Location: /rxnTiendasIA/public/empresas?success=creada');
             exit;
         } catch (InvalidArgumentException $e) {
             View::render('app/modules/empresas/views/crear.php', [
@@ -46,6 +46,42 @@ class EmpresaController extends Controller
             $error = 'Error de base de datos. Es posible que el código ya exista.';
             View::render('app/modules/empresas/views/crear.php', [
                 'error' => $error,
+                'old' => $_POST
+            ]);
+        }
+    }
+
+    public function edit(string $id): void
+    {
+        $empresa = $this->service->findById((int) $id);
+        if (!$empresa) {
+            header('Location: /rxnTiendasIA/public/empresas?error=No+encontrada');
+            exit;
+        }
+
+        View::render('app/modules/empresas/views/editar.php', [
+            'empresa' => $empresa
+        ]);
+    }
+
+    public function update(string $id): void
+    {
+        try {
+            $this->service->update((int) $id, $_POST);
+            header('Location: /rxnTiendasIA/public/empresas?success=actualizada');
+            exit;
+        } catch (InvalidArgumentException $e) {
+            $empresa = $this->service->findById((int) $id);
+            View::render('app/modules/empresas/views/editar.php', [
+                'error' => $e->getMessage(),
+                'empresa' => $empresa,
+                'old' => $_POST
+            ]);
+        } catch (\PDOException $e) {
+            $empresa = $this->service->findById((int) $id);
+            View::render('app/modules/empresas/views/editar.php', [
+                'error' => 'Error de base de datos.',
+                'empresa' => $empresa,
                 'old' => $_POST
             ]);
         }

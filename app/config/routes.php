@@ -15,6 +15,8 @@ return function (Router $router): void {
     $router->get('/empresas', [new \App\Modules\Empresas\EmpresaController(), 'index']);
     $router->get('/empresas/crear', [new \App\Modules\Empresas\EmpresaController(), 'create']);
     $router->post('/empresas', [new \App\Modules\Empresas\EmpresaController(), 'store']);
+    $router->get('/empresas/{id}/editar', [new \App\Modules\Empresas\EmpresaController(), 'edit']);
+    $router->post('/empresas/{id}', [new \App\Modules\Empresas\EmpresaController(), 'update']);
 
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {

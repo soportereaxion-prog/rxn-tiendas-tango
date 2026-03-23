@@ -21,6 +21,19 @@
             </div>
         </div>
 
+        <?php if (isset($_GET['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                Operación exitosa: <?= htmlspecialchars($_GET['success']) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+        <?php if (isset($_GET['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                Error: <?= htmlspecialchars($_GET['error']) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="card">
             <div class="card-body p-0">
                 <table class="table table-hover mb-0">
@@ -32,11 +45,12 @@
                             <th>Razón Social</th>
                             <th>CUIT</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($empresas)): ?>
-                        <tr><td colspan="6" class="text-center py-4">No hay empresas registradas.</td></tr>
+                        <tr><td colspan="7" class="text-center py-4">No hay empresas registradas.</td></tr>
                         <?php else: ?>
                             <?php foreach ($empresas as $empresa): ?>
                             <tr>
@@ -51,6 +65,9 @@
                                     <?php else: ?>
                                         <span class="badge bg-danger">Inactiva</span>
                                     <?php endif; ?>
+                                </td>
+                                <td>
+                                    <a href="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string)$empresa->id) ?>/editar" class="btn btn-sm btn-outline-primary">Editar</a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
