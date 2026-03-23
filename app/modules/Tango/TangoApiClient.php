@@ -11,15 +11,17 @@ class TangoApiClient
 {
     private ApiClient $client;
 
-    public function __construct(string $apiUrl, string $accessToken)
+    public function __construct(string $apiUrl, string $accessToken, string $clientKey)
     {
-        if (empty($apiUrl) || empty($accessToken)) {
+        if (empty($apiUrl) || empty($accessToken) || empty($clientKey)) {
             throw new \App\Infrastructure\Exceptions\ConfigurationException("Configuración de integración Tango incompleta para este entorno operativo.");
         }
 
         $headers = [
             'Authorization: Bearer ' . $accessToken,
-            'Accept: application/json'
+            'Client-Id: ' . $clientKey,
+            'Accept: application/json',
+            'Content-Type: application/json'
         ];
 
         $this->client = new ApiClient($apiUrl, $headers);

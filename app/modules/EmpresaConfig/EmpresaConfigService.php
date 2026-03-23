@@ -60,6 +60,13 @@ class EmpresaConfigService
         $config->email_contacto  = !empty($data['email_contacto']) ? trim($data['email_contacto']) : null;
         $config->telefono        = !empty($data['telefono']) ? trim($data['telefono']) : null;
 
+        $config->tango_api_url       = !empty($data['tango_api_url']) ? trim($data['tango_api_url']) : null;
+        $config->tango_connect_key   = !empty($data['tango_connect_key']) ? trim($data['tango_connect_key']) : null;
+        // Solo sobrescribimos token si viene en el post con info nueva para no purgar uno existente por descuido
+        if (isset($data['tango_connect_token']) && $data['tango_connect_token'] !== '') {
+            $config->tango_connect_token = trim($data['tango_connect_token']);
+        }
+
         $this->repository->save($config);
     }
 }

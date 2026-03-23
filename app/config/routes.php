@@ -34,6 +34,9 @@ return function (Router $router): void {
     $router->get('/mi-empresa/usuarios/{id}/editar', [new \App\Modules\Usuarios\UsuarioController(), 'edit']);
     $router->post('/mi-empresa/usuarios/{id}', [new \App\Modules\Usuarios\UsuarioController(), 'update']);
 
+    // --- MÓDULO TANGO CONNECT ---
+    $router->get('/mi-empresa/sync/articulos', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncArticulos']);
+
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
         View::render('app/modules/dashboard/views/index.php', [

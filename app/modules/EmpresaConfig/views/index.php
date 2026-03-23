@@ -50,6 +50,46 @@
                                value="<?= htmlspecialchars($old['telefono'] ?? ($config->telefono ?? '')) ?>">
                     </div>
 
+                    <hr class="my-4">
+                    <h5 class="fw-bold mb-3 text-secondary">Integración Tango Connect</h5>
+
+                    <div class="mb-3">
+                        <label for="tango_api_url" class="form-label">URL de Connect (Base API)</label>
+                        <input type="text" class="form-control" id="tango_api_url" name="tango_api_url"
+                               value="<?= htmlspecialchars($old['tango_api_url'] ?? ($config->tango_api_url ?? '')) ?>">
+                        <div class="form-text">Usualmente <code>https://nexosync.tangonexo.com</code> o similar.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tango_connect_key" class="form-label">Número de Llave / Client Key</label>
+                        <input type="text" class="form-control" id="tango_connect_key" name="tango_connect_key"
+                               value="<?= htmlspecialchars($old['tango_connect_key'] ?? ($config->tango_connect_key ?? '')) ?>" placeholder="Ej: 000357/017">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="tango_connect_token" class="form-label">Token de Acceso</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="tango_connect_token" name="tango_connect_token"
+                                   value="<?= htmlspecialchars($old['tango_connect_token'] ?? ($config->tango_connect_token ?? '')) ?>">
+                            <button class="btn btn-outline-secondary" type="button" id="toggleTokenEye" title="Mostrar/Ocultar">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <script>
+                    document.getElementById('toggleTokenEye').addEventListener('click', function() {
+                        const input = document.getElementById('tango_connect_token');
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            this.innerText = '🙈';
+                        } else {
+                            input.type = 'password';
+                            this.innerText = '👁️';
+                        }
+                    });
+                    </script>
+
                     <div class="d-flex justify-content-end gap-2">
                         <a href="/rxnTiendasIA/public/" class="btn btn-light">Volver a Inicio</a>
                         <button type="submit" class="btn btn-primary px-4">Guardar Configuración</button>

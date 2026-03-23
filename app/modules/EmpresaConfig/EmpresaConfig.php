@@ -11,6 +11,9 @@ class EmpresaConfig
     public ?string $nombre_fantasia = null;
     public ?string $email_contacto = null;
     public ?string $telefono = null;
+    public ?string $tango_api_url = null;
+    public ?string $tango_connect_key = null;
+    public ?string $tango_connect_token = null;
     public ?string $created_at = null;
     public ?string $updated_at = null;
 }

@@ -30,24 +30,33 @@ class EmpresaConfigRepository
             $sql = "UPDATE empresa_config SET 
                     nombre_fantasia = :nombre, 
                     email_contacto = :email, 
-                    telefono = :telefono 
+                    telefono = :telefono,
+                    tango_api_url = :tango_api_url,
+                    tango_connect_key = :tango_connect_key,
+                    tango_connect_token = :tango_connect_token
                     WHERE id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':nombre' => $config->nombre_fantasia,
                 ':email' => $config->email_contacto,
                 ':telefono' => $config->telefono,
+                ':tango_api_url' => $config->tango_api_url,
+                ':tango_connect_key' => $config->tango_connect_key,
+                ':tango_connect_token' => $config->tango_connect_token,
                 ':id' => $config->id,
             ]);
         } else {
-            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono) 
-                    VALUES (:empresa_id, :nombre, :email, :telefono)";
+            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token) 
+                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $config->empresa_id,
                 ':nombre' => $config->nombre_fantasia,
                 ':email' => $config->email_contacto,
                 ':telefono' => $config->telefono,
+                ':tango_api_url' => $config->tango_api_url,
+                ':tango_connect_key' => $config->tango_connect_key,
+                ':tango_connect_token' => $config->tango_connect_token,
             ]);
             $config->id = (int) $this->db->lastInsertId();
         }

@@ -1,0 +1,14 @@
+<?php
+declare(strict_types=1);
+namespace App\Modules\Articulos;
+class Articulo
+{
+    public ?int $id = null;
+    public int $empresa_id;
+    public string $codigo_externo;
+    public string $nombre;
+    public ?string $descripcion = null;
+    public float $precio = 0.00;
+    public int $activo = 1;
+    public ?string $fecha_ultima_sync = null;
+}

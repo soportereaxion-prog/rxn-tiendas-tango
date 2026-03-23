@@ -22,23 +22,25 @@ class TangoService
         }
 
         // 2. Extraer parámetros de conexión específicos para esta empresa.
-        $configService = new EmpresaConfigService();
-        $config = $configService->getConfig() ?? [];
+        $configService = new \App\Modules\EmpresaConfig\EmpresaConfigService();
+        $config = $configService->getConfig();
 
         // CONTRATO OBLIGATORIO DE CONFIGURACIÓN POR EMPRESA
         // Llaves base esperadas en EmpresaConfig derivadas en DB:
         // - tango_api_url (string) Endpoint Base URL
-        // - tango_api_token (string) Bearer Access Token
+        // - tango_connect_key (string) Client ID Key
+        // - tango_connect_token (string) Bearer Access Token
         
-        $apiUrl = $config['tango_api_url'] ?? "https://api.axoft.com/demo"; 
-        $apiToken = $config['tango_api_token'] ?? "rxn-tango-dummy-token-$empresaId";
+        $apiUrl = $config->tango_api_url ?? null; 
+        $clientKey = $config->tango_connect_key ?? null;
+        $apiToken = $config->tango_connect_token ?? null;
 
-        if (empty($apiUrl) || empty($apiToken)) {
-            throw new \App\Infrastructure\Exceptions\ConfigurationException("Módulos API Tango Incompletos: Claves mandatorias requeridas no encontradas.");
+        if (empty($apiUrl) || empty($apiToken) || empty($clientKey)) {
+            throw new \App\Infrastructure\Exceptions\ConfigurationException("Módulos API Tango Incompletos: Claves mandatorias (Token, Key o URL) no encontradas para la Empresa $empresaId.");
         }
 
         // 3. Levantar Cliente Rest inyectando config estricta por empresa
-        $this->apiClient = new TangoApiClient($apiUrl, $apiToken);
+        $this->apiClient = new TangoApiClient($apiUrl, $apiToken, $clientKey);
     }
 
     /**

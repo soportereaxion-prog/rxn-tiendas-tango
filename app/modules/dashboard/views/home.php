@@ -34,6 +34,7 @@
                             <p class="mb-2 small">👤 <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuario') ?> <br>(Empresa #<?= $_SESSION['empresa_id'] ?? '' ?>)</p>
                             <a href="/rxnTiendasIA/public/mi-empresa/usuarios" class="btn btn-light text-primary fw-bold w-100 mb-2">Administrar Cuentas</a>
                             <a href="/rxnTiendasIA/public/mi-empresa/configuracion" class="btn btn-light text-primary fw-bold w-100 mb-2">Mi Configuración</a>
+                            <a href="/rxnTiendasIA/public/mi-empresa/sync/articulos" class="btn btn-warning fw-bold text-dark w-100 mb-4" onclick="return confirm('¿Iniciar sincronización masiva desde Tango Connect?');">Sincronizar Tango Connect</a>
                             <a href="/rxnTiendasIA/public/logout" class="btn btn-outline-light btn-sm w-100">Cerrar Sesión</a>
                         </div>
                     <?php else: ?>
