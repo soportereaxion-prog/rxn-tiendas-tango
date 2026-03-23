@@ -14,12 +14,13 @@ class EmpresaConfigController extends Controller
 
     public function __construct()
     {
-        AuthService::requireLogin();
         $this->service = new EmpresaConfigService();
     }
 
     public function index(): void
     {
+        AuthService::requireLogin();
+        
         try {
             $config = $this->service->getConfig();
             View::render('app/modules/EmpresaConfig/views/index.php', [
@@ -33,6 +34,8 @@ class EmpresaConfigController extends Controller
 
     public function store(): void
     {
+        AuthService::requireLogin();
+        
         try {
             $this->service->save($_POST);
             header('Location: /rxnTiendasIA/public/mi-empresa/configuracion?success=guardado');
