@@ -13,6 +13,7 @@ class Usuario
     public string $password_hash;
     public int $activo;
     public int $es_admin;
+    public int $es_rxn_admin = 0;
     public ?string $created_at = null;
     public ?string $updated_at = null;
 }

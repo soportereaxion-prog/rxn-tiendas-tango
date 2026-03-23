@@ -2,22 +2,23 @@
 
 ## módulos tocados
 
-* módulo: usuarios (NUEVO: Fase 1 ABM Operativo)
-* módulo: auth (Repositorio ampliado)
-* módulo: dashboard
+* módulo: auth (Inyección de Banderas de Rol Perfiladas `requireRxnAdmin`)
+* módulo: dashboard (Blindaje Visual frente a Operadores limpios)
+* módulo: empresas (Backoffice protegido en el íntegro de su Controlador)
 
 ## decisiones
 
-* Se creó un ABM de usuarios en un módulo segregado (`App\Modules\Usuarios`) para preservar Single Responsibility en `Auth`.
-* Todas las consultas de lectura y escritura (`UsuarioService`) se acoplaron de forma obligatoria de manera indisoluble al `Context::getEmpresaId()`.
-* Se estableció la regla de **Email Único Global** aprovechando el esquema `UNIQUE` originario de MariaDB. Esto impide duplicidad de correos a lo largo de todo el ecosistema RXN.
-* La edición de roles (`es_admin` / `activo`) y Contraseña quedan unificados en el ABM general.
+* Se segmentó el acceso en dos universos disociados valiéndose de un único switch: `es_rxn_admin`.
+* El Backoffice central (Módulo Empresas originario) exige explícitamente bandera en Alta (1).
+* El usuario `admin@empresa.test` se categorizó como Máster RXN.
+* Se concibió a `operador@empresa.test` ($pwd:123) como molde raso sin privilegios para realizar End-to-End Tests.
 
 ## riesgos
 
-* Hasta que no haya "Roles avanzados" refinados, todo Operador interno con `es_admin=1` tiene poder de edición y bloqueos ilimitados sobre el resto de su empresa.
-* El Backoffice Central RXN por ahora carece de capacidad técnica y visual para gestionar usuarios de sub-empresas.
+* Ocultar botones no blinda endpoints API. Queda estrictamente estipulado aplicar `requireRxnAdmin()` u homólogos a nivel Controlador ante cada nueva adición al Sistema Master RXN frente a accesos directos por URI.
+* Eventualmente, cuando el ABM de Backoffice pretenda gobernar Usuarios, deberá establecerse quién puede conceder perfiles `RXN`.
 
 ## próximo paso
 
-* Elaborar un esquema de Control de Acceso por Módulo/Role específico, o iniciar entidades comerciales núcleo del entorno operativo (Stock, Ventas, etc).
+* Avanzar sobre la granularidad de los Permisos `es_admin` que separan la Jerarquía Interna Operativa.
+* Cimentar dependencias orgánicas multiempresa: Módulo Productos o Categorías.

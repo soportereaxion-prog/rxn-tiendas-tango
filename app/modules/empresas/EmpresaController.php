@@ -7,6 +7,7 @@ namespace App\Modules\Empresas;
 use App\Core\Controller;
 use App\Core\View;
 use InvalidArgumentException;
+use App\Modules\Auth\AuthService;
 
 class EmpresaController extends Controller
 {
@@ -19,6 +20,7 @@ class EmpresaController extends Controller
 
     public function index(): void
     {
+        AuthService::requireRxnAdmin();
         $empresas = $this->service->findAll();
         View::render('app/modules/empresas/views/index.php', [
             'empresas' => $empresas
@@ -27,11 +29,13 @@ class EmpresaController extends Controller
 
     public function create(): void
     {
+        AuthService::requireRxnAdmin();
         View::render('app/modules/empresas/views/crear.php');
     }
 
     public function store(): void
     {
+        AuthService::requireRxnAdmin();
         try {
             $this->service->create($_POST);
             // Redirigir al listado con feedback
@@ -53,6 +57,7 @@ class EmpresaController extends Controller
 
     public function edit(string $id): void
     {
+        AuthService::requireRxnAdmin();
         $empresa = $this->service->findById((int) $id);
         if (!$empresa) {
             header('Location: /rxnTiendasIA/public/empresas?error=No+encontrada');
@@ -66,6 +71,7 @@ class EmpresaController extends Controller
 
     public function update(string $id): void
     {
+        AuthService::requireRxnAdmin();
         try {
             $this->service->update((int) $id, $_POST);
             header('Location: /rxnTiendasIA/public/empresas?success=actualizada');

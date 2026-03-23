@@ -22,6 +22,7 @@ class AuthService
                 $_SESSION['user_id'] = $usuario->id;
                 $_SESSION['empresa_id'] = $usuario->empresa_id;
                 $_SESSION['user_name'] = $usuario->nombre;
+                $_SESSION['es_rxn_admin'] = $usuario->es_rxn_admin ?? 0;
                 return true;
             }
         }
@@ -38,6 +39,20 @@ class AuthService
     {
         if (empty($_SESSION['user_id'])) {
             header('Location: /rxnTiendasIA/public/login');
+            exit;
+        }
+    }
+
+    public static function requireRxnAdmin(): void
+    {
+        self::requireLogin();
+        if (empty($_SESSION['es_rxn_admin']) || $_SESSION['es_rxn_admin'] != 1) {
+            http_response_code(403);
+            echo "<div style='font-family:sans-serif; text-align:center; margin-top:50px;'>";
+            echo "<h2>⚠️ Acceso Denegado (Área Restringida RXN)</h2>";
+            echo "<p>Usted no posee credenciales centralizadas para auditar o administrar licencias. Contacte a soporte de RXN.</p>";
+            echo "<a href='/rxnTiendasIA/public/'>Volver Seguro</a>";
+            echo "</div>";
             exit;
         }
     }

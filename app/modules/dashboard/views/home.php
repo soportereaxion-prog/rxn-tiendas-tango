@@ -17,11 +17,13 @@
             <p class="lead text-muted mb-4">Plataforma central de administración multiempresa.</p>
             
             <div class="d-flex justify-content-center gap-3 mt-5">
+                <?php if (isset($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1): ?>
                 <div class="card p-4 shadow-sm border-0 bg-light" style="width: 280px;">
                     <h5 class="text-secondary fw-bold">🏢 RXN Backoffice</h5>
                     <p class="small text-muted mb-4">Administración global de licenciatarios.</p>
                     <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-dark w-100 mt-auto">Listado de Empresas</a>
                 </div>
+                <?php endif; ?>
                 
                 <div class="card p-4 shadow-sm border-0 bg-primary text-white" style="width: 280px;">
                     <h5 class="fw-bold">🚀 Entorno Operativo</h5>
