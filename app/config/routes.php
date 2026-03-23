@@ -6,10 +6,15 @@ use App\Core\Database;
 
 return function (Router $router): void {
 
-    // Ruta raíz — arranque base.
+    // Ruta raíz — Home Principal con menú
     $router->get('/', function () {
-        echo 'rxnTiendasIA — bootstrap OK';
+        View::render('app/modules/dashboard/views/home.php');
     });
+
+    // --- MÓDULO EMPRESAS ---
+    $router->get('/empresas', [new \App\Modules\Empresas\EmpresaController(), 'index']);
+    $router->get('/empresas/crear', [new \App\Modules\Empresas\EmpresaController(), 'create']);
+    $router->post('/empresas', [new \App\Modules\Empresas\EmpresaController(), 'store']);
 
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
@@ -32,3 +37,4 @@ return function (Router $router): void {
     });
 
 };
+
