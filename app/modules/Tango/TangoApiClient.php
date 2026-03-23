@@ -14,7 +14,7 @@ class TangoApiClient
     public function __construct(string $apiUrl, string $accessToken)
     {
         if (empty($apiUrl) || empty($accessToken)) {
-            throw new RuntimeException("Configuración de integración Tango incompleta para este entorno operativo.");
+            throw new \App\Infrastructure\Exceptions\ConfigurationException("Configuración de integración Tango incompleta para este entorno operativo.");
         }
 
         $headers = [

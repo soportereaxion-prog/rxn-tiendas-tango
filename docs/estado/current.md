@@ -10,6 +10,7 @@
 
 * Se escindió la lógica de Redes fuera de la lógica de Dominios. 
 * El orquestador responsable de mezclar Contexto de Empresa con variables de Peticiones REST recaerá puramente en el `Service` de la entidad correspondiente (`TangoService`), nunca en el Controlador, logrando controladores livianos.
+* Se instaló política de composición en lugar de Herencia para el HTTP Client. Las reglas de infra emplearán excepciones semánticas (ConfigurationException, ConnectionException, etc.).
 
 ## riesgos
 
@@ -17,5 +18,4 @@
 
 ## próximo paso
 
-* Consolidar el refactoring de carpetas / Rename en GIT para estandarizado PSR-4 cross-platform.
-* Comenzar a levantar módulos reales con sus propios Controladores utilizando los nuevos Servicios Base de la Infraestructura.
+* Comenzar a levantar módulos reales y Modelos de Entidades (Productos/Pedidos) valiéndose de este canal de conexión con Axeft.

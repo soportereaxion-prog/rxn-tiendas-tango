@@ -58,7 +58,7 @@ class ApiClient
         curl_close($ch);
 
         if ($response === false) {
-            throw new RuntimeException("Error en petición de Red REST [$method $url]: $error");
+            throw new \App\Infrastructure\Exceptions\ConnectionException("Error en petición de Red REST [$method $url]: $error");
         }
 
         $decodedData = json_decode((string)$response, true);
@@ -67,7 +67,10 @@ class ApiClient
             $errMessage = is_array($decodedData) && isset($decodedData['message']) 
                           ? $decodedData['message'] 
                           : "HTTP Error $httpCode";
-            throw new RuntimeException("Fallo en Integración Externa: $errMessage", $httpCode);
+            if ($httpCode === 401 || $httpCode === 403) {
+                 throw new \App\Infrastructure\Exceptions\UnauthorizedException("Acceso Restringido en API Externa: $errMessage", $httpCode);
+            }
+            throw new \App\Infrastructure\Exceptions\HttpException("Fallo en Integración Externa: $errMessage", $httpCode);
         }
 
         return [

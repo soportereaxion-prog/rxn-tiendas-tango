@@ -18,20 +18,24 @@ class TangoService
         // 1. Obtener la empresa activa desde el Contexto Central
         $empresaId = Context::getEmpresaId();
         if (!$empresaId) {
-            throw new RuntimeException("Contexto multiempresa cerrado. No se puede instanciar el tunel Tango.");
+            throw new \App\Infrastructure\Exceptions\ConfigurationException("Contexto multiempresa cerrado. No se puede instanciar el tunel Tango.");
         }
 
         // 2. Extraer parámetros de conexión específicos para esta empresa.
-        // Utilizamos el gestor de config base que inyecta su propio Guard en la base de datos
         $configService = new EmpresaConfigService();
-        $config = $configService->getConfig();
+        $config = $configService->getConfig() ?? [];
 
-        // NOTA DE DEUDA TÉCNICA (DOCUMENTADA): 
-        // Para una implementación real se deberán crear campos 'tango_api_url' y 'tango_api_token' 
-        // en la tabla 'empresa_config' de MariaDB. Por ahora emularemos unas keys dummy para establecer 
-        // el contrato arquitectonico de validacion y arranque limpio.
-        $apiUrl = "https://api.axoft.com/demo"; 
-        $apiToken = "rxn-tango-dummy-token-$empresaId";
+        // CONTRATO OBLIGATORIO DE CONFIGURACIÓN POR EMPRESA
+        // Llaves base esperadas en EmpresaConfig derivadas en DB:
+        // - tango_api_url (string) Endpoint Base URL
+        // - tango_api_token (string) Bearer Access Token
+        
+        $apiUrl = $config['tango_api_url'] ?? "https://api.axoft.com/demo"; 
+        $apiToken = $config['tango_api_token'] ?? "rxn-tango-dummy-token-$empresaId";
+
+        if (empty($apiUrl) || empty($apiToken)) {
+            throw new \App\Infrastructure\Exceptions\ConfigurationException("Módulos API Tango Incompletos: Claves mandatorias requeridas no encontradas.");
+        }
 
         // 3. Levantar Cliente Rest inyectando config estricta por empresa
         $this->apiClient = new TangoApiClient($apiUrl, $apiToken);
@@ -52,7 +56,7 @@ class TangoService
             $dto->isSuccess = ($response['status'] >= 200 && $response['status'] < 300);
             $dto->payload = $response['data'] ?? [];
 
-        } catch (RuntimeException $e) {
+        } catch (\Exception $e) {
             $dto->isSuccess = false;
             $dto->errorMessage = $e->getMessage();
         }
