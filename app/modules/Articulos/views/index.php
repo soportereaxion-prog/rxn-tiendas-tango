@@ -90,7 +90,7 @@
                                     <?php foreach($articulos as $art): ?>
                                         <tr>
                                             <td><input type="checkbox" name="ids[]" form="formEliminarMasivo" value="<?= $art['id'] ?>" class="form-check-input check-item"></td>
-                                            <td class="text-nowrap"><span class="badge bg-secondary"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span></td>
+                                            <td class="text-nowrap"><span class="badge bg-secondary text-start" style="white-space: pre; font-family: monospace; font-size: 0.85rem;"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span></td>
                                             <td class="fw-bold text-dark text-wrap" style="max-width: 250px;"><?= htmlspecialchars((string)$art['nombre']) ?></td>
                                             <td class="text-wrap" style="max-width: 200px;"><small class="text-muted"><?= htmlspecialchars((string)($art['descripcion'] ?? '---')) ?></small></td>
                                             <td class="fw-semibold text-primary text-nowrap">$<?= $art['precio_lista_1'] !== null ? number_format((float)$art['precio_lista_1'], 2, ',', '.') : '--' ?></td>
