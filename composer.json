@@ -10,7 +10,8 @@
             "App\\Core\\":    "app/core/",
             "App\\Config\\":  "app/config/",
             "App\\Modules\\": "app/modules/",
-            "App\\Shared\\":  "app/shared/"
+            "App\\Shared\\":  "app/shared/",
+            "App\\Infrastructure\\": "app/Infrastructure/"
         }
     },
     "config": {
