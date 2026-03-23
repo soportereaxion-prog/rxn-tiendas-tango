@@ -71,16 +71,24 @@
                     <div class="table-responsive">
                         <table class="table table-hover align-middle table-sm" style="font-size: 0.9rem;">
                             <thead class="table-light">
+                                <?php
+                                $sortLink = function(string $field, string $label) use ($search, $limit, $sort, $dir) {
+                                    $newDir = ($sort === $field && $dir === 'ASC') ? 'DESC' : 'ASC';
+                                    $icon = ($sort === $field) ? ($dir === 'ASC' ? ' <small>▲</small>' : ' <small>▼</small>') : '';
+                                    $href = "?search=" . urlencode((string)$search) . "&limit={$limit}&sort={$field}&dir={$newDir}";
+                                    return "<a href=\"{$href}\" class=\"text-decoration-none text-dark d-block\">{$label}{$icon}</a>";
+                                };
+                                ?>
                                 <tr>
                                     <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                                    <th>Código / SKU</th>
-                                    <th>Descripción</th>
+                                    <th><?= $sortLink('codigo_externo', 'Código / SKU') ?></th>
+                                    <th><?= $sortLink('nombre', 'Descripción') ?></th>
                                     <th>Descripción Adicional</th>
-                                    <th class="text-nowrap">P. L1 ($)</th>
-                                    <th class="text-nowrap">P. L2 ($)</th>
-                                    <th>Stock</th>
-                                    <th>Estado</th>
-                                    <th>Última Sincro</th>
+                                    <th class="text-nowrap"><?= $sortLink('precio_lista_1', 'P. L1 ($)') ?></th>
+                                    <th class="text-nowrap"><?= $sortLink('precio_lista_2', 'P. L2 ($)') ?></th>
+                                    <th><?= $sortLink('stock_actual', 'Stock') ?></th>
+                                    <th><?= $sortLink('activo', 'Estado') ?></th>
+                                    <th><?= $sortLink('fecha_ultima_sync', 'Última Sincro') ?></th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -126,15 +134,15 @@
                 <nav class="mt-4">
                     <ul class="pagination justify-content-center pagination-sm">
                         <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>">Anterior</a>
+                            <a class="page-link" href="?page=<?= max(1, $page - 1) ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>&sort=<?= $sort ?>&dir=<?= $dir ?>">Anterior</a>
                         </li>
                         <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
                         <li class="page-item <?= ($i === $page) ? 'active' : '' ?>">
-                            <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>"><?= $i ?></a>
+                            <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>&sort=<?= $sort ?>&dir=<?= $dir ?>"><?= $i ?></a>
                         </li>
                         <?php endfor; ?>
                         <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>">Siguiente</a>
+                            <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>&sort=<?= $sort ?>&dir=<?= $dir ?>">Siguiente</a>
                         </li>
                     </ul>
                 </nav>

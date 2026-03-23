@@ -28,9 +28,12 @@ class ArticuloController extends Controller
             $limit = 50;
         }
 
+        $sort = $_GET['sort'] ?? 'nombre';
+        $dir = strtoupper($_GET['dir'] ?? 'ASC') === 'DESC' ? 'DESC' : 'ASC';
+
         $totalItems = $this->repository->countAll($empresaId, $search);
         $totalPages = ceil($totalItems / $limit) ?: 1;
-        $articulos = $this->repository->findAllPaginated($empresaId, $page, $limit, $search);
+        $articulos = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $sort, $dir);
         
         View::render('app/modules/Articulos/views/index.php', [
             'articulos' => $articulos,
@@ -38,7 +41,9 @@ class ArticuloController extends Controller
             'page' => $page,
             'limit' => $limit,
             'totalPages' => $totalPages,
-            'totalItems' => $totalItems
+            'totalItems' => $totalItems,
+            'sort' => $sort,
+            'dir' => $dir
         ]);
     }
     

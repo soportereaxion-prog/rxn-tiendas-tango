@@ -50,8 +50,10 @@ class ArticuloRepository
         $params = [':empresa_id' => $empresaId];
 
         if ($search !== '') {
-            $sql .= " AND (codigo_externo LIKE :search OR nombre LIKE :search OR descripcion LIKE :search)";
-            $params[':search'] = "%{$search}%";
+            $sql .= " AND (codigo_externo LIKE :search1 OR nombre LIKE :search2 OR descripcion LIKE :search3)";
+            $params[':search1'] = "%{$search}%";
+            $params[':search2'] = "%{$search}%";
+            $params[':search3'] = "%{$search}%";
         }
 
         $stmt = $this->db->prepare($sql);
@@ -59,18 +61,27 @@ class ArticuloRepository
         return (int)$stmt->fetchColumn();
     }
 
-    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = ''): array
+    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = '', string $orderBy = 'nombre', string $orderDir = 'ASC'): array
     {
         $offset = max(0, ($page - 1) * $limit);
         $sql = "SELECT * FROM articulos WHERE empresa_id = :empresa_id";
         $params = [':empresa_id' => $empresaId];
 
         if ($search !== '') {
-            $sql .= " AND (codigo_externo LIKE :search OR nombre LIKE :search OR descripcion LIKE :search)";
-            $params[':search'] = "%{$search}%";
+            $sql .= " AND (codigo_externo LIKE :search1 OR nombre LIKE :search2 OR descripcion LIKE :search3)";
+            $params[':search1'] = "%{$search}%";
+            $params[':search2'] = "%{$search}%";
+            $params[':search3'] = "%{$search}%";
         }
 
-        $sql .= " ORDER BY nombre ASC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+        // Whitelist ordering
+        $allowedColumns = ['codigo_externo', 'nombre', 'precio_lista_1', 'precio_lista_2', 'stock_actual', 'activo', 'fecha_ultima_sync'];
+        if (!in_array($orderBy, $allowedColumns)) {
+            $orderBy = 'nombre';
+        }
+        $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
+
+        $sql .= " ORDER BY {$orderBy} {$orderDir} LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -149,7 +160,7 @@ class ArticuloRepository
             return 0;
         }
 
-        $sql = "UPDATE articulos SET {$columna} = :precio WHERE codigo_externo = :sku AND empresa_id = :empresa_id";
+        $sql = "UPDATE articulos SET {$columna} = :precio, fecha_ultima_sync = NOW() WHERE codigo_externo = :sku AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':precio' => $precio,
@@ -162,7 +173,7 @@ class ArticuloRepository
 
     public function updateStock(string $sku, float $saldo, int $empresaId): int
     {
-        $sql = "UPDATE articulos SET stock_actual = :saldo WHERE codigo_externo = :sku AND empresa_id = :empresa_id";
+        $sql = "UPDATE articulos SET stock_actual = :saldo, fecha_ultima_sync = NOW() WHERE codigo_externo = :sku AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':saldo' => $saldo,
