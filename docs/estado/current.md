@@ -8,8 +8,8 @@
 
 ## módulos tocados
 
-* módulo: tango (Extirpación de Mock Fallbacks, Header System adaptado a Company e ApiAuthorization).
-* módulo: **articulos** (Purga transaccional de registros contaminados, Grilla refleja 100% cloud).
+* módulo: tango (Extirpación Mock, Refactor Cliente Connect endpoint `Get?process=87` & Paginación Interna Cero).
+* módulo: **articulos** (Mapper adaptado al Array Tango Nativo, limpieza transaccional de registros contaminados).
 * módulo: empresa_config (Adición de Columna Empresa ID de Connect, Refactoreo Service).
 
 ## decisiones

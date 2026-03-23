@@ -8,7 +8,7 @@ class Articulo
     public string $codigo_externo;
     public string $nombre;
     public ?string $descripcion = null;
-    public float $precio = 0.00;
+    public ?float $precio = null;
     public int $activo = 1;
     public ?string $fecha_ultima_sync = null;
 }

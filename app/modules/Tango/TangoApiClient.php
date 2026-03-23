@@ -33,16 +33,21 @@ class TangoApiClient
     }
 
     /**
-     * Devuelve el listado crudo de articulos desde la API
+     * Extrae el Listado de Artículos desde Tango Connect /Api/Get?process=87
+     * Implementa la paginación nativa basada en pageIndex (0-index).
      */
-    public function getArticulos(int $page = 1): array
+    public function getArticulos(int $page = 1, int $pageSize = 50): array
     {
-        // Enlace Conceptual de Connect Paginado
-        $endpoint = 'GetByFilter'; 
-        return $this->client->get($endpoint, [
-            'process' => 'Articulos',
-            'view' => 'Default',
-            'page' => $page
-        ]);
+        // El endpoint literal reportado operativo por Jefatura
+        $endpoint = '/Api/Get';
+        
+        $params = [
+            'process' => 87,
+            'pageSize' => $pageSize,
+            'pageIndex' => max(0, $page - 1),
+            'view' => ''
+        ];
+
+        return $this->client->get($endpoint, $params);
     }
 }

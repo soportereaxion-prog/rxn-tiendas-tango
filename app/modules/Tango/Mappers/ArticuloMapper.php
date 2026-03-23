@@ -7,25 +7,46 @@ use App\Modules\Articulos\Articulo;
 class ArticuloMapper
 {
     /**
-     * Mapeador Resiliente frente a los Keys del Payload Connect
+     * Convierte el Arreglo Diccionario Dinámico de Axoft Connect [process=87]
+     * a nuestra Entidad Articulo.
      */
-    public static function fromConnectJson(array $item, int $empresaId): ?Articulo
+    public static function fromConnectJson(array $data, int $empresaId): ?Articulo
     {
-        // Tango Connect suele retornar Code / SKUCode
-        $sku = $item['SKUCode'] ?? $item['Code'] ?? $item['codigo'] ?? null;
-        if (empty($sku)) {
-            return null; // Omitimos descartes o payloads estériles
+        // Identificadores base según el payload real del Process 87
+        // COD_STA11 (código de producto/SKU), DESCRIPCIO (Nombre), SINONIMO (Descripción larga opcional)
+        $codigoExterno = $data['COD_STA11'] ?? null;
+        $nombre = $data['DESCRIPCIO'] ?? null;
+        
+        if (empty($codigoExterno) || empty($nombre)) {
+            return null; // Imposible procesar sin clave o nombre
         }
 
-        $art = new Articulo();
-        $art->empresa_id = $empresaId;
-        $art->codigo_externo = trim((string)$sku);
+        $articulo = new Articulo();
+        $articulo->empresa_id = $empresaId;
         
-        $art->nombre = trim((string)($item['Description'] ?? $item['Name'] ?? $item['nombre'] ?? 'Articulo ID '.$sku));
-        $art->descripcion = $item['AdditionalDescription'] ?? $item['descripcion'] ?? null;
-        $art->precio = (float)($item['Price'] ?? $item['precio'] ?? 0);
-        $art->activo = 1; // Asumimos vigencia tras arribar desde el endpoint centralizado
+        // Limpiamos espacios que la API vieja de Tango suele dejar (CHAR(15) etc)
+        $articulo->codigo_externo = trim((string)$codigoExterno);
+        $articulo->nombre = trim((string)$nombre);
+        $articulo->descripcion = !empty($data['SINONIMO']) ? trim((string)$data['SINONIMO']) : null;
+        
+        // Mapeo defensivo del Precio
+        // Buscamos PRICE, PRECIO, o equivalentes en el diccionario
+        $precioBruto = $data['PRECIO'] ?? $data['PRICE'] ?? $data['PRECIO_VENTA'] ?? null;
+        if ($precioBruto !== null && is_numeric($precioBruto)) {
+            $articulo->precio = (float) $precioBruto;
+        } else {
+            $articulo->precio = null; // No inventarlo
+        }
+        
+        // Tolerancia a campos booleanos o flags 1/0
+        $activoFlag = $data['ACTIVO'] ?? $data['HABILITADO'] ?? null;
+        if ($activoFlag !== null) {
+            $articulo->activo = in_array(strtoupper((string)$activoFlag), ['1', 'S', 'Y', 'TRUE', 'V', 'SI'], true) ? 1 : 0;
+        } else {
+            // Asumimos activo por default al sincronizarse si no especifica baja lógica
+            $articulo->activo = 1; 
+        }
 
-        return $art;
+        return $articulo;
     }
 }

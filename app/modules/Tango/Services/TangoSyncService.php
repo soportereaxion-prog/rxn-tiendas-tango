@@ -43,8 +43,13 @@ class TangoSyncService
 
             // Manejo dinámico del Envelope de respuesta según el estándar paginado de Connect
             $items = is_array($dto->payload) ? $dto->payload : [];
-            if (isset($items['Data'])) $items = $items['Data']; 
-            if (isset($items['data'])) $items = $items['data'];
+            if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
+                $items = $items['resultData']['list'];
+            } elseif (isset($items['Data']) && is_array($items['Data'])) {
+                $items = $items['Data']; 
+            } elseif (isset($items['data']) && is_array($items['data'])) {
+                $items = $items['data'];
+            }
 
             $stats['recibidos'] = count($items);
 
