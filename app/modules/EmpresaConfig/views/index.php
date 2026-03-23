@@ -90,9 +90,10 @@
                                     value="<?= htmlspecialchars($old['lista_precio_2'] ?? ($config->lista_precio_2 ?? '')) ?>" placeholder="Ej: 2">
                         </div>
                         <div class="col-md-4 mb-4">
-                            <label for="deposito_codigo" class="form-label">Cód. Depósito Stock</label>
-                            <input type="text" class="form-control" id="deposito_codigo" name="deposito_codigo" maxlength="2"
-                                    value="<?= htmlspecialchars($old['deposito_codigo'] ?? ($config->deposito_codigo ?? '')) ?>" placeholder="Ej: 1 o A ">
+                            <label for="deposito_codigo" class="form-label text-danger fw-bold">ID Depósito (Connect)</label>
+                            <input type="text" class="form-control border-danger" id="deposito_codigo" name="deposito_codigo" maxlength="2"
+                                    value="<?= htmlspecialchars($old['deposito_codigo'] ?? ($config->deposito_codigo ?? '')) ?>" placeholder="Ej: 1">
+                            <div class="form-text text-danger" style="font-size: 0.8rem;">⚠️ Usá el ID numérico de Tango (ID_STA22), NO el código alfanumérico (00). Ej: 1 para Depo Central.</div>
                         </div>
                     </div>
 
