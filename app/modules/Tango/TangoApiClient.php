@@ -67,4 +67,20 @@ class TangoApiClient
 
         return $this->client->get($endpoint, $params);
     }
+    /**
+     * Extrae el Listado de Stock desde Tango Connect /Api/GetApiLiveQueryData?process=17668
+     */
+    public function getStock(int $page = 1, int $pageSize = 100): array
+    {
+        $endpoint = '/Api/GetApiLiveQueryData';
+        
+        $params = [
+            'process' => 17668,
+            'customQuery' => 0,
+            'pageSize' => $pageSize,
+            'pageIndex' => max(0, $page - 1)
+        ];
+
+        return $this->client->get($endpoint, $params);
+    }
 }

@@ -166,4 +166,77 @@ class TangoSyncService
             throw $e; 
         }
     }
+
+    public function syncStock(): array
+    {
+        $empresaId = Context::getEmpresaId();
+        if (!$empresaId) {
+            throw new \RuntimeException("Sincronización abortada: Sin empresa activa en sesión.");
+        }
+
+        $configService = new \App\Modules\EmpresaConfig\EmpresaConfigService();
+        $config = $configService->getConfig();
+        $deposito = $config->deposito_codigo;
+
+        if ($deposito === null || $deposito === '') {
+            throw new \RuntimeException("Sincronización abortada: No hay Depósito (deposito_codigo) configurado para esta Empresa.");
+        }
+
+        $logId = $this->logRepo->startLog((int)$empresaId, 'STOCK');
+        $stats = ['recibidos' => 0, 'actualizados' => 0, 'omitidos' => 0, 'sin_match' => 0];
+
+        try {
+            $dto = $this->tangoService->fetchStock();
+
+            if (!$dto->isSuccess) {
+                throw new \App\Infrastructure\Exceptions\HttpException("Respuesta fallida/rebotada desde Tango Process 17668: " . $dto->errorMessage);
+            }
+
+            $items = is_array($dto->payload) ? $dto->payload : [];
+            if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
+                $items = $items['resultData']['list'];
+            } elseif (isset($items['Data']) && is_array($items['Data'])) {
+                $items = $items['Data']; 
+            } elseif (isset($items['data']) && is_array($items['data'])) {
+                $items = $items['data'];
+            }
+
+            $stats['recibidos'] = count($items);
+
+            foreach ($items as $item) {
+                // Parseo defensivo
+                $sku = (string)($item['COD_ARTICULO'] ?? '');
+                $depositoId = (string)($item['ID_STA22'] ?? ''); // Payload Connect usa ID_STA22 como referencia
+                $saldo = $item['SALDO_CONTROL_STOCK'] ?? null;
+
+                if ($sku === '' || $depositoId === '' || !is_numeric($saldo)) {
+                    $stats['omitidos']++; 
+                    continue;
+                }
+
+                // El configurador de usuario es string de hasta 2 chars: macheamos contra el ID_STA22 string.
+                // EJ: si ID_STA22 es "1" y configuraron "1", entra acá.
+                if ($depositoId !== (string)$deposito) {
+                    $stats['omitidos']++;
+                    continue; // Stock es de otro depósito, no me interesa para esta tienda
+                }
+
+                // Ejecutar macheo silencioso via SQL Update 
+                $affected = $this->articuloRepo->updateStock($sku, (float)$saldo, (int)$empresaId);
+                
+                if ($affected > 0) {
+                    $stats['actualizados']++;
+                } else {
+                    $stats['sin_match']++; 
+                }
+            }
+
+            $this->logRepo->endLog($logId, $stats, 'SUCCESS');
+            return $stats;
+
+        } catch (\Exception $e) {
+            $this->logRepo->endLog($logId, $stats, 'ERROR', $e->getMessage());
+            throw $e; 
+        }
+    }
 }

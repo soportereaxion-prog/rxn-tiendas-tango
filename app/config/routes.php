@@ -37,6 +37,7 @@ return function (Router $router): void {
     // --- MÓDULO TANGO CONNECT ---
     $router->get('/mi-empresa/sync/articulos', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncArticulos']);
     $router->get('/mi-empresa/sync/precios', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncPrecios']);
+    $router->get('/mi-empresa/sync/stock', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncStock']);
     
     // --- MÓDULO ARTÍCULOS ---
     $router->get('/mi-empresa/articulos', [new \App\Modules\Articulos\ArticuloController(), 'index']);

@@ -23,16 +23,20 @@ class ArticuloController extends Controller
         
         $search = trim($_GET['search'] ?? '');
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $limit = 50;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+        if (!in_array($limit, [25, 50, 100])) {
+            $limit = 50;
+        }
 
         $totalItems = $this->repository->countAll($empresaId, $search);
-        $totalPages = ceil($totalItems / $limit);
+        $totalPages = ceil($totalItems / $limit) ?: 1;
         $articulos = $this->repository->findAllPaginated($empresaId, $page, $limit, $search);
         
         View::render('app/modules/Articulos/views/index.php', [
             'articulos' => $articulos,
             'search' => $search,
             'page' => $page,
+            'limit' => $limit,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems
         ]);

@@ -79,15 +79,20 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="lista_precio_1" class="form-label">ID Lista de Precio 1</label>
+                        <div class="col-md-4 mb-3">
+                            <label for="lista_precio_1" class="form-label">Lista de Precio 1</label>
                             <input type="text" class="form-control" id="lista_precio_1" name="lista_precio_1"
                                     value="<?= htmlspecialchars($old['lista_precio_1'] ?? ($config->lista_precio_1 ?? '')) ?>" placeholder="Ej: 1">
                         </div>
-                        <div class="col-md-6 mb-4">
-                            <label for="lista_precio_2" class="form-label">ID Lista de Precio 2</label>
+                        <div class="col-md-4 mb-4">
+                            <label for="lista_precio_2" class="form-label">Lista de Precio 2</label>
                             <input type="text" class="form-control" id="lista_precio_2" name="lista_precio_2"
                                     value="<?= htmlspecialchars($old['lista_precio_2'] ?? ($config->lista_precio_2 ?? '')) ?>" placeholder="Ej: 2">
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <label for="deposito_codigo" class="form-label">Cód. Depósito Stock</label>
+                            <input type="text" class="form-control" id="deposito_codigo" name="deposito_codigo" maxlength="2"
+                                    value="<?= htmlspecialchars($old['deposito_codigo'] ?? ($config->deposito_codigo ?? '')) ?>" placeholder="Ej: 1 o A ">
                         </div>
                     </div>
 

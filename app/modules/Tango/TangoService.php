@@ -93,4 +93,24 @@ class TangoService
 
         return $dto;
     }
+    /**
+     * Extrae diccionario de stock
+     */
+    public function fetchStock(int $page = 1): TangoResponseDTO
+    {
+        $dto = new TangoResponseDTO();
+        
+        try {
+            $response = $this->apiClient->getStock($page, $this->syncAmount);
+
+            $dto->isSuccess = ($response['status'] >= 200 && $response['status'] < 300);
+            $dto->payload = $response['data'] ?? [];
+
+        } catch (\Exception $e) {
+            $dto->isSuccess = false;
+            $dto->errorMessage = $e->getMessage();
+        }
+
+        return $dto;
+    }
 }

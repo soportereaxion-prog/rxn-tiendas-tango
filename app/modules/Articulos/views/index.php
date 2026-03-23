@@ -45,6 +45,7 @@
                         <form action="/rxnTiendasIA/public/mi-empresa/articulos/purgar" method="POST" class="d-inline" onsubmit="return confirm('⚠️ ATENCIÓN: Esta acción purgará ABSOLUTAMENTE TODO EL CATÁLOGO de tu empresa. Deberás volver a sincronizar. ¿Deseas continuar?');">
                             <button type="submit" class="btn btn-danger btn-sm fw-bold shadow-sm">🗑️ Purgar Todo</button>
                         </form>
+                        <a href="/rxnTiendasIA/public/mi-empresa/sync/stock" class="btn btn-outline-info btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar Sincronización de STOCK (Process 17668)?');">⟲ Sync Stock</a>
                         <a href="/rxnTiendasIA/public/mi-empresa/sync/precios" class="btn btn-outline-success btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar una Petición de Sincronización de PRECIOS (Process 20091)? Esta operación sobre escribirá los precios vigentes según las Listas Configuradas.');">⟲ Sync Precios (L1/L2)</a>
                         <a href="/rxnTiendasIA/public/mi-empresa/sync/articulos" class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar Sincronización del MAESTRO DE ARTÍCULOS (Process 87)? Esta operación puede demorar según tu cuota.');">⟲ Sync Artículos</a>
                     </div>
@@ -55,7 +56,12 @@
                         <button type="submit" class="btn btn-outline-danger btn-sm">🗑️ Eliminar Seleccionados</button>
                     </form>
                     
-                    <form action="/rxnTiendasIA/public/mi-empresa/articulos" method="GET" class="d-flex" style="width: 300px;">
+                    <form action="/rxnTiendasIA/public/mi-empresa/articulos" method="GET" class="d-flex" style="width: 400px;">
+                        <select name="limit" class="form-select form-select-sm border-info me-2" style="width: 80px;" onchange="this.form.submit()">
+                            <option value="25" <?= $limit === 25 ? 'selected' : '' ?>>25</option>
+                            <option value="50" <?= $limit === 50 ? 'selected' : '' ?>>50</option>
+                            <option value="100" <?= $limit === 100 ? 'selected' : '' ?>>100</option>
+                        </select>
                         <input type="text" name="search" class="form-control form-control-sm border-info me-2" placeholder="🔎 Buscar por código o desc..." value="<?= htmlspecialchars((string)$search) ?>">
                         <button type="submit" class="btn btn-info btn-sm text-white">Buscar</button>
                     </form>
@@ -72,6 +78,7 @@
                                     <th>Descripción Adicional</th>
                                     <th class="text-nowrap">P. L1 ($)</th>
                                     <th class="text-nowrap">P. L2 ($)</th>
+                                    <th>Stock</th>
                                     <th>Estado</th>
                                     <th>Última Sincro</th>
                                     <th>Acciones</th>
@@ -95,6 +102,7 @@
                                             <td class="text-wrap" style="max-width: 200px;"><small class="text-muted"><?= htmlspecialchars((string)($art['descripcion'] ?? '---')) ?></small></td>
                                             <td class="fw-semibold text-primary text-nowrap">$<?= $art['precio_lista_1'] !== null ? number_format((float)$art['precio_lista_1'], 2, ',', '.') : '--' ?></td>
                                             <td class="fw-semibold text-success text-nowrap">$<?= $art['precio_lista_2'] !== null ? number_format((float)$art['precio_lista_2'], 2, ',', '.') : '--' ?></td>
+                                            <td class="fw-bold text-nowrap"><?= $art['stock_actual'] !== null ? (float)$art['stock_actual'] : '--' ?></td>
                                             <td>
                                                 <?php if($art['activo']): ?>
                                                     <span class="badge bg-success bg-opacity-75">Activo</span>
@@ -118,15 +126,15 @@
                 <nav class="mt-4">
                     <ul class="pagination justify-content-center pagination-sm">
                         <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode((string)$search) ?>">Anterior</a>
+                            <a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>">Anterior</a>
                         </li>
                         <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
                         <li class="page-item <?= ($i === $page) ? 'active' : '' ?>">
-                            <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode((string)$search) ?>"><?= $i ?></a>
+                            <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>"><?= $i ?></a>
                         </li>
                         <?php endfor; ?>
                         <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode((string)$search) ?>">Siguiente</a>
+                            <a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode((string)$search) ?>&limit=<?= $limit ?>">Siguiente</a>
                         </li>
                     </ul>
                 </nav>

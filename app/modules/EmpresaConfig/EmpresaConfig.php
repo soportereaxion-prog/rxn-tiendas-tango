@@ -18,6 +18,7 @@ class EmpresaConfig
     public int $cantidad_articulos_sync = 50;
     public ?string $lista_precio_1 = null;
     public ?string $lista_precio_2 = null;
+    public ?string $deposito_codigo = null;
     public ?string $created_at = null;
     public ?string $updated_at = null;
 }

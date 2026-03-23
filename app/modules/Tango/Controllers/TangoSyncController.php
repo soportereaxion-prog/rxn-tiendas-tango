@@ -50,4 +50,22 @@ class TangoSyncController extends Controller
             exit;
         }
     }
+
+    public function syncStock(): void
+    {
+        AuthService::requireLogin();
+        
+        try {
+            $stats = $this->syncService->syncStock();
+            
+            \App\Core\Flash::set('success', 'Sincronización de Stock finalizada exitosamente.', $stats);
+            header('Location: /rxnTiendasIA/public/mi-empresa/articulos');
+            exit;
+            
+        } catch (\Exception $e) {
+            \App\Core\Flash::set('danger', 'Error de Sincronización de Stock: ' . $e->getMessage());
+            header('Location: /rxnTiendasIA/public/mi-empresa/articulos');
+            exit;
+        }
+    }
 }

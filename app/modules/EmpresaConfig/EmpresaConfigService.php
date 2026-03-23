@@ -71,6 +71,7 @@ class EmpresaConfigService
         
         $config->lista_precio_1 = !empty($data['lista_precio_1']) ? trim($data['lista_precio_1']) : null;
         $config->lista_precio_2 = !empty($data['lista_precio_2']) ? trim($data['lista_precio_2']) : null;
+        $config->deposito_codigo = !empty($data['deposito_codigo']) ? mb_substr(trim($data['deposito_codigo']), 0, 2) : null;
         
         // Solo sobrescribimos token si viene en el post con info nueva para no purgar uno existente por descuido
         if (isset($data['tango_connect_token']) && $data['tango_connect_token'] !== '') {

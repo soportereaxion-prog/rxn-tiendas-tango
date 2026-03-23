@@ -159,4 +159,17 @@ class ArticuloRepository
         
         return $stmt->rowCount();
     }
+
+    public function updateStock(string $sku, float $saldo, int $empresaId): int
+    {
+        $sql = "UPDATE articulos SET stock_actual = :saldo WHERE codigo_externo = :sku AND empresa_id = :empresa_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':saldo' => $saldo,
+            ':sku' => $sku,
+            ':empresa_id' => $empresaId
+        ]);
+        
+        return $stmt->rowCount();
+    }
 }
