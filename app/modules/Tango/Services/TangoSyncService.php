@@ -125,8 +125,8 @@ class TangoSyncService
             $stats['recibidos'] = count($items);
 
             foreach ($items as $item) {
-                // Parseo defensivo y limpieza de strings como la API vieja de Tango estila (con espacios char15)
-                $sku = trim((string)($item['COD_STA11'] ?? ''));
+                // Parseo defensivo sin limpiar los espacios originales del SKU
+                $sku = (string)($item['COD_STA11'] ?? '');
                 $nroLista = (string)($item['NRO_DE_LIS'] ?? '');
                 $precioBruto = $item['PRECIO'] ?? null;
 

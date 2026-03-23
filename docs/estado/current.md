@@ -18,10 +18,10 @@
 * Se escindió la lógica de Redes fuera de la lógica de Dominios. 
 * El orquestador responsable de mezclar Contexto de Empresa con variables de Peticiones REST recaerá puramente en el `Service` de la entidad correspondiente (`TangoService`), nunca en el Controlador, logrando controladores livianos.
 * Se instaló política de composición en lugar de Herencia para el HTTP Client. Las reglas de infra emplearán excepciones semánticas (ConfigurationException, ConnectionException, etc.).
-* Se implementó el Patrón Mapper para decodificar los Arrays JSON crudos que arroja Connect, aislándolos de la entidad Artículo pura.
+* Se implementó el Patrón Mapper para decodificar los Arrays JSON crudos* Se materializó la tabla `tango_sync_logs` para brindar trazabilidad forense a las integraciones masivas.
 * La inserción de base de datos de los Artículos se maneja mediante `ON DUPLICATE KEY UPDATE` garantizando idempotencia directa desde MariaDB.
-* La Sincronización de **Precios (Process 20091)** se incrustó sobre los propios `Artículos` sumando las directivas configurables `lista_precio_1` y `2`. Esto descarta la necesidad forzosa de un módulo Satélite y hace a los precios resilentes a Fallas (Actualizan Vía Silenciosa con matching de SKUs).
-* Jamás se versionan secretos: La Inyección del Test de Vuelo se efectuó vía Script Volátil ya purgado.
+* La Sincronización de **Precios (Process 20091)** se incrustó sobre los propios `Artículos` sumando las directivas configurables `lista_precio_1` y `2`. Esto descarta la necesidad de módulos Satélites y es resilente actualizando `precio_lista_X` mediante matching directo por SQL.
+* Jamás se usarán alteradores (`trim()`, substrings o espaciados artificiales) bajo la llave unívoca `COD_STA11`. El esquema se almacena intacto en `codigo_externo`.
 
 ## riesgos
 

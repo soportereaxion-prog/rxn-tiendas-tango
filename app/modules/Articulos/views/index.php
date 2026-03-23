@@ -48,8 +48,11 @@
                 </div>
                 
                 <form action="/rxnTiendasIA/public/mi-empresa/articulos/eliminar-masivo" method="POST" onsubmit="return confirm('¿Confirma eliminar todos los elementos seleccionados permanentemente?');">
-                    <div class="mb-3">
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
                         <button type="submit" class="btn btn-outline-danger btn-sm">🗑️ Eliminar Seleccionados</button>
+                        <div style="width: 300px;">
+                            <input type="text" id="searchInput" class="form-control form-control-sm border-info" placeholder="🔎 Buscar por código o desc..." onkeyup="filterTable()">
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -106,5 +109,31 @@
             </div>
         </div>
     </div>
+
+    <script>
+    function filterTable() {
+        let input = document.getElementById("searchInput").value.toLowerCase();
+        let table = document.querySelector(".table tbody");
+        if (!table) return;
+        let rows = table.getElementsByTagName("tr");
+        
+        // Skip fallback empty row
+        if (rows.length === 1 && rows[0].getElementsByTagName("td")[0].colSpan > 1) return;
+
+        for (let i = 0; i < rows.length; i++) {
+            let cells = rows[i].getElementsByTagName("td");
+            if (cells.length > 3) {
+                let sku = cells[1].innerText.toLowerCase();
+                let desc = cells[2].innerText.toLowerCase();
+                
+                if (sku.includes(input) || desc.includes(input)) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    }
+    </script>
 </body>
 </html>

@@ -24,8 +24,8 @@ class ArticuloMapper
         $articulo = new Articulo();
         $articulo->empresa_id = $empresaId;
         
-        // Limpiamos espacios que la API vieja de Tango suele dejar (CHAR(15) etc)
-        $articulo->codigo_externo = trim((string)$codigoExterno);
+        // Conservamos fielmente los espacios que la API de Tango deja en el COD_STA11 para no quebrar las primary_keys lógicas
+        $articulo->codigo_externo = (string)$codigoExterno;
         $articulo->nombre = trim((string)$nombre);
         $articulo->descripcion = !empty($data['SINONIMO']) ? trim((string)$data['SINONIMO']) : null;
         
