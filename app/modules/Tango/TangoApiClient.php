@@ -32,7 +32,12 @@ class TangoApiClient
      */
     public function getArticulos(int $page = 1): array
     {
-        $endpoint = 'api/v1/articulos'; // Placeholder contract
-        return $this->client->get($endpoint, ['page' => $page]);
+        // Enlace Conceptual de Connect Paginado
+        $endpoint = 'GetByFilter'; 
+        return $this->client->get($endpoint, [
+            'process' => 'Articulos',
+            'view' => 'Default',
+            'page' => $page
+        ]);
     }
 }

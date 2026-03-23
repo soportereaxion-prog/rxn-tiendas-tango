@@ -36,6 +36,9 @@ return function (Router $router): void {
 
     // --- MÓDULO TANGO CONNECT ---
     $router->get('/mi-empresa/sync/articulos', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncArticulos']);
+    
+    // --- MÓDULO ARTÍCULOS ---
+    $router->get('/mi-empresa/articulos', [new \App\Modules\Articulos\ArticuloController(), 'index']);
 
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {

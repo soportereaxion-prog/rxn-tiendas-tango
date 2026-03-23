@@ -43,4 +43,15 @@ class ArticuloRepository
             'affected_rows' => $stmt->rowCount()
         ];
     }
+
+    /**
+     * Trae el catalogo general por licenciatario
+     */
+    public function findAll(int $empresaId): array
+    {
+        $sql = "SELECT * FROM articulos WHERE empresa_id = :empresa_id ORDER BY nombre ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':empresa_id' => $empresaId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

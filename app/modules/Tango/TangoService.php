@@ -35,8 +35,14 @@ class TangoService
         $clientKey = $config->tango_connect_key ?? null;
         $apiToken = $config->tango_connect_token ?? null;
 
-        if (empty($apiUrl) || empty($apiToken) || empty($clientKey)) {
-            throw new \App\Infrastructure\Exceptions\ConfigurationException("Módulos API Tango Incompletos: Claves mandatorias (Token, Key o URL) no encontradas para la Empresa $empresaId.");
+        if (empty($clientKey) || empty($apiToken)) {
+            throw new \App\Infrastructure\Exceptions\ConfigurationException("Módulos API Tango Incompletos: Claves mandatorias (Token, Key) no encontradas para la Empresa $empresaId.");
+        }
+
+        // Armar el Host a base de la convención de Connect si no se forzó una variante local
+        if (empty($apiUrl)) {
+            $keyDash = str_replace('/', '-', $clientKey);
+            $apiUrl = "https://{$keyDash}.connect.axoft.com/Api";
         }
 
         // 3. Levantar Cliente Rest inyectando config estricta por empresa

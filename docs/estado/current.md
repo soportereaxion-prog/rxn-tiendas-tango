@@ -9,8 +9,8 @@
 ## módulos tocados
 
 * módulo: core (Nombres de Autoloader alterados)
-* módulo: tango (NUEVO: Orquestador SyncService, Mapper y Endpoint Controlador)
-* módulo: **articulos** (NUEVO: Repositorio Upsert Idempotente y Entidad DB)
+* módulo: tango (Orquestador SyncService adaptado a hosts dinámicos deducidos por llaves).
+* módulo: **articulos** (NUEVO: Controlador Web, Repositorio Upsert Idempotente, Vista de Tabla Local Catalográfica)
 * módulo: empresa_config (AMPLIADO: Se integró UI con enmascaramiento JS para guardar credenciales Connect)
 
 ## decisiones
