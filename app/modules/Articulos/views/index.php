@@ -20,6 +20,23 @@
             <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary">← Volver al Panel</a>
         </div>
 
+        <?php $flash = \App\Core\Flash::get(); ?>
+        <?php if ($flash): ?>
+            <div class="alert alert-<?= htmlspecialchars((string)$flash['type']) ?> alert-dismissible fade show shadow-sm" role="alert">
+                <strong><?= $flash['type'] === 'success' ? '✔' : '⚠️' ?></strong> <?= htmlspecialchars((string)$flash['message']) ?>
+                
+                <?php if (!empty($flash['stats'])): ?>
+                    <ul class="mb-0 mt-2 fs-6">
+                        <li>Recibidos en Capa de Red: <b class="text-primary"><?= (int)($flash['stats']['recibidos'] ?? 0) ?></b></li>
+                        <li>Nuevos Localmente: <b class="text-success"><?= (int)($flash['stats']['insertados'] ?? 0) ?></b></li>
+                        <li>Actualizados: <b class="text-info"><?= (int)($flash['stats']['actualizados'] ?? 0) ?></b></li>
+                        <li>Omitidos (Limpieza Mapper): <b class="text-secondary"><?= (int)($flash['stats']['omitidos'] ?? 0) ?></b></li>
+                    </ul>
+                <?php endif; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="card">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">

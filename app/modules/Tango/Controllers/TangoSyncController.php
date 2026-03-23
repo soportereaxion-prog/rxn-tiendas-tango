@@ -22,21 +22,14 @@ class TangoSyncController extends Controller
         try {
             $stats = $this->syncService->syncArticulos();
             
-            // Renderizamos un array en pantalla temporalmente para la UI operativa de esta validacion
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'message' => 'Sincronización de artículos finalizada.',
-                'stats' => $stats
-            ]);
+            \App\Core\Flash::set('success', 'Sincronización finalizada exitosamente.', $stats);
+            header('Location: /rxnTiendasIA/public/mi-empresa/articulos');
+            exit;
             
         } catch (\Exception $e) {
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
+            \App\Core\Flash::set('danger', 'Error de Sincronización: ' . $e->getMessage());
+            header('Location: /rxnTiendasIA/public/mi-empresa/articulos');
+            exit;
         }
     }
 }

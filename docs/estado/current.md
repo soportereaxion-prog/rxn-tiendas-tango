@@ -8,8 +8,9 @@
 
 ## módulos tocados
 
-* módulo: tango (Extirpación Mock, Refactor Cliente Connect endpoint `Get?process=87` & Paginación Interna Cero). Limitador `$pageSize` acoplado desde la base local.
-* módulo: **articulos** (Semántica visual conectada, Selectores de Eliminación Masiva Protegidos y CRUD Form de Ediciones).
+* módulo: **core** (Creación del Session Helper estático `Flash` para notificaciones asíncronas).
+* módulo: tango (Controladores de Sincronización derivan a Vistas HTML usando Sess-States en vez de volcar JSON crudo).
+* módulo: articulos (Incorporación de Toast Alerts a la grilla para capturar los Resultados Flash tras una Sincronización).
 * módulo: empresa_config (Configuración Inyectada `cantidad_articulos_sync` al Core de Base de Datos y UI).
 
 ## decisiones
