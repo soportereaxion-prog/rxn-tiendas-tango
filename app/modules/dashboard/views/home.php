@@ -16,13 +16,18 @@
             <h1 class="display-5 fw-bold">Bienvenido a rxnTiendasIA</h1>
             <p class="lead text-muted mb-4">Plataforma central de administración multiempresa.</p>
             
-            <div class="d-flex justify-content-center gap-3">
-                <a href="/rxnTiendasIA/public/empresas" class="btn btn-primary btn-lg px-4">
-                    🏢 Módulo Empresas
-                </a>
-                <a href="/rxnTiendasIA/public/test-db" class="btn btn-outline-secondary btn-lg px-4">
-                    🔌 Probar DB
-                </a>
+            <div class="d-flex justify-content-center gap-3 mt-5">
+                <div class="card p-4 shadow-sm border-0 bg-light" style="width: 280px;">
+                    <h5 class="text-secondary fw-bold">🏢 RXN Backoffice</h5>
+                    <p class="small text-muted mb-4">Administración global de licenciatarios.</p>
+                    <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-dark w-100 mt-auto">Listado de Empresas</a>
+                </div>
+                
+                <div class="card p-4 shadow-sm border-0 bg-primary text-white" style="width: 280px;">
+                    <h5 class="fw-bold">🚀 Entorno Operativo</h5>
+                    <p class="small text-light mb-4 text-opacity-75">Tu propio punto de venta y gestión.</p>
+                    <a href="/rxnTiendasIA/public/mi-empresa/configuracion" class="btn btn-light text-primary fw-bold w-100 mt-auto">Ir a Mi Configuración</a>
+                </div>
             </div>
         </div>
     </div>
