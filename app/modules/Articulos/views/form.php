@@ -38,10 +38,27 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="precio" class="form-label">Precio Vigente Local</label>
+                        <label for="precio" class="form-label">Precio Vigente Local (Histórico)</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input type="number" step="0.01" class="form-control" id="precio" name="precio" value="<?= $articulo->precio !== null ? htmlspecialchars((string)$articulo->precio) : '' ?>">
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="precio_lista_1" class="form-label text-primary fw-bold">Importe Lista 1</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">$</span>
+                                <input type="number" step="0.01" class="form-control" id="precio_lista_1" name="precio_lista_1" value="<?= $articulo->precio_lista_1 !== null ? htmlspecialchars((string)$articulo->precio_lista_1) : '' ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="precio_lista_2" class="form-label text-success fw-bold">Importe Lista 2</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">$</span>
+                                <input type="number" step="0.01" class="form-control" id="precio_lista_2" name="precio_lista_2" value="<?= $articulo->precio_lista_2 !== null ? htmlspecialchars((string)$articulo->precio_lista_2) : '' ?>">
+                            </div>
                         </div>
                     </div>
 

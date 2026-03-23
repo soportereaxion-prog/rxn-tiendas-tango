@@ -97,6 +97,8 @@ class ArticuloRepository
                 nombre = :nombre, 
                 descripcion = :descripcion, 
                 precio = :precio, 
+                precio_lista_1 = :precio_lista_1,
+                precio_lista_2 = :precio_lista_2,
                 activo = :activo 
                 WHERE id = :id AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
@@ -104,9 +106,29 @@ class ArticuloRepository
             ':nombre' => $articulo->nombre,
             ':descripcion' => $articulo->descripcion,
             ':precio' => $articulo->precio,
+            ':precio_lista_1' => $articulo->precio_lista_1,
+            ':precio_lista_2' => $articulo->precio_lista_2,
             ':activo' => $articulo->activo,
             ':id' => $articulo->id,
             ':empresa_id' => $articulo->empresa_id
         ]);
+    }
+
+    public function updatePrecioListas(string $sku, float $precio, string $columna, int $empresaId): int
+    {
+        // $columna has to be safe. It will be 'precio_lista_1' or 'precio_lista_2'.
+        if (!in_array($columna, ['precio_lista_1', 'precio_lista_2'])) {
+            return 0;
+        }
+
+        $sql = "UPDATE articulos SET {$columna} = :precio WHERE codigo_externo = :sku AND empresa_id = :empresa_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':precio' => $precio,
+            ':sku' => $sku,
+            ':empresa_id' => $empresaId
+        ]);
+        
+        return $stmt->rowCount();
     }
 }

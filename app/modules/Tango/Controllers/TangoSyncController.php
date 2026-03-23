@@ -32,4 +32,22 @@ class TangoSyncController extends Controller
             exit;
         }
     }
+
+    public function syncPrecios(): void
+    {
+        AuthService::requireLogin();
+        
+        try {
+            $stats = $this->syncService->syncPrecios();
+            
+            \App\Core\Flash::set('success', 'Sincronización de Precios finalizada exitosamente.', $stats);
+            header('Location: /rxnTiendasIA/public/mi-empresa/articulos');
+            exit;
+            
+        } catch (\Exception $e) {
+            \App\Core\Flash::set('danger', 'Error de Sincronización de Precios: ' . $e->getMessage());
+            header('Location: /rxnTiendasIA/public/mi-empresa/articulos');
+            exit;
+        }
+    }
 }

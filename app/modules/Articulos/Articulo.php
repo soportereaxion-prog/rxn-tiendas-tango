@@ -9,6 +9,8 @@ class Articulo
     public string $nombre;
     public ?string $descripcion = null;
     public ?float $precio = null;
+    public ?float $precio_lista_1 = null;
+    public ?float $precio_lista_2 = null;
     public int $activo = 1;
     public ?string $fecha_ultima_sync = null;
 }

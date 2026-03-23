@@ -76,6 +76,13 @@ class ArticuloController extends Controller
                 $articulo->descripcion = trim($_POST['descripcion'] ?? '') ?: null;
                 $precioStr = $_POST['precio'] ?? '';
                 $articulo->precio = $precioStr !== '' ? (float)$precioStr : null;
+                
+                $precioL1Str = $_POST['precio_lista_1'] ?? '';
+                $articulo->precio_lista_1 = $precioL1Str !== '' ? (float)$precioL1Str : null;
+
+                $precioL2Str = $_POST['precio_lista_2'] ?? '';
+                $articulo->precio_lista_2 = $precioL2Str !== '' ? (float)$precioL2Str : null;
+
                 $articulo->activo = isset($_POST['activo']) ? 1 : 0;
                 
                 $this->repository->update($articulo);

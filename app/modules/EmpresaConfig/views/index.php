@@ -77,6 +77,19 @@
                         <input type="number" class="form-control" id="cantidad_articulos_sync" name="cantidad_articulos_sync" min="1"
                                value="<?= htmlspecialchars((string)($old['cantidad_articulos_sync'] ?? ($config->cantidad_articulos_sync ?? 50))) ?>">
                     </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="lista_precio_1" class="form-label">ID Lista de Precio 1</label>
+                            <input type="text" class="form-control" id="lista_precio_1" name="lista_precio_1"
+                                    value="<?= htmlspecialchars($old['lista_precio_1'] ?? ($config->lista_precio_1 ?? '')) ?>" placeholder="Ej: 1">
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label for="lista_precio_2" class="form-label">ID Lista de Precio 2</label>
+                            <input type="text" class="form-control" id="lista_precio_2" name="lista_precio_2"
+                                    value="<?= htmlspecialchars($old['lista_precio_2'] ?? ($config->lista_precio_2 ?? '')) ?>" placeholder="Ej: 2">
+                        </div>
+                    </div>
 
                     <div class="mb-4">
                         <label for="tango_connect_token" class="form-label">Token de Acceso</label>

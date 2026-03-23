@@ -41,7 +41,10 @@
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <span class="badge bg-primary text-light fs-6 py-2 px-3">🛒 Total en BD Local: <?= count($articulos) ?></span>
-                    <a href="/rxnTiendasIA/public/mi-empresa/sync/articulos" class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar una Petición de Sincronización API contra los servidores de Axoft Connect? Esta operación encolará un proceso Batch.');">⟲ Forzar Sync Connect</a>
+                    <div class="d-flex gap-2">
+                        <a href="/rxnTiendasIA/public/mi-empresa/sync/precios" class="btn btn-outline-success btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar una Petición de Sincronización de PRECIOS (Process 20091)? Esta operación sobre escribirá los precios vigentes según las Listas Configuradas.');">⟲ Sync Precios (L1/L2)</a>
+                        <a href="/rxnTiendasIA/public/mi-empresa/sync/articulos" class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar Sincronización del MAESTRO DE ARTÍCULOS (Process 87)? Esta operación puede demorar según tu cuota.');">⟲ Sync Artículos</a>
+                    </div>
                 </div>
                 
                 <form action="/rxnTiendasIA/public/mi-empresa/articulos/eliminar-masivo" method="POST" onsubmit="return confirm('¿Confirma eliminar todos los elementos seleccionados permanentemente?');">
@@ -57,7 +60,8 @@
                                     <th>Código / SKU</th>
                                     <th>Descripción</th>
                                     <th>Descripción Adicional</th>
-                                    <th>Precio ($)</th>
+                                    <th>P. L1 ($)</th>
+                                    <th>P. L2 ($)</th>
                                     <th>Estado</th>
                                     <th>Última Sincro</th>
                                     <th>Acciones</th>
@@ -66,10 +70,10 @@
                             <tbody>
                                 <?php if(empty($articulos)): ?>
                                     <tr>
-                                        <td colspan="8" class="text-center py-5 text-muted">
+                                        <td colspan="9" class="text-center py-5 text-muted">
                                             <div class="mb-2">⚠️</div>
                                             El Catálogo Maestro está vacío todavía.<br>
-                                            <small>Haz clic en "Forzar Sync Connect" en el panel superior para inyectar datos reales.</small>
+                                            <small>Haz clic en "Sync Artículos" en el panel superior para inyectar datos reales.</small>
                                         </td>
                                     </tr>
                                 <?php else: ?>
@@ -79,7 +83,8 @@
                                             <td><span class="badge bg-secondary"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span></td>
                                             <td class="fw-bold text-dark"><?= htmlspecialchars((string)$art['nombre']) ?></td>
                                             <td><small class="text-muted"><?= htmlspecialchars((string)($art['descripcion'] ?? '---')) ?></small></td>
-                                            <td class="fw-semibold text-success">$<?= number_format((float)$art['precio'], 2, ',', '.') ?></td>
+                                            <td class="fw-semibold text-primary">$<?= $art['precio_lista_1'] !== null ? number_format((float)$art['precio_lista_1'], 2, ',', '.') : '--' ?></td>
+                                            <td class="fw-semibold text-success">$<?= $art['precio_lista_2'] !== null ? number_format((float)$art['precio_lista_2'], 2, ',', '.') : '--' ?></td>
                                             <td>
                                                 <?php if($art['activo']): ?>
                                                     <span class="badge bg-success bg-opacity-75">Activo</span>

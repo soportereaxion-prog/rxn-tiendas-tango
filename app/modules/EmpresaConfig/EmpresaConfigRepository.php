@@ -35,7 +35,9 @@ class EmpresaConfigRepository
                     tango_connect_key = :tango_connect_key,
                     tango_connect_token = :tango_connect_token,
                     tango_connect_company_id = :tango_connect_company_id,
-                    cantidad_articulos_sync = :cantidad_articulos_sync
+                    cantidad_articulos_sync = :cantidad_articulos_sync,
+                    lista_precio_1 = :lista_precio_1,
+                    lista_precio_2 = :lista_precio_2
                     WHERE id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -47,11 +49,13 @@ class EmpresaConfigRepository
                 ':tango_connect_token' => $config->tango_connect_token,
                 ':tango_connect_company_id' => $config->tango_connect_company_id,
                 ':cantidad_articulos_sync' => (int) $config->cantidad_articulos_sync,
+                ':lista_precio_1' => $config->lista_precio_1,
+                ':lista_precio_2' => $config->lista_precio_2,
                 ':id' => $config->id,
             ]);
         } else {
-            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync) 
-                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync)";
+            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2) 
+                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $config->empresa_id,
@@ -63,6 +67,8 @@ class EmpresaConfigRepository
                 ':tango_connect_token' => $config->tango_connect_token,
                 ':tango_connect_company_id' => $config->tango_connect_company_id,
                 ':cantidad_articulos_sync' => (int) $config->cantidad_articulos_sync,
+                ':lista_precio_1' => $config->lista_precio_1,
+                ':lista_precio_2' => $config->lista_precio_2,
             ]);
             $config->id = (int) $this->db->lastInsertId();
         }
