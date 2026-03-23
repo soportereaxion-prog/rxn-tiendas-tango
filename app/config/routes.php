@@ -27,6 +27,13 @@ return function (Router $router): void {
     $router->get('/mi-empresa/configuracion', [new \App\Modules\EmpresaConfig\EmpresaConfigController(), 'index']);
     $router->post('/mi-empresa/configuracion', [new \App\Modules\EmpresaConfig\EmpresaConfigController(), 'store']);
 
+    // --- MÓDULO USUARIOS OPERATIVOS ---
+    $router->get('/mi-empresa/usuarios', [new \App\Modules\Usuarios\UsuarioController(), 'index']);
+    $router->get('/mi-empresa/usuarios/crear', [new \App\Modules\Usuarios\UsuarioController(), 'create']);
+    $router->post('/mi-empresa/usuarios', [new \App\Modules\Usuarios\UsuarioController(), 'store']);
+    $router->get('/mi-empresa/usuarios/{id}/editar', [new \App\Modules\Usuarios\UsuarioController(), 'edit']);
+    $router->post('/mi-empresa/usuarios/{id}', [new \App\Modules\Usuarios\UsuarioController(), 'update']);
+
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
         View::render('app/modules/dashboard/views/index.php', [
