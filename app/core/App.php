@@ -8,6 +8,11 @@ class App
 {
     public static function run(): void
     {
+        // Inicializar Sesión Global
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         // Inicializar contexto base (ej: identificar empresa activa)
         Context::init();
 

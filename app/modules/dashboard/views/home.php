@@ -26,7 +26,16 @@
                 <div class="card p-4 shadow-sm border-0 bg-primary text-white" style="width: 280px;">
                     <h5 class="fw-bold">🚀 Entorno Operativo</h5>
                     <p class="small text-light mb-4 text-opacity-75">Tu propio punto de venta y gestión.</p>
-                    <a href="/rxnTiendasIA/public/mi-empresa/configuracion" class="btn btn-light text-primary fw-bold w-100 mt-auto">Ir a Mi Configuración</a>
+                    
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <div class="mt-auto">
+                            <p class="mb-2 small">👤 <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuario') ?> <br>(Empresa #<?= $_SESSION['empresa_id'] ?? '' ?>)</p>
+                            <a href="/rxnTiendasIA/public/mi-empresa/configuracion" class="btn btn-light text-primary fw-bold w-100 mb-2">Mi Configuración</a>
+                            <a href="/rxnTiendasIA/public/logout" class="btn btn-outline-light btn-sm w-100">Cerrar Sesión</a>
+                        </div>
+                    <?php else: ?>
+                        <a href="/rxnTiendasIA/public/login" class="btn btn-light text-primary fw-bold w-100 mt-auto">Iniciar Sesión</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

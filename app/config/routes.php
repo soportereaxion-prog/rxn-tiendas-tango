@@ -18,6 +18,11 @@ return function (Router $router): void {
     $router->get('/empresas/{id}/editar', [new \App\Modules\Empresas\EmpresaController(), 'edit']);
     $router->post('/empresas/{id}', [new \App\Modules\Empresas\EmpresaController(), 'update']);
 
+    // --- MÓDULO AUTH ---
+    $router->get('/login', [new \App\Modules\Auth\AuthController(), 'showLogin']);
+    $router->post('/login', [new \App\Modules\Auth\AuthController(), 'processLogin']);
+    $router->get('/logout', [new \App\Modules\Auth\AuthController(), 'logout']);
+
     // --- MÓDULO EMPRESA CONFIG ---
     $router->get('/mi-empresa/configuracion', [new \App\Modules\EmpresaConfig\EmpresaConfigController(), 'index']);
     $router->post('/mi-empresa/configuracion', [new \App\Modules\EmpresaConfig\EmpresaConfigController(), 'store']);

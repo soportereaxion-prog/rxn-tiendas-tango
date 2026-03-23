@@ -19,13 +19,21 @@ class Context
      */
     public static function init(): void
     {
-        if (isset($_GET['empresa_id']) && is_numeric($_GET['empresa_id'])) {
-            self::$empresaId = (int) $_GET['empresa_id'];
-        } else {
-            // Valor hardcodeado temporalmente.
-            // Permite que otras entidades se prueben sin romper.
-            self::$empresaId = 1;
+        // 1. Prioridad Absoluta: Sesión autenticada.
+        if (isset($_SESSION['empresa_id']) && is_numeric($_SESSION['empresa_id'])) {
+            self::$empresaId = (int) $_SESSION['empresa_id'];
+            return;
         }
+
+        // 2. Fallback temporal de desarrollo (Deshabilitado por defecto y marcado como transitorio)
+        $useDevFallback = false;
+        if ($useDevFallback && isset($_GET['empresa_id']) && is_numeric($_GET['empresa_id'])) {
+            self::$empresaId = (int) $_GET['empresa_id'];
+            return;
+        }
+
+        // 3. Fallo controlado (nulo, lo cual detonará protección en los servicios/guards)
+        self::$empresaId = null;
     }
 
     public static function getEmpresaId(): ?int

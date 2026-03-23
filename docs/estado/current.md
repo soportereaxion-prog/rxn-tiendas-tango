@@ -2,21 +2,22 @@
 
 ## módulos tocados
 
-* módulo: empresa_config (Nuevo: Fase 1 Contexto Multiempresa - Configuración activa)
-* módulo: dashboard (Inyección de menú secundario)
+* módulo: auth (Nuevo: Fase 1 Contexto Multiempresa - Sesiones y Usuarios)
+* módulo: core (Actualización radical de `App.php` y `Context.php`)
+* módulo: dashboard (Inyectada bifurcación de UI basada en Sesiones)
 
 ## decisiones
 
-* Se creó la tabla `empresa_config` (relación 1-1 con empresas a nivel conceptual, estricta UNIQUE SQL) para alojar settings del entorno.
-* Se agregó el módulo `App\Modules\EmpresaConfig` incluyendo `EmpresaConfigService` que delega la recolección del ID hacia `App\Core\Context::getEmpresaId()`.
-* **Fase 1 Contexto Operativo**: El servicio deniega operación si el Contexto no responde con un ID. Garantiza un guardado como método `UPSERT` por detrás, aislando configuraciones por empresa.
-* El Menú Home ahora presenta ramas de ruteo visible: `Administración RXN` por un lado y `Entorno Operativo` por otro.
+* Se creó la tabla `usuarios` (relación a `empresas`) con la semilla default segura `admin@empresa.test`.
+* Se inyectó globalmente el manejo de estados instalando `session_start()` al inicio de `App::run()`.
+* **Fase 1 Auth Multiempresa**: Se modificó `Context.php` prohibiendo la simulación por `$_GET` a menos que se fuerce el flag de Dev. Ahora todo recae 100% en `$_SESSION['empresa_id']`, lo cual es inyectado por el nuevo servicio central `AuthService`.
+* `EmpresaConfigController` fue bloqueado tras un Guard liviano (`AuthService::requireLogin()`), expulsando accesos directos al `/login`.
 
 ## riesgos
 
-* Las futuras entidades (productos, pedidos) deben ahora diseñarse copiando el patrón de `EmpresaConfig`.
-* Al crearse `empresa_config` bajo un MVC tan rígido, el método `store()` de los Controladores deberá manejar siempre un "Upsert" a través del Service si la entidad es de rango general único (configuración).
+* Los usuarios se generan globalmente e insertan `empresa_id` estática. Esta asignación en una futura fase de panel requerirá listbox / selector de administrador RXN.
+* La contraseña de semilla se definió de manera robusta (`RxnTest2026!`). Se insta a no deployar la DB en producción sin haber eliminado la semilla o refrescado la clave.
 
 ## próximo paso
 
-* Avanzar a módulos operativos robustos dependientes de multitenancy (ej: Usuarios por Empresa, o ABM de Productos con isolation por empresa).
+* El sistema operativo está listo y seguro para empezar a albergar funcionalidades Multi-Empresa reales (como Gestión de Productos por Empresa o Configuración de Sucursales).

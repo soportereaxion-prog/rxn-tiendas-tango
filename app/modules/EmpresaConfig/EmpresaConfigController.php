@@ -6,6 +6,7 @@ namespace App\Modules\EmpresaConfig;
 
 use App\Core\Controller;
 use App\Core\View;
+use App\Modules\Auth\AuthService;
 
 class EmpresaConfigController extends Controller
 {
@@ -13,6 +14,7 @@ class EmpresaConfigController extends Controller
 
     public function __construct()
     {
+        AuthService::requireLogin();
         $this->service = new EmpresaConfigService();
     }
 
