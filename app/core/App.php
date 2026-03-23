@@ -8,6 +8,9 @@ class App
 {
     public static function run(): void
     {
+        // Inicializar contexto base (ej: identificar empresa activa)
+        Context::init();
+
         $router = new Router();
 
         $routes = require BASE_PATH . '/app/config/routes.php';

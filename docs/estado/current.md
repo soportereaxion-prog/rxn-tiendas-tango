@@ -3,20 +3,19 @@
 ## módulos tocados
 
 * módulo: empresas (Fase 1 y Fase 2 - Alta, Listado, Edición, Gestión de Estado)
-* módulo: core (Router - matching regex para variables en URLs)
+* módulo: core (Router regex y **Contexto Multiempresa Fase 0**)
 
 ## decisiones
 
 * Se implementó el módulo Empresas garantizando MVC limpio según el estándar del proyecto.
-* Se agregó un "fallback" Regex al constructor del Router en `app/core/Router.php` para soportar `GET /empresas/{id}/editar` y `POST /empresas/{id}`.
-* Se integró el checkbox `activa` procesado desde formulario y un servicio simple de validación contra código de base de datos (`findByCodigo`) bloqueando repetición.
-* Integración visual de los mensajes de feedback de transacciones operativas a lo largo de las vistas de Empresas.
+* Se agregó un "fallback" Regex al constructor del Router en `app/core/Router.php` para soportar parámetros URL.
+* **Fase 0 Multiempresa**: Se incorporó la clase `App\Core\Context` en el arranque (`App::run()`). Esto establece el concepto de "empresa activa en contexto" (`empresa_id`). Hoy lee estáticamente o por `$_GET['empresa_id']` a fines estructurales, preparando la cancha para la integración de Usuarios y Sesiones sin romper el backoffice (que es agnóstico a esto).
 
 ## riesgos
 
-* La ruta `/rxnTiendasIA/public` fue inyectada duramente en redirecciones `header()`. Hay que modularizar esto en una variable genérica.
-* Sigue pendiente un mecanismo de Soft Delete o la eliminación física.
+* Las futuras entidades (productos, pedidos) deben ahora diseñarse pensando en poseer la FK `empresa_id`.
+* La ruta `/rxnTiendasIA/public` sigue inyectada duramente en redirecciones `header()`. Hay que modularizar esto.
 
 ## próximo paso
 
-* Expandir hacia panel de seguridad y logueo, o adentrarse en la sub-arquitectura por sucursal / empresa de contexto interno.
+* Comenzar el desarrollo de entidades dependientes del contexto empresarial (ej: Usuarios de cada Empresa) o refinar el sistema de autenticación real.
