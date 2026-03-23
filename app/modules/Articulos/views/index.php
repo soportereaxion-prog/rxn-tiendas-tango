@@ -42,29 +42,36 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <span class="badge bg-primary text-light fs-6 py-2 px-3">🛒 Total en BD Local: <?= count($articulos) ?></span>
                     <div class="d-flex gap-2">
+                        <form action="/rxnTiendasIA/public/mi-empresa/articulos/purgar" method="POST" class="d-inline" onsubmit="return confirm('⚠️ ATENCIÓN: Esta acción purgará ABSOLUTAMENTE TODO EL CATÁLOGO de tu empresa. Deberás volver a sincronizar. ¿Deseas continuar?');">
+                            <button type="submit" class="btn btn-danger btn-sm fw-bold shadow-sm">🗑️ Purgar Todo</button>
+                        </form>
                         <a href="/rxnTiendasIA/public/mi-empresa/sync/precios" class="btn btn-outline-success btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar una Petición de Sincronización de PRECIOS (Process 20091)? Esta operación sobre escribirá los precios vigentes según las Listas Configuradas.');">⟲ Sync Precios (L1/L2)</a>
                         <a href="/rxnTiendasIA/public/mi-empresa/sync/articulos" class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar Sincronización del MAESTRO DE ARTÍCULOS (Process 87)? Esta operación puede demorar según tu cuota.');">⟲ Sync Artículos</a>
                     </div>
                 </div>
                 
-                <form action="/rxnTiendasIA/public/mi-empresa/articulos/eliminar-masivo" method="POST" onsubmit="return confirm('¿Confirma eliminar todos los elementos seleccionados permanentemente?');">
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <form action="/rxnTiendasIA/public/mi-empresa/articulos/eliminar-masivo" method="POST" id="formEliminarMasivo" class="d-inline" onsubmit="return confirm('¿Confirma eliminar todos los elementos seleccionados permanentemente?');">
                         <button type="submit" class="btn btn-outline-danger btn-sm">🗑️ Eliminar Seleccionados</button>
-                        <div style="width: 300px;">
-                            <input type="text" id="searchInput" class="form-control form-control-sm border-info" placeholder="🔎 Buscar por código o desc..." onkeyup="filterTable()">
-                        </div>
-                    </div>
+                    </form>
+                    
+                    <form action="/rxnTiendasIA/public/mi-empresa/articulos" method="GET" class="d-flex" style="width: 300px;">
+                        <input type="text" name="search" class="form-control form-control-sm border-info me-2" placeholder="🔎 Buscar por código o desc..." value="<?= htmlspecialchars((string)$search) ?>">
+                        <button type="submit" class="btn btn-info btn-sm text-white">Buscar</button>
+                    </form>
+                </div>
 
+                <form action="/rxnTiendasIA/public/mi-empresa/articulos/eliminar-masivo" method="POST" id="hiddenFormDelete">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                        <table class="table table-hover align-middle table-sm" style="font-size: 0.9rem;">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
                                     <th>Código / SKU</th>
                                     <th>Descripción</th>
                                     <th>Descripción Adicional</th>
-                                    <th>P. L1 ($)</th>
-                                    <th>P. L2 ($)</th>
+                                    <th class="text-nowrap">P. L1 ($)</th>
+                                    <th class="text-nowrap">P. L2 ($)</th>
                                     <th>Estado</th>
                                     <th>Última Sincro</th>
                                     <th>Acciones</th>
@@ -75,19 +82,19 @@
                                     <tr>
                                         <td colspan="9" class="text-center py-5 text-muted">
                                             <div class="mb-2">⚠️</div>
-                                            El Catálogo Maestro está vacío todavía.<br>
-                                            <small>Haz clic en "Sync Artículos" en el panel superior para inyectar datos reales.</small>
+                                            El Catálogo Maestro está vacío todavía o no hay coincidencias.<br>
+                                            <small>Haz clic en "Sync Artículos" para inyectar datos reales.</small>
                                         </td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach($articulos as $art): ?>
                                         <tr>
-                                            <td><input type="checkbox" name="ids[]" value="<?= $art['id'] ?>" class="form-check-input check-item"></td>
-                                            <td><span class="badge bg-secondary"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span></td>
-                                            <td class="fw-bold text-dark"><?= htmlspecialchars((string)$art['nombre']) ?></td>
-                                            <td><small class="text-muted"><?= htmlspecialchars((string)($art['descripcion'] ?? '---')) ?></small></td>
-                                            <td class="fw-semibold text-primary">$<?= $art['precio_lista_1'] !== null ? number_format((float)$art['precio_lista_1'], 2, ',', '.') : '--' ?></td>
-                                            <td class="fw-semibold text-success">$<?= $art['precio_lista_2'] !== null ? number_format((float)$art['precio_lista_2'], 2, ',', '.') : '--' ?></td>
+                                            <td><input type="checkbox" name="ids[]" form="formEliminarMasivo" value="<?= $art['id'] ?>" class="form-check-input check-item"></td>
+                                            <td class="text-nowrap"><span class="badge bg-secondary"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span></td>
+                                            <td class="fw-bold text-dark text-wrap" style="max-width: 250px;"><?= htmlspecialchars((string)$art['nombre']) ?></td>
+                                            <td class="text-wrap" style="max-width: 200px;"><small class="text-muted"><?= htmlspecialchars((string)($art['descripcion'] ?? '---')) ?></small></td>
+                                            <td class="fw-semibold text-primary text-nowrap">$<?= $art['precio_lista_1'] !== null ? number_format((float)$art['precio_lista_1'], 2, ',', '.') : '--' ?></td>
+                                            <td class="fw-semibold text-success text-nowrap">$<?= $art['precio_lista_2'] !== null ? number_format((float)$art['precio_lista_2'], 2, ',', '.') : '--' ?></td>
                                             <td>
                                                 <?php if($art['activo']): ?>
                                                     <span class="badge bg-success bg-opacity-75">Activo</span>
@@ -95,7 +102,7 @@
                                                     <span class="badge bg-danger bg-opacity-75">Inactivo</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td><small class="text-secondary"><?= htmlspecialchars((string)$art['fecha_ultima_sync']) ?></small></td>
+                                            <td class="text-nowrap"><small class="text-secondary"><?= htmlspecialchars((string)$art['fecha_ultima_sync']) ?></small></td>
                                             <td>
                                                 <a href="/rxnTiendasIA/public/mi-empresa/articulos/editar?id=<?= $art['id'] ?>" class="btn btn-sm btn-outline-secondary py-0">✏️ Editar</a>
                                             </td>
@@ -106,34 +113,27 @@
                         </table>
                     </div>
                 </form>
+
+                <?php if ($totalPages > 1): ?>
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center pagination-sm">
+                        <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?page=<?= $page - 1 ?>&search=<?= urlencode((string)$search) ?>">Anterior</a>
+                        </li>
+                        <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
+                        <li class="page-item <?= ($i === $page) ? 'active' : '' ?>">
+                            <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode((string)$search) ?>"><?= $i ?></a>
+                        </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?page=<?= $page + 1 ?>&search=<?= urlencode((string)$search) ?>">Siguiente</a>
+                        </li>
+                    </ul>
+                </nav>
+                <?php endif; ?>
+
             </div>
         </div>
     </div>
-
-    <script>
-    function filterTable() {
-        let input = document.getElementById("searchInput").value.toLowerCase();
-        let table = document.querySelector(".table tbody");
-        if (!table) return;
-        let rows = table.getElementsByTagName("tr");
-        
-        // Skip fallback empty row
-        if (rows.length === 1 && rows[0].getElementsByTagName("td")[0].colSpan > 1) return;
-
-        for (let i = 0; i < rows.length; i++) {
-            let cells = rows[i].getElementsByTagName("td");
-            if (cells.length > 3) {
-                let sku = cells[1].innerText.toLowerCase();
-                let desc = cells[2].innerText.toLowerCase();
-                
-                if (sku.includes(input) || desc.includes(input)) {
-                    rows[i].style.display = "";
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
-        }
-    }
-    </script>
 </body>
 </html>

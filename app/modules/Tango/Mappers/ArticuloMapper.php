@@ -26,8 +26,8 @@ class ArticuloMapper
         
         // Conservamos fielmente los espacios que la API de Tango deja en el COD_STA11 para no quebrar las primary_keys lógicas
         $articulo->codigo_externo = (string)$codigoExterno;
-        $articulo->nombre = trim((string)$nombre);
-        $articulo->descripcion = !empty($data['SINONIMO']) ? trim((string)$data['SINONIMO']) : null;
+        $articulo->nombre = (string)$nombre;
+        $articulo->descripcion = !empty($data['SINONIMO']) ? (string)$data['SINONIMO'] : null;
         
         // Mapeo defensivo del Precio
         // Buscamos PRICE, PRECIO, o equivalentes en el diccionario

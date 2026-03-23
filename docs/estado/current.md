@@ -21,7 +21,8 @@
 * Se implementó el Patrón Mapper para decodificar los Arrays JSON crudos* Se materializó la tabla `tango_sync_logs` para brindar trazabilidad forense a las integraciones masivas.
 * La inserción de base de datos de los Artículos se maneja mediante `ON DUPLICATE KEY UPDATE` garantizando idempotencia directa desde MariaDB.
 * La Sincronización de **Precios (Process 20091)** se incrustó sobre los propios `Artículos` sumando las directivas configurables `lista_precio_1` y `2`. Esto descarta la necesidad de módulos Satélites y es resilente actualizando `precio_lista_X` mediante matching directo por SQL.
-* Jamás se usarán alteradores (`trim()`, substrings o espaciados artificiales) bajo la llave unívoca `COD_STA11`. El esquema se almacena intacto en `codigo_externo`.
+* Se prohiben transmutaciones de Strings (`trim()`, encodifiers agresivos) bajo la decodificación del JSON Tango (`COD_STA11, DESCRIPCIO, SINONIMO`). El esquema se debe almacenar íntegro copiando 1 a 1 a la base SQL original de Tango para evitar roturas de macheo.
+* El frontend de Catálogos (y cualquier maestro de >1000 iteraciones) emplea SSR Paginado (LIMIT OFFSET) y formularios GET en vez de Scripts Vainilla para agilizar carga de Browser.
 
 ## riesgos
 

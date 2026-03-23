@@ -44,15 +44,43 @@ class ArticuloRepository
         ];
     }
 
-    /**
-     * Trae el catalogo general por licenciatario
-     */
-    public function findAll(int $empresaId): array
+    public function countAll(int $empresaId, string $search = ''): int
     {
-        $sql = "SELECT * FROM articulos WHERE empresa_id = :empresa_id ORDER BY nombre ASC";
+        $sql = "SELECT COUNT(*) FROM articulos WHERE empresa_id = :empresa_id";
+        $params = [':empresa_id' => $empresaId];
+
+        if ($search !== '') {
+            $sql .= " AND (codigo_externo LIKE :search OR nombre LIKE :search OR descripcion LIKE :search)";
+            $params[':search'] = "%{$search}%";
+        }
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':empresa_id' => $empresaId]);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = ''): array
+    {
+        $offset = max(0, ($page - 1) * $limit);
+        $sql = "SELECT * FROM articulos WHERE empresa_id = :empresa_id";
+        $params = [':empresa_id' => $empresaId];
+
+        if ($search !== '') {
+            $sql .= " AND (codigo_externo LIKE :search OR nombre LIKE :search OR descripcion LIKE :search)";
+            $params[':search'] = "%{$search}%";
+        }
+
+        $sql .= " ORDER BY nombre ASC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function truncateArticulos(int $empresaId): void
+    {
+        $stmt = $this->db->prepare("DELETE FROM articulos WHERE empresa_id = :empresa_id");
+        $stmt->execute([':empresa_id' => $empresaId]);
     }
 
     public function deleteByIds(array $ids, int $empresaId): int
