@@ -54,4 +54,59 @@ class ArticuloRepository
         $stmt->execute([':empresa_id' => $empresaId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function deleteByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) return 0;
+        
+        // Genera array de bindings (?, ?, ?)
+        $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "DELETE FROM articulos WHERE empresa_id = ? AND id IN ($placeholders)";
+        
+        $params = array_merge([$empresaId], $ids);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->rowCount();
+    }
+
+    public function findById(int $id, int $empresaId): ?Articulo
+    {
+        $sql = "SELECT * FROM articulos WHERE id = :id AND empresa_id = :empresa_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$row) return null;
+        
+        $articulo = new Articulo();
+        $articulo->id = (int)$row['id'];
+        $articulo->empresa_id = (int)$row['empresa_id'];
+        $articulo->codigo_externo = $row['codigo_externo'];
+        $articulo->nombre = $row['nombre'];
+        $articulo->descripcion = $row['descripcion'];
+        $articulo->precio = $row['precio'] !== null ? (float)$row['precio'] : null;
+        $articulo->activo = (int)$row['activo'];
+        $articulo->fecha_ultima_sync = $row['fecha_ultima_sync'];
+        return $articulo;
+    }
+
+    public function update(Articulo $articulo): bool
+    {
+        $sql = "UPDATE articulos SET 
+                nombre = :nombre, 
+                descripcion = :descripcion, 
+                precio = :precio, 
+                activo = :activo 
+                WHERE id = :id AND empresa_id = :empresa_id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':nombre' => $articulo->nombre,
+            ':descripcion' => $articulo->descripcion,
+            ':precio' => $articulo->precio,
+            ':activo' => $articulo->activo,
+            ':id' => $articulo->id,
+            ':empresa_id' => $articulo->empresa_id
+        ]);
+    }
 }

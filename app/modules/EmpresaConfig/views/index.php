@@ -73,6 +73,12 @@
                     </div>
 
                     <div class="mb-4">
+                        <label for="cantidad_articulos_sync" class="form-label">Cantidad de Artículos a Sincronizar (Por Lote)</label>
+                        <input type="number" class="form-control" id="cantidad_articulos_sync" name="cantidad_articulos_sync" min="1"
+                               value="<?= htmlspecialchars((string)($old['cantidad_articulos_sync'] ?? ($config->cantidad_articulos_sync ?? 50))) ?>">
+                    </div>
+
+                    <div class="mb-4">
                         <label for="tango_connect_token" class="form-label">Token de Acceso</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="tango_connect_token" name="tango_connect_token"

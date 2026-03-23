@@ -27,48 +27,60 @@
                     <a href="/rxnTiendasIA/public/mi-empresa/sync/articulos" class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="return confirm('¿Forzar una Petición de Sincronización API contra los servidores de Axoft Connect? Esta operación encolará un proceso Batch.');">⟲ Forzar Sync Connect</a>
                 </div>
                 
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Código / SKU</th>
-                                <th>Nombre</th>
-                                <th>Descripción</th>
-                                <th>Precio ($)</th>
-                                <th>Estado</th>
-                                <th>Última Sincro</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if(empty($articulos)): ?>
+                <form action="/rxnTiendasIA/public/mi-empresa/articulos/eliminar-masivo" method="POST" onsubmit="return confirm('¿Confirma eliminar todos los elementos seleccionados permanentemente?');">
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">🗑️ Eliminar Seleccionados</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
                                 <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted">
-                                        <div class="mb-2">⚠️</div>
-                                        El Catálogo Maestro está vacío todavía.<br>
-                                        <small>Haz clic en "Forzar Sync Connect" en el panel superior para inyectar datos reales.</small>
-                                    </td>
+                                    <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
+                                    <th>Código / SKU</th>
+                                    <th>Descripción</th>
+                                    <th>Descripción Adicional</th>
+                                    <th>Precio ($)</th>
+                                    <th>Estado</th>
+                                    <th>Última Sincro</th>
+                                    <th>Acciones</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach($articulos as $art): ?>
+                            </thead>
+                            <tbody>
+                                <?php if(empty($articulos)): ?>
                                     <tr>
-                                        <td><span class="badge bg-secondary"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span></td>
-                                        <td class="fw-bold text-dark"><?= htmlspecialchars((string)$art['nombre']) ?></td>
-                                        <td><small class="text-muted"><?= htmlspecialchars((string)($art['descripcion'] ?? '---')) ?></small></td>
-                                        <td class="fw-semibold text-success">$<?= number_format((float)$art['precio'], 2, ',', '.') ?></td>
-                                        <td>
-                                            <?php if($art['activo']): ?>
-                                                <span class="badge bg-success bg-opacity-75">Activo</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-danger bg-opacity-75">Inactivo</span>
-                                            <?php endif; ?>
+                                        <td colspan="8" class="text-center py-5 text-muted">
+                                            <div class="mb-2">⚠️</div>
+                                            El Catálogo Maestro está vacío todavía.<br>
+                                            <small>Haz clic en "Forzar Sync Connect" en el panel superior para inyectar datos reales.</small>
                                         </td>
-                                        <td><small class="text-secondary"><?= htmlspecialchars((string)$art['fecha_ultima_sync']) ?></small></td>
                                     </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                                <?php else: ?>
+                                    <?php foreach($articulos as $art): ?>
+                                        <tr>
+                                            <td><input type="checkbox" name="ids[]" value="<?= $art['id'] ?>" class="form-check-input check-item"></td>
+                                            <td><span class="badge bg-secondary"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span></td>
+                                            <td class="fw-bold text-dark"><?= htmlspecialchars((string)$art['nombre']) ?></td>
+                                            <td><small class="text-muted"><?= htmlspecialchars((string)($art['descripcion'] ?? '---')) ?></small></td>
+                                            <td class="fw-semibold text-success">$<?= number_format((float)$art['precio'], 2, ',', '.') ?></td>
+                                            <td>
+                                                <?php if($art['activo']): ?>
+                                                    <span class="badge bg-success bg-opacity-75">Activo</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-danger bg-opacity-75">Inactivo</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><small class="text-secondary"><?= htmlspecialchars((string)$art['fecha_ultima_sync']) ?></small></td>
+                                            <td>
+                                                <a href="/rxnTiendasIA/public/mi-empresa/articulos/editar?id=<?= $art['id'] ?>" class="btn btn-sm btn-outline-secondary py-0">✏️ Editar</a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

@@ -15,6 +15,7 @@ class EmpresaConfig
     public ?string $tango_connect_key = null;
     public ?string $tango_connect_token = null;
     public ?string $tango_connect_company_id = null;
+    public int $cantidad_articulos_sync = 50;
     public ?string $created_at = null;
     public ?string $updated_at = null;
 }

@@ -8,9 +8,9 @@
 
 ## módulos tocados
 
-* módulo: tango (Extirpación Mock, Refactor Cliente Connect endpoint `Get?process=87` & Paginación Interna Cero).
-* módulo: **articulos** (Mapper adaptado al Array Tango Nativo, limpieza transaccional de registros contaminados).
-* módulo: empresa_config (Adición de Columna Empresa ID de Connect, Refactoreo Service).
+* módulo: tango (Extirpación Mock, Refactor Cliente Connect endpoint `Get?process=87` & Paginación Interna Cero). Limitador `$pageSize` acoplado desde la base local.
+* módulo: **articulos** (Semántica visual conectada, Selectores de Eliminación Masiva Protegidos y CRUD Form de Ediciones).
+* módulo: empresa_config (Configuración Inyectada `cantidad_articulos_sync` al Core de Base de Datos y UI).
 
 ## decisiones
 

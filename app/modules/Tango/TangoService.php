@@ -12,6 +12,7 @@ use RuntimeException;
 class TangoService
 {
     private TangoApiClient $apiClient;
+    private int $syncAmount = 50;
 
     public function __construct()
     {
@@ -26,15 +27,12 @@ class TangoService
         $config = $configService->getConfig();
 
         // CONTRATO OBLIGATORIO DE CONFIGURACIÓN POR EMPRESA
-        // Llaves base esperadas en EmpresaConfig derivadas en DB:
-        // - tango_api_url (string) Endpoint Base URL
-        // - tango_connect_key (string) Client ID Key
-        // - tango_connect_token (string) Bearer Access Token
-        
         $apiUrl = $config->tango_api_url ?? null; 
         $clientKey = $config->tango_connect_key ?? null;
         $apiToken = $config->tango_connect_token ?? null;
         $companyId = $config->tango_connect_company_id ?? null;
+        
+        $this->syncAmount = $config->cantidad_articulos_sync ?? 50;
 
         if (empty($apiToken) || empty($companyId)) {
             throw new \App\Infrastructure\Exceptions\ConfigurationException("Módulos API Tango Incompletos: Claves mandatorias (ApiAuthorization Token, Company ID) no encontradas para la Empresa $empresaId.");
@@ -61,7 +59,7 @@ class TangoService
         
         try {
             // 1. Llamar al cliente HTTP
-            $response = $this->apiClient->getArticulos($page);
+            $response = $this->apiClient->getArticulos($page, $this->syncAmount);
 
             // 2. Mapear
             $dto->isSuccess = ($response['status'] >= 200 && $response['status'] < 300);

@@ -64,6 +64,11 @@ class EmpresaConfigService
         $config->tango_connect_key   = !empty($data['tango_connect_key']) ? trim($data['tango_connect_key']) : null;
         $config->tango_connect_company_id = !empty($data['tango_connect_company_id']) ? trim($data['tango_connect_company_id']) : null;
         
+        // Validación Límite de Sincronización
+        $limiteStr = trim((string)($data['cantidad_articulos_sync'] ?? ''));
+        $limiteInt = is_numeric($limiteStr) ? (int)$limiteStr : 50;
+        $config->cantidad_articulos_sync = $limiteInt > 0 ? $limiteInt : 50;
+        
         // Solo sobrescribimos token si viene en el post con info nueva para no purgar uno existente por descuido
         if (isset($data['tango_connect_token']) && $data['tango_connect_token'] !== '') {
             $config->tango_connect_token = trim($data['tango_connect_token']);

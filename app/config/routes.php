@@ -39,6 +39,9 @@ return function (Router $router): void {
     
     // --- MÓDULO ARTÍCULOS ---
     $router->get('/mi-empresa/articulos', [new \App\Modules\Articulos\ArticuloController(), 'index']);
+    $router->post('/mi-empresa/articulos/eliminar-masivo', [new \App\Modules\Articulos\ArticuloController(), 'eliminarMasivo']);
+    $router->get('/mi-empresa/articulos/editar', [new \App\Modules\Articulos\ArticuloController(), 'editar']);
+    $router->post('/mi-empresa/articulos/editar', [new \App\Modules\Articulos\ArticuloController(), 'actualizar']);
 
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
