@@ -11,18 +11,23 @@ class TangoApiClient
 {
     private ApiClient $client;
 
-    public function __construct(string $apiUrl, string $accessToken, string $clientKey)
+    public function __construct(string $apiUrl, string $accessToken, string $companyId, ?string $clientKey = null)
     {
-        if (empty($apiUrl) || empty($accessToken) || empty($clientKey)) {
-            throw new \App\Infrastructure\Exceptions\ConfigurationException("Configuración de integración Tango incompleta para este entorno operativo.");
+        if (empty($apiUrl) || empty($accessToken) || empty($companyId)) {
+            throw new \App\Infrastructure\Exceptions\ConfigurationException("Configuración HTTP de integración Tango incompleta para este entorno operativo.");
         }
 
+        // Estándar puro demandado por Connect
         $headers = [
-            'Authorization: Bearer ' . $accessToken,
-            'Client-Id: ' . $clientKey,
+            'ApiAuthorization: ' . $accessToken,
+            'Company: ' . $companyId,
             'Accept: application/json',
             'Content-Type: application/json'
         ];
+        
+        if ($clientKey) {
+            $headers[] = 'Client-Id: ' . $clientKey;
+        }
 
         $this->client = new ApiClient($apiUrl, $headers);
     }

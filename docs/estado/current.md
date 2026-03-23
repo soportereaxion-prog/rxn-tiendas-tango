@@ -8,10 +8,9 @@
 
 ## módulos tocados
 
-* módulo: core (Nombres de Autoloader alterados)
-* módulo: tango (Orquestador SyncService adaptado a hosts dinámicos deducidos por llaves).
-* módulo: **articulos** (NUEVO: Controlador Web, Repositorio Upsert Idempotente, Vista de Tabla Local Catalográfica)
-* módulo: empresa_config (AMPLIADO: Se integró UI con enmascaramiento JS para guardar credenciales Connect)
+* módulo: tango (Extirpación de Mock Fallbacks, Header System adaptado a Company e ApiAuthorization).
+* módulo: **articulos** (Purga transaccional de registros contaminados, Grilla refleja 100% cloud).
+* módulo: empresa_config (Adición de Columna Empresa ID de Connect, Refactoreo Service).
 
 ## decisiones
 

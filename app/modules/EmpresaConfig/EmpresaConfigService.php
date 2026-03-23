@@ -62,6 +62,8 @@ class EmpresaConfigService
 
         $config->tango_api_url       = !empty($data['tango_api_url']) ? trim($data['tango_api_url']) : null;
         $config->tango_connect_key   = !empty($data['tango_connect_key']) ? trim($data['tango_connect_key']) : null;
+        $config->tango_connect_company_id = !empty($data['tango_connect_company_id']) ? trim($data['tango_connect_company_id']) : null;
+        
         // Solo sobrescribimos token si viene en el post con info nueva para no purgar uno existente por descuido
         if (isset($data['tango_connect_token']) && $data['tango_connect_token'] !== '') {
             $config->tango_connect_token = trim($data['tango_connect_token']);

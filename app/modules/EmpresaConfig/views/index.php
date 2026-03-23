@@ -66,6 +66,12 @@
                                value="<?= htmlspecialchars($old['tango_connect_key'] ?? ($config->tango_connect_key ?? '')) ?>" placeholder="Ej: 000357/017">
                     </div>
 
+                    <div class="mb-3">
+                        <label for="tango_connect_company_id" class="form-label">ID de Empresa (Connect)</label>
+                        <input type="text" class="form-control" id="tango_connect_company_id" name="tango_connect_company_id"
+                               value="<?= htmlspecialchars((string)($old['tango_connect_company_id'] ?? ($config->tango_connect_company_id ?? ''))) ?>" placeholder="Ej: 1">
+                    </div>
+
                     <div class="mb-4">
                         <label for="tango_connect_token" class="form-label">Token de Acceso</label>
                         <div class="input-group">

@@ -33,7 +33,8 @@ class EmpresaConfigRepository
                     telefono = :telefono,
                     tango_api_url = :tango_api_url,
                     tango_connect_key = :tango_connect_key,
-                    tango_connect_token = :tango_connect_token
+                    tango_connect_token = :tango_connect_token,
+                    tango_connect_company_id = :tango_connect_company_id
                     WHERE id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -43,11 +44,12 @@ class EmpresaConfigRepository
                 ':tango_api_url' => $config->tango_api_url,
                 ':tango_connect_key' => $config->tango_connect_key,
                 ':tango_connect_token' => $config->tango_connect_token,
+                ':tango_connect_company_id' => $config->tango_connect_company_id,
                 ':id' => $config->id,
             ]);
         } else {
-            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token) 
-                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token)";
+            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id) 
+                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $config->empresa_id,
@@ -57,6 +59,7 @@ class EmpresaConfigRepository
                 ':tango_api_url' => $config->tango_api_url,
                 ':tango_connect_key' => $config->tango_connect_key,
                 ':tango_connect_token' => $config->tango_connect_token,
+                ':tango_connect_company_id' => $config->tango_connect_company_id,
             ]);
             $config->id = (int) $this->db->lastInsertId();
         }

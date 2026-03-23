@@ -74,31 +74,9 @@ class TangoSyncService
             return $stats;
 
         } catch (\Exception $e) {
-            // BACKUP MOCK (Fallback) DOCUMENTADO EN CONTRATO
-            // Dado que las credenciales no resolvieron el Endpoint real (Redireccion Gateway Html 302 hacia Nube/Connect), 
-            // forzamos el volcado manual tras evidenciar que la arquitectura rebotó exitosamente en red y nos devolvió control.
-            
-            $items = [
-                ['SKUCode' => 'ART-MOCK-001', 'Description' => 'Pelota Reaxion Titanium Pro', 'Price' => 45000.00],
-                ['SKUCode' => 'ART-MOCK-002', 'Description' => 'Camiseta Entrenamiento Axoft', 'Price' => 28000.50],
-                ['SKUCode' => 'ART-MOCK-003', 'Description' => 'Bolso Deportivo Tango Connect', 'Price' => 76500.00]
-            ];
-            
-            $stats['recibidos'] = count($items);
-            
-            // Reutilizamos el 100% de la Maquinaria Real (Mapper y Entidades DB) comprobando la arquitectura Upsert
-            foreach ($items as $item) {
-                $articulo = ArticuloMapper::fromConnectJson($item, (int)$empresaId);
-                if ($articulo) {
-                    $res = $this->articuloRepo->upsert($articulo);
-                    if ($res['affected_rows'] === 1) $stats['insertados']++;
-                    else $stats['actualizados']++;
-                }
-            }
-
-            // 5. Concluir Trazabilidad en estado Alterado MOCK guardando el Error original de Red
-            $this->logRepo->endLog($logId, $stats, 'MOCK_FALLBACK', $e->getMessage() . " => Fallback a Mock Inyectado");
-            return $stats;
+            // 5. Concluir Trazabilidad en Rojo guardando Error Stack y cerrando compuertas a Inserts Falsos/Mockeados.
+            $this->logRepo->endLog($logId, $stats, 'ERROR', $e->getMessage());
+            throw $e; 
         }
     }
 }
