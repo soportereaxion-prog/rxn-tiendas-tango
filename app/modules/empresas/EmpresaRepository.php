@@ -24,8 +24,8 @@ class EmpresaRepository
 
     public function save(Empresa $empresa): void
     {
-        $sql = "INSERT INTO empresas (codigo, nombre, razon_social, cuit, activa) 
-                VALUES (:codigo, :nombre, :razon_social, :cuit, :activa)";
+        $sql = "INSERT INTO empresas (codigo, nombre, razon_social, cuit, slug, activa) 
+                VALUES (:codigo, :nombre, :razon_social, :cuit, :slug, :activa)";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -33,6 +33,7 @@ class EmpresaRepository
             ':nombre' => $empresa->nombre,
             ':razon_social' => $empresa->razon_social,
             ':cuit' => $empresa->cuit,
+            ':slug' => $empresa->slug,
             ':activa' => $empresa->activa,
         ]);
         
@@ -70,6 +71,7 @@ class EmpresaRepository
                 nombre = :nombre, 
                 razon_social = :razon_social, 
                 cuit = :cuit, 
+                slug = :slug,
                 activa = :activa 
                 WHERE id = :id";
                 
@@ -79,6 +81,7 @@ class EmpresaRepository
             ':nombre' => $empresa->nombre,
             ':razon_social' => $empresa->razon_social,
             ':cuit' => $empresa->cuit,
+            ':slug' => $empresa->slug,
             ':activa' => $empresa->activa,
             ':id' => $empresa->id,
         ]);

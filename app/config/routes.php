@@ -66,5 +66,17 @@ return function (Router $router): void {
         }
     });
 
-};
+    // --- RUTAS FRONT PÚBLICO (AL FINAL DEL ARCHIVO PARA EVITAR COLISIONES) ---
+    // NOTA: {slug} capturará dinámicamente cualquier string que no haya matcheado con rutas estáticas superiores
+    $router->get('/public-error', function () {
+        View::render('app/modules/Store/views/error_tienda.php');
+    });
+    
+    $router->get('/{slug}', [new \App\Modules\Store\Controllers\StoreController(), 'index']);
+    $router->get('/{slug}/producto/{id}', [new \App\Modules\Store\Controllers\StoreController(), 'showProduct']);
+    $router->get('/{slug}/carrito', [new \App\Modules\Store\Controllers\CartController(), 'index']);
+    $router->post('/{slug}/carrito/add', [new \App\Modules\Store\Controllers\CartController(), 'add']);
+    $router->post('/{slug}/carrito/update', [new \App\Modules\Store\Controllers\CartController(), 'update']);
+    $router->post('/{slug}/carrito/remove', [new \App\Modules\Store\Controllers\CartController(), 'remove']);
 
+};

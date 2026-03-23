@@ -11,6 +11,7 @@ class Empresa
     public string $nombre = '';
     public ?string $razon_social = null;
     public ?string $cuit = null;
+    public ?string $slug = null;
     public int $activa = 1;
     public ?string $created_at = null;
     public ?string $updated_at = null;

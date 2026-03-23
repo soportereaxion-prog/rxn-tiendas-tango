@@ -76,6 +76,7 @@ class TangoSyncService
 
             // 4. Concluir Trazabilidad en Verde
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
+            \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             return $stats;
 
         } catch (\Exception $e) {
@@ -159,6 +160,7 @@ class TangoSyncService
 
             // 4. Concluir Trazabilidad en Verde
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
+            \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             return $stats;
 
         } catch (\Exception $e) {
@@ -232,6 +234,7 @@ class TangoSyncService
             }
 
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
+            \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             return $stats;
 
         } catch (\Exception $e) {
