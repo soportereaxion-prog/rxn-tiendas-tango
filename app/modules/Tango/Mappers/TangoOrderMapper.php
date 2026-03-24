@@ -16,28 +16,38 @@ class TangoOrderMapper
         // Regla Comercial Clave: "000000" si no tiene código.
         $codigoClienteTango = !empty($clienteWeb['codigo_tango']) ? $clienteWeb['codigo_tango'] : '000000';
         
-        // Formato GVA21 -> Datos de cabecera de pedido mínimo vital
+        // Payload base descubierto mediante ingeniería inversa en Tango Connect (Process 19845)
+        // Requiere estructura plana, ID de talonario y Depósito.
         $payload = [
-            "CABECERA" => [
-                "CODIGO_CLIENTE" => $codigoClienteTango,
-                "NOTA_PEDIDO_WEB" => "RXN_" . $pedidoCabecera['id'],
-                "FECHA_PEDIDO" => date('Y-m-d'), // La fecha en formato ISO típica
-                "OBSERVACIONES" => $pedidoCabecera['observaciones'] ?? "WEB_ID: {$pedidoCabecera['id']} | Cliente Local: {$clienteWeb['nombre']} {$clienteWeb['apellido']} | Doc: {$clienteWeb['documento']}"
-            ],
-            "RENGLONES" => []
+            "FECHA_PEDIDO" => date('Y-m-d', strtotime($pedidoCabecera['created_at'])),
+            "CODIGO_CLIENTE" => $codigoClienteTango,
+            "ES_CLIENTE_HABITUAL" => ($codigoClienteTango !== '000000'),
+            "NOTA_PEDIDO_WEB" => "RXN_" . $pedidoCabecera['id'],
+            "ID_GVA43_TALON_PED" => 6, // Hardcoded para prueba, debería venir de config
+            "ID_STA22" => 1, // Depósito
+            "OBSERVACIONES" => $pedidoCabecera['observaciones'] ?? "WEB_ID: {$pedidoCabecera['id']} | Cliente Local: {$clienteWeb['nombre']} {$clienteWeb['apellido']} | Doc: {$clienteWeb['documento']}",
+            
+            // Sub-nodo Heurístico para cliente ocasional (dejado para futura depuración manual desde el admin)
+            "CLIENTE_OCASIONAL" => [
+                "RAZON_SOCIAL" => trim($clienteWeb['nombre'] . ' ' . $clienteWeb['apellido']),
+                "DOMICILIO" => $clienteWeb['direccion'] ?? '',
+                "NRO_DOCUMENTO" => $clienteWeb['documento'] ?? ''
+            ]
         ];
 
         // Renglones
+        $renglonesMapeados = [];
         foreach ($renglones as $renglon) {
-            // El backend debe pasar articulo_codigo idealmente o hacer join, pero acá tenemos articulo_id que en la DB es el ID auto_inc.
-            // Necesitamos que $renglon traiga 'codigo_tango' del artículo. Lo asumiremos provisto desde el service.
-            
-            $payload["RENGLONES"][] = [
-                "ARTICULO_CODIGO" => $renglon['codigo_articulo_tango'] ?? '',
+            $renglonesMapeados[] = [
+                "ARTICULO_CODIGO" => $renglon['codigo_articulo'] ?? '',
                 "CANTIDAD" => (float) $renglon['cantidad'],
                 "PRECIO_UNITARIO" => (float) $renglon['precio_unitario']
             ];
         }
+
+        // Se inyecta la clave más estándar
+        $payload["RENGLONES"] = $renglonesMapeados;
+        $payload["ITEMS"] = $renglonesMapeados;
 
         return $payload;
     }

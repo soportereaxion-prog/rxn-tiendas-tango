@@ -28,7 +28,14 @@
                 </h2>
                 <p class="text-muted mb-0">Fecha de Alta: <?= htmlspecialchars((string)$pedido['pedido_fecha']) ?></p>
             </div>
-            <a href="/rxnTiendasIA/public/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
+            <div class="d-flex gap-2">
+                <?php if($pedido['estado_tango'] === 'error_envio_tango'): ?>
+                    <form action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $pedido['pedido_id'] ?>/reprocesar" method="POST" onsubmit="return confirm('¿Reintentar envío a Tango con el payload actual mapeado?');">
+                        <button type="submit" class="btn btn-warning text-dark"><i class="bi bi-arrow-repeat"></i> Volver a enviar a Tango</button>
+                    </form>
+                <?php endif; ?>
+                <a href="/rxnTiendasIA/public/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
+            </div>
         </div>
 
         <div class="row g-4">

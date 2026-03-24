@@ -49,6 +49,7 @@ return function (Router $router): void {
     // --- MÓDULO PEDIDOS WEB ---
     $router->get('/mi-empresa/pedidos', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'index']);
     $router->get('/mi-empresa/pedidos/{id}', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'show']);
+    $router->post('/mi-empresa/pedidos/{id}/reprocesar', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'reprocesar']);
 
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
@@ -61,9 +62,10 @@ return function (Router $router): void {
     $router->get('/test-db', function () {
         try {
             $pdo  = Database::getConnection();
-            $stmt = $pdo->query('SELECT 1 AS resultado');
+            $stmt = $pdo->query("SELECT payload_enviado, respuesta_tango FROM pedidos_web WHERE estado_tango = 'error_envio_tango' ORDER BY id DESC LIMIT 1");
             $row  = $stmt->fetch();
-            echo 'Conexión DB: OK — resultado: ' . htmlspecialchars((string) $row['resultado'], ENT_QUOTES, 'UTF-8');
+            header('Content-Type: application/json');
+            echo json_encode($row);
         } catch (\RuntimeException $e) {
             http_response_code(500);
             echo 'Conexión DB: ERROR — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
