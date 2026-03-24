@@ -12,39 +12,39 @@ return function (Router $router): void {
     });
 
     // --- MÓDULO EMPRESAS ---
-    $router->get('/empresas', [new \App\Modules\Empresas\EmpresaController(), 'index']);
-    $router->get('/empresas/crear', [new \App\Modules\Empresas\EmpresaController(), 'create']);
-    $router->post('/empresas', [new \App\Modules\Empresas\EmpresaController(), 'store']);
-    $router->get('/empresas/{id}/editar', [new \App\Modules\Empresas\EmpresaController(), 'edit']);
-    $router->post('/empresas/{id}', [new \App\Modules\Empresas\EmpresaController(), 'update']);
+    $router->get('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'index']);
+    $router->get('/empresas/crear', [\App\Modules\Empresas\EmpresaController::class, 'create']);
+    $router->post('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'store']);
+    $router->get('/empresas/{id}/editar', [\App\Modules\Empresas\EmpresaController::class, 'edit']);
+    $router->post('/empresas/{id}', [\App\Modules\Empresas\EmpresaController::class, 'update']);
 
     // --- MÓDULO AUTH ---
-    $router->get('/login', [new \App\Modules\Auth\AuthController(), 'showLogin']);
-    $router->post('/login', [new \App\Modules\Auth\AuthController(), 'processLogin']);
-    $router->get('/logout', [new \App\Modules\Auth\AuthController(), 'logout']);
+    $router->get('/login', [\App\Modules\Auth\AuthController::class, 'showLogin']);
+    $router->post('/login', [\App\Modules\Auth\AuthController::class, 'processLogin']);
+    $router->get('/logout', [\App\Modules\Auth\AuthController::class, 'logout']);
 
     // --- MÓDULO EMPRESA CONFIG ---
-    $router->get('/mi-empresa/configuracion', [new \App\Modules\EmpresaConfig\EmpresaConfigController(), 'index']);
-    $router->post('/mi-empresa/configuracion', [new \App\Modules\EmpresaConfig\EmpresaConfigController(), 'store']);
+    $router->get('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'index']);
+    $router->post('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'store']);
 
     // --- MÓDULO USUARIOS OPERATIVOS ---
-    $router->get('/mi-empresa/usuarios', [new \App\Modules\Usuarios\UsuarioController(), 'index']);
-    $router->get('/mi-empresa/usuarios/crear', [new \App\Modules\Usuarios\UsuarioController(), 'create']);
-    $router->post('/mi-empresa/usuarios', [new \App\Modules\Usuarios\UsuarioController(), 'store']);
-    $router->get('/mi-empresa/usuarios/{id}/editar', [new \App\Modules\Usuarios\UsuarioController(), 'edit']);
-    $router->post('/mi-empresa/usuarios/{id}', [new \App\Modules\Usuarios\UsuarioController(), 'update']);
+    $router->get('/mi-empresa/usuarios', [\App\Modules\Usuarios\UsuarioController::class, 'index']);
+    $router->get('/mi-empresa/usuarios/crear', [\App\Modules\Usuarios\UsuarioController::class, 'create']);
+    $router->post('/mi-empresa/usuarios', [\App\Modules\Usuarios\UsuarioController::class, 'store']);
+    $router->get('/mi-empresa/usuarios/{id}/editar', [\App\Modules\Usuarios\UsuarioController::class, 'edit']);
+    $router->post('/mi-empresa/usuarios/{id}', [\App\Modules\Usuarios\UsuarioController::class, 'update']);
 
     // --- MÓDULO TANGO CONNECT ---
-    $router->get('/mi-empresa/sync/articulos', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncArticulos']);
-    $router->get('/mi-empresa/sync/precios', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncPrecios']);
-    $router->get('/mi-empresa/sync/stock', [new \App\Modules\Tango\Controllers\TangoSyncController(), 'syncStock']);
+    $router->get('/mi-empresa/sync/articulos', [\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncArticulos']);
+    $router->get('/mi-empresa/sync/precios', [\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncPrecios']);
+    $router->get('/mi-empresa/sync/stock', [\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncStock']);
     
     // --- MÓDULO ARTÍCULOS ---
-    $router->get('/mi-empresa/articulos', [new \App\Modules\Articulos\ArticuloController(), 'index']);
-    $router->post('/mi-empresa/articulos/purgar', [new \App\Modules\Articulos\ArticuloController(), 'purgar']);
-    $router->post('/mi-empresa/articulos/eliminar-masivo', [new \App\Modules\Articulos\ArticuloController(), 'eliminarMasivo']);
-    $router->get('/mi-empresa/articulos/editar', [new \App\Modules\Articulos\ArticuloController(), 'editar']);
-    $router->post('/mi-empresa/articulos/editar', [new \App\Modules\Articulos\ArticuloController(), 'actualizar']);
+    $router->get('/mi-empresa/articulos', [\App\Modules\Articulos\ArticuloController::class, 'index']);
+    $router->post('/mi-empresa/articulos/purgar', [\App\Modules\Articulos\ArticuloController::class, 'purgar']);
+    $router->post('/mi-empresa/articulos/eliminar-masivo', [\App\Modules\Articulos\ArticuloController::class, 'eliminarMasivo']);
+    $router->get('/mi-empresa/articulos/editar', [\App\Modules\Articulos\ArticuloController::class, 'editar']);
+    $router->post('/mi-empresa/articulos/editar', [\App\Modules\Articulos\ArticuloController::class, 'actualizar']);
 
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
@@ -72,11 +72,11 @@ return function (Router $router): void {
         View::render('app/modules/Store/views/error_tienda.php');
     });
     
-    $router->get('/{slug}', [new \App\Modules\Store\Controllers\StoreController(), 'index']);
-    $router->get('/{slug}/producto/{id}', [new \App\Modules\Store\Controllers\StoreController(), 'showProduct']);
-    $router->get('/{slug}/carrito', [new \App\Modules\Store\Controllers\CartController(), 'index']);
-    $router->post('/{slug}/carrito/add', [new \App\Modules\Store\Controllers\CartController(), 'add']);
-    $router->post('/{slug}/carrito/update', [new \App\Modules\Store\Controllers\CartController(), 'update']);
-    $router->post('/{slug}/carrito/remove', [new \App\Modules\Store\Controllers\CartController(), 'remove']);
+    $router->get('/{slug}', [\App\Modules\Store\Controllers\StoreController::class, 'index']);
+    $router->get('/{slug}/producto/{id}', [\App\Modules\Store\Controllers\StoreController::class, 'showProduct']);
+    $router->get('/{slug}/carrito', [\App\Modules\Store\Controllers\CartController::class, 'index']);
+    $router->post('/{slug}/carrito/add', [\App\Modules\Store\Controllers\CartController::class, 'add']);
+    $router->post('/{slug}/carrito/update', [\App\Modules\Store\Controllers\CartController::class, 'update']);
+    $router->post('/{slug}/carrito/remove', [\App\Modules\Store\Controllers\CartController::class, 'remove']);
 
 };
