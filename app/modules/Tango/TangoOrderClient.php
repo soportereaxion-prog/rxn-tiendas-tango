@@ -36,9 +36,30 @@ class TangoOrderClient
      */
     public function sendOrder(array $payload): array
     {
-        $endpoint = '/Api/Create?process=19845';
+        $endpoint = 'Create?process=19845';
         
         // POST request a Connect
         return $this->client->post($endpoint, $payload);
+    }
+
+    /**
+     * Consulta process=87 para obtener el ID_STA11 de un artículo usando su código/SKU (COD_STA11)
+     */
+    public function getArticleIdByCode(string $codigoArticulo): ?int
+    {
+        $filtroSql = "WHERE COD_STA11 = '" . str_replace("'", "''", $codigoArticulo) . "'";
+        $endpoint = "GetByFilter?process=87&view=&filtroSql=" . rawurlencode($filtroSql);
+        
+        try {
+            $response = $this->client->get($endpoint);
+            if (isset($response['data']['list'][0]['ID_STA11'])) {
+                return (int) $response['data']['list'][0]['ID_STA11'];
+            }
+        } catch (\Exception $e) {
+            // Log o silenciar, el pedido fallará si retorna null luego
+            error_log("Error resolviendo ID_STA11 para " . $codigoArticulo . ": " . $e->getMessage());
+        }
+        
+        return null;
     }
 }

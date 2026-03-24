@@ -79,6 +79,7 @@ class PedidoWebRepository
         $sql = "UPDATE pedidos_web SET 
                 estado_tango = 'enviado_tango',
                 tango_pedido_numero = :tango_pedido_numero,
+                intentos_envio_tango = intentos_envio_tango + 1,
                 payload_enviado = :payload_enviado,
                 respuesta_tango = :respuesta_tango,
                 updated_at = NOW()
@@ -100,6 +101,7 @@ class PedidoWebRepository
     {
         $sql = "UPDATE pedidos_web SET 
                 estado_tango = 'error_envio_tango',
+                intentos_envio_tango = intentos_envio_tango + 1,
                 payload_enviado = :payload_enviado,
                 mensaje_error = :mensaje_error,
                 respuesta_tango = :respuesta_tango,

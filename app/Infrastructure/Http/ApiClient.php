@@ -64,9 +64,10 @@ class ApiClient
         $decodedData = json_decode((string)$response, true);
 
         if ($httpCode >= 400) {
+            $rawMsg = substr(strip_tags((string)$response), 0, 500);
             $errMessage = is_array($decodedData) && isset($decodedData['message']) 
-                          ? $decodedData['message'] 
-                          : "HTTP Error $httpCode";
+                          ? $decodedData['message'] . " | " . $rawMsg
+                          : "HTTP Error $httpCode. Detalles: " . $rawMsg;
             if ($httpCode === 401 || $httpCode === 403) {
                  throw new \App\Infrastructure\Exceptions\UnauthorizedException("Acceso Restringido en API Externa: $errMessage", $httpCode);
             }

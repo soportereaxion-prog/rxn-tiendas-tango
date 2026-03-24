@@ -75,7 +75,7 @@ class PedidoWebController extends Controller
 
         $pedido = $this->pedidoRepo->findByIdWithDetails($pedidoId, $empresaId);
 
-        if (!$pedido || $pedido['estado_tango'] === 'enviado_tango') {
+        if (!$pedido) {
             \App\Core\Flash::set('Pedido no procesable.', 'danger');
             header("Location: /rxnTiendasIA/public/mi-empresa/pedidos");
             exit;
@@ -86,9 +86,6 @@ class PedidoWebController extends Controller
             header("Location: /rxnTiendasIA/public/mi-empresa/pedidos/{$pedidoId}");
             exit;
         }
-
-        // Reconstruimos la llamada a Tango. Idealmente esto está abstraído en un "TangoSyncService", pero
-        // usaremos el mismo pipeline de CheckoutService temporalmente aislando la parte de API.
         
         $pdo = \App\Core\Database::getConnection();
         
@@ -115,34 +112,45 @@ class PedidoWebController extends Controller
             'total' => $pedido['total']
         ];
 
-        $stmtArt = $pdo->prepare("SELECT codigo_externo FROM articulos WHERE id = :id");
-        $renglonesMapped = [];
-        foreach ($pedido['renglones'] as $r) {
-            $stmtArt->execute(['id' => $r['articulo_id']]);
-            $codArt = $stmtArt->fetchColumn();
-            
-            $renglonesMapped[] = [
-                'codigo_articulo' => $codArt ?: '',
-                'cantidad' => $r['cantidad'],
-                'precio_unitario' => $r['precio_unitario']
-            ];
-        }
-
-        $tangoPayload = \App\Modules\Tango\Mappers\TangoOrderMapper::map($cabecera, $renglonesMapped, $clienteWeb);
-
         try {
             $stmtConf = $pdo->prepare("SELECT tango_connect_token, tango_connect_company_id, tango_connect_key FROM empresa_config WHERE empresa_id = :emp_id LIMIT 1");
             $stmtConf->execute(['emp_id' => $empresaId]);
             $conf = $stmtConf->fetch();
 
             if ($conf && $conf['tango_connect_token']) {
-                $apiUrl = "https://" . str_replace('/', '-', $conf['tango_connect_key']) . ".connect.axoft.com/Api";
+                $tangoKeyParsed = str_replace('/', '-', $conf['tango_connect_key']);
+                $apiUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
                 $tangoClient = new \App\Modules\Tango\TangoOrderClient(
                     $apiUrl,
                     $conf['tango_connect_token'],
-                    $conf['tango_connect_company_id'],
-                    $conf['tango_connect_key']
+                    $conf['tango_connect_company_id']
                 );
+
+                $renglonesMapped = [];
+                foreach ($pedido['renglones'] as $r) {
+                    $stmtArt = $pdo->prepare("SELECT codigo_externo FROM articulos WHERE id = :id");
+                    $stmtArt->execute(['id' => $r['articulo_id']]);
+                    $codArt = $stmtArt->fetchColumn();
+                    $codigoArticulo = $codArt ?: '';
+                    
+                    if (empty($codigoArticulo)) {
+                        throw new \Exception("Un renglón del pedido no tiene código de artículo enlazado preventivamente.");
+                    }
+                    
+                    $idSta11 = $tangoClient->getArticleIdByCode($codigoArticulo);
+                    if (!$idSta11) {
+                        throw new \Exception("El artículo codificado como '{$codigoArticulo}' no existe como ID_STA11 válido en la BD de Tango Connect.");
+                    }
+
+                    $renglonesMapped[] = [
+                        'id_sta11_tango' => $idSta11,
+                        'codigo_articulo' => $codigoArticulo,
+                        'cantidad' => $r['cantidad'],
+                        'precio_unitario' => $r['precio_unitario']
+                    ];
+                }
+
+                $tangoPayload = \App\Modules\Tango\Mappers\TangoOrderMapper::map($cabecera, $renglonesMapped, $clienteWeb);
 
                 $response = $tangoClient->sendOrder($tangoPayload);
                 
@@ -152,15 +160,15 @@ class PedidoWebController extends Controller
                     \App\Core\Flash::set('Pedido enviado a Tango correctamente.', 'success');
                 } else {
                     $errorText = is_array($response['data'] ?? null) ? json_encode($response['data'], JSON_UNESCAPED_UNICODE) : 'HTTP Error ' . $response['status'];
-                    $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorText, json_encode($response));
+                    $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorText . " | RAW RESP: " . json_encode($response));
                     \App\Core\Flash::set('Error al enviar a Tango: Revisar Logs en el detalle.', 'danger');
                 }
             } else {
                 \App\Core\Flash::set('Sin credenciales Tango.', 'danger');
             }
         } catch (\Exception $e) {
-            $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $e->getMessage());
-            \App\Core\Flash::set('Excepción de red al enviar a Tango.', 'danger');
+            $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload ?? []), $e->getMessage());
+            \App\Core\Flash::set('Fallo de Red o Validación (' . $e->getMessage() . ').', 'danger');
         }
 
         header("Location: /rxnTiendasIA/public/mi-empresa/pedidos/{$pedidoId}");

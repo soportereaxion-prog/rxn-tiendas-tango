@@ -155,4 +155,26 @@ class ClienteWebController
         header("Location: /rxnTiendasIA/public/mi-empresa/clientes/$id/editar");
         exit;
     }
+
+    public function enviarPendientes(int $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int)Context::getEmpresaId();
+        
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT id FROM pedidos_web WHERE cliente_web_id = :cid AND empresa_id = :eid AND estado_tango != 'enviado_tango' ORDER BY id ASC LIMIT 1");
+        $stmt->execute(['cid' => $id, 'eid' => $empresaId]);
+        $pedidoId = $stmt->fetchColumn();
+
+        if (!$pedidoId) {
+            $_SESSION['flash_error'] = "No hay pedidos pendientes o con error para intentar enviar.";
+            header("Location: /rxnTiendasIA/public/mi-empresa/clientes/$id/editar");
+            exit;
+        }
+
+        // Redirigir al reprocesar del primer pedido encontrado. 
+        // Así reaprovechamos todo el pipeline de validaciones, mappers y UI de Pedidos.
+        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos/{$pedidoId}/reprocesar");
+        exit;
+    }
 }

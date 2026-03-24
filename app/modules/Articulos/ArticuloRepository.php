@@ -64,7 +64,11 @@ class ArticuloRepository
     public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = '', string $orderBy = 'nombre', string $orderDir = 'ASC'): array
     {
         $offset = max(0, ($page - 1) * $limit);
-        $sql = "SELECT * FROM articulos WHERE empresa_id = :empresa_id";
+        $sql = "SELECT a.*, 
+               (SELECT ruta FROM articulo_imagenes 
+                WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1 
+                ORDER BY orden ASC LIMIT 1) as imagen_principal
+                FROM articulos a WHERE a.empresa_id = :empresa_id";
         $params = [':empresa_id' => $empresaId];
 
         if ($search !== '') {
@@ -111,7 +115,11 @@ class ArticuloRepository
 
     public function findById(int $id, int $empresaId): ?Articulo
     {
-        $sql = "SELECT * FROM articulos WHERE id = :id AND empresa_id = :empresa_id";
+        $sql = "SELECT a.*, 
+               (SELECT ruta FROM articulo_imagenes 
+                WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1 
+                ORDER BY orden ASC LIMIT 1) as imagen_principal
+                FROM articulos a WHERE a.id = :id AND a.empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -130,6 +138,7 @@ class ArticuloRepository
         $articulo->stock_actual = $row['stock_actual'] !== null ? (float)$row['stock_actual'] : null;
         $articulo->activo = (int)$row['activo'];
         $articulo->fecha_ultima_sync = $row['fecha_ultima_sync'];
+        $articulo->imagen_principal = $row['imagen_principal'] ?? null;
         return $articulo;
     }
 
@@ -187,5 +196,30 @@ class ArticuloRepository
         ]);
         
         return $stmt->rowCount();
+    }
+
+    public function guardarImagen(int $empresaId, int $articuloId, string $ruta, int $esPrincipal = 1): bool
+    {
+        $sql = "INSERT INTO articulo_imagenes (empresa_id, articulo_id, ruta, es_principal) 
+                VALUES (:empresa_id, :articulo_id, :ruta, :es_principal)";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':empresa_id' => $empresaId,
+            ':articulo_id' => $articuloId,
+            ':ruta' => $ruta,
+            ':es_principal' => $esPrincipal
+        ]);
+    }
+
+    public function obtenerImagenPrincipal(int $empresaId, int $articuloId): ?string
+    {
+        $sql = "SELECT ruta FROM articulo_imagenes 
+                WHERE empresa_id = :empresa_id AND articulo_id = :articulo_id 
+                ORDER BY es_principal DESC, orden ASC 
+                LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':empresa_id' => $empresaId, ':articulo_id' => $articuloId]);
+        $ruta = $stmt->fetchColumn();
+        return $ruta ?: null;
     }
 }

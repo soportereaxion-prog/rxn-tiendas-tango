@@ -51,7 +51,7 @@ return function (Router $router): void {
     $router->get('/mi-empresa/clientes/{id}/editar', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'edit']);
     $router->post('/mi-empresa/clientes/{id}/editar', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'update']);
     $router->post('/mi-empresa/clientes/{id}/validar-tango', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'validarTango']);
-
+    $router->post('/mi-empresa/clientes/{id}/enviar-pendientes', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'enviarPendientes']);
 
     // --- MÓDULO PEDIDOS WEB ---
     $router->get('/mi-empresa/pedidos', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'index']);

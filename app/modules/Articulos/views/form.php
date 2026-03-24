@@ -19,8 +19,24 @@
 
         <div class="card">
             <div class="card-body p-4">
-                <form action="/rxnTiendasIA/public/mi-empresa/articulos/editar?id=<?= $articulo->id ?>" method="POST">
+                <form action="/rxnTiendasIA/public/mi-empresa/articulos/editar?id=<?= $articulo->id ?>" method="POST" enctype="multipart/form-data">
                     
+                    <!-- Previsualización de Imagen Principal -->
+                    <div class="mb-4 text-center">
+                        <?php if(!empty($imagenPrincipal)): ?>
+                            <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$imagenPrincipal) ?>" alt="Imagen principal" class="img-thumbnail" style="max-height: 200px; object-fit: cover;">
+                            <div class="mt-2"><span class="badge bg-success">Tiene imagen principal local</span></div>
+                        <?php else: ?>
+                            <img src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Sin imagen" class="img-thumbnail" style="max-height: 200px; opacity: 0.5;">
+                            <div class="mt-2"><span class="badge bg-secondary">Sin imagen principal</span></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Añadir o reemplazar imagen (.JPG / .PNG)</label>
+                        <input type="file" class="form-control" name="imagen" accept=".jpg,.jpeg,.png">
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label text-muted">Código / SKU Ext</label>
                         <input type="text" class="form-control" value="<?= htmlspecialchars((string)$articulo->codigo_externo) ?>" disabled>

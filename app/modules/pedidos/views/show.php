@@ -27,16 +27,17 @@
                     <?php endif; ?>
                 </h2>
                 <p class="text-muted mb-0">Fecha de Alta: <?= htmlspecialchars((string)$pedido['pedido_fecha']) ?></p>
+                <?php if ($pedido['intentos_envio_tango'] > 0): ?>
+                    <p class="text-muted mb-0"><small>Intentos de envío a Tango: <strong><?= (int)$pedido['intentos_envio_tango'] ?></strong></small></p>
+                <?php endif; ?>
             </div>
             <div class="d-flex gap-2">
-                <?php if($pedido['estado_tango'] === 'error_envio_tango' || $pedido['estado_tango'] === 'pendiente_envio_tango'): ?>
-                    <?php if(empty($pedido['id_gva14_tango'])): ?>
-                        <a href="/rxnTiendasIA/public/mi-empresa/clientes/<?= $pedido['cliente_web_id'] ?>/editar" class="btn btn-danger text-white border-0 shadow-sm" title="Falta resolución comercial del cliente">⚠️ Vincular Cliente en Tango Módulo</a>
-                    <?php else: ?>
-                        <form action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $pedido['pedido_id'] ?>/reprocesar" method="POST" onsubmit="return confirm('¿Reintentar envío a Tango con los datos comerciales resueltos?');">
-                            <button type="submit" class="btn <?= $pedido['estado_tango'] === 'error_envio_tango' ? 'btn-warning' : 'btn-success' ?> text-dark shadow-sm"><i class="bi bi-arrow-repeat"></i> Enviar a Tango</button>
-                        </form>
-                    <?php endif; ?>
+                <?php if(empty($pedido['id_gva14_tango'])): ?>
+                    <a href="/rxnTiendasIA/public/mi-empresa/clientes/<?= $pedido['cliente_web_id'] ?>/editar" class="btn btn-danger text-white border-0 shadow-sm" title="Falta resolución comercial del cliente">⚠️ Vincular Cliente en Tango Módulo</a>
+                <?php else: ?>
+                    <form action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $pedido['pedido_id'] ?>/reprocesar" method="POST" onsubmit="return confirm('¿Reintentar envío a Tango con los datos comerciales resueltos?');">
+                        <button type="submit" class="btn <?= $pedido['estado_tango'] === 'error_envio_tango' ? 'btn-warning' : ($pedido['estado_tango'] === 'enviado_tango' ? 'btn-outline-success shadow-sm' : 'btn-success shadow-sm') ?> text-dark "><i class="bi bi-arrow-repeat"></i> Enviar a Tango</button>
+                    </form>
                 <?php endif; ?>
                 <a href="/rxnTiendasIA/public/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
             </div>

@@ -173,12 +173,12 @@
                                 </li>
                             </ul>
 
-                            <!-- Aca podemos luego agregar un botón de reenviar pedidos si fuera de alcance completo -->
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-outline-success btn-sm" disabled title="Función en desarrollo para reenvío masivo. Use el panel de pedidos puntuales.">
+                            <!-- Botón de Envío de Órdenes Pendientes -->
+                            <form action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cliente['id'] ?>/enviar-pendientes" method="POST" class="d-grid gap-2 mt-3" onsubmit="return confirm('¿Revisar y enviar todas las ventas web no sincronizadas pertenecientes a este cliente hacia el módulo de Tango Rest?');">
+                                <button type="submit" class="btn btn-outline-success btn-sm font-weight-bold">
                                     🚚 Enviar Pendientes a Tango
                                 </button>
-                            </div>
+                            </form>
                         <?php else: ?>
                             <div class="alert alert-warning py-2 mb-3">
                                 <div class="fw-bold text-dark"><small>⚠️ NO VINCULADO</small></div>

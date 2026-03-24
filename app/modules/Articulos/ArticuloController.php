@@ -92,8 +92,11 @@ class ArticuloController extends Controller
             exit;
         }
         
+        $imagenPrincipal = $this->repository->obtenerImagenPrincipal($empresaId, $id);
+        
         View::render('app/modules/Articulos/views/form.php', [
-            'articulo' => $articulo
+            'articulo' => $articulo,
+            'imagenPrincipal' => $imagenPrincipal
         ]);
     }
 
@@ -124,6 +127,31 @@ class ArticuloController extends Controller
                 $articulo->activo = isset($_POST['activo']) ? 1 : 0;
                 
                 $this->repository->update($articulo);
+                
+                // Módulo de Imágenes (Subida local respetando Fases 3 y 4)
+                if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                    $tmpName = $_FILES['imagen']['tmp_name'];
+                    $name = $_FILES['imagen']['name'];
+                    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                    
+                    if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                        // Creación automática de directorios persistentes
+                        $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/productos/' . $id;
+                        if (!is_dir($dirUploads)) {
+                            mkdir($dirUploads, 0777, true);
+                        }
+                        
+                        $filename = 'emp_' . $empresaId . '_art_' . $id . '_' . time() . '.' . $ext;
+                        $rutaAbsoluta = $dirUploads . '/' . $filename;
+                        
+                        if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
+                            // Almacenamos la URL relativa apta de ser impresa en public HTML
+                            $rutaRelativa = '/uploads/empresas/' . $empresaId . '/productos/' . $id . '/' . $filename;
+                            $this->repository->guardarImagen($empresaId, $id, $rutaRelativa, 1);
+                        }
+                    }
+                }
+
                 \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             }
         }

@@ -54,6 +54,28 @@ class ClienteTangoLookupService
 
         $tangoClient = $data['list'][0];
 
+        // --- NUEVO: Traer IDs Internos Mapeados necesarios para el process 19845 ---
+        if (!empty($tangoClient['ID_GVA14'])) {
+            $idBase = $tangoClient['ID_GVA14'];
+            $urlId = $this->apiUrl . "/GetById?process=2117&id=" . $idBase;
+            $chId = curl_init($urlId);
+            curl_setopt($chId, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($chId, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($chId, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($chId, CURLOPT_HTTPHEADER, [
+                "ApiAuthorization: {$this->token}",
+                "Company: {$this->companyId}",
+                "Content-Type: application/json"
+            ]);
+            $resId = curl_exec($chId);
+            curl_close($chId);
+            $dataId = json_decode((string)$resId, true);
+            $tangoInternal = $dataId['value'] ?? [];
+        } else {
+            $tangoInternal = [];
+        }
+
+
         // Mapeo detallado de respuesta para almacenar localmente lo útil
         return [
             'id_gva14_tango' => $tangoClient['ID_GVA14'] ?? null,
@@ -61,6 +83,13 @@ class ClienteTangoLookupService
             'id_gva10_lista_precios' => $tangoClient['GVA10_NRO_DE_LIS'] ?? null,
             'id_gva23_vendedor' => $tangoClient['GVA23_CODIGO'] ?? null,
             'id_gva24_transporte' => $tangoClient['GVA24_CODIGO'] ?? null,
+            
+            // Identificadores internos estrictamente nativos para proceso Pedidos (19845)
+            'id_gva01_tango' => $tangoInternal['ID_GVA01'] ?? null,
+            'id_gva10_tango' => $tangoInternal['ID_GVA10'] ?? null,
+            'id_gva23_tango' => $tangoInternal['ID_GVA23'] ?? null,
+            'id_gva24_tango' => $tangoInternal['ID_GVA24'] ?? null,
+
             'razon_social' => $tangoClient['RAZON_SOCI'] ?? null,
             'cuit' => $tangoClient['CUIT'] ?? null,
             'domicilio' => $tangoClient['DOMICILIO'] ?? null

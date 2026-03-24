@@ -36,9 +36,13 @@
                 ?>
                 <div class="col">
                     <div class="card product-card">
-                        <!-- Placeholder Image Box -->
-                        <div class="bg-light w-100 d-flex align-items-center justify-content-center" style="height: 200px; border-radius: 12px 12px 0 0;">
-                            <span class="text-muted opacity-50 fs-2">📸</span>
+                        <!-- Image Box -->
+                        <div class="bg-light w-100 d-flex align-items-center justify-content-center overflow-hidden" style="height: 200px; border-radius: 12px 12px 0 0;">
+                            <?php if (!empty($art['imagen_principal'])): ?>
+                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$art['imagen_principal']) ?>" alt="<?= htmlspecialchars((string)$art['nombre']) ?>" class="w-100 h-100" style="object-fit: cover;">
+                            <?php else: ?>
+                                <img src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Sin imagen" class="w-100 h-100" style="object-fit: contain; padding: 20px; opacity: 0.5;">
+                            <?php endif; ?>
                         </div>
                         <div class="card-body p-4">
                             <span class="badge bg-secondary opacity-50 mb-2 fw-normal" style="font-size: 0.70em;"><?= htmlspecialchars((string)$art['codigo_externo']) ?></span>

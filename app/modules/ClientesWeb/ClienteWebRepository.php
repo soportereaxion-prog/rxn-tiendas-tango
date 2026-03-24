@@ -213,9 +213,6 @@ class ClienteWebRepository
         ]);
     }
 
-    /**
-     * Actualiza la información vinculada a Tango (Tras validación exitosa).
-     */
     public function updateTangoData(int $id, array $tangoData): void
     {
         $sql = "UPDATE clientes_web SET 
@@ -224,6 +221,10 @@ class ClienteWebRepository
             id_gva10_lista_precios = :gva10,
             id_gva23_vendedor = :gva23,
             id_gva24_transporte = :gva24,
+            id_gva01_tango = :id_gva01_tango,
+            id_gva10_tango = :id_gva10_tango,
+            id_gva23_tango = :id_gva23_tango,
+            id_gva24_tango = :id_gva24_tango,
             codigo_tango = :codigo_tango,
             updated_at = NOW()
             WHERE id = :id";
@@ -236,6 +237,10 @@ class ClienteWebRepository
             'gva10' => $tangoData['id_gva10_lista_precios'] ?? null,
             'gva23' => $tangoData['id_gva23_vendedor'] ?? null,
             'gva24' => $tangoData['id_gva24_transporte'] ?? null,
+            'id_gva01_tango' => $tangoData['id_gva01_tango'] ?? null,
+            'id_gva10_tango' => $tangoData['id_gva10_tango'] ?? null,
+            'id_gva23_tango' => $tangoData['id_gva23_tango'] ?? null,
+            'id_gva24_tango' => $tangoData['id_gva24_tango'] ?? null,
             'codigo_tango' => $tangoData['codigo_tango'] ?? null
         ]);
     }

@@ -14,4 +14,5 @@ class Articulo
     public ?float $stock_actual = null;
     public int $activo = 1;
     public ?string $fecha_ultima_sync = null;
+    public ?string $imagen_principal = null;
 }

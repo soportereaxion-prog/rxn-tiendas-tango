@@ -12,8 +12,12 @@ $hasStock = ((float)$articulo->stock_actual) > 0;
 
     <div class="row g-5">
         <div class="col-md-6 mb-4 mb-md-0">
-            <div class="bg-white border rounded-4 d-flex align-items-center justify-content-center shadow-sm" style="height: 450px;">
-                <span class="display-1 text-muted opacity-25">📷</span>
+            <div class="bg-white border rounded-4 d-flex align-items-center justify-content-center shadow-sm overflow-hidden" style="height: 450px;">
+                <?php if (!empty($articulo->imagen_principal)): ?>
+                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$articulo->imagen_principal) ?>" alt="<?= htmlspecialchars((string)$articulo->nombre) ?>" class="w-100 h-100" style="object-fit: cover;">
+                <?php else: ?>
+                    <img src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Sin imagen" class="w-100 h-100" style="object-fit: contain; padding: 40px; opacity: 0.5;">
+                <?php endif; ?>
             </div>
         </div>
         
