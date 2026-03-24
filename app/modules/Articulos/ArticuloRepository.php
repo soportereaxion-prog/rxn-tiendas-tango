@@ -125,6 +125,9 @@ class ArticuloRepository
         $articulo->nombre = $row['nombre'];
         $articulo->descripcion = $row['descripcion'];
         $articulo->precio = $row['precio'] !== null ? (float)$row['precio'] : null;
+        $articulo->precio_lista_1 = $row['precio_lista_1'] !== null ? (float)$row['precio_lista_1'] : null;
+        $articulo->precio_lista_2 = $row['precio_lista_2'] !== null ? (float)$row['precio_lista_2'] : null;
+        $articulo->stock_actual = $row['stock_actual'] !== null ? (float)$row['stock_actual'] : null;
         $articulo->activo = (int)$row['activo'];
         $articulo->fecha_ultima_sync = $row['fecha_ultima_sync'];
         return $articulo;

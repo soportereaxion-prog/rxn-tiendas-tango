@@ -11,6 +11,7 @@ class Articulo
     public ?float $precio = null;
     public ?float $precio_lista_1 = null;
     public ?float $precio_lista_2 = null;
+    public ?float $stock_actual = null;
     public int $activo = 1;
     public ?string $fecha_ultima_sync = null;
 }

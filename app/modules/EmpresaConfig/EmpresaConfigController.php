@@ -7,14 +7,18 @@ namespace App\Modules\EmpresaConfig;
 use App\Core\Controller;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Empresas\EmpresaRepository;
+use App\Core\Context;
 
 class EmpresaConfigController extends Controller
 {
     private EmpresaConfigService $service;
+    private EmpresaRepository $empresaRepo;
 
     public function __construct()
     {
         $this->service = new EmpresaConfigService();
+        $this->empresaRepo = new EmpresaRepository();
     }
 
     public function index(): void
@@ -23,8 +27,12 @@ class EmpresaConfigController extends Controller
         
         try {
             $config = $this->service->getConfig();
+            $empresaId = Context::getEmpresaId();
+            $empresa = $this->empresaRepo->findById((int)$empresaId);
+            
             View::render('app/modules/EmpresaConfig/views/index.php', [
-                'config' => $config
+                'config' => $config,
+                'empresa' => $empresa
             ]);
         } catch (\Exception $e) {
             http_response_code(403);
@@ -43,9 +51,13 @@ class EmpresaConfigController extends Controller
         } catch (\Exception $e) {
             try {
                 $config = $this->service->getConfig();
+                $empresaId = Context::getEmpresaId();
+                $empresa = $this->empresaRepo->findById((int)$empresaId);
+
                 View::render('app/modules/EmpresaConfig/views/index.php', [
                     'error' => 'Error al guardar: ' . $e->getMessage(),
                     'config' => $config,
+                    'empresa' => $empresa,
                     'old' => $_POST
                 ]);
             } catch (\Exception $ex) {

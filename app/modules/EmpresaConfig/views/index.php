@@ -31,6 +31,15 @@
         <div class="card">
             <div class="card-body">
                 <form action="/rxnTiendasIA/public/mi-empresa/configuracion" method="POST">
+                
+                    <div class="mb-4 bg-light p-3 rounded border">
+                        <label class="form-label text-secondary fw-bold mb-1">Tu Enlace Comercial (Slug)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-muted border-end-0">/rxnTiendasIA/public/</span>
+                            <input type="text" class="form-control bg-white border-start-0 ps-0 fw-bold" value="<?= htmlspecialchars((string)($empresa->slug ?? 'Sin Slug Generado')) ?>" readonly disabled>
+                        </div>
+                        <div class="form-text mt-2"><small>Este slug define la URL pública inicial de la tienda. Puedes comunicárselo a tus clientes.</small></div>
+                    </div>
                     
                     <div class="mb-3">
                         <label for="nombre_fantasia" class="form-label">Nombre de Fantasía</label>
