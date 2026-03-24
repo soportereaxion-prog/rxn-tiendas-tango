@@ -54,6 +54,7 @@ class ArticuloController extends Controller
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->repository->truncateArticulos($empresaId);
+            \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             \App\Core\Flash::set('success', 'Base de datos de Artículos purgada por completo.');
         }
         
@@ -71,6 +72,7 @@ class ArticuloController extends Controller
             if (!empty($ids) && is_array($ids)) {
                 $ids = array_map('intval', $ids);
                 $this->repository->deleteByIds($ids, $empresaId);
+                \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             }
         }
         
@@ -122,6 +124,7 @@ class ArticuloController extends Controller
                 $articulo->activo = isset($_POST['activo']) ? 1 : 0;
                 
                 $this->repository->update($articulo);
+                \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             }
         }
         
