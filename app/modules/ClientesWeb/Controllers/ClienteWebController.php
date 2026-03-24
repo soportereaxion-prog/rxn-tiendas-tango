@@ -7,6 +7,8 @@ use App\Core\View;
 use App\Modules\ClientesWeb\ClienteWebRepository;
 use App\Modules\ClientesWeb\Services\ClienteTangoLookupService;
 use App\Core\Database;
+use App\Modules\Auth\AuthService;
+use App\Core\Context;
 use Exception;
 
 class ClienteWebController
@@ -20,13 +22,9 @@ class ClienteWebController
 
     public function index(): void
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['usuario_id'])) {
-            header('Location: /login');
-            exit;
-        }
-
-        $empresaId = (int)$_SESSION['empresa_id'];
+        AuthService::requireLogin();
+        $empresaId = (int)Context::getEmpresaId();
+        
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = 20;
         $search = trim($_GET['search'] ?? '');
@@ -49,18 +47,14 @@ class ClienteWebController
 
     public function edit(int $id): void
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['usuario_id'])) {
-            header('Location: /login');
-            exit;
-        }
-
-        $empresaId = (int)$_SESSION['empresa_id'];
+        AuthService::requireLogin();
+        $empresaId = (int)Context::getEmpresaId();
+        
         $cliente = $this->repository->findById($id, $empresaId);
 
         if (!$cliente) {
             $_SESSION['flash_error'] = "Cliente no encontrado.";
-            header('Location: /mi-empresa/clientes');
+            header('Location: /rxnTiendasIA/public/mi-empresa/clientes');
             exit;
         }
 
@@ -71,17 +65,13 @@ class ClienteWebController
 
     public function update(int $id): void
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['usuario_id'])) {
-            header('Location: /login');
-            exit;
-        }
-
-        $empresaId = (int)$_SESSION['empresa_id'];
+        AuthService::requireLogin();
+        $empresaId = (int)Context::getEmpresaId();
+        
         $cliente = $this->repository->findById($id, $empresaId);
 
         if (!$cliente) {
-            header('Location: /mi-empresa/clientes');
+            header('Location: /rxnTiendasIA/public/mi-empresa/clientes');
             exit;
         }
 
@@ -103,25 +93,21 @@ class ClienteWebController
 
             $this->repository->update($id, $data);
             $_SESSION['flash_success'] = "Cliente web actualizado correctamente.";
-            header("Location: /mi-empresa/clientes/$id/editar");
+            header("Location: /rxnTiendasIA/public/mi-empresa/clientes/$id/editar");
             exit;
         }
     }
 
     public function validarTango(int $id): void
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['usuario_id'])) {
-            header('Location: /login');
-            exit;
-        }
-
-        $empresaId = (int)$_SESSION['empresa_id'];
+        AuthService::requireLogin();
+        $empresaId = (int)Context::getEmpresaId();
+        
         $cliente = $this->repository->findById($id, $empresaId);
 
         if (!$cliente) {
             $_SESSION['flash_error'] = "Cliente no encontrado.";
-            header('Location: /mi-empresa/clientes');
+            header('Location: /rxnTiendasIA/public/mi-empresa/clientes');
             exit;
         }
 
@@ -129,7 +115,7 @@ class ClienteWebController
         
         if (empty($codigoTango)) {
             $_SESSION['flash_error'] = "Primero debes guardar un Código Tango antes de validar.";
-            header("Location: /mi-empresa/clientes/$id/editar");
+            header("Location: /rxnTiendasIA/public/mi-empresa/clientes/$id/editar");
             exit;
         }
 
@@ -165,7 +151,7 @@ class ClienteWebController
             $_SESSION['flash_error'] = "Error validando en Tango: " . $e->getMessage();
         }
 
-        header("Location: /mi-empresa/clientes/$id/editar");
+        header("Location: /rxnTiendasIA/public/mi-empresa/clientes/$id/editar");
         exit;
     }
 }
