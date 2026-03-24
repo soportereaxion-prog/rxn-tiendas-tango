@@ -46,6 +46,13 @@ return function (Router $router): void {
     $router->get('/mi-empresa/articulos/editar', [\App\Modules\Articulos\ArticuloController::class, 'editar']);
     $router->post('/mi-empresa/articulos/editar', [\App\Modules\Articulos\ArticuloController::class, 'actualizar']);
 
+    // --- MÓDULO CLIENTES WEB ---
+    $router->get('/mi-empresa/clientes', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'index']);
+    $router->get('/mi-empresa/clientes/{id}/editar', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'edit']);
+    $router->post('/mi-empresa/clientes/{id}/editar', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'update']);
+    $router->post('/mi-empresa/clientes/{id}/validar-tango', [\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'validarTango']);
+
+
     // --- MÓDULO PEDIDOS WEB ---
     $router->get('/mi-empresa/pedidos', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'index']);
     $router->get('/mi-empresa/pedidos/{id}', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'show']);

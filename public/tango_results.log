@@ -1,0 +1,60 @@
+========================================
+Testing Node: CLIENTE_OCASIONAL with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: ClienteOcasional with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: OCASIONAL with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: CLIENTE with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: DATOS_CLIENTE_OCASIONAL with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: GVA14 with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: Ocasional with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: DatosOcasional with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: Cliente with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+
+========================================
+Testing Node: DetalleClienteOcasional with ID_GVA14=0 and CODIGO_CLIENTE=''
+HTTP Code: 200
+Response: {"message":"Se detectó una situación inesperada","exceptionInfo":{"title":"Atención","messages":["Se deben ingresar los datos del cliente ocasional."],"detailMessages":[]},"succeeded":false}
+========================================
+

@@ -81,6 +81,12 @@ class PedidoWebController extends Controller
             exit;
         }
 
+        if (empty($pedido['id_gva14_tango'])) {
+            \App\Core\Flash::set('El cliente NO tiene su vínculo comercial con Tango resuelto. Por favor asigne y valide un Código Tango en Clientes Web.', 'danger');
+            header("Location: /rxnTiendasIA/public/mi-empresa/pedidos/{$pedidoId}");
+            exit;
+        }
+
         // Reconstruimos la llamada a Tango. Idealmente esto está abstraído en un "TangoSyncService", pero
         // usaremos el mismo pipeline de CheckoutService temporalmente aislando la parte de API.
         
@@ -89,7 +95,12 @@ class PedidoWebController extends Controller
         // 1. Reconstruir Arrays para el Mapper (Simular Estructura Original)
         $clienteWeb = [
             'id' => $pedido['cliente_web_id'],
-            'codigo_tango' => $pedido['codigo_cliente_tango_usado'] !== '000000' ? $pedido['codigo_cliente_tango_usado'] : null,
+            'codigo_tango' => $pedido['codigo_tango'] ?? ($pedido['codigo_cliente_tango_usado'] !== '000000' ? $pedido['codigo_cliente_tango_usado'] : null),
+            'id_gva14_tango' => $pedido['id_gva14_tango'],
+            'id_gva01_condicion_venta' => $pedido['id_gva01_condicion_venta'],
+            'id_gva10_lista_precios' => $pedido['id_gva10_lista_precios'],
+            'id_gva23_vendedor' => $pedido['id_gva23_vendedor'],
+            'id_gva24_transporte' => $pedido['id_gva24_transporte'],
             'nombre' => $pedido['nombre'],
             'apellido' => $pedido['apellido'],
             'documento' => $pedido['documento'],

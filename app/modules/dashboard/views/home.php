@@ -33,6 +33,7 @@
                         <div class="mt-auto">
                             <p class="mb-2 small">👤 <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuario') ?> <br>(Empresa #<?= $_SESSION['empresa_id'] ?? '' ?>)</p>
                             <a href="/rxnTiendasIA/public/mi-empresa/pedidos" class="btn btn-dark fw-bold text-white w-100 mb-2">🛍️ Pedidos Web</a>
+                            <a href="/rxnTiendasIA/public/mi-empresa/clientes" class="btn btn-info fw-bold text-white w-100 mb-2">👥 Clientes Web</a>
                             <a href="/rxnTiendasIA/public/mi-empresa/articulos" class="btn btn-warning fw-bold text-dark w-100 mb-2">🎁 Catálogo de Artículos</a>
                             <a href="/rxnTiendasIA/public/mi-empresa/usuarios" class="btn btn-light text-primary fw-bold w-100 mb-2">Administrar Cuentas</a>
                             <a href="/rxnTiendasIA/public/mi-empresa/configuracion" class="btn btn-light text-primary fw-bold w-100 mb-2">Mi Configuración</a>

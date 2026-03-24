@@ -30,6 +30,11 @@ try {
         codigo_postal VARCHAR(20) NULL,
         observaciones TEXT NULL,
         activo TINYINT(1) DEFAULT 1,
+        id_gva14_tango INT NULL COMMENT 'ID Técnico en Cliente Tango',
+        id_gva01_condicion_venta INT NULL COMMENT 'ID de Condición Venta en Tango',
+        id_gva10_lista_precios INT NULL COMMENT 'ID de Lista de Precios en Tango',
+        id_gva23_vendedor INT NULL COMMENT 'ID de Vendedor en Tango',
+        id_gva24_transporte INT NULL COMMENT 'ID de Transporte en Tango',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX (empresa_id),
@@ -38,6 +43,19 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ";
     $db->exec($sql1);
+
+    // Alter table to add fields if they don't exist
+    try {
+        $db->exec("ALTER TABLE clientes_web ADD COLUMN id_gva14_tango INT NULL AFTER activo");
+        $db->exec("ALTER TABLE clientes_web ADD COLUMN id_gva01_condicion_venta INT NULL AFTER id_gva14_tango");
+        $db->exec("ALTER TABLE clientes_web ADD COLUMN id_gva10_lista_precios INT NULL AFTER id_gva01_condicion_venta");
+        $db->exec("ALTER TABLE clientes_web ADD COLUMN id_gva23_vendedor INT NULL AFTER id_gva10_lista_precios");
+        $db->exec("ALTER TABLE clientes_web ADD COLUMN id_gva24_transporte INT NULL AFTER id_gva23_vendedor");
+        echo "Columnas técnicas Tango añadidas a clientes_web.\n";
+    } catch (Exception $e) {
+        // Ignorar si ya existen
+    }
+    
     echo "Tabla clientes_web creada o verificada.\n";
 
     // Crear Tabla pedidos_web
