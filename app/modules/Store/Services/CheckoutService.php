@@ -119,14 +119,17 @@ class CheckoutService
                     $this->pedidoRepo->markAsSentToTango($pedidoId, $tangoPedidoNum, json_encode($tangoPayload), json_encode($response));
                     $tangoSuccess = true;
                 } else {
-                    $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), json_encode($response));
+                    $errorText = is_array($response['data'] ?? null) ? json_encode($response['data']) : 'HTTP Error ' . $response['status'];
+                    $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorText, json_encode($response));
                 }
             } else {
-                $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), "Sin credenciales Tango para la empresa.");
+                $errorMsg = "Sin credenciales Tango para la empresa.";
+                $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorMsg);
             }
         } catch (Exception $e) {
             // Caída de red o excepcion HTTP
-            $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $e->getMessage());
+            $errorMsg = $e->getMessage();
+            $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorMsg);
         }
 
         // 5. Limpiar Carrito tras pedido exitoso localmente (sin importar si Tango falló, el local ya guardó la orden)

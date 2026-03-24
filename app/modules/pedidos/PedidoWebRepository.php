@@ -96,7 +96,7 @@ class PedidoWebRepository
     /**
      * Marca el pedido como erróneo al enviarse a Tango, no perdiendo el local.
      */
-    public function markAsErrorToTango(int $pedidoId, string $payload, string $errorResponse): void
+    public function markAsErrorToTango(int $pedidoId, string $payload, string $errorText, ?string $jsonResponse = null): void
     {
         $sql = "UPDATE pedidos_web SET 
                 estado_tango = 'error_envio_tango',
@@ -110,8 +110,8 @@ class PedidoWebRepository
         $stmt->execute([
             'id' => $pedidoId,
             'payload_enviado' => $payload,
-            'mensaje_error' => $errorResponse,
-            'respuesta_tango' => $errorResponse
+            'mensaje_error' => $errorText,
+            'respuesta_tango' => $jsonResponse ?: json_encode(['error' => $errorText])
         ]);
     }
 }
