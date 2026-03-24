@@ -21,20 +21,49 @@
             <div class="card-body p-4">
                 <form action="/rxnTiendasIA/public/mi-empresa/articulos/editar?id=<?= $articulo->id ?>" method="POST" enctype="multipart/form-data">
                     
-                    <!-- Previsualización de Imagen Principal -->
-                    <div class="mb-4 text-center">
-                        <?php if(!empty($imagenPrincipal)): ?>
-                            <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$imagenPrincipal) ?>" alt="Imagen principal" class="img-thumbnail" style="max-height: 200px; object-fit: cover;">
-                            <div class="mt-2"><span class="badge bg-success">Tiene imagen principal local</span></div>
+                    <!-- Galería Multi-Imagen (Fase 5) -->
+                    <?php $totalImagenes = count($imagenes ?? []); ?>
+                    
+                    <div class="mb-4 bg-light p-3 border rounded">
+                        <label class="form-label text-dark fw-bold mb-3">Galería Visual (Máximo 5 imágenes)</label>
+                        
+                        <?php if ($totalImagenes > 0): ?>
+                            <div class="row g-3 mb-3">
+                                <?php foreach (($imagenes ?? []) as $img): ?>
+                                    <div class="col-6 col-md-4 col-lg-3">
+                                        <div class="position-relative border rounded p-1 text-center bg-white shadow-sm <?= $img['es_principal'] ? 'border-primary border-2' : '' ?>">
+                                            <?php if ($img['es_principal']): ?>
+                                                <span class="position-absolute top-0 start-0 translate-middle p-1 bg-primary border border-light rounded-circle fw-bold text-white shadow" title="Portada Principal" style="font-size: 0.8rem; z-index: 10;">⭐</span>
+                                            <?php endif; ?>
+                                            
+                                            <div style="height: 120px; overflow: hidden;" class="rounded mb-2">
+                                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$img['ruta']) ?>" class="w-100 h-100" style="object-fit: cover;">
+                                            </div>
+                                            
+                                            <div class="d-flex justify-content-between gap-1">
+                                                <?php if (!$img['es_principal']): ?>
+                                                    <button type="submit" name="set_main_img" value="<?= $img['id'] ?>" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium" title="Marcar como Principal">Tapa</button>
+                                                <?php else: ?>
+                                                    <button type="button" class="btn btn-sm btn-primary py-0 px-2 fw-medium disabled">Tapa</button>
+                                                <?php endif; ?>
+                                                <button type="submit" name="delete_img" value="<?= $img['id'] ?>" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium" title="Eliminar Imagen" onclick="return confirm('¿Seguro que deseas eliminar esta imagen local?');">Quitar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         <?php else: ?>
-                            <img src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Sin imagen" class="img-thumbnail" style="max-height: 200px; opacity: 0.5;">
-                            <div class="mt-2"><span class="badge bg-secondary">Sin imagen principal</span></div>
+                            <div class="alert alert-secondary text-center">No hay imágenes propias nativas anexadas a este SKU.</div>
                         <?php endif; ?>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Añadir o reemplazar imagen (.JPG / .PNG)</label>
-                        <input type="file" class="form-control" name="imagen" accept=".jpg,.jpeg,.png">
+                        <?php if ($totalImagenes < 5): ?>
+                            <div class="mt-3">
+                                <label class="form-label text-muted d-block" style="font-size: 0.85rem;">Puedes adjuntar <strong><?= 5 - $totalImagenes ?></strong> fotos adicionales (.JPG / .PNG / .WEBP).</label>
+                                <input type="file" class="form-control" name="imagenes[]" accept=".jpg,.jpeg,.png,.webp" multiple>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-warning mt-3 mb-0"><small>⚠️ Has alcanzado el límite transaccional de 5 imágenes asociadas. Remueve una subida anterior para incorporar nuevas variantes.</small></div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="mb-3">

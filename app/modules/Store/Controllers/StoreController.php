@@ -85,10 +85,13 @@ class StoreController extends Controller
             exit;
         }
 
+        $imagenes = $this->articuloRepo->obtenerImagenesArticulo($empresaId, $id);
+
         View::render('app/modules/Store/views/show.php', [
             'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
             'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
-            'articulo'       => $articulo
+            'articulo'       => $articulo,
+            'imagenes'       => $imagenes
         ]);
     }
 }

@@ -78,6 +78,29 @@ class EmpresaConfigService
             $config->tango_connect_token = trim($data['tango_connect_token']);
         }
 
+        // --- MÓDULO IMAGEN FALLBACK ---
+        if (isset($_FILES['imagen_default']) && $_FILES['imagen_default']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['imagen_default']['tmp_name'];
+            $name = $_FILES['imagen_default']['name'];
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/config';
+                if (!is_dir($dirUploads)) {
+                    mkdir($dirUploads, 0777, true);
+                }
+                
+                $filename = 'fallback_' . time() . '.' . $ext;
+                $rutaAbsoluta = $dirUploads . '/' . $filename;
+                
+                if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
+                    $config->imagen_default_producto = '/uploads/empresas/' . $empresaId . '/config/' . $filename;
+                    // Limpieza obligatoria del menú ya que cambiamos el aspet global visual
+                    \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
+                }
+            }
+        }
+
         $this->repository->save($config);
     }
 }

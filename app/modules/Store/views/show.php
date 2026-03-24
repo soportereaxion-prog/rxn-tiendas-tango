@@ -12,13 +12,32 @@ $hasStock = ((float)$articulo->stock_actual) > 0;
 
     <div class="row g-5">
         <div class="col-md-6 mb-4 mb-md-0">
-            <div class="bg-white border rounded-4 d-flex align-items-center justify-content-center shadow-sm overflow-hidden" style="height: 450px;">
+            <!-- Imagen Principal Grande -->
+            <div class="bg-white border rounded-4 d-flex align-items-center justify-content-center shadow-sm overflow-hidden mb-3" style="height: 400px;">
                 <?php if (!empty($articulo->imagen_principal)): ?>
-                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$articulo->imagen_principal) ?>" alt="<?= htmlspecialchars((string)$articulo->nombre) ?>" class="w-100 h-100" style="object-fit: cover;">
+                    <img id="main-product-image" src="/rxnTiendasIA/public<?= htmlspecialchars((string)$articulo->imagen_principal) ?>" alt="<?= htmlspecialchars((string)$articulo->nombre) ?>" class="w-100 h-100" style="object-fit: cover; transition: opacity 0.3s ease;">
                 <?php else: ?>
-                    <img src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Sin imagen" class="w-100 h-100" style="object-fit: contain; padding: 40px; opacity: 0.5;">
+                    <img id="main-product-image" src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Sin imagen" class="w-100 h-100" style="object-fit: contain; padding: 40px; opacity: 0.5;">
                 <?php endif; ?>
             </div>
+            
+            <!-- Miniaturas (Galería Múltiple / MVP) -->
+            <?php if (!empty($imagenes) && count($imagenes) > 1): ?>
+                <div class="d-flex gap-2 overflow-auto pb-2" style="white-space: nowrap;">
+                    <?php foreach ($imagenes as $img): ?>
+                        <div class="border rounded-3 overflow-hidden shadow-sm" style="width: 80px; height: 80px; flex-shrink: 0; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="
+                            const mainImg = document.getElementById('main-product-image');
+                            mainImg.style.opacity = '0';
+                            setTimeout(() => {
+                                mainImg.src = '/rxnTiendasIA/public<?= htmlspecialchars((string)$img['ruta']) ?>';
+                                mainImg.style.opacity = '1';
+                            }, 150);
+                        ">
+                            <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$img['ruta']) ?>" class="w-100 h-100" style="object-fit: cover;" title="Visualizar variante">
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
         
         <div class="col-md-6">

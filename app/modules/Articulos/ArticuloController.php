@@ -92,11 +92,11 @@ class ArticuloController extends Controller
             exit;
         }
         
-        $imagenPrincipal = $this->repository->obtenerImagenPrincipal($empresaId, $id);
+        $imagenes = $this->repository->obtenerImagenesArticulo($empresaId, $id);
         
         View::render('app/modules/Articulos/views/form.php', [
             'articulo' => $articulo,
-            'imagenPrincipal' => $imagenPrincipal
+            'imagenes' => $imagenes
         ]);
     }
 
@@ -128,26 +128,52 @@ class ArticuloController extends Controller
                 
                 $this->repository->update($articulo);
                 
-                // Módulo de Imágenes (Subida local respetando Fases 3 y 4)
-                if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-                    $tmpName = $_FILES['imagen']['tmp_name'];
-                    $name = $_FILES['imagen']['name'];
-                    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                // Acciones de imágenes existentes
+                if (isset($_POST['delete_img'])) {
+                    $imgId = (int)$_POST['delete_img'];
+                    $this->repository->eliminarImagen($empresaId, $id, $imgId);
+                }
+
+                if (isset($_POST['set_main_img'])) {
+                    $imgId = (int)$_POST['set_main_img'];
+                    $this->repository->marcarImagenPrincipal($empresaId, $id, $imgId);
+                }
+
+                // Subida múltiple (Fase 5 - Máximo 5 imágenes)
+                if (isset($_FILES['imagenes']) && is_array($_FILES['imagenes']['name'])) {
+                    $currentTotal = count($this->repository->obtenerImagenesArticulo($empresaId, $id));
+                    $remaining = 5 - $currentTotal;
                     
-                    if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
-                        // Creación automática de directorios persistentes
-                        $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/productos/' . $id;
-                        if (!is_dir($dirUploads)) {
-                            mkdir($dirUploads, 0777, true);
-                        }
+                    if ($remaining > 0) {
+                        $filesCount = count($_FILES['imagenes']['name']);
                         
-                        $filename = 'emp_' . $empresaId . '_art_' . $id . '_' . time() . '.' . $ext;
-                        $rutaAbsoluta = $dirUploads . '/' . $filename;
-                        
-                        if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
-                            // Almacenamos la URL relativa apta de ser impresa en public HTML
-                            $rutaRelativa = '/uploads/empresas/' . $empresaId . '/productos/' . $id . '/' . $filename;
-                            $this->repository->guardarImagen($empresaId, $id, $rutaRelativa, 1);
+                        for ($i = 0; $i < $filesCount; $i++) {
+                            if ($remaining <= 0) break; 
+                            
+                            if ($_FILES['imagenes']['error'][$i] === UPLOAD_ERR_OK) {
+                                $tmpName = $_FILES['imagenes']['tmp_name'][$i];
+                                $name = $_FILES['imagenes']['name'][$i];
+                                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                                
+                                if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                                    $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/productos/' . $id;
+                                    if (!is_dir($dirUploads)) {
+                                        mkdir($dirUploads, 0777, true);
+                                    }
+                                    
+                                    $filename = 'emp_' . $empresaId . '_art_' . $id . '_' . time() . '_' . $i . '.' . $ext;
+                                    $rutaAbsoluta = $dirUploads . '/' . $filename;
+                                    
+                                    if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
+                                        $rutaRelativa = '/uploads/empresas/' . $empresaId . '/productos/' . $id . '/' . $filename;
+                                        
+                                        $isPrincipal = ($currentTotal === 0) ? 1 : 0;
+                                        $this->repository->guardarImagen($empresaId, $id, $rutaRelativa, $isPrincipal);
+                                        $currentTotal++;
+                                        $remaining--;
+                                    }
+                                }
+                            }
                         }
                     }
                 }

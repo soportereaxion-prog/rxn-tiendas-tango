@@ -30,7 +30,7 @@
 
         <div class="card">
             <div class="card-body">
-                <form action="/rxnTiendasIA/public/mi-empresa/configuracion" method="POST">
+                <form action="/rxnTiendasIA/public/mi-empresa/configuracion" method="POST" enctype="multipart/form-data">
                 
                     <div class="mb-4 bg-light p-3 rounded border">
                         <label class="form-label text-secondary fw-bold mb-1">Tu Enlace Comercial (Slug)</label>
@@ -57,6 +57,24 @@
                         <label for="telefono" class="form-label">Teléfono</label>
                         <input type="text" class="form-control" id="telefono" name="telefono"
                                value="<?= htmlspecialchars($old['telefono'] ?? ($config->telefono ?? '')) ?>">
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="fw-bold mb-3 text-secondary">Identidad Visual Corporativa</h5>
+
+                    <div class="mb-4 row align-items-center bg-light p-3 rounded border">
+                        <div class="col-md-3 text-center mb-3 mb-md-0">
+                            <?php if(!empty($config->imagen_default_producto)): ?>
+                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$config->imagen_default_producto) ?>" alt="Fallback Empresa" class="img-thumbnail" style="max-height: 120px; object-fit: cover;">
+                            <?php else: ?>
+                                <img src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Fallback Genérico" class="img-thumbnail opacity-50" style="max-height: 120px; object-fit: contain;">
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label fw-bold text-dark">Imagen de Producto por Defecto</label>
+                            <input type="file" class="form-control mb-2" name="imagen_default" accept=".jpg,.jpeg,.png,.webp">
+                            <div class="form-text">Si un artículo no posee imágenes propias cargadas, el sistema público de tu Tienda exhibirá automáticamente esta imagen oficial como marcador de posición.</div>
+                        </div>
                     </div>
 
                     <hr class="my-4">

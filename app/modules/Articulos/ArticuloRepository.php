@@ -65,9 +65,12 @@ class ArticuloRepository
     {
         $offset = max(0, ($page - 1) * $limit);
         $sql = "SELECT a.*, 
-               (SELECT ruta FROM articulo_imagenes 
-                WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1 
-                ORDER BY orden ASC LIMIT 1) as imagen_principal
+               COALESCE(
+                   (SELECT ruta FROM articulo_imagenes 
+                    WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1 
+                    ORDER BY orden ASC LIMIT 1),
+                   (SELECT imagen_default_producto FROM empresa_config WHERE empresa_id = a.empresa_id)
+               ) as imagen_principal
                 FROM articulos a WHERE a.empresa_id = :empresa_id";
         $params = [':empresa_id' => $empresaId];
 
@@ -116,9 +119,12 @@ class ArticuloRepository
     public function findById(int $id, int $empresaId): ?Articulo
     {
         $sql = "SELECT a.*, 
-               (SELECT ruta FROM articulo_imagenes 
-                WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1 
-                ORDER BY orden ASC LIMIT 1) as imagen_principal
+               COALESCE(
+                   (SELECT ruta FROM articulo_imagenes 
+                    WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1 
+                    ORDER BY orden ASC LIMIT 1),
+                   (SELECT imagen_default_producto FROM empresa_config WHERE empresa_id = a.empresa_id)
+               ) as imagen_principal
                 FROM articulos a WHERE a.id = :id AND a.empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
@@ -221,5 +227,41 @@ class ArticuloRepository
         $stmt->execute([':empresa_id' => $empresaId, ':articulo_id' => $articuloId]);
         $ruta = $stmt->fetchColumn();
         return $ruta ?: null;
+    }
+
+    public function obtenerImagenesArticulo(int $empresaId, int $articuloId): array
+    {
+        $sql = "SELECT id, ruta, es_principal, orden 
+                FROM articulo_imagenes 
+                WHERE empresa_id = :empresa_id AND articulo_id = :articulo_id 
+                ORDER BY es_principal DESC, orden ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':empresa_id' => $empresaId, ':articulo_id' => $articuloId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function eliminarImagen(int $empresaId, int $articuloId, int $imagenId): bool
+    {
+        $sql = "DELETE FROM articulo_imagenes 
+                WHERE id = :id AND empresa_id = :empresa_id AND articulo_id = :articulo_id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':id' => $imagenId,
+            ':empresa_id' => $empresaId,
+            ':articulo_id' => $articuloId
+        ]);
+    }
+
+    public function marcarImagenPrincipal(int $empresaId, int $articuloId, int $imagenId): void
+    {
+        // Limpiar
+        $sql = "UPDATE articulo_imagenes SET es_principal = 0 WHERE empresa_id = :empresa_id AND articulo_id = :articulo_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':empresa_id' => $empresaId, ':articulo_id' => $articuloId]);
+        
+        // Asignar
+        $sql2 = "UPDATE articulo_imagenes SET es_principal = 1 WHERE id = :id AND empresa_id = :empresa_id AND articulo_id = :articulo_id";
+        $stmt2 = $this->db->prepare($sql2);
+        $stmt2->execute([':id' => $imagenId, ':empresa_id' => $empresaId, ':articulo_id' => $articuloId]);
     }
 }
