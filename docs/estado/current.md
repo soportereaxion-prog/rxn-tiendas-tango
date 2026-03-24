@@ -2,21 +2,22 @@
 
 ## módulos tocados
 
-* módulo: **infra** (Incorporación de `MailService` nativo bajo Sockets TCP/IP. Variables globales `.env`).
-* módulo: **empresa_config** (Ampliación DB para soporte tenant-specific SMTPOverrides; UI renovada para Admins).
-* módulo: clientes_web (Inyección del Dispatcher Transaccional `sendWelcomeEmail` y estructuración DB de `reset_token`).
+* módulo: **admin** (Nuevo endpoint `GlobalConfigController` y vista `smtp_global.php`).
+* módulo: **infra** (Incorporación del `EnvManager` para mutar variables de entorno en runtime).
+* módulo: empresas (Inyección UI del botón "SMTP Master RXN" en el listado central).
+* módulo: empresa_config (Refuerzo textual UX aclarando Fallbacks transparentes).
 
 ## decisiones
 
-* **Agnosticismo de Vendor:** Se evitó instalar `PHPMailer` para respetar las directivas *Vanilla-first*. `App\Core\Services\MailService` ejecuta la transmisión construyendo buffers de Sockets con soporte explícito `STARTTLS` y `SSL`, cubriendo casuística universal.
-* **Jerarquía de Fallback (Rxn Global):** La regla inquebrantable de orquestación dicta que el sistema buscará primeramente un override local (`usa_smtp_propio = 1` en `empresa_config`). Si falla o es inexistente, consumirá las constantes `MAIL_HOST` y afines inyectadas preventivamente en el fichero superglobal `.env`.
+* **Persistencia Root (.env):** Para la jerarquía RXN Master, en vez de crear tablas `config_global` que ensucian el esquema DB, construí la clase `EnvManager` que lee y sobrescribe de forma Regex-safe el archivo `.env`. Esto mantiene el proyecto *Cloud-Native* al estilo Laravel.
+* **Separación de Concerns:** Los administradores accederán a configurar el Master RXN desde la misma vista en la que listan las empresas activas, sin mezclarse nunca con el formulario de "Mi Empresa".
 
 ## riesgos
 
-* **Disponibilidad de Puertos Outbound:** Algunos ISPs locales (Ej: WAMP/XAMPP defaults) bloquean el puerto 25 y el 587. Mitigado delegando los testeos formales a los entornos Staging de hosting profesional.
-* **Seguridad (Auth Bypass):** Las claves introducidas en Panel Empresa no se devuelven rellenadas al DOM HTML (`value=""`) protegiendo el hash en inspector de elementos.
+* **Permisos Unix (.env):** `EnvManager::updateVariables` requiere que PHP-FPM o www-data tengan permiso de escritura (`chmod 664` o `666`) sobre el archivo `.env` en los subidones a Linux. Fallar arrojará una Exception capturada visualmente en pantalla por el Controller advirtiendo el Denied Access.
+* **Restricción de Rutas:** Actualmente `AuthService::requireLogin()` protege `/admin/smtp-global`. A futuro se deberá condicionar a un pseudo-rol `is_superadmin` si se escala el staff.
 
 ## próximo paso
 
-* Testear triggers de correo en vivo una vez mergeado a Staging.
-* Acoplar la construcción definitiva de los frontends de Recuperación ("Olvidé mi contraseña") leyendo el nuevo esquema `reset_token`.
+* Testear en vivo la mutación del `.env` cuando el repo aterrice en un entorno Staging productivo.
+* Consolidar flujos adicionales que dependan de super-administración.

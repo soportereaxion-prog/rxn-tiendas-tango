@@ -150,8 +150,8 @@
 
                     <hr class="my-4">
                     <h5 class="fw-bold mb-3 text-secondary">Transmisión de Correo Electrónico (SMTP)</h5>
-                    <div class="alert alert-info border-0 rounded-3 mb-4">
-                        <small>💡 <strong>Fallback Automático:</strong> Si mantenés desactivada la configuración de SMTP propio o dejás los datos vacíos, el sistema utilizará de forma totalmente transparente los servidores de correo consolidados de <strong>RXN</strong> para que nunca te quedes sin notificar a un cliente.</small>
+                    <div class="alert alert-info border-0 rounded-3 mb-4 shadow-sm">
+                        <small>💡 <strong>Fallback Automático:</strong> Si no configurás SMTP propio, el sistema utilizará el SMTP master de RXN de forma totalmente transparente para que nunca te quedes sin servicio.</small>
                     </div>
 
                     <div class="form-check form-switch mb-4">

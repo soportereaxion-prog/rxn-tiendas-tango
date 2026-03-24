@@ -18,6 +18,10 @@ return function (Router $router): void {
     $router->get('/empresas/{id}/editar', [\App\Modules\Empresas\EmpresaController::class, 'edit']);
     $router->post('/empresas/{id}', [\App\Modules\Empresas\EmpresaController::class, 'update']);
 
+    // --- MÓDULO ADMIN GLOBAL ---
+    $router->get('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'showSmtpGlobal']);
+    $router->post('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'updateSmtpGlobal']);
+
     // --- MÓDULO AUTH ---
     $router->get('/login', [\App\Modules\Auth\AuthController::class, 'showLogin']);
     $router->post('/login', [\App\Modules\Auth\AuthController::class, 'processLogin']);
