@@ -57,10 +57,10 @@ class ClienteTangoLookupService
         // Mapeo detallado de respuesta para almacenar localmente lo útil
         return [
             'id_gva14_tango' => $tangoClient['ID_GVA14'] ?? null,
-            'id_gva01_condicion_venta' => $tangoClient['ID_GVA01'] ?? null,
-            'id_gva10_lista_precios' => $tangoClient['ID_GVA10'] ?? null,
-            'id_gva23_vendedor' => $tangoClient['ID_GVA23'] ?? null,
-            'id_gva24_transporte' => $tangoClient['ID_GVA24'] ?? null,
+            'id_gva01_condicion_venta' => $tangoClient['GVA01_COND_VTA'] ?? null,
+            'id_gva10_lista_precios' => $tangoClient['GVA10_NRO_DE_LIS'] ?? null,
+            'id_gva23_vendedor' => $tangoClient['GVA23_CODIGO'] ?? null,
+            'id_gva24_transporte' => $tangoClient['GVA24_CODIGO'] ?? null,
             'razon_social' => $tangoClient['RAZON_SOCI'] ?? null,
             'cuit' => $tangoClient['CUIT'] ?? null,
             'domicilio' => $tangoClient['DOMICILIO'] ?? null
