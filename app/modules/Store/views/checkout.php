@@ -15,27 +15,27 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-medium">Nombre *</label>
-                            <input type="text" name="nombre" class="form-control form-control-lg bg-light border-0" required>
+                            <input type="text" name="nombre" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['nombre'] ?? '')) ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-medium">Apellido</label>
-                            <input type="text" name="apellido" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="apellido" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['apellido'] ?? '')) ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-medium">E-mail *</label>
-                            <input type="email" name="email" class="form-control form-control-lg bg-light border-0" required>
+                            <input type="email" name="email" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['email'] ?? '')) ?>" <?= !empty($cliente['email']) ? 'readonly' : '' ?> required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-medium">Teléfono</label>
-                            <input type="text" name="telefono" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="telefono" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['telefono'] ?? '')) ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-medium">Documento (DNI/CUIT)</label>
-                            <input type="text" name="documento" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="documento" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['documento'] ?? '')) ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-medium">Razón Social</label>
-                            <input type="text" name="razon_social" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="razon_social" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['razon_social'] ?? '')) ?>">
                         </div>
                     </div>
                 </div>
@@ -45,22 +45,36 @@
                     <div class="row g-3">
                         <div class="col-md-12">
                             <label class="form-label text-secondary small fw-medium">Dirección Completa</label>
-                            <input type="text" name="direccion" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="direccion" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['direccion'] ?? '')) ?>">
                         </div>
                         <div class="col-md-5">
                             <label class="form-label text-secondary small fw-medium">Localidad</label>
-                            <input type="text" name="localidad" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="localidad" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['localidad'] ?? '')) ?>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-secondary small fw-medium">Provincia</label>
-                            <input type="text" name="provincia" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="provincia" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['provincia'] ?? '')) ?>">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-secondary small fw-medium">C.P.</label>
-                            <input type="text" name="codigo_postal" class="form-control form-control-lg bg-light border-0">
+                            <input type="text" name="codigo_postal" class="form-control form-control-lg bg-light border-0" value="<?= htmlspecialchars((string)($cliente['codigo_postal'] ?? '')) ?>">
                         </div>
                     </div>
                 </div>
+
+                <?php if (empty($cliente)): ?>
+                <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+                    <h5 class="fw-bold mb-3">Opcional: Misma compra, Más Beneficios</h5>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="checkCrearCuenta" onchange="document.getElementById('pwdField').style.display = this.checked ? 'block' : 'none'">
+                        <label class="form-check-label fw-medium text-secondary" for="checkCrearCuenta">Crear cuenta automáticamente para ver mi historial de pedidos después</label>
+                    </div>
+                    <div id="pwdField" style="display: none;">
+                        <label class="form-label text-secondary small fw-medium">Crea tu Contraseña <span class="text-danger">*</span></label>
+                        <input type="password" name="password_registro" class="form-control form-control-lg bg-light border-0" minlength="6">
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <div class="bg-white rounded-4 border shadow-sm p-4">
                     <h5 class="fw-bold mb-4">Observaciones del Pedido</h5>

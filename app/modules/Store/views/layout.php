@@ -70,6 +70,22 @@
                 <li class="nav-item me-3">
                     <a class="nav-link text-dark fw-medium" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>">Catálogo</a>
                 </li>
+                <?php if (\App\Modules\Store\Context\ClienteWebContext::isLoggedIn(\App\Modules\Store\Context\PublicStoreContext::getEmpresaId())): ?>
+                    <li class="nav-item dropdown me-3">
+                        <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" id="clienteDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Hola, <?= htmlspecialchars(\App\Modules\Store\Context\ClienteWebContext::getClienteNombre()) ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="clienteDropdown">
+                            <li><a class="dropdown-item" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos">📦 Mis Pedidos</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/logout">Cerrar Sesión</a></li>
+                        </ul>
+                    </li>
+                <?php else: ?>
+                    <li class="nav-item me-3">
+                        <a class="nav-link text-dark fw-medium" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/login">Ingresar</a>
+                    </li>
+                <?php endif; ?>
                 <li class="nav-item">
                     <?php 
                         // Calculo rápido de cart total qty

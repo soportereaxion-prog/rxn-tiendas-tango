@@ -2,35 +2,22 @@
 
 ## módulos tocados
 
-* módulo: core (Nombres de Autoloader alterados)
-* módulo: **tango** (¡NUEVO E INAUGURADO!)
-* módulo: infra (Capa nueva HTTP)
-
-## módulos tocados
-
-* módulo: **core** (Creación del Session Helper estático `Flash` para notificaciones asíncronas).
-* módulo: tango (Controladores de Sincronización derivan a Vistas HTML usando Sess-States en vez de volcar JSON crudo).
-* módulo: articulos (Incorporación de Toast Alerts a la grilla para capturar los Resultados Flash tras una Sincronización).
-* módulo: empresa_config (Configuración Inyectada `cantidad_articulos_sync` al Core de Base de Datos y UI).
+* módulo: store (Se extendieron controladores de Checkout, Dashboard "Mis Pedidos")
+* módulo: **clientes_web** (Implementación de Autenticación, Hasheos, Contexto Sesión)
+* módulo: infra (Migración de DB `password_hash`, Unique Email Index)
 
 ## decisiones
 
-* Se escindió la lógica de Redes fuera de la lógica de Dominios. 
-* El orquestador responsable de mezclar Contexto de Empresa con variables de Peticiones REST recaerá puramente en el `Service` de la entidad correspondiente (`TangoService`), nunca en el Controlador, logrando controladores livianos.
-* Se instaló política de composición en lugar de Herencia para el HTTP Client. Las reglas de infra emplearán excepciones semánticas (ConfigurationException, ConnectionException, etc.).
-* Se implementó el Patrón Mapper para decodificar los Arrays JSON crudos* Se materializó la tabla `tango_sync_logs` para brindar trazabilidad forense a las integraciones masivas.
-* La inserción de base de datos de los Artículos se maneja mediante `ON DUPLICATE KEY UPDATE` garantizando idempotencia directa desde MariaDB.
-* La Sincronización de **Precios (Process 20091)** se incrustó sobre los propios `Artículos` sumando las directivas configurables `lista_precio_1` y `2`. Esto descarta la necesidad de módulos Satélites y es resilente actualizando `precio_lista_X` mediante matching directo por SQL.
-* Se prohiben transmutaciones de Strings (`trim()`, encodifiers agresivos) bajo la decodificación del JSON Tango (`COD_STA11, DESCRIPCIO, SINONIMO`). El esquema se debe almacenar íntegro copiando 1 a 1 a la base SQL original de Tango para evitar roturas de macheo.
-* El frontend de Catálogos (y cualquier maestro de >1000 iteraciones) emplea SSR Paginado (LIMIT OFFSET) y formularios GET en vez de Scripts Vainilla para agilizar carga de Browser.
+* Conservar inmutabilidad entre clientes "guest" vs clientes "registrados", compartiendo el mismo esquema `clientes_web` y mutándose mediante la inyección del `password_hash`.
+* Sesiones Client-Side (`store_cliente_id`) completamente desacopladas de las instancias BackOffice (`admin_id`) empleando wrappers dedicados en `ClienteWebContext`.
+* Autocompletado transversal desde Base de Datos al form de Checkout de un usuario si navega con sesión activa.
 
 ## riesgos
 
-* **Ajuste de Ruta Principal Connect**: Las pruebas arrojaron éxito estructural repeliendo la invocación desde cURL (`Could not resolve host`), comprobando el blindaje del `Catch` del Log. La URL usada `nexosync.tangonexo.com` es ilustrativa. Se necesita que el Licenciatario asigne su ruta real para operar.
-* **PELIGRO DEPLOY LINUX**: Composer ya advirtió un Classmap conflictivo por incompatibilidad de Case-Sensitive en las carpetas base de módulos (Auth != auth). Debe ser solventado vía `git mv` temporal antes del pase final a productivo Unix. (Ver Log Refactor 02-11 para detalles técnicos).
+* **PELIGRO DEPLOY LINUX**: Composer ya advirtió un Classmap conflictivo por incompatibilidad de Case-Sensitive en las carpetas base de módulos (Auth != auth). Debe ser solventado vía `git mv` temporal antes del pase final a productivo Unix.
+* **Colisión de URLs (Slug Router)**: A nivel MVC, las URLs exclusivas con keyword (ej: `/{slug}/login`) se apilaron intencionalmente en el router **antes** del index maestro `{slug}` para evitar canibalizaciones de URI.
 
 ## próximo paso
 
-* Testear en Staging o Local mediante Postman/CURL con una URL Base cien por cien real validada por Axoft.
-* Consolidar el refactoring de carpetas / Rename en GIT para estandarizado PSR-4 cross-platform.
-* Avanzar clonando la arquitectura Sync hacia "Pedidos" y "Stock".
+* Testear en Staging la subida formal.
+* Avanzar con cualquier otro requerimiento de la administración.

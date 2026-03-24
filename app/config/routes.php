@@ -85,6 +85,17 @@ return function (Router $router): void {
         View::render('app/modules/Store/views/error_tienda.php');
     });
     
+    // Auth & Dashboards B2C
+    $router->get('/{slug}/login', [\App\Modules\ClientesWeb\Controllers\ClienteAuthController::class, 'showLoginForm']);
+    $router->post('/{slug}/login', [\App\Modules\ClientesWeb\Controllers\ClienteAuthController::class, 'processLogin']);
+    $router->get('/{slug}/registro', [\App\Modules\ClientesWeb\Controllers\ClienteAuthController::class, 'showRegisterForm']);
+    $router->post('/{slug}/registro', [\App\Modules\ClientesWeb\Controllers\ClienteAuthController::class, 'processRegister']);
+    $router->get('/{slug}/logout', [\App\Modules\ClientesWeb\Controllers\ClienteAuthController::class, 'logout']);
+
+    $router->get('/{slug}/mis-pedidos', [\App\Modules\Store\Controllers\MisPedidosController::class, 'index']);
+    $router->get('/{slug}/mis-pedidos/ver/{id}', [\App\Modules\Store\Controllers\MisPedidosController::class, 'show']);
+
+    // Rutas Store Clientes
     $router->get('/{slug}', [\App\Modules\Store\Controllers\StoreController::class, 'index']);
     $router->get('/{slug}/producto/{id}', [\App\Modules\Store\Controllers\StoreController::class, 'showProduct']);
     $router->get('/{slug}/carrito', [\App\Modules\Store\Controllers\CartController::class, 'index']);

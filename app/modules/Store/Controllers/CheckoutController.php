@@ -41,11 +41,20 @@ class CheckoutController extends Controller
             exit;
         }
 
+        $empresaId = PublicStoreContext::getEmpresaId();
+        $clienteData = [];
+        if (\App\Modules\Store\Context\ClienteWebContext::isLoggedIn($empresaId)) {
+            $clienteId = \App\Modules\Store\Context\ClienteWebContext::getClienteId();
+            $repo = new \App\Modules\ClientesWeb\ClienteWebRepository();
+            $clienteData = $repo->findById($clienteId, $empresaId) ?? [];
+        }
+
         View::render('app/modules/Store/views/checkout.php', [
             'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
             'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
             'items'          => $items,
-            'total'          => $this->cartService->getTotal()
+            'total'          => $this->cartService->getTotal(),
+            'cliente'        => $clienteData
         ]);
     }
 
@@ -65,9 +74,9 @@ class CheckoutController extends Controller
         $localidad = trim($_POST['localidad'] ?? '');
         $direccion = trim($_POST['direccion'] ?? '');
         $observaciones = trim($_POST['observaciones'] ?? '');
+        $passwordRegistro = trim($_POST['password_registro'] ?? '');
 
         if (empty($nombre) || empty($email)) {
-            // Podríamos pasar un error a la sesión, acá lo simplificamos parando ejecución o mandando de nuevo a checkout con error
             die("Error: El nombre y el e-mail son obligatorios.");
         }
 
@@ -85,9 +94,14 @@ class CheckoutController extends Controller
         ];
 
         try {
+            // Fase 7: Registro Automático de Invitado si mandó password en Checkout
+            if (!\App\Modules\Store\Context\ClienteWebContext::isLoggedIn($empresaId) && !empty($passwordRegistro)) {
+                $authService = new \App\Modules\ClientesWeb\Services\ClienteWebAuthService();
+                $authService->register($empresaId, $clienteData, $passwordRegistro);
+            }
+
             $resultado = $this->checkoutService->processCheckout($empresaId, $clienteData, $observaciones);
 
-            // Redirigir a pantalla de éxito usando una simple vista de agradecimiento
             View::render('app/modules/Store/views/checkout_success.php', [
                 'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
                 'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
@@ -96,7 +110,6 @@ class CheckoutController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            // Manejo estricto de error para el usuario sin romper
             die("Hubo un incoveniente al procesar su orden: " . $e->getMessage());
         }
     }
