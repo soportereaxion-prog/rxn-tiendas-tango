@@ -8,8 +8,6 @@ use App\Core\Database;
 use App\Modules\ClientesWeb\ClienteWebRepository;
 use App\Modules\Pedidos\PedidoWebRepository;
 use App\Modules\Store\Services\CartService;
-use App\Modules\Tango\TangoOrderClient;
-use App\Modules\Tango\Mappers\TangoOrderMapper;
 use Exception;
 
 class CheckoutService
@@ -91,53 +89,15 @@ class CheckoutService
         // Actualizamos cabecera con el ID generado para el Mapper
         $cabecera['id'] = $pedidoId;
 
-        // 4. Intentar Enviar a Tango (19845)
-        $tangoPayload = TangoOrderMapper::map($cabecera, $renglones, $clienteExistente);
-        $tangoSuccess = false;
+        // 4. Se eliminó la Sincronización Síncrona con Tango (Decisión Estratégica)
+        // Los pedidos quedan pendientes nativamente para ser operados/supervisados desde el BackOffice.
         
-        try {
-            // Inicializar Cliente Tango (Acá deberíamos inyectar credenciales como en TangoService)
-            // Por simplicidad de este iteración usaremos la configuración de la empresa via Context o Query manual
-            $stmtConf = $pdo->prepare("SELECT tango_connect_token, tango_connect_company_id, tango_connect_key FROM empresa_config WHERE empresa_id = :emp_id LIMIT 1");
-            $stmtConf->execute(['emp_id' => $empresaId]);
-            $conf = $stmtConf->fetch();
-
-            if ($conf && $conf['tango_connect_token']) {
-                $apiUrl = "https://" . str_replace('/', '-', $conf['tango_connect_key']) . ".connect.axoft.com/Api";
-                $tangoClient = new TangoOrderClient(
-                    $apiUrl,
-                    $conf['tango_connect_token'],
-                    $conf['tango_connect_company_id'],
-                    $conf['tango_connect_key']
-                );
-
-                $response = $tangoClient->sendOrder($tangoPayload);
-                
-                // Analizar respuesta 19845. Dependiendo de Tango, status HTTP 200/201 es éxito.
-                if ($response['status'] >= 200 && $response['status'] < 300) {
-                    $tangoPedidoNum = $response['data']['orderNumber'] ?? 'N/A'; // Ajustar según respuesta real
-                    $this->pedidoRepo->markAsSentToTango($pedidoId, $tangoPedidoNum, json_encode($tangoPayload), json_encode($response));
-                    $tangoSuccess = true;
-                } else {
-                    $errorText = is_array($response['data'] ?? null) ? json_encode($response['data']) : 'HTTP Error ' . $response['status'];
-                    $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorText, json_encode($response));
-                }
-            } else {
-                $errorMsg = "Sin credenciales Tango para la empresa.";
-                $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorMsg);
-            }
-        } catch (Exception $e) {
-            // Caída de red o excepcion HTTP
-            $errorMsg = $e->getMessage();
-            $this->pedidoRepo->markAsErrorToTango($pedidoId, json_encode($tangoPayload), $errorMsg);
-        }
-
-        // 5. Limpiar Carrito tras pedido exitoso localmente (sin importar si Tango falló, el local ya guardó la orden)
+        // 5. Limpiar Carrito tras pedido exitoso localmente
         $this->cartService->clearCart();
 
         return [
             'pedido_web_id' => $pedidoId,
-            'tango_enviado' => $tangoSuccess,
+            'tango_enviado' => false,
             'total' => $total
         ];
     }
