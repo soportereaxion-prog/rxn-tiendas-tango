@@ -129,7 +129,8 @@ class ClienteWebController
                 throw new Exception("Configuración de Tango incompleta para la empresa.");
             }
 
-            $apiUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $config['tango_connect_key']), '/');
+            $tangoKeySanitized = str_replace('/', '-', $config['tango_connect_key']);
+            $apiUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeySanitized), '/');
             
             $lookupService = new ClienteTangoLookupService($apiUrl, $config['tango_connect_token'], (string)$config['tango_connect_company_id']);
             $tangoData = $lookupService->findByCodigo($codigoTango);
