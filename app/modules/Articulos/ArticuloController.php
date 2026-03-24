@@ -116,6 +116,9 @@ class ArticuloController extends Controller
                 $precioL2Str = $_POST['precio_lista_2'] ?? '';
                 $articulo->precio_lista_2 = $precioL2Str !== '' ? (float)$precioL2Str : null;
 
+                $stockStr = $_POST['stock_actual'] ?? '';
+                $articulo->stock_actual = $stockStr !== '' ? (float)$stockStr : null;
+
                 $articulo->activo = isset($_POST['activo']) ? 1 : 0;
                 
                 $this->repository->update($articulo);

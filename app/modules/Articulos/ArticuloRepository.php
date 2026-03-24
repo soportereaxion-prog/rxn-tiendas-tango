@@ -141,6 +141,7 @@ class ArticuloRepository
                 precio = :precio, 
                 precio_lista_1 = :precio_lista_1,
                 precio_lista_2 = :precio_lista_2,
+                stock_actual = :stock_actual,
                 activo = :activo 
                 WHERE id = :id AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
@@ -150,6 +151,7 @@ class ArticuloRepository
             ':precio' => $articulo->precio,
             ':precio_lista_1' => $articulo->precio_lista_1,
             ':precio_lista_2' => $articulo->precio_lista_2,
+            ':stock_actual' => $articulo->stock_actual,
             ':activo' => $articulo->activo,
             ':id' => $articulo->id,
             ':empresa_id' => $articulo->empresa_id
