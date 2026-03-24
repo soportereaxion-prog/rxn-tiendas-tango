@@ -70,7 +70,7 @@ class CheckoutService
         // Mapear los renglones (Necesitamos traer el codigo_tango del articulo)
         $renglones = [];
         $pdo = Database::getConnection(); // Para buscar el código del artículo rápido
-        $stmtArt = $pdo->prepare("SELECT codigo_articulo FROM articulos WHERE id = :id");
+        $stmtArt = $pdo->prepare("SELECT codigo_externo FROM articulos WHERE id = :id");
 
         foreach ($items as $item) {
             $stmtArt->execute(['id' => $item['articulo_id']]);
