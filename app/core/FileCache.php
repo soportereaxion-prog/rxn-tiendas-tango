@@ -59,10 +59,13 @@ class FileCache
 
     public static function clearAll(): void
     {
-        $files = glob(self::getCacheDir() . '/*.json');
+        $dir = self::getCacheDir();
+        if (!is_dir($dir)) return;
+        
+        $files = scandir($dir);
         foreach ($files as $file) {
-            if (is_file($file)) {
-                unlink($file);
+            if (str_ends_with($file, '.json')) {
+                unlink($dir . DIRECTORY_SEPARATOR . $file);
             }
         }
     }
@@ -70,10 +73,13 @@ class FileCache
     public static function clearPrefix(string $prefix): void
     {
         $safePrefix = preg_replace('/[^a-zA-Z0-9_-]/', '', $prefix);
-        $files = glob(self::getCacheDir() . '/' . $safePrefix . '*.json');
+        $dir = self::getCacheDir();
+        if (!is_dir($dir)) return;
+
+        $files = scandir($dir);
         foreach ($files as $file) {
-            if (is_file($file)) {
-                unlink($file);
+            if (str_ends_with($file, '.json') && str_starts_with($file, $safePrefix)) {
+                unlink($dir . DIRECTORY_SEPARATOR . $file);
             }
         }
     }
