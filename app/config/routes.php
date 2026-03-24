@@ -46,6 +46,10 @@ return function (Router $router): void {
     $router->get('/mi-empresa/articulos/editar', [\App\Modules\Articulos\ArticuloController::class, 'editar']);
     $router->post('/mi-empresa/articulos/editar', [\App\Modules\Articulos\ArticuloController::class, 'actualizar']);
 
+    // --- MÓDULO PEDIDOS WEB ---
+    $router->get('/mi-empresa/pedidos', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'index']);
+    $router->get('/mi-empresa/pedidos/{id}', [\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'show']);
+
     // TEMPORAL — test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
         View::render('app/modules/dashboard/views/index.php', [

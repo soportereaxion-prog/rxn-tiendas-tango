@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle Orden #<?= $pedido['pedido_id'] ?> - rxnTiendasIA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; overflow: hidden; }
+        .data-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; color: #6c757d; }
+        pre.json-view { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; font-size: 0.85rem; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>
+                    Orden Web #<?= $pedido['pedido_id'] ?>
+                    <?php if($pedido['estado_tango'] === 'enviado_tango'): ?>
+                        <span class="badge bg-success align-middle ms-2 fs-6 pb-2">✔ Enviado a Tango</span>
+                    <?php elseif($pedido['estado_tango'] === 'error_envio_tango'): ?>
+                        <span class="badge bg-danger align-middle ms-2 fs-6 pb-2">❌ Error Integración</span>
+                    <?php else: ?>
+                        <span class="badge bg-warning text-dark align-middle ms-2 fs-6 pb-2">⏳ Pendiente</span>
+                    <?php endif; ?>
+                </h2>
+                <p class="text-muted mb-0">Fecha de Alta: <?= htmlspecialchars((string)$pedido['pedido_fecha']) ?></p>
+            </div>
+            <a href="/rxnTiendasIA/public/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
+        </div>
+
+        <div class="row g-4">
+            <!-- Bloque Izquierdo: Datos del Cliente y Resumen -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold">👤 Datos del Comprador</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="data-label">Nombre y Apellido</div>
+                            <div class="fs-6 fw-medium text-dark"><?= htmlspecialchars((string)$pedido['nombre']) ?> <?= htmlspecialchars((string)$pedido['apellido']) ?></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="data-label">Documento/CUIT</div>
+                            <div class="fs-6 text-dark"><?= htmlspecialchars((string)($pedido['documento'] ?: '-')) ?></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="data-label">Razón Social</div>
+                            <div class="fs-6 text-dark"><?= htmlspecialchars((string)($pedido['razon_social'] ?: '-')) ?></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="data-label">Email</div>
+                            <div class="fs-6 text-dark"><a href="mailto:<?= htmlspecialchars((string)$pedido['email']) ?>"><?= htmlspecialchars((string)$pedido['email']) ?></a></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="data-label">Teléfono</div>
+                            <div class="fs-6 text-dark"><?= htmlspecialchars((string)($pedido['telefono'] ?: '-')) ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold">📍 Envío / Facturación</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="data-label">Dirección</div>
+                            <div class="fs-6 text-dark"><?= htmlspecialchars((string)($pedido['direccion'] ?: '-')) ?></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="data-label">Localidad y Provincia</div>
+                            <div class="fs-6 text-dark"><?= htmlspecialchars((string)($pedido['localidad'] ?: '-')) ?> - <?= htmlspecialchars((string)($pedido['provincia'] ?: '-')) ?></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="data-label">Código Postal</div>
+                            <div class="fs-6 text-dark"><?= htmlspecialchars((string)($pedido['codigo_postal'] ?: '-')) ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <div class="data-label mb-2">Observaciones del Pedido (Admin)</div>
+                        <p class="mb-0 text-dark" style="font-size: 0.9rem;">
+                            <?= nl2br(htmlspecialchars((string)($pedido['pedido_observaciones'] ?: 'Sin observaciones extra.'))) ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque Derecho: Renglones y Logs de Tango -->
+            <div class="col-lg-8">
+                <!-- Tarjeta de Renglones -->
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-medium">🛒 Detalle de Artículos</h5>
+                        <span class="badge bg-light text-dark fs-6 font-monospace">Total: $<?= number_format((float)$pedido['total'], 2, ',', '.') ?></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light text-muted" style="font-size: 0.85rem;">
+                                <tr>
+                                    <th class="ps-4">ID / Ref</th>
+                                    <th>Artículo</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">P. Unit.</th>
+                                    <th class="text-end pe-4">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach($pedido['renglones'] as $r): ?>
+                                    <tr>
+                                        <td class="ps-4 text-muted"><small>#<?= $r['articulo_id'] ?></small></td>
+                                        <td class="fw-medium text-dark"><?= htmlspecialchars((string)$r['nombre_articulo']) ?></td>
+                                        <td class="text-center fw-bold"><?= $r['cantidad'] ?></td>
+                                        <td class="text-end text-muted">$<?= number_format((float)$r['precio_unitario'], 2, ',', '.') ?></td>
+                                        <td class="text-end pe-4 fw-bold text-success">$<?= number_format($r['cantidad'] * $r['precio_unitario'], 2, ',', '.') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Log Tango -->
+                <div class="card border-info">
+                    <div class="card-header bg-info bg-opacity-10 py-3 border-info">
+                        <h5 class="mb-0 fw-bold text-info-emphasis">🔌 Integración API Tango Connect</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="data-label text-info-emphasis">Cód. Cliente Usado</div>
+                                <div class="fs-5 fw-bold text-dark font-monospace"><?= htmlspecialchars((string)($pedido['codigo_cliente_tango_usado'] ?: 'N/A')) ?></div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="data-label text-info-emphasis">Tango Order Number</div>
+                                <div class="fs-5 fw-bold text-dark font-monospace"><?= htmlspecialchars((string)($pedido['tango_pedido_numero'] ?: '---')) ?></div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="data-label text-info-emphasis">Estado Ext.</div>
+                                <div class="fs-5 fw-bold text-dark font-monospace"><?= htmlspecialchars((string)$pedido['estado_tango']) ?></div>
+                            </div>
+                        </div>
+
+                        <?php if($pedido['estado_tango'] === 'error_envio_tango' && !empty($pedido['mensaje_error'])): ?>
+                            <div class="alert alert-danger mt-2 py-2 fs-6">
+                                <strong>Error detectado:</strong><br>
+                                <?= nl2br(htmlspecialchars((string)$pedido['mensaje_error'])) ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <ul class="nav nav-tabs mt-4" id="logTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="payload-tab" data-bs-toggle="tab" data-bs-target="#payload" type="button" role="tab" aria-controls="payload" aria-selected="true">Payload Enviado</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="response-tab" data-bs-toggle="tab" data-bs-target="#response" type="button" role="tab" aria-controls="response" aria-selected="false">Respuesta API</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content py-3 border border-top-0 rounded-bottom px-3 bg-white" id="logTabsContent">
+                            <div class="tab-pane fade show active" id="payload" role="tabpanel" aria-labelledby="payload-tab">
+                                <?php if($pedido['payload_enviado']): ?>
+                                    <?php 
+                                        $decodedPayload = json_decode((string)$pedido['payload_enviado'], true);
+                                        $prettyPayload = $decodedPayload ? json_encode($decodedPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['payload_enviado']);
+                                    ?>
+                                    <pre class="json-view mb-0"><code><?= $prettyPayload ?></code></pre>
+                                <?php else: ?>
+                                    <p class="text-muted mb-0">No se registró payload.</p>
+                                <?php endif; ?>
+                            </div>
+                            <div class="tab-pane fade" id="response" role="tabpanel" aria-labelledby="response-tab">
+                                <?php if($pedido['respuesta_tango']): ?>
+                                    <?php 
+                                        $decodedResponse = json_decode((string)$pedido['respuesta_tango'], true);
+                                        $prettyResponse = $decodedResponse ? json_encode($decodedResponse, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['respuesta_tango']);
+                                    ?>
+                                    <pre class="json-view mb-0"><code><?= $prettyResponse ?></code></pre>
+                                <?php else: ?>
+                                    <p class="text-muted mb-0">Sin respuesta registrada (posible timeout/error de red).</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

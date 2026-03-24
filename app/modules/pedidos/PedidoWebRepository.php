@@ -114,4 +114,89 @@ class PedidoWebRepository
             'respuesta_tango' => $jsonResponse ?: json_encode(['error' => $errorText])
         ]);
     }
+
+    public function countAll(int $empresaId, string $search = '', string $estado = ''): int
+    {
+        $sql = "SELECT COUNT(*) FROM pedidos_web p 
+                LEFT JOIN clientes_web c ON p.cliente_web_id = c.id
+                WHERE p.empresa_id = :empresa_id";
+        $params = [':empresa_id' => $empresaId];
+
+        if ($estado !== '') {
+            $sql .= " AND p.estado_tango = :estado";
+            $params[':estado'] = $estado;
+        }
+
+        if ($search !== '') {
+            $sql .= " AND (p.id LIKE :s1 OR c.nombre LIKE :s2 OR c.email LIKE :s3 OR c.apellido LIKE :s4)";
+            $params[':s1'] = "%$search%";
+            $params[':s2'] = "%$search%";
+            $params[':s3'] = "%$search%";
+            $params[':s4'] = "%$search%";
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = '', string $estado = '', string $orderBy = 'p.created_at', string $orderDir = 'DESC'): array
+    {
+        $offset = max(0, ($page - 1) * $limit);
+        $sql = "SELECT p.*, c.nombre as cliente_nombre, c.apellido as cliente_apellido, c.email as cliente_email 
+                FROM pedidos_web p 
+                LEFT JOIN clientes_web c ON p.cliente_web_id = c.id
+                WHERE p.empresa_id = :empresa_id";
+        $params = [':empresa_id' => $empresaId];
+
+        if ($estado !== '') {
+            $sql .= " AND p.estado_tango = :estado";
+            $params[':estado'] = $estado;
+        }
+
+        if ($search !== '') {
+            $sql .= " AND (p.id LIKE :s1 OR c.nombre LIKE :s2 OR c.email LIKE :s3 OR c.apellido LIKE :s4)";
+            $params[':s1'] = "%$search%";
+            $params[':s2'] = "%$search%";
+            $params[':s3'] = "%$search%";
+            $params[':s4'] = "%$search%";
+        }
+
+        $allowedColumns = ['p.created_at', 'p.id', 'p.total', 'cliente_nombre'];
+        if (!in_array($orderBy, $allowedColumns)) {
+            $orderBy = 'p.created_at';
+        }
+        $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
+
+        $sql .= " ORDER BY {$orderBy} {$orderDir} LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findByIdWithDetails(int $id, int $empresaId): ?array
+    {
+        // 1. Cabecera + Cliente
+        $sql = "SELECT p.*, c.*, p.id as pedido_id, p.observaciones as pedido_observaciones, p.created_at as pedido_fecha 
+                FROM pedidos_web p
+                LEFT JOIN clientes_web c ON p.cliente_web_id = c.id
+                WHERE p.id = :id AND p.empresa_id = :empresa_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+        $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$pedido) return null;
+
+        // 2. Renglones
+        $sqlReng = "SELECT * FROM pedidos_web_renglones WHERE pedido_web_id = :pedido_id";
+        $stmtReng = $this->db->prepare($sqlReng);
+        $stmtReng->execute([':pedido_id' => $id]);
+        $pedido['renglones'] = $stmtReng->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. Obtener el Codigo Tango original del articulo si existe, sumándolo al array renglones
+        // No es mandatorio pero aporta para el admin. Para no complicar, lo omito ya que nombre_articulo y id están.
+
+        return $pedido;
+    }
 }
