@@ -105,5 +105,61 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll("form[action*='/carrito/add']").forEach(form => {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const btn = form.querySelector('button[type="submit"]');
+            if(!btn) return;
+            
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Agregando...';
+            btn.disabled = true;
+
+            fetch(form.action, {
+                method: "POST",
+                body: new FormData(form),
+                redirect: "follow"
+            }).then(response => response.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, "text/html");
+                const newBadge = doc.querySelector('.cart-badge');
+                const oldBtnCart = document.querySelector('a[href*="/carrito"]');
+                
+                if (newBadge && oldBtnCart) {
+                    const oldBadge = oldBtnCart.querySelector('.cart-badge');
+                    if (oldBadge) {
+                        oldBadge.innerText = newBadge.innerText;
+                    } else {
+                        oldBtnCart.insertAdjacentHTML('beforeend', `<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-badge">${newBadge.innerText}</span>`);
+                    }
+                }
+                
+                btn.innerHTML = '✔ Agregado';
+                btn.classList.add('btn-success', 'text-white');
+                btn.classList.remove('btn-dark', 'btn-outline-dark');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('btn-success', 'text-white');
+                    if (btn.classList.contains('btn-add-cart')) {
+                        btn.classList.add('btn-outline-dark');
+                    } else {
+                        btn.classList.add('btn-dark');
+                    }
+                }, 1500);
+            }).catch(err => {
+                btn.innerHTML = '❌ Error';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 1500);
+            });
+        });
+    });
+});
+</script>
 </body>
 </html>
