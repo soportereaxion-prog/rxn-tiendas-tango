@@ -49,8 +49,9 @@ class CartController extends Controller
             $this->cartService->addItem($articuloId, $cantidad);
         }
 
-        // Redireccionar al carrito
-        header("Location: /rxnTiendasIA/public/{$slug}/carrito");
+        // Redireccionar a la vista anterior para seguir comprando
+        $referer = $_SERVER['HTTP_REFERER'] ?? "/rxnTiendasIA/public/{$slug}";
+        header("Location: " . $referer);
         exit;
     }
 
