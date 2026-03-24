@@ -148,6 +148,63 @@
                     });
                     </script>
 
+                    <hr class="my-4">
+                    <h5 class="fw-bold mb-3 text-secondary">Transmisión de Correo Electrónico (SMTP)</h5>
+                    <div class="alert alert-info border-0 rounded-3 mb-4">
+                        <small>💡 <strong>Fallback Automático:</strong> Si mantenés desactivada la configuración de SMTP propio o dejás los datos vacíos, el sistema utilizará de forma totalmente transparente los servidores de correo consolidados de <strong>RXN</strong> para que nunca te quedes sin notificar a un cliente.</small>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" role="switch" id="usa_smtp_propio" name="usa_smtp_propio" value="1" <?= (!empty($config->usa_smtp_propio) && $config->usa_smtp_propio == 1) ? 'checked' : '' ?> onchange="document.getElementById('smtpContainer').style.display = this.checked ? 'block' : 'none'">
+                        <label class="form-check-label fw-bold" for="usa_smtp_propio">Utilizar Servidor de Correo Propio</label>
+                    </div>
+
+                    <div id="smtpContainer" style="display: <?= (!empty($config->usa_smtp_propio) && $config->usa_smtp_propio == 1) ? 'block' : 'none' ?>;">
+                        <div class="row bg-light rounded border p-3 mx-0 mb-4">
+                            <div class="col-md-8 mb-3">
+                                <label for="smtp_host" class="form-label text-secondary small fw-medium">Servidor (Host)</label>
+                                <input type="text" class="form-control" id="smtp_host" name="smtp_host"
+                                        value="<?= htmlspecialchars($old['smtp_host'] ?? ($config->smtp_host ?? '')) ?>" placeholder="Ej: smtp.gmail.com">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="smtp_port" class="form-label text-secondary small fw-medium">Puerto</label>
+                                <input type="number" class="form-control" id="smtp_port" name="smtp_port"
+                                        value="<?= htmlspecialchars((string)($old['smtp_port'] ?? ($config->smtp_port ?? '587'))) ?>" placeholder="587">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="smtp_user" class="form-label text-secondary small fw-medium">Usuario SMTP</label>
+                                <input type="text" class="form-control" id="smtp_user" name="smtp_user"
+                                        value="<?= htmlspecialchars($old['smtp_user'] ?? ($config->smtp_user ?? '')) ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="smtp_pass" class="form-label text-secondary small fw-medium">Contraseña SMTP</label>
+                                <input type="password" class="form-control" id="smtp_pass" name="smtp_pass" autocomplete="new-password">
+                                <div class="form-text"><small><?= !empty($config->smtp_pass) ? 'Guardada. (Completar solo si se desea modificar)' : 'Secreta. Quedará encriptada.' ?></small></div>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="smtp_secure" class="form-label text-secondary small fw-medium">Seguridad</label>
+                                <select class="form-select" id="smtp_secure" name="smtp_secure">
+                                    <option value="" <?= empty($config->smtp_secure) ? 'selected' : '' ?>>Ninguna</option>
+                                    <option value="tls" <?= (!empty($config->smtp_secure) && $config->smtp_secure == 'tls') ? 'selected' : '' ?>>TLS</option>
+                                    <option value="ssl" <?= (!empty($config->smtp_secure) && $config->smtp_secure == 'ssl') ? 'selected' : '' ?>>SSL</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="smtp_from_email" class="form-label text-secondary small fw-medium">De: Correo Electrónico</label>
+                                <input type="email" class="form-control" id="smtp_from_email" name="smtp_from_email"
+                                        value="<?= htmlspecialchars($old['smtp_from_email'] ?? ($config->smtp_from_email ?? '')) ?>" placeholder="ventas@mitienda.com">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="smtp_from_name" class="form-label text-secondary small fw-medium">De: Nombre</label>
+                                <input type="text" class="form-control" id="smtp_from_name" name="smtp_from_name"
+                                        value="<?= htmlspecialchars($old['smtp_from_name'] ?? ($config->smtp_from_name ?? '')) ?>" placeholder="Mi Tienda SA">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-end gap-2">
                         <a href="/rxnTiendasIA/public/" class="btn btn-light">Volver a Inicio</a>
                         <button type="submit" class="btn btn-primary px-4">Guardar Configuración</button>

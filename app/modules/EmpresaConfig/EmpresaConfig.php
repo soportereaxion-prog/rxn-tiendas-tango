@@ -20,6 +20,17 @@ class EmpresaConfig
     public ?string $lista_precio_2 = null;
     public ?string $deposito_codigo = null;
     public ?string $imagen_default_producto = null;
+    
+    // Configuracion SMTP
+    public int $usa_smtp_propio = 0;
+    public ?string $smtp_host = null;
+    public ?int $smtp_port = null;
+    public ?string $smtp_user = null;
+    public ?string $smtp_pass = null;
+    public ?string $smtp_secure = null;
+    public ?string $smtp_from_email = null;
+    public ?string $smtp_from_name = null;
+
     public ?string $created_at = null;
     public ?string $updated_at = null;
 }

@@ -2,22 +2,21 @@
 
 ## módulos tocados
 
-* módulo: store (Se extendieron controladores de Checkout, Dashboard "Mis Pedidos")
-* módulo: **clientes_web** (Implementación de Autenticación, Hasheos, Contexto Sesión)
-* módulo: infra (Migración de DB `password_hash`, Unique Email Index)
+* módulo: **infra** (Incorporación de `MailService` nativo bajo Sockets TCP/IP. Variables globales `.env`).
+* módulo: **empresa_config** (Ampliación DB para soporte tenant-specific SMTPOverrides; UI renovada para Admins).
+* módulo: clientes_web (Inyección del Dispatcher Transaccional `sendWelcomeEmail` y estructuración DB de `reset_token`).
 
 ## decisiones
 
-* Conservar inmutabilidad entre clientes "guest" vs clientes "registrados", compartiendo el mismo esquema `clientes_web` y mutándose mediante la inyección del `password_hash`.
-* Sesiones Client-Side (`store_cliente_id`) completamente desacopladas de las instancias BackOffice (`admin_id`) empleando wrappers dedicados en `ClienteWebContext`.
-* Autocompletado transversal desde Base de Datos al form de Checkout de un usuario si navega con sesión activa.
+* **Agnosticismo de Vendor:** Se evitó instalar `PHPMailer` para respetar las directivas *Vanilla-first*. `App\Core\Services\MailService` ejecuta la transmisión construyendo buffers de Sockets con soporte explícito `STARTTLS` y `SSL`, cubriendo casuística universal.
+* **Jerarquía de Fallback (Rxn Global):** La regla inquebrantable de orquestación dicta que el sistema buscará primeramente un override local (`usa_smtp_propio = 1` en `empresa_config`). Si falla o es inexistente, consumirá las constantes `MAIL_HOST` y afines inyectadas preventivamente en el fichero superglobal `.env`.
 
 ## riesgos
 
-* **PELIGRO DEPLOY LINUX**: Composer ya advirtió un Classmap conflictivo por incompatibilidad de Case-Sensitive en las carpetas base de módulos (Auth != auth). Debe ser solventado vía `git mv` temporal antes del pase final a productivo Unix.
-* **Colisión de URLs (Slug Router)**: A nivel MVC, las URLs exclusivas con keyword (ej: `/{slug}/login`) se apilaron intencionalmente en el router **antes** del index maestro `{slug}` para evitar canibalizaciones de URI.
+* **Disponibilidad de Puertos Outbound:** Algunos ISPs locales (Ej: WAMP/XAMPP defaults) bloquean el puerto 25 y el 587. Mitigado delegando los testeos formales a los entornos Staging de hosting profesional.
+* **Seguridad (Auth Bypass):** Las claves introducidas en Panel Empresa no se devuelven rellenadas al DOM HTML (`value=""`) protegiendo el hash en inspector de elementos.
 
 ## próximo paso
 
-* Testear en Staging la subida formal.
-* Avanzar con cualquier otro requerimiento de la administración.
+* Testear triggers de correo en vivo una vez mergeado a Staging.
+* Acoplar la construcción definitiva de los frontends de Recuperación ("Olvidé mi contraseña") leyendo el nuevo esquema `reset_token`.

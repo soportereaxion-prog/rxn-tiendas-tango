@@ -36,10 +36,17 @@ class EmpresaConfigRepository
                     tango_connect_token = :tango_connect_token,
                     tango_connect_company_id = :tango_connect_company_id,
                     cantidad_articulos_sync = :cantidad_articulos_sync,
-                    lista_precio_1 = :lista_precio_1,
                     lista_precio_2 = :lista_precio_2,
                     deposito_codigo = :deposito_codigo,
-                    imagen_default_producto = :imagen_default_producto
+                    imagen_default_producto = :imagen_default_producto,
+                    usa_smtp_propio = :usa_smtp_propio,
+                    smtp_host = :smtp_host,
+                    smtp_port = :smtp_port,
+                    smtp_user = :smtp_user,
+                    smtp_pass = :smtp_pass,
+                    smtp_secure = :smtp_secure,
+                    smtp_from_email = :smtp_from_email,
+                    smtp_from_name = :smtp_from_name
                     WHERE id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -55,11 +62,19 @@ class EmpresaConfigRepository
                 ':lista_precio_2' => $config->lista_precio_2,
                 ':deposito_codigo' => $config->deposito_codigo ?? null,
                 ':imagen_default_producto' => $config->imagen_default_producto,
+                ':usa_smtp_propio' => (int) $config->usa_smtp_propio,
+                ':smtp_host' => $config->smtp_host,
+                ':smtp_port' => $config->smtp_port ? (int) $config->smtp_port : null,
+                ':smtp_user' => $config->smtp_user,
+                ':smtp_pass' => $config->smtp_pass,
+                ':smtp_secure' => $config->smtp_secure,
+                ':smtp_from_email' => $config->smtp_from_email,
+                ':smtp_from_name' => $config->smtp_from_name,
                 ':id' => $config->id,
             ]);
         } else {
-            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto) 
-                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto)";
+            $sql = "INSERT INTO empresa_config (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto, usa_smtp_propio, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_email, smtp_from_name) 
+                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto, :usa_smtp_propio, :smtp_host, :smtp_port, :smtp_user, :smtp_pass, :smtp_secure, :smtp_from_email, :smtp_from_name)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $config->empresa_id,
@@ -75,6 +90,14 @@ class EmpresaConfigRepository
                 ':lista_precio_2' => $config->lista_precio_2,
                 ':deposito_codigo' => $config->deposito_codigo ?? null,
                 ':imagen_default_producto' => $config->imagen_default_producto,
+                ':usa_smtp_propio' => (int) $config->usa_smtp_propio,
+                ':smtp_host' => $config->smtp_host,
+                ':smtp_port' => $config->smtp_port ? (int) $config->smtp_port : null,
+                ':smtp_user' => $config->smtp_user,
+                ':smtp_pass' => $config->smtp_pass,
+                ':smtp_secure' => $config->smtp_secure,
+                ':smtp_from_email' => $config->smtp_from_email,
+                ':smtp_from_name' => $config->smtp_from_name,
             ]);
             $config->id = (int) $this->db->lastInsertId();
         }

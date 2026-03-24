@@ -78,6 +78,19 @@ class EmpresaConfigService
             $config->tango_connect_token = trim($data['tango_connect_token']);
         }
 
+        // --- SMTP SETTINGS ---
+        $config->usa_smtp_propio = isset($data['usa_smtp_propio']) && filter_var($data['usa_smtp_propio'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        $config->smtp_host = !empty($data['smtp_host']) ? trim($data['smtp_host']) : null;
+        $config->smtp_port = !empty($data['smtp_port']) ? (int)$data['smtp_port'] : null;
+        $config->smtp_user = !empty($data['smtp_user']) ? trim($data['smtp_user']) : null;
+        $config->smtp_secure = !empty($data['smtp_secure']) ? trim($data['smtp_secure']) : null;
+        $config->smtp_from_email = !empty($data['smtp_from_email']) ? trim($data['smtp_from_email']) : null;
+        $config->smtp_from_name = !empty($data['smtp_from_name']) ? trim($data['smtp_from_name']) : null;
+
+        if (isset($data['smtp_pass']) && $data['smtp_pass'] !== '') {
+            $config->smtp_pass = trim($data['smtp_pass']);
+        }
+
         // --- MÓDULO IMAGEN FALLBACK ---
         if (isset($_FILES['imagen_default']) && $_FILES['imagen_default']['error'] === UPLOAD_ERR_OK) {
             $tmpName = $_FILES['imagen_default']['tmp_name'];

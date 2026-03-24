@@ -74,6 +74,10 @@ class ClienteWebAuthService
                 $stmtUpd = $pdo->prepare("UPDATE clientes_web SET password_hash = :hash WHERE id = :id");
                 $stmtUpd->execute(['hash' => $hash, 'id' => (int)$existente['id']]);
                 
+                // Mail Notification
+                $mailService = new \App\Core\Services\MailService();
+                $mailService->sendWelcomeEmail($email, $data['nombre'] ?? 'Cliente', $empresaId);
+
                 // Force Auth
                 ClienteWebContext::login((int)$existente['id'], $empresaId, $data);
                 return (int)$existente['id'];
@@ -88,7 +92,44 @@ class ClienteWebAuthService
         $stmtUpd = $pdo->prepare("UPDATE clientes_web SET password_hash = :hash WHERE id = :id");
         $stmtUpd->execute(['hash' => $hash, 'id' => $clienteId]);
 
+        // Mail Notification
+        $mailService = new \App\Core\Services\MailService();
+        $mailService->sendWelcomeEmail($email, $data['nombre'] ?? 'Cliente', $empresaId);
+
         ClienteWebContext::login($clienteId, $empresaId, $data);
         return $clienteId;
+    }
+
+    /**
+     * Mecanismo base para recuperación de contraseña solicitado por Arquitectura.
+     * Genera un PIN/Token temporal, lo persiste y dispara el MailService usando el fallback nativo.
+     */
+    public function requestPasswordReset(int $empresaId, string $email): bool
+    {
+        $pdo = Database::getConnection();
+        
+        $stmt = $pdo->prepare("SELECT id, nombre FROM clientes_web WHERE empresa_id = :emp_id AND email = :email AND activo = 1 LIMIT 1");
+        $stmt->execute(['emp_id' => $empresaId, 'email' => $email]);
+        $cliente = $stmt->fetch();
+
+        if (!$cliente) {
+            // Falla silenciosa por seguridad para no revelar si el mail existe.
+            return false;
+        }
+
+        $tokenStr = random_int(100000, 999999);
+        $expires = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+        $stmtUpd = $pdo->prepare("UPDATE clientes_web SET reset_token = :token, reset_expires = :expires WHERE id = :id");
+        $stmtUpd->execute([
+            'token' => (string)$tokenStr,
+            'expires' => $expires,
+            'id' => (int)$cliente['id']
+        ]);
+
+        $mailService = new \App\Core\Services\MailService();
+        $mailService->sendPasswordReset($email, $cliente['nombre'], (string)$tokenStr, $empresaId);
+
+        return true;
     }
 }
