@@ -62,6 +62,12 @@
                         </div>
                     </div>
 
+                    <div class="mb-4 bg-light p-3 rounded border border-info border-opacity-25">
+                        <label class="form-label text-info fw-bold mb-1">Stock Actual (Solo Lectura)</label>
+                        <input type="text" class="form-control fw-bold text-dark bg-white" value="<?= $articulo->stock_actual !== null ? htmlspecialchars((string)$articulo->stock_actual) : '0' ?>" readonly disabled style="max-width: 200px;">
+                        <div class="form-text text-muted mt-2"><small>ℹ️ Valor sincronizado desde Tango Connect. No admite edición manual local.</small></div>
+                    </div>
+
                     <div class="mb-4 form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="activo" name="activo" value="1" <?= $articulo->activo ? 'checked' : '' ?>>
                         <label class="form-check-label" for="activo">Artículo Activo Comerciable</label>
