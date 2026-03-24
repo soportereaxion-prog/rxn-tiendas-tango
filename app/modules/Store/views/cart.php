@@ -85,9 +85,9 @@
                         <span class="fw-bold fs-4 text-dark">$<?= number_format((float)$total, 2, ',', '.') ?></span>
                     </div>
 
-                    <button type="button" class="btn btn-dark w-100 py-3 rounded-pill fw-bold" onclick="alert('Funcionalidad de Checkout en construcción para la próxima fase.')">
+                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/checkout" class="btn btn-dark w-100 py-3 rounded-pill fw-bold d-block text-center text-decoration-none shadow-sm">
                         Iniciar Pago 💳
-                    </button>
+                    </a>
                     <div class="mt-3 text-center">
                         <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="text-decoration-none text-muted small fw-medium">
                             ← Seguir comprando

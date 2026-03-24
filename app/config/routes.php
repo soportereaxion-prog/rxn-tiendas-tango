@@ -78,5 +78,7 @@ return function (Router $router): void {
     $router->post('/{slug}/carrito/add', [\App\Modules\Store\Controllers\CartController::class, 'add']);
     $router->post('/{slug}/carrito/update', [\App\Modules\Store\Controllers\CartController::class, 'update']);
     $router->post('/{slug}/carrito/remove', [\App\Modules\Store\Controllers\CartController::class, 'remove']);
+    $router->get('/{slug}/checkout', [\App\Modules\Store\Controllers\CheckoutController::class, 'index']);
+    $router->post('/{slug}/checkout/confirmar', [\App\Modules\Store\Controllers\CheckoutController::class, 'confirm']);
 
 };
