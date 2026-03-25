@@ -16,6 +16,7 @@
 * **Separación de pre-conceptos de DB:** Para los Themes B2C (Colors/Logo) el `EmpresasRepository` afecta directamente las columnas nativas de la tabla en vez de un string JSON. Esto garantiza búsquedas rápidas si el motor debe evolucionar, reduciendo carga lógica.
 * Las configuraciones del Dark Mode B2C se manejan en `LocalStorage` por lado cliente; no se registra en BDD, garantizando la velocidad sin queries redundantes para "usuarios invitados".
 * **Dashboard Drag & Drop (B2B):** Se inyectó `SortableJS` sobre `home.php`. Las tarjetas pueden reordenarse libremente y cada *drop* dispara un fetch AJAX hacia `/mi-perfil/dashboard-order`, reescribiendo el JSON unificado en la columna `usuarios.dashboard_order` y en `$_SESSION`. En el inicio, PHP pre-procesa el array ordenado para prevenir parpadeos parásitos (FOUC).
+* **Maquetación EmpresaConfig:** El formulario monolítico vertical se refactorizó hacia Grillas de Bootstrap 5 (`.row`, `.col-md-6`) encapsuladas por 5 `Card` semánticas (Datos, Identidad B2C, Visual Corporativa, Tango Connect, SMTP) optimizando la densidad operativa horizontal.
 
 ## riesgos
 
