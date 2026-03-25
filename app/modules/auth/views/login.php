@@ -17,6 +17,16 @@
             <p class="text-muted">Inicia sesión en tu espacio de trabajo</p>
         </div>
 
+        <?php 
+        $msg = $_GET['msg'] ?? '';
+        if ($msg === 'revisar_correo'): ?>
+            <div class="alert alert-info text-center small">Cuenta creada. Por favor revise el correo electrónico para verificarla antes de continuar.</div>
+        <?php elseif ($msg === 'cuenta_verificada'): ?>
+            <div class="alert alert-success text-center small">¡Cuenta verificada con éxito! Ya puede iniciar sesión.</div>
+        <?php elseif ($msg === 'pass_actualizada'): ?>
+            <div class="alert alert-success text-center small">Contraseña actualizada correctamente.</div>
+        <?php endif; ?>
+
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
@@ -37,8 +47,14 @@
 
                 <button type="submit" class="btn btn-primary w-100 fw-bold">Ingresar</button>
             </form>
-            <div class="text-center mt-3">
-                <a href="/rxnTiendasIA/public/" class="text-decoration-none text-muted small">Volver al Home</a>
+            
+            <div class="text-center mt-3 d-flex flex-column gap-2">
+                <a href="/rxnTiendasIA/public/auth/forgot" class="text-decoration-none small text-secondary">¿Olvidaste tu contraseña?</a>
+                <a href="/rxnTiendasIA/public/auth/resend-verify" class="text-decoration-none small text-secondary">Aún no recibí el enlace de validación</a>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="/rxnTiendasIA/public/" class="text-decoration-none text-muted small">← Volver al Home</a>
             </div>
         </div>
     </div>

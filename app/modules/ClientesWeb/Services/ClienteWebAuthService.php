@@ -26,12 +26,15 @@ class ClienteWebAuthService
     {
         $pdo = Database::getConnection();
         // Buscamos exacto por empresa
-        $stmt = $pdo->prepare("SELECT id, password_hash, nombre, apellido, email, activo FROM clientes_web WHERE empresa_id = :emp_id AND email = :email LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, password_hash, nombre, apellido, email, activo, email_verificado FROM clientes_web WHERE empresa_id = :emp_id AND email = :email LIMIT 1");
         $stmt->execute(['emp_id' => $empresaId, 'email' => $email]);
         $row = $stmt->fetch();
 
         if ($row && !empty($row['password_hash']) && (int)$row['activo'] === 1) {
             if (password_verify($password, $row['password_hash'])) {
+                if ((int)$row['email_verificado'] !== 1) {
+                    throw new Exception("Cuenta pendiente de verificación. Buscá el enlace en tu correo electrónico.");
+                }
                 ClienteWebContext::login((int)$row['id'], $empresaId, [
                     'nombre' => $row['nombre'],
                     'apellido' => $row['apellido'],
@@ -63,6 +66,8 @@ class ClienteWebAuthService
         $existente = $stmt->fetch();
 
         $hash = password_hash($password, PASSWORD_DEFAULT);
+        $tokenStr = bin2hex(random_bytes(16));
+        $expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
         if ($existente) {
             if (!empty($existente['password_hash'])) {
@@ -71,15 +76,13 @@ class ClienteWebAuthService
                 // Es un GUEST. Lo actualizamos con la password y los nuevos datos provistos en formulario.
                 $this->repo->updateIfChanged((int)$existente['id'], $data);
                 
-                $stmtUpd = $pdo->prepare("UPDATE clientes_web SET password_hash = :hash WHERE id = :id");
-                $stmtUpd->execute(['hash' => $hash, 'id' => (int)$existente['id']]);
+                $stmtUpd = $pdo->prepare("UPDATE clientes_web SET password_hash = :hash, verification_token = :vtok, verification_expires = :vexp, email_verificado = 0 WHERE id = :id");
+                $stmtUpd->execute(['hash' => $hash, 'vtok' => $tokenStr, 'vexp' => $expires, 'id' => (int)$existente['id']]);
                 
                 // Mail Notification
                 $mailService = new \App\Core\Services\MailService();
-                $mailService->sendWelcomeEmail($email, $data['nombre'] ?? 'Cliente', $empresaId);
+                $mailService->sendVerificationEmail($email, $data['nombre'] ?? 'Cliente', $tokenStr, $empresaId);
 
-                // Force Auth
-                ClienteWebContext::login((int)$existente['id'], $empresaId, $data);
                 return (int)$existente['id'];
             }
         }
@@ -89,14 +92,13 @@ class ClienteWebAuthService
         $data['documento'] = $data['documento'] ?? null; // Mantener default
         $clienteId = $this->repo->create($data);
 
-        $stmtUpd = $pdo->prepare("UPDATE clientes_web SET password_hash = :hash WHERE id = :id");
-        $stmtUpd->execute(['hash' => $hash, 'id' => $clienteId]);
+        $stmtUpd = $pdo->prepare("UPDATE clientes_web SET password_hash = :hash, verification_token = :vtok, verification_expires = :vexp, email_verificado = 0 WHERE id = :id");
+        $stmtUpd->execute(['hash' => $hash, 'vtok' => $tokenStr, 'vexp' => $expires, 'id' => $clienteId]);
 
         // Mail Notification
         $mailService = new \App\Core\Services\MailService();
-        $mailService->sendWelcomeEmail($email, $data['nombre'] ?? 'Cliente', $empresaId);
+        $mailService->sendVerificationEmail($email, $data['nombre'] ?? 'Cliente', $tokenStr, $empresaId);
 
-        ClienteWebContext::login($clienteId, $empresaId, $data);
         return $clienteId;
     }
 

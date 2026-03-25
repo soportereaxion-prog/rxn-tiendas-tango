@@ -28,6 +28,17 @@ return function (Router $router): void {
     $router->post('/login', [\App\Modules\Auth\AuthController::class, 'processLogin']);
     $router->get('/logout', [\App\Modules\Auth\AuthController::class, 'logout']);
 
+    // Email Lifecycle & Recovery
+    $router->get('/auth/verify', 'App\Modules\Auth\VerificationController@verify');
+    $router->get('/auth/resend-verify', 'App\Modules\Auth\VerificationController@showResend');
+    $router->post('/auth/resend-verify', 'App\Modules\Auth\VerificationController@processResend');
+    
+    // Password Recovery Universal
+    $router->get('/auth/forgot', 'App\Modules\Auth\PasswordResetController@showForgot');
+    $router->post('/auth/forgot', 'App\Modules\Auth\PasswordResetController@processForgot');
+    $router->get('/auth/reset', 'App\Modules\Auth\PasswordResetController@showReset');
+    $router->post('/auth/reset', 'App\Modules\Auth\PasswordResetController@processReset');
+
     // --- MÓDULO EMPRESA CONFIG ---
     $router->get('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'index']);
     $router->post('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'store']);

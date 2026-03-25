@@ -68,8 +68,8 @@ class UsuarioRepository
                 ':empresa_id' => $usuario->empresa_id
             ]);
         } else {
-            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin) 
-                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin)";
+            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires) 
+                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $usuario->empresa_id,
@@ -77,7 +77,10 @@ class UsuarioRepository
                 ':email' => $usuario->email,
                 ':password_hash' => $usuario->password_hash,
                 ':activo' => $usuario->activo,
-                ':es_admin' => $usuario->es_admin
+                ':es_admin' => $usuario->es_admin,
+                ':email_verificado' => current([$usuario->email_verificado ?? 0]),
+                ':verification_token' => $usuario->verification_token ?? null,
+                ':verification_expires' => $usuario->verification_expires ?? null
             ]);
             $usuario->id = (int) $this->db->lastInsertId();
         }

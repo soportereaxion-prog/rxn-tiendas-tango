@@ -51,17 +51,23 @@ class ClienteAuthController extends Controller
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');
 
-        if ($this->authService->login($empresaId, $email, $password)) {
-            // Verificar si hay un redirect previo (ej. al pagar checkout y requeria login temporalmente)
-            $next = $_GET['next'] ?? "/rxnTiendasIA/public/{$slug}";
-            header("Location: " . filter_var($next, FILTER_SANITIZE_URL));
-            exit;
+        $error = 'Credenciales inválidas o cuenta inactiva.';
+
+        try {
+            if ($this->authService->login($empresaId, $email, $password)) {
+                // Verificar si hay un redirect previo (ej. al pagar checkout y requeria login temporalmente)
+                $next = $_GET['next'] ?? "/rxnTiendasIA/public/{$slug}";
+                header("Location: " . filter_var($next, FILTER_SANITIZE_URL));
+                exit;
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
         }
 
         View::render('app/modules/Store/views/auth/login.php', [
             'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
             'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
-            'error'          => 'Credenciales inválidas o cuenta inactiva.'
+            'error'          => $error
         ]);
     }
 
@@ -103,7 +109,7 @@ class ClienteAuthController extends Controller
 
         try {
             $this->authService->register($empresaId, $data, $password);
-            header("Location: /rxnTiendasIA/public/{$slug}");
+            header("Location: /rxnTiendasIA/public/{$slug}/login?msg=revisar_correo");
             exit;
         } catch (Exception $e) {
             View::render('app/modules/Store/views/auth/registro.php', [

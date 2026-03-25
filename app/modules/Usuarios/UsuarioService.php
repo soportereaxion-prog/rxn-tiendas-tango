@@ -62,7 +62,15 @@ class UsuarioService
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
 
+        // Forced Email Lifecycle (No verification = No Login)
+        $usuario->email_verificado = 0;
+        $usuario->verification_token = bin2hex(random_bytes(16));
+        $usuario->verification_expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
+
         $this->repository->save($usuario);
+
+        $mailService = new \App\Core\Services\MailService();
+        $mailService->sendVerificationEmail($usuario->email, $usuario->nombre, $usuario->verification_token, $empresaId);
     }
 
     public function update(int $id, array $data): void

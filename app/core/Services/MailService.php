@@ -133,13 +133,21 @@ class MailService
 
     public function sendVerificationEmail(string $to, string $nombre, string $token, int $empresaId): bool
     {
+        // Enlaza a un endpoint universal sin depender del slug del tenant.
+        $link = (isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : 'http') . '://' . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "/rxnTiendasIA/public/auth/verify?token=" . urlencode($token);
+
         $subject = "Verificá tu correo electrónico";
         $body = "
             <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
                 <h2 style='color: #2c3e50;'>Validación de Seguridad</h2>
                 <p>Hola $nombre,</p>
-                <p>Ingresa este código de 6 dígitos en la aplicación para validar tu cuenta:</p>
-                <div style='background: #f8f9fa; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; border-radius: 8px;'>$token</div>
+                <p>Tu cuenta ha sido creada. Para poder iniciar sesión y utilizar la plataforma, es obligatorio verificar tu dirección de correo electrónico haciendo click en el siguiente botón:</p>
+                <div style='text-align: center; margin: 30px 0;'>
+                    <a href='$link' style='background: #0d6efd; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block;'>✅ Verificar Mi Cuenta</a>
+                </div>
+                <p style='font-size: 13px; color: #666;'>Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br><a href='$link'>$link</a></p>
+                <hr style='border: none; border-top: 1px solid #eaeaea; margin: 20px 0;'>
+                <p style='font-size: 12px; color: #888;'>Este enlace expirará en 24 horas.</p>
             </div>
         ";
         return $this->send($to, $subject, $body, $empresaId);
@@ -147,14 +155,21 @@ class MailService
     
     public function sendPasswordReset(string $to, string $nombre, string $token, int $empresaId): bool
     {
+        $link = (isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : 'http') . '://' . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "/rxnTiendasIA/public/auth/reset?token=" . urlencode($token);
+
         $subject = "Recuperación de Contraseña solicitada";
         $body = "
             <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
                 <h2 style='color: #2c3e50;'>Recuperación de Acceso</h2>
                 <p>Hola $nombre,</p>
-                <p>Solicitaste restablecer tu clave. Tu token de reinicio temporal es:</p>
-                <div style='background: #f8f9fa; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; color: #dc3545; border-radius: 8px;'>$token</div>
+                <p>Solicitaste restablecer tu clave. Hacé click en el botón a continuación para ingresar una nueva contraseña segura:</p>
+                <div style='text-align: center; margin: 30px 0;'>
+                    <a href='$link' style='background: #dc3545; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block;'>🔐 Restablecer mi Contraseña</a>
+                </div>
+                <p style='font-size: 13px; color: #666;'>Si el botón no funciona, copiá este enlace:<br><a href='$link'>$link</a></p>
                 <p>Si no fuiste vos, ignorá este mensaje.</p>
+                <hr style='border: none; border-top: 1px solid #eaeaea; margin: 20px 0;'>
+                <p style='font-size: 12px; color: #888;'>Este enlace expirará en 30 minutos por razones de seguridad.</p>
             </div>
         ";
         return $this->send($to, $subject, $body, $empresaId);

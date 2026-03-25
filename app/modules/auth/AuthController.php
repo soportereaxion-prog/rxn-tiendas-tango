@@ -21,13 +21,19 @@ class AuthController extends Controller
         $password = $_POST['password'] ?? '';
 
         $auth = new AuthService();
-        if ($auth->attempt($email, $password)) {
-            header('Location: /rxnTiendasIA/public/mi-empresa/configuracion');
-            exit;
+        $error = 'Credenciales inválidas o usuario inactivo.';
+        
+        try {
+            if ($auth->attempt($email, $password)) {
+                header('Location: /rxnTiendasIA/public/mi-empresa/configuracion');
+                exit;
+            }
+        } catch (\Exception $e) {
+            $error = $e->getMessage();
         }
 
         View::render('app/modules/Auth/views/login.php', [
-            'error' => 'Credenciales inválidas o usuario inactivo.',
+            'error' => $error,
             'old_email' => $email
         ]);
     }

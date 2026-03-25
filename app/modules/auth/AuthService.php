@@ -18,6 +18,10 @@ class AuthService
         
         if ($usuario && $usuario->activo === 1) {
             if (password_verify($password, $usuario->password_hash)) {
+                if (!isset($usuario->email_verificado) || (int)$usuario->email_verificado !== 1) {
+                    throw new \Exception("Cuenta pendiente de verificación. Revise el correo de activación.");
+                }
+                
                 // Inyectamos contexto operativo persistente
                 $_SESSION['user_id'] = $usuario->id;
                 $_SESSION['empresa_id'] = $usuario->empresa_id;
