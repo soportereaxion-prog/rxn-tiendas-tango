@@ -25,4 +25,9 @@ class Usuario
 
     public ?string $created_at = null;
     public ?string $updated_at = null;
+
+    // Theming B2B Admin
+    public string $preferencia_tema = 'light';
+    public string $preferencia_fuente = 'md';
+    public ?string $avatar_url = null;
 }
