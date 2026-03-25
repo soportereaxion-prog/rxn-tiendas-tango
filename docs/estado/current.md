@@ -2,25 +2,26 @@
 
 ## módulos tocados
 
-* módulo: Admin / auth (AuthService, AuthController, UsuarioService)
-* módulo: Store / clientes (ClienteWebAuthService, ClienteAuthController)
-* módulo: Core (MailService PHPMailer Integration)
-* módulo: DB Schema (clientes_web, usuarios)
+* módulo: Theming Engine B2B/B2C (`UIHelper`, `rxn-theming.css`)
+* módulo: Admin / dashboard (`home.php`, inyecciones `<html>` en todo el backoffice)
+* módulo: Store (`layout.php`, LocalStorage toggle)
+* módulo: EmpresaConfig (Configuración Backend Tenant)
+* módulo: Usuarios (Nuevo sub-layout `mi-perfil`)
+* módulo: DB Schema (`empresas`, `usuarios`)
 
 ## decisiones
 
-* Se bloquea el login a usuarios con `email_verificado = 0`.
-* Se implementó `VerificationController` para activar los `verification_token` enviados vía mail.
-* Se implementó `PasswordResetController` para reestablecer credenciales bajo validación de expiración 30 minutos.
-* Se estandarizaron las alertas `$_GET['msg']` para notificaciones unificadas en pantallas de login.
-* **Desplazamiento Técnico (Vendor vs Vanilla):** Se aceptó la introducción de la librería `PHPMailer` por solicitud de la Jefa para destrabar restricciones OAuth2 (fundamental para integrar cuentas modernas de GMail / Google Workspace como Master RXN).
-* **Consistencia Arch:** Las firmas de los métodos `send()`, `testConnection()` y los emails pre-formateados (`Welcome`, `Verification`, `PasswordReset`) se mantuvieron imperturbables. Esto aseguró que todo el trabajo anterior (UI, Validadores AJAX y Fallbacks) siguiera funcionando de forma *Plug n' Play*.
+* **Capa Theming B2B:** Se rechaza el themer centralizado de Boostrap clásico en pos de variables CSS puras inyectadas mediante un Helper dinámico (`UIHelper`) en runtime, evaluando la BDD o Sesión (Light/Dark Mode; Fuentes `sm/md/lg`).
+* **Branding Tenant (Store):** El `layout.php` público extrae parámetros corporativos (Logo, Colores hexadecimales primario/secundario y metadatos sociales de Footer) hidratando de forma autónoma cada `/tienda` generada en tiempo real.
+* **Separación de pre-conceptos de DB:** Para los Themes B2C (Colors/Logo) el `EmpresasRepository` afecta directamente las columnas nativas de la tabla en vez de un string JSON. Esto garantiza búsquedas rápidas si el motor debe evolucionar, reduciendo carga lógica.
+* Las configuraciones del Dark Mode B2C se manejan en `LocalStorage` por lado cliente; no se registra en BDD, garantizando la velocidad sin queries redundantes para "usuarios invitados".
 
 ## riesgos
 
-* Si falla el SMTP Global, la emisión de confirmaciones se atascara y los nuevos usuarios no podrán operar, hasta que cliquen "Reenviar".
-* **Autoloader Composer:** Para este update es mandatorio que el comando `composer install` corra en Staging, de lo contrario el `App\Core\Services\MailService` colapsará buscando el namespace de PHPMailer.
+* El iterador generador inyectó rutas `<link>` en cabeceras dependientes del contexto `/rxnTiendasIA/public/`. Si el servidor cambia de ruta base a la raíz de dominio completa, es crítico ajustar `rxn-theming.css` URI y variables de upload.
+* Si el Tenant sube logos `.svg` rotos, el Store frontend podría crashear su ratio visual temporalmente en cabeceras. (Validados por MIME superficial).
 
 ## próximo paso
 
-* Testear el envío formal de un "Password Reset" usando la interfaz Master alimentada con credenciales App Password de Gmail o JWT.
+* Testeo global en servidor DonWeb para asegurar compatibilidad con PHP 8.2 estricto alojado remotamente.
+* Avanzar en siguientes características propuestas en la iteración del proyecto (Por ej: refinamientos de flujo transaccional Tango Connect si las hubiere).
