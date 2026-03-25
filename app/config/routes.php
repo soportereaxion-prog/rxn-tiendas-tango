@@ -29,15 +29,15 @@ return function (Router $router): void {
     $router->get('/logout', [\App\Modules\Auth\AuthController::class, 'logout']);
 
     // Email Lifecycle & Recovery
-    $router->get('/auth/verify', 'App\Modules\Auth\VerificationController@verify');
-    $router->get('/auth/resend-verify', 'App\Modules\Auth\VerificationController@showResend');
-    $router->post('/auth/resend-verify', 'App\Modules\Auth\VerificationController@processResend');
+    $router->get('/auth/verify', [\App\Modules\Auth\VerificationController::class, 'verify']);
+    $router->get('/auth/resend-verify', [\App\Modules\Auth\VerificationController::class, 'showResend']);
+    $router->post('/auth/resend-verify', [\App\Modules\Auth\VerificationController::class, 'processResend']);
     
     // Password Recovery Universal
-    $router->get('/auth/forgot', 'App\Modules\Auth\PasswordResetController@showForgot');
-    $router->post('/auth/forgot', 'App\Modules\Auth\PasswordResetController@processForgot');
-    $router->get('/auth/reset', 'App\Modules\Auth\PasswordResetController@showReset');
-    $router->post('/auth/reset', 'App\Modules\Auth\PasswordResetController@processReset');
+    $router->get('/auth/forgot', [\App\Modules\Auth\PasswordResetController::class, 'showForgot']);
+    $router->post('/auth/forgot', [\App\Modules\Auth\PasswordResetController::class, 'processForgot']);
+    $router->get('/auth/reset', [\App\Modules\Auth\PasswordResetController::class, 'showReset']);
+    $router->post('/auth/reset', [\App\Modules\Auth\PasswordResetController::class, 'processReset']);
 
     // --- MÓDULO EMPRESA CONFIG ---
     $router->get('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'index']);
