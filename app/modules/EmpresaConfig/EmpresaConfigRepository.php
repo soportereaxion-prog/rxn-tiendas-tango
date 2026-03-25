@@ -36,6 +36,7 @@ class EmpresaConfigRepository
                     tango_connect_token = :tango_connect_token,
                     tango_connect_company_id = :tango_connect_company_id,
                     cantidad_articulos_sync = :cantidad_articulos_sync,
+                    lista_precio_1 = :lista_precio_1,
                     lista_precio_2 = :lista_precio_2,
                     deposito_codigo = :deposito_codigo,
                     imagen_default_producto = :imagen_default_producto,
