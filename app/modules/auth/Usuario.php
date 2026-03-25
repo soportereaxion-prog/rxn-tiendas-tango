@@ -30,4 +30,7 @@ class Usuario
     public string $preferencia_tema = 'light';
     public string $preferencia_fuente = 'md';
     public ?string $avatar_url = null;
+    
+    // UI Dashboard State Arrays
+    public ?string $dashboard_order = null;
 }

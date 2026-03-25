@@ -45,4 +45,30 @@ class UsuarioPerfilController
         header('Location: /rxnTiendasIA/public/mi-perfil?success=Preferencias+actualizadas');
         exit;
     }
+
+    public function guardarOrdenDashboard(): void
+    {
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'No autorizado']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (isset($input['order']) && is_array($input['order'])) {
+            $jsonOrder = json_encode($input['order']);
+            
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare("UPDATE usuarios SET dashboard_order = ? WHERE id = ?");
+            $stmt->execute([$jsonOrder, $_SESSION['user_id']]);
+            
+            $_SESSION['dashboard_order'] = $jsonOrder;
+            
+            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Bad request']);
+        }
+        exit;
+    }
 }

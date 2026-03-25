@@ -14,6 +14,7 @@ return function (Router $router): void {
     // --- MI PERFIL (B2B) ---
     $router->get('/mi-perfil', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'index']);
     $router->post('/mi-perfil', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardar']);
+    $router->post('/mi-perfil/dashboard-order', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardarOrdenDashboard']);
 
     // --- MÓDULO EMPRESAS ---
     $router->get('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'index']);

@@ -27,6 +27,9 @@ class AuthService
                 $_SESSION['empresa_id'] = $usuario->empresa_id;
                 $_SESSION['user_name'] = $usuario->nombre;
                 $_SESSION['es_rxn_admin'] = $usuario->es_rxn_admin ?? 0;
+                $_SESSION['pref_theme'] = $usuario->preferencia_tema ?? 'light';
+                $_SESSION['pref_font'] = $usuario->preferencia_fuente ?? 'md';
+                $_SESSION['dashboard_order'] = $usuario->dashboard_order ?? null;
                 return true;
             }
         }
