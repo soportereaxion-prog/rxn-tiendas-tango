@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Core\Services;
 
 use App\Modules\EmpresaConfig\EmpresaConfigRepository;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use Exception;
 
 class MailService
@@ -27,7 +30,7 @@ class MailService
 
         // Fallback global RXN predeterminado
         $smtp = [
-            'host' => getenv('MAIL_HOST') ?: '127.0.0.1',
+            'host' => getenv('MAIL_HOST') ?: '',
             'port' => getenv('MAIL_PORT') ? (int)getenv('MAIL_PORT') : 587,
             'user' => getenv('MAIL_USER') ?: '',
             'pass' => getenv('MAIL_PASS') ?: '',
@@ -52,109 +55,62 @@ class MailService
         return $smtp;
     }
 
+    /**
+     * Instancia un cliente SMTP puro con PHPMailer
+     */
+    private function buildMailer(array $config): PHPMailer
+    {
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = $config['host'];
+        $mail->SMTPAuth = !empty($config['user']);
+        
+        if ($mail->SMTPAuth) {
+            $mail->Username = $config['user'];
+            $mail->Password = $config['pass'];
+        }
+
+        if (!empty($config['secure'])) {
+            $mail->SMTPSecure = ($config['secure'] === 'ssl') ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+        } else {
+            $mail->SMTPAutoTLS = false;
+        }
+
+        $mail->Port = $config['port'];
+        $mail->CharSet = 'UTF-8';
+        $mail->Encoding = 'base64';
+
+        return $mail;
+    }
+
     public function send(string $to, string $subject, string $body, int $empresaId): bool
     {
         $config = $this->resolveMailerConfig($empresaId);
         
-        // Evitamos enviar si no hay validaciones básicas completas
         if (empty($config['host'])) {
             error_log("MailService: Falló resolución SMTP para enviar a $to. Default Host missing.");
             return false;
         }
 
         try {
-            return $this->sendViaSocket($to, $subject, $body, $config);
+            $mail = $this->buildMailer($config);
+            $mail->setFrom($config['from_email'], $config['from_name']);
+            $mail->addAddress($to);
+
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $body;
+            $mail->AltBody = strip_tags($body);
+
+            $mail->send();
+            return true;
+        } catch (PHPMailerException $e) {
+            error_log("PHPMailer Exception al enviar a {$to}: " . $e->getMessage() . " | Error Info: " . $mail->ErrorInfo);
+            return false;
         } catch (Exception $e) {
             error_log("MailService Exception: " . $e->getMessage());
-            // Si estuviéramos en Local / Dev, no queremos romper el flujo del cliente, simulamos boolean return
             return false;
         }
-    }
-
-    /**
-     * Cliente robusto Vanilla PHP para SMTP Transaccional
-     */
-    private function sendViaSocket(string $to, string $subject, string $body, array $config): bool
-    {
-        $crlf = "\r\n";
-        $host = $config['host'];
-        $port = $config['port'];
-        
-        // Si es SSL implícito
-        if ($config['secure'] === 'ssl') {
-            $host = 'ssl://' . $host;
-        }
-
-        $socket = @fsockopen($host, $port, $errno, $errstr, 10);
-        if (!$socket) {
-            error_log("SMTP Error: No se pudo conectar a {$config['host']}:{$config['port']} - $errstr");
-            return false;
-        }
-
-        $this->readSmtpResponse($socket);
-
-        fwrite($socket, "EHLO " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost') . $crlf);
-        $this->readSmtpResponse($socket);
-
-        if ($config['secure'] === 'tls') {
-            fwrite($socket, "STARTTLS" . $crlf);
-            $this->readSmtpResponse($socket);
-            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-            
-            // Re-EHLO after TLS handshake
-            fwrite($socket, "EHLO " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost') . $crlf);
-            $this->readSmtpResponse($socket);
-        }
-
-        if (!empty($config['user'])) {
-            fwrite($socket, "AUTH LOGIN" . $crlf);
-            $this->readSmtpResponse($socket);
-            fwrite($socket, base64_encode($config['user']) . $crlf);
-            $this->readSmtpResponse($socket);
-            fwrite($socket, base64_encode($config['pass']) . $crlf);
-            $res = $this->readSmtpResponse($socket);
-            if (strpos($res, '235') === false) {
-                error_log("SMTP Auth Error: $res");
-                fclose($socket);
-                return false;
-            }
-        }
-
-        fwrite($socket, "MAIL FROM: <{$config['from_email']}>" . $crlf);
-        $this->readSmtpResponse($socket);
-
-        fwrite($socket, "RCPT TO: <{$to}>" . $crlf);
-        $this->readSmtpResponse($socket);
-
-        fwrite($socket, "DATA" . $crlf);
-        $this->readSmtpResponse($socket);
-
-        $headers = "From: =?UTF-8?B?" . base64_encode((string)$config['from_name']) . "?= <{$config['from_email']}>" . $crlf;
-        $headers .= "To: <{$to}>" . $crlf;
-        $headers .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=" . $crlf;
-        $headers .= "MIME-Version: 1.0" . $crlf;
-        $headers .= "Content-Type: text/html; charset=UTF-8" . $crlf;
-        
-        $message = $headers . $crlf . $body . $crlf . "." . $crlf;
-        fwrite($socket, $message);
-        $res = $this->readSmtpResponse($socket);
-
-        fwrite($socket, "QUIT" . $crlf);
-        fclose($socket);
-
-        return strpos($res, '250') !== false;
-    }
-
-    private function readSmtpResponse($socket): string
-    {
-        $data = '';
-        while ($str = fgets($socket, 515)) {
-            $data .= $str;
-            if (substr($str, 3, 1) === ' ') {
-                break;
-            }
-        }
-        return $data;
     }
 
     // ============================================
@@ -205,63 +161,43 @@ class MailService
     }
     
     /**
-     * Validador en vivo para testing AJAX de configuración SMTP.
-     * Evalúa Handshake, TLS Negotiation, y Autenticación devolviendo el Log del servidor.
+     * Validador en vivo para testing AJAX de configuración SMTP usando PHPMailer.
      */
     public function testConnection(array $config): array
     {
-        $crlf = "\r\n";
-        $host = $config['host'];
-        $port = $config['port'] ?? 587;
-        
-        if (empty($host)) {
+        if (empty($config['host'])) {
             return ['success' => false, 'message' => 'El servidor / host está vacío.'];
         }
 
-        if (($config['secure'] ?? '') === 'ssl') {
-            $host = 'ssl://' . $host;
-        }
-
-        $socket = @fsockopen($host, $port, $errno, $errstr, 5); // Timeout corto de 5s
-        if (!$socket) {
-            return ['success' => false, 'message' => "Socket Error ($errno): $errstr. Verifique Host y Puerto."];
-        }
-
-        $log = $this->readSmtpResponse($socket);
-
-        fwrite($socket, "EHLO " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost') . $crlf);
-        $log .= $this->readSmtpResponse($socket);
-
-        if (($config['secure'] ?? '') === 'tls') {
-            fwrite($socket, "STARTTLS" . $crlf);
-            $log .= $this->readSmtpResponse($socket);
-            if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-                fclose($socket);
-                return ['success' => false, 'message' => "Fallo en negociación TLS. Verifique compatibilidad en Ciphers.\nLog: " . trim($log)];
-            }
+        try {
+            $mail = clone $this->buildMailer($config);
             
-            // Re-EHLO after TLS handshake
-            fwrite($socket, "EHLO " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost') . $crlf);
-            $log .= $this->readSmtpResponse($socket);
-        }
+            // Interceptar la salida del Sockets Handshake Debug de PHPMailer
+            $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+            $debugOutput = '';
+            $mail->Debugoutput = function($str, $level) use (&$debugOutput) {
+                $debugOutput .= $str . "\n";
+            };
+            
+            // Requerimos Timeout menor visual para UX
+            $mail->Timeout = 5;
 
-        if (!empty($config['user']) && !empty($config['pass'])) {
-            fwrite($socket, "AUTH LOGIN" . $crlf);
-            $log .= $this->readSmtpResponse($socket);
-            fwrite($socket, base64_encode($config['user']) . $crlf);
-            $log .= $this->readSmtpResponse($socket);
-            fwrite($socket, base64_encode($config['pass']) . $crlf);
-            $res = $this->readSmtpResponse($socket);
-            $log .= $res;
-            if (strpos($res, '235') === false) {
-                fclose($socket);
-                return ['success' => false, 'message' => "Autenticación Fallida. Usuario o Clave inválidos.\nRespuesta: " . trim($res)];
+            if ($mail->smtpConnect()) {
+                $mail->smtpClose();
+                return ['success' => true, 'message' => '¡Conexión SMTP validadas exitosamente por PHPMailer!'];
+            } else {
+                return [
+                    'success' => false, 
+                    'message' => "La conexión fue rechazada o falló el handshake.\n\nDebug Info:\n" . trim($debugOutput)
+                ];
             }
+        } catch (PHPMailerException $e) {
+            return [
+                'success' => false, 
+                'message' => "Excepción PHPMailer durante el Handshake SMTP:\n" . $e->getMessage() . "\n\nDebug Info:\n" . trim($debugOutput ?? '')
+            ];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => "Excepción de Socket General: " . $e->getMessage()];
         }
-
-        fwrite($socket, "QUIT" . $crlf);
-        fclose($socket);
-
-        return ['success' => true, 'message' => '¡Conexión y Handshake SMTP validados exitosamente!'];
     }
 }

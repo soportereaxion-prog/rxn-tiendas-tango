@@ -2,20 +2,18 @@
 
 ## módulos tocados
 
-* módulo: **infra** (`MailService.php` suma método público validador `testConnection` nativo socket TLS/SSL).
-* módulo: admin (`GlobalConfigController` y vista `smtp_global.php` con endpoint AJAX).
-* módulo: empresa_config (`EmpresaConfigController` y vista de Tenant con endpoint AJAX).
+* módulo: **infra** (Reescrito por completo `App\Core\Services\MailService` abandonando TCP Crudo hacia PHPMailer Vendor).
+* módulo: **vendor** (Descargados y enlazados `PHPMailer\PHPMailer` vía Composer).
 
 ## decisiones
 
-* **Handshake en Vivo:** Para evitar fricción UX de guardar primero y enviar correo de prueba después, el Validador levanta el `FormData` en vivo mediante JS vainilla y lo envía al Controller, quien intenta un `fsockopen` transaccional devolviendo el Log del servidor a la UI directamente.
-* **Resguardo de UI:** El botón de validación se desactiva mientras procesa (Promesas asíncronas) previniendo inundar el servidor con Socket timeouts simultáneos.
-* **Seguridad de Password Oculto:** Si el administrador toca el botón de Probar Conexión, pero el campo "Password" estaba en blanco por seguridad de sesión, el Controlador inteligentemente recupera el Password real desde la Base o `.env` en memoria temporal antes de realizar la prueba.
+* **Desplazamiento Técnico (Vendor vs Vanilla):** Se aceptó la introducción de la librería `PHPMailer` por solicitud de la Jefa para destrabar restricciones OAuth2 (fundamental para integrar cuentas modernas de GMail / Google Workspace como Master RXN).
+* **Consistencia Arch:** Las firmas de los métodos `send()`, `testConnection()` y los emails pre-formateados (`Welcome`, `Verification`, `PasswordReset`) se mantuvieron imperturbables. Esto aseguró que todo el trabajo anterior (UI, Validadores AJAX y Fallbacks) siguiera funcionando de forma *Plug n' Play*. 
 
 ## riesgos
 
-* **Timeout Sockets:** Un puerto erróneo puede colgar el Request. Se mitiga habiendo hardcodeado un límite máximo de 5 segundos (`timeout` parameter de PHP) en el `fsockopen`. Todo error se reporta al usuario mediante JS `alert`.
+* **Autoloader Composer:** Para este update es mandatorio que el comando `composer install` corra en Staging, de lo contrario el `App\Core\Services\MailService` colapsará buscando el namespace de PHPMailer.
 
 ## próximo paso
 
-* Testing UAT manual para confirmar la recepción visual de rechazos `AUTH LOGIN` desde servidores restringidos.
+* Testear el envío formal de un "Password Reset" usando la interfaz Master alimentada con credenciales App Password de Gmail o JWT.
