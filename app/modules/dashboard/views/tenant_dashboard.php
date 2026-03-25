@@ -43,8 +43,11 @@ $defaultCards = [
     ]
 ];
 
-// Regla de Seguridad: Ocultar Administrar Cuentas si el Auth NO es Tenant Admin
-if (empty($_SESSION['es_admin']) || $_SESSION['es_admin'] != 1) {
+// Regla de Seguridad: Ocultar Administrar Cuentas si el Auth NO es Tenant Admin ni Global Admin
+$isTenantAdmin = (!empty($_SESSION['es_admin']) && $_SESSION['es_admin'] == 1);
+$isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+
+if (!$isTenantAdmin && !$isGlobalAdmin) {
     unset($defaultCards['usuarios']);
 }
 

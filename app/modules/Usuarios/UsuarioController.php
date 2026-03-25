@@ -12,9 +12,20 @@ class UsuarioController extends Controller
 {
     private UsuarioService $service;
 
-    public function index(): void
+    private function requireAdmin(): void
     {
         AuthService::requireLogin();
+        $isTenantAdmin = (!empty($_SESSION['es_admin']) && $_SESSION['es_admin'] == 1);
+        $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+        
+        if (!$isTenantAdmin && !$isGlobalAdmin) {
+            $this->renderDenegado("No tiene permisos de administrador para gestionar usuarios.");
+        }
+    }
+
+    public function index(): void
+    {
+        $this->requireAdmin();
         try {
             $this->service = new UsuarioService();
             $usuarios = $this->service->getAllForContext();
@@ -28,13 +39,13 @@ class UsuarioController extends Controller
 
     public function create(): void
     {
-        AuthService::requireLogin();
+        $this->requireAdmin();
         View::render('app/modules/Usuarios/views/crear.php', []);
     }
 
     public function store(): void
     {
-        AuthService::requireLogin();
+        $this->requireAdmin();
         try {
             $this->service = new UsuarioService();
             $this->service->create($_POST);
@@ -50,7 +61,7 @@ class UsuarioController extends Controller
 
     public function edit(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requireAdmin();
         try {
             $this->service = new UsuarioService();
             $usuario = $this->service->getByIdForContext((int) $id);
@@ -64,7 +75,7 @@ class UsuarioController extends Controller
 
     public function update(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requireAdmin();
         $this->service = new UsuarioService();
         
         try {
