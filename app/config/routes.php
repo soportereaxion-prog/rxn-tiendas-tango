@@ -6,9 +6,20 @@ use App\Core\Database;
 
 return function (Router $router): void {
 
-    // Ruta raíz — Home Principal con menú
+    // Ruta raíz — Nivel 1 (Launcher Principal)
     $router->get('/', function () {
         View::render('app/modules/dashboard/views/home.php');
+    });
+
+    // --- SUBDASHBOARDS (NIVEL 2) ---
+    $router->get('/admin/dashboard', function () {
+        \App\Modules\Auth\AuthService::requireRxnAdmin();
+        View::render('app/modules/dashboard/views/admin_dashboard.php');
+    });
+
+    $router->get('/mi-empresa/dashboard', function () {
+        \App\Modules\Auth\AuthService::requireLogin();
+        View::render('app/modules/dashboard/views/tenant_dashboard.php');
     });
     
     // --- MI PERFIL (B2B) ---
