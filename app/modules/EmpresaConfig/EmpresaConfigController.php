@@ -66,4 +66,35 @@ class EmpresaConfigController extends Controller
             }
         }
     }
+
+    /**
+     * Validador AJAX de Handshake SMTP Empresa (Tenant) en tiempo de ejecución
+     */
+    public function testConnection(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+
+        $empresaId = Context::getEmpresaId();
+        
+        $configData = [
+            'host' => trim($_POST['smtp_host'] ?? ''),
+            'port' => (int)($_POST['smtp_port'] ?? 587),
+            'user' => trim($_POST['smtp_user'] ?? ''),
+            'pass' => trim($_POST['smtp_pass'] ?? ''),
+            'secure' => trim($_POST['smtp_secure'] ?? ''),
+        ];
+
+        // Recuperar password oculta preservando el behaviour real del backend si se evalúa guardado previo vs field vacío
+        if (empty($configData['pass'])) {
+            $repoConf = $this->service->getConfig();
+            $configData['pass'] = $repoConf->smtp_pass ?? '';
+        }
+
+        $mailService = new \App\Core\Services\MailService();
+        $result = $mailService->testConnection($configData);
+
+        echo json_encode($result);
+        exit;
+    }
 }

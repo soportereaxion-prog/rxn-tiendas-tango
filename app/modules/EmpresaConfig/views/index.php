@@ -205,7 +205,8 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="d-flex justify-content-end gap-2 align-items-center">
+                        <button type="button" id="btn-test-tenant-smtp" class="btn btn-outline-info fw-bold" style="display: none;">✔️ Probar Seguro SMTP</button>
                         <a href="/rxnTiendasIA/public/" class="btn btn-light">Volver a Inicio</a>
                         <button type="submit" class="btn btn-primary px-4">Guardar Configuración</button>
                     </div>
@@ -214,5 +215,56 @@
             </div>
         </div>
     </div>
+
+    <!-- JS Validator AJAX -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleSmtp = document.getElementById('usa_smtp_propio');
+            const smtpFields = document.getElementById('smtp-fields');
+            const testBtn = document.getElementById('btn-test-tenant-smtp');
+
+            if (!toggleSmtp || !testBtn || !smtpFields) return;
+
+            function syncDisplay() {
+                if (toggleSmtp.checked) {
+                    smtpFields.style.display = 'flex';
+                    testBtn.style.display = 'inline-block';
+                } else {
+                    smtpFields.style.display = 'none';
+                    testBtn.style.display = 'none';
+                }
+            }
+            
+            toggleSmtp.addEventListener('change', syncDisplay);
+            syncDisplay();
+
+            // Ajax Validator
+            testBtn.addEventListener('click', async (e) => {
+                const originalText = testBtn.innerText;
+                testBtn.innerText = '⏳ Conectando Handshake...';
+                testBtn.disabled = true;
+
+                try {
+                    const formData = new FormData(document.querySelector('form'));
+                    const res = await fetch('/rxnTiendasIA/public/mi-empresa/configuracion/test-smtp', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const json = await res.json();
+                    if (json.success) {
+                        alert('✅ SMTP LOCAL EXCELENTE:\n' + json.message);
+                    } else {
+                        alert('❌ ERROR AL CONECTAR SMTP PROPIO:\n' + json.message);
+                    }
+                } catch (error) {
+                    alert('Falla en la request de red hacia el validador.');
+                } finally {
+                    testBtn.innerText = originalText;
+                    testBtn.disabled = false;
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -21,6 +21,7 @@ return function (Router $router): void {
     // --- MÓDULO ADMIN GLOBAL ---
     $router->get('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'showSmtpGlobal']);
     $router->post('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'updateSmtpGlobal']);
+    $router->post('/admin/smtp-global/test', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'testConnection']);
 
     // --- MÓDULO AUTH ---
     $router->get('/login', [\App\Modules\Auth\AuthController::class, 'showLogin']);
@@ -30,6 +31,7 @@ return function (Router $router): void {
     // --- MÓDULO EMPRESA CONFIG ---
     $router->get('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'index']);
     $router->post('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'store']);
+    $router->post('/mi-empresa/configuracion/test-smtp', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'testConnection']);
 
     // --- MÓDULO USUARIOS OPERATIVOS ---
     $router->get('/mi-empresa/usuarios', [\App\Modules\Usuarios\UsuarioController::class, 'index']);

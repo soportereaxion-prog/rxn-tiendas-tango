@@ -203,4 +203,65 @@ class MailService
         ";
         return $this->send($to, $subject, $body, $empresaId);
     }
+    
+    /**
+     * Validador en vivo para testing AJAX de configuración SMTP.
+     * Evalúa Handshake, TLS Negotiation, y Autenticación devolviendo el Log del servidor.
+     */
+    public function testConnection(array $config): array
+    {
+        $crlf = "\r\n";
+        $host = $config['host'];
+        $port = $config['port'] ?? 587;
+        
+        if (empty($host)) {
+            return ['success' => false, 'message' => 'El servidor / host está vacío.'];
+        }
+
+        if (($config['secure'] ?? '') === 'ssl') {
+            $host = 'ssl://' . $host;
+        }
+
+        $socket = @fsockopen($host, $port, $errno, $errstr, 5); // Timeout corto de 5s
+        if (!$socket) {
+            return ['success' => false, 'message' => "Socket Error ($errno): $errstr. Verifique Host y Puerto."];
+        }
+
+        $log = $this->readSmtpResponse($socket);
+
+        fwrite($socket, "EHLO " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost') . $crlf);
+        $log .= $this->readSmtpResponse($socket);
+
+        if (($config['secure'] ?? '') === 'tls') {
+            fwrite($socket, "STARTTLS" . $crlf);
+            $log .= $this->readSmtpResponse($socket);
+            if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                fclose($socket);
+                return ['success' => false, 'message' => "Fallo en negociación TLS. Verifique compatibilidad en Ciphers.\nLog: " . trim($log)];
+            }
+            
+            // Re-EHLO after TLS handshake
+            fwrite($socket, "EHLO " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost') . $crlf);
+            $log .= $this->readSmtpResponse($socket);
+        }
+
+        if (!empty($config['user']) && !empty($config['pass'])) {
+            fwrite($socket, "AUTH LOGIN" . $crlf);
+            $log .= $this->readSmtpResponse($socket);
+            fwrite($socket, base64_encode($config['user']) . $crlf);
+            $log .= $this->readSmtpResponse($socket);
+            fwrite($socket, base64_encode($config['pass']) . $crlf);
+            $res = $this->readSmtpResponse($socket);
+            $log .= $res;
+            if (strpos($res, '235') === false) {
+                fclose($socket);
+                return ['success' => false, 'message' => "Autenticación Fallida. Usuario o Clave inválidos.\nRespuesta: " . trim($res)];
+            }
+        }
+
+        fwrite($socket, "QUIT" . $crlf);
+        fclose($socket);
+
+        return ['success' => true, 'message' => '¡Conexión y Handshake SMTP validados exitosamente!'];
+    }
 }

@@ -78,4 +78,36 @@ class GlobalConfigController extends Controller
             exit;
         }
     }
+
+    /**
+     * Validador AJAX de Handshake SMTP Master RXN en tiempo de ejecución
+     */
+    public function testConnection(): void
+    {
+        AuthService::requireLogin();
+        
+        header('Content-Type: application/json');
+        
+        $config = [
+            'host' => trim($_POST['host'] ?? ''),
+            'port' => (int)($_POST['port'] ?? 587),
+            'user' => trim($_POST['user'] ?? ''),
+            'pass' => trim($_POST['pass'] ?? ''),
+            'secure' => trim($_POST['secure'] ?? ''),
+            'from_email' => trim($_POST['from_email'] ?? ''),
+            'from_name' => trim($_POST['from_name'] ?? '')
+        ];
+
+        // Si se envió un campo password en blanco, deducimos recuperar la del ENV (para no fallar el test localmente guardado)
+        if (empty($config['pass'])) {
+            $envVars = $this->envManager->getParsedVariables();
+            $config['pass'] = $envVars['MAIL_PASS'] ?? '';
+        }
+
+        $mailService = new \App\Core\Services\MailService();
+        $result = $mailService->testConnection($config);
+
+        echo json_encode($result);
+        exit;
+    }
 }

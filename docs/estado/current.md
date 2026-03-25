@@ -2,22 +2,20 @@
 
 ## módulos tocados
 
-* módulo: **admin** (Nuevo endpoint `GlobalConfigController` y vista `smtp_global.php`).
-* módulo: **infra** (Incorporación del `EnvManager` para mutar variables de entorno en runtime).
-* módulo: empresas (Inyección UI del botón "SMTP Master RXN" en el listado central).
-* módulo: empresa_config (Refuerzo textual UX aclarando Fallbacks transparentes).
+* módulo: **infra** (`MailService.php` suma método público validador `testConnection` nativo socket TLS/SSL).
+* módulo: admin (`GlobalConfigController` y vista `smtp_global.php` con endpoint AJAX).
+* módulo: empresa_config (`EmpresaConfigController` y vista de Tenant con endpoint AJAX).
 
 ## decisiones
 
-* **Persistencia Root (.env):** Para la jerarquía RXN Master, en vez de crear tablas `config_global` que ensucian el esquema DB, construí la clase `EnvManager` que lee y sobrescribe de forma Regex-safe el archivo `.env`. Esto mantiene el proyecto *Cloud-Native* al estilo Laravel.
-* **Separación de Concerns:** Los administradores accederán a configurar el Master RXN desde la misma vista en la que listan las empresas activas, sin mezclarse nunca con el formulario de "Mi Empresa".
+* **Handshake en Vivo:** Para evitar fricción UX de guardar primero y enviar correo de prueba después, el Validador levanta el `FormData` en vivo mediante JS vainilla y lo envía al Controller, quien intenta un `fsockopen` transaccional devolviendo el Log del servidor a la UI directamente.
+* **Resguardo de UI:** El botón de validación se desactiva mientras procesa (Promesas asíncronas) previniendo inundar el servidor con Socket timeouts simultáneos.
+* **Seguridad de Password Oculto:** Si el administrador toca el botón de Probar Conexión, pero el campo "Password" estaba en blanco por seguridad de sesión, el Controlador inteligentemente recupera el Password real desde la Base o `.env` en memoria temporal antes de realizar la prueba.
 
 ## riesgos
 
-* **Permisos Unix (.env):** `EnvManager::updateVariables` requiere que PHP-FPM o www-data tengan permiso de escritura (`chmod 664` o `666`) sobre el archivo `.env` en los subidones a Linux. Fallar arrojará una Exception capturada visualmente en pantalla por el Controller advirtiendo el Denied Access.
-* **Restricción de Rutas:** Actualmente `AuthService::requireLogin()` protege `/admin/smtp-global`. A futuro se deberá condicionar a un pseudo-rol `is_superadmin` si se escala el staff.
+* **Timeout Sockets:** Un puerto erróneo puede colgar el Request. Se mitiga habiendo hardcodeado un límite máximo de 5 segundos (`timeout` parameter de PHP) en el `fsockopen`. Todo error se reporta al usuario mediante JS `alert`.
 
 ## próximo paso
 
-* Testear en vivo la mutación del `.env` cuando el repo aterrice en un entorno Staging productivo.
-* Consolidar flujos adicionales que dependan de super-administración.
+* Testing UAT manual para confirmar la recepción visual de rechazos `AUTH LOGIN` desde servidores restringidos.

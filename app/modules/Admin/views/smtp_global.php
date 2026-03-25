@@ -87,6 +87,7 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary">
+                        <button type="button" id="btn-test-smtp" class="btn btn-outline-info px-3 fw-bold">✔️ Probar Conexión</button>
                         <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-light">Volver a Empresas</a>
                         <button type="submit" class="btn btn-warning px-4 fw-bold">Actualizar Fallback RXN</button>
                     </div>
@@ -94,5 +95,35 @@
             </div>
         </div>
     </div>
+
+    <!-- JS Validator AJAX -->
+    <script>
+        document.getElementById('btn-test-smtp').addEventListener('click', async (e) => {
+            const btn = e.target;
+            const originalText = btn.innerText;
+            btn.innerText = '⏳ Probando...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData(document.querySelector('form'));
+                const res = await fetch('/rxnTiendasIA/public/admin/smtp-global/test', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const json = await res.json();
+                if (json.success) {
+                    alert('✅ ÉXITO:\n' + json.message);
+                } else {
+                    alert('❌ FALLÓ:\n' + json.message);
+                }
+            } catch (error) {
+                alert('Ocurrió un error de red intentando contactar al validador.');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
