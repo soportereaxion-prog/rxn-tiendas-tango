@@ -15,10 +15,10 @@
     <div class="container mt-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2>Catálogo de Artículos</h2>
-                <p class="text-muted">Inventario PUSH Operativo Multiempresa.</p>
+                <h2>Directorio de Artículos</h2>
+                <p class="text-muted">Gestión de Catálogo Web, Precios e Imágenes (Tango + RXN)</p>
             </div>
-            <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary">← Volver al Panel</a>
+            <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
         </div>
 
         <?php $flash = \App\Core\Flash::get(); ?>

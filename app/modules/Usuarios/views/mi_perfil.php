@@ -10,8 +10,8 @@
 <body class="bg-light">
     <div class="container mt-5" style="max-width: 500px;">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold m-0">Mi Perfil</h2>
-            <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary btn-sm">Volver</a>
+            <h2 class="fw-bold m-0">Mi Perfil B2B</h2>
+            <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
 
         <?php if (!empty($_GET['success'])): ?>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Launcher Administrativo - rxnTiendasIA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
     <style>
         body { background-color: var(--bg-color, #121212); color: var(--text-color, #f8f9fa); }
@@ -51,7 +52,7 @@
             <div class="col-md-6 col-lg-5">
                 <div class="card launcher-card text-center p-4 h-100 position-relative shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
-                        <div class="launcher-icon">🏢</div>
+                        <div class="launcher-icon"><i class="bi bi-buildings"></i></div>
                         <h4 class="fw-bold mb-2 text-white">RXN Backoffice</h4>
                         <p class="text-muted small px-3">Administración global de licenciatarios, tenants y configuraciones master.</p>
                         <a href="/rxnTiendasIA/public/admin/dashboard" class="stretched-link"></a>
@@ -64,7 +65,7 @@
             <div class="col-md-6 col-lg-5">
                 <div class="card launcher-card text-center p-4 h-100 position-relative shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
-                        <div class="launcher-icon">🚀</div>
+                        <div class="launcher-icon"><i class="bi bi-rocket-takeoff"></i></div>
                         <h4 class="fw-bold mb-2 text-white">Entorno Operativo</h4>
                         <p class="text-muted small px-3">Tu propio punto de venta, gestión de clientes, catálogos y pedidos web.</p>
                         <div class="mt-4 pt-3 border-top border-secondary border-opacity-25 w-100">

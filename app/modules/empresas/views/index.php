@@ -17,9 +17,8 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Gestión de Empresas</h2>
             <div class="d-flex gap-2">
-                <a href="/rxnTiendasIA/public/admin/smtp-global" class="btn btn-warning text-dark fw-bold shadow-sm">⚙️ SMTP Master RXN</a>
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary">Volver al Inicio</a>
-                <a href="/rxnTiendasIA/public/empresas/crear" class="btn btn-primary shadow-sm">Nueva Empresa</a>
+                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary me-2">Volver al Inicio</a>
+                <a href="/rxnTiendasIA/public/empresas/crear" class="btn btn-primary fw-bold shadow-sm">+ Nueva Empresa</a>
             </div>
         </div>
 

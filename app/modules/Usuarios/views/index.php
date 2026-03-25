@@ -14,8 +14,8 @@
                 <h2 class="fw-bold">Gestión de Usuarios</h2>
                 <p class="text-muted mb-0">Entorno Operativo ID: <?= htmlspecialchars((string)\App\Core\Context::getEmpresaId()) ?></p>
             </div>
-            <div>
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary me-2">Volver al Home</a>
+            <div class="d-flex align-items-center">
+                <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i> Volver al Entorno</a>
                 <a href="/rxnTiendasIA/public/mi-empresa/usuarios/crear" class="btn btn-primary fw-bold">+ Nuevo Usuario</a>
             </div>
         </div>

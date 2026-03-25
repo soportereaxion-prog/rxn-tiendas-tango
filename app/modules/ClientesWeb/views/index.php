@@ -18,7 +18,7 @@
                 <h2>Clientes Web</h2>
                 <p class="text-muted">Gestión de Clientes y Vínculo Comercial Tango.</p>
             </div>
-            <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary">← Volver al Panel</a>
+            <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
         </div>
 
         <?php $flash_success = $_SESSION['flash_success'] ?? null; unset($_SESSION['flash_success']); ?>

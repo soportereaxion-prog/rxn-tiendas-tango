@@ -20,9 +20,10 @@
                 <p class="text-muted mb-0">Gestión del entorno operativo actual.</p>
             </div>
             <div>
-                <span class="badge bg-info text-dark me-2">Contexto Activo: ID #<?= htmlspecialchars((string) \App\Core\Context::getEmpresaId()) ?></span>
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary btn-sm">Volver al Módulo</a>
+                <h2 class="mb-1">Cónsola de Configuración</h2>
+                <p class="text-muted mb-0">Personaliza la identidad online y el enlace con el ERP de #[<?= $_SESSION['empresa_id'] ?? '' ?>].</p>
             </div>
+            <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary shadow-sm"><i class="bi bi-arrow-left"></i> Volver al Entorno</a>
         </div>
 
         <?php if (isset($_GET['success'])): ?>

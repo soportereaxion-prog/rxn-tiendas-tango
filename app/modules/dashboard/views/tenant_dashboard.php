@@ -8,37 +8,37 @@ $defaultCards = [
     'articulos' => [
         'title' => 'Catálogo de Artículos', 
         'desc' => 'Gestión de tu catálogo, imágenes y precios online.', 
-        'icon' => '🎁', 
+        'icon' => '<i class="bi bi-box-seam"></i>', 
         'link' => '/rxnTiendasIA/public/mi-empresa/articulos'
     ],
     'clientes' => [
         'title' => 'Clientes Web', 
         'desc' => 'Aprobación y listado de clientes de la tienda.', 
-        'icon' => '👥', 
+        'icon' => '<i class="bi bi-people"></i>', 
         'link' => '/rxnTiendasIA/public/mi-empresa/clientes'
     ],
     'pedidos' => [
         'title' => 'Pedidos Web', 
         'desc' => 'Visualización, rechazo y reproceso de pedidos entrantes.', 
-        'icon' => '🛒', 
+        'icon' => '<i class="bi bi-cart3"></i>', 
         'link' => '/rxnTiendasIA/public/mi-empresa/pedidos'
     ],
     'perfil' => [
         'title' => 'Mi Perfil', 
         'desc' => 'Ajustes de credenciales y apariencia de tu entorno.', 
-        'icon' => '👤', 
+        'icon' => '<i class="bi bi-person-badge"></i>', 
         'link' => '/rxnTiendasIA/public/mi-perfil'
     ],
     'usuarios' => [
         'title' => 'Administrar Cuentas', 
         'desc' => 'Alta, baja y modificación de accesos corporativos.', 
-        'icon' => '🔐', 
+        'icon' => '<i class="bi bi-shield-lock"></i>', 
         'link' => '/rxnTiendasIA/public/mi-empresa/usuarios'
     ],
     'configuracion' => [
         'title' => 'Configuración', 
         'desc' => 'Branding público, envíos SMTP y Tango Connect.', 
-        'icon' => '⚙️', 
+        'icon' => '<i class="bi bi-sliders"></i>', 
         'link' => '/rxnTiendasIA/public/mi-empresa/configuracion'
     ]
 ];
@@ -67,6 +67,7 @@ foreach ($defaultCards as $cardId => $cardData) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entorno Operativo - rxnTiendasIA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
     <style>
         body { background-color: var(--bg-color, #121212); color: var(--text-color, #f8f9fa); }
@@ -102,12 +103,12 @@ foreach ($defaultCards as $cardId => $cardData) {
         
         <div class="d-flex justify-content-between align-items-center mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
-                <h1 class="hero-title mb-1">🚀 Entorno Operativo</h1>
+                <h1 class="hero-title mb-1"><i class="bi bi-rocket-takeoff"></i> Entorno Operativo</h1>
                 <p class="text-muted mb-0">Portal corporativo <span class="badge bg-secondary ms-1">Empresa #<?= $_SESSION['empresa_id'] ?? '' ?></span></p>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <span class="text-secondary small d-none d-md-block fw-bold">🙋‍♂️ <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuario') ?></span>
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4">⬅️ Volver al Launcher</a>
+                <span class="text-secondary small d-none d-md-block fw-bold"><i class="bi bi-person"></i> <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuario') ?></span>
+                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
             </div>
         </div>
 

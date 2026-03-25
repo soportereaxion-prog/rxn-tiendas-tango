@@ -15,10 +15,10 @@
     <div class="container mt-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2>Pedidos Web</h2>
-                <p class="text-muted">Gestión de órdenes ingresadas desde el escaparate público.</p>
+                <h2>GVA21 — Pedidos Web</h2>
+                <p class="text-muted">Monitor de Integración de Pedidos hacia Tango Connect.</p>
             </div>
-            <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary">← Volver al Panel</a>
+            <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
         </div>
 
         <?php $flash = \App\Core\Flash::get(); ?>

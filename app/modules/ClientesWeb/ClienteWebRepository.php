@@ -127,8 +127,12 @@ class ClienteWebRepository
         $params = ['emp_id' => $empresaId];
 
         if (!empty($search)) {
-            $sql .= " AND (nombre LIKE :s OR apellido LIKE :s OR email LIKE :s OR documento LIKE :s OR codigo_tango LIKE :s)";
-            $params['s'] = "%$search%";
+            $sql .= " AND (nombre LIKE :s1 OR apellido LIKE :s2 OR email LIKE :s3 OR documento LIKE :s4 OR codigo_tango LIKE :s5)";
+            $params['s1'] = "%$search%";
+            $params['s2'] = "%$search%";
+            $params['s3'] = "%$search%";
+            $params['s4'] = "%$search%";
+            $params['s5'] = "%$search%";
         }
 
         $sql .= " ORDER BY $orderBy $orderDir LIMIT :limit OFFSET :offset";
@@ -153,8 +157,12 @@ class ClienteWebRepository
         $params = ['emp_id' => $empresaId];
 
         if (!empty($search)) {
-            $sql .= " AND (nombre LIKE :s OR apellido LIKE :s OR email LIKE :s OR documento LIKE :s OR codigo_tango LIKE :s)";
-            $params['s'] = "%$search%";
+            $sql .= " AND (nombre LIKE :s1 OR apellido LIKE :s2 OR email LIKE :s3 OR documento LIKE :s4 OR codigo_tango LIKE :s5)";
+            $params['s1'] = "%$search%";
+            $params['s2'] = "%$search%";
+            $params['s3'] = "%$search%";
+            $params['s4'] = "%$search%";
+            $params['s5'] = "%$search%";
         }
 
         $stmt = $this->db->prepare($sql);

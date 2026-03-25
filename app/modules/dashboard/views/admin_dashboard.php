@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RXN Backoffice - rxnTiendasIA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
     <style>
         body { background-color: var(--bg-color, #121212); color: var(--text-color, #f8f9fa); }
@@ -40,11 +41,11 @@
         
         <div class="d-flex justify-content-between align-items-center mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
-                <h1 class="hero-title mb-1">🏢 RXN Backoffice</h1>
+                <h1 class="hero-title mb-1"><i class="bi bi-buildings"></i> RXN Backoffice</h1>
                 <p class="text-muted mb-0">Gestión global de licenciatarios y configuración maestra.</p>
             </div>
             <div>
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4">⬅️ Volver al Launcher</a>
+                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
             </div>
         </div>
 
@@ -53,7 +54,7 @@
             <div class="col-sm-6 col-lg-4">
                 <div class="card module-card text-center p-4 h-100 position-relative shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
-                        <div class="module-icon">🏢</div>
+                        <div class="module-icon"><i class="bi bi-buildings"></i></div>
                         <h5 class="fw-bold mb-2 text-white">Listado de Empresas</h5>
                         <p class="text-muted small px-2">ABM de tenants, asignación de licencias y suspensión de cuentas.</p>
                         <a href="/rxnTiendasIA/public/empresas" class="stretched-link"></a>
@@ -64,7 +65,7 @@
             <div class="col-sm-6 col-lg-4">
                 <div class="card module-card text-center p-4 h-100 position-relative shadow-sm" style="opacity: 0.6;">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
-                        <div class="module-icon">⚙️</div>
+                        <div class="module-icon"><i class="bi bi-gear"></i></div>
                         <h5 class="fw-bold mb-2 text-white">Configuración Global</h5>
                         <p class="text-muted small px-2">Ajustes SMTP maestros para el pool de correos RXN.</p>
                         <a href="/rxnTiendasIA/public/admin/smtp-global" class="stretched-link"></a>
