@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,7 @@
         body { background-color: #f8f9fa; }
         .hero { padding: 4rem 2rem; background: #fff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     </style>
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5">
@@ -37,6 +38,7 @@
                             <a href="/rxnTiendasIA/public/mi-empresa/articulos" class="btn btn-warning fw-bold text-dark w-100 mb-2">🎁 Catálogo de Artículos</a>
                             <a href="/rxnTiendasIA/public/mi-empresa/usuarios" class="btn btn-light text-primary fw-bold w-100 mb-2">Administrar Cuentas</a>
                             <a href="/rxnTiendasIA/public/mi-empresa/configuracion" class="btn btn-light text-primary fw-bold w-100 mb-2">Mi Configuración</a>
+                            <a href="/rxnTiendasIA/public/mi-perfil" class="btn btn-secondary text-white fw-bold w-100 mb-2">👤 Mi Perfil</a>
                             <a href="/rxnTiendasIA/public/logout" class="btn btn-outline-light btn-sm w-100 mt-3">Cerrar Sesión</a>
                         </div>
                     <?php else: ?>

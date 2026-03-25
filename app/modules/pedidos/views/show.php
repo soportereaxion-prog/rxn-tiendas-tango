@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,7 @@
         .data-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; color: #6c757d; }
         pre.json-view { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; font-size: 0.85rem; max-height: 400px; overflow-y: auto; }
     </style>
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5 mb-5">

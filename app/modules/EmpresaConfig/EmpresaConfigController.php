@@ -46,6 +46,44 @@ class EmpresaConfigController extends Controller
         
         try {
             $this->service->save($_POST);
+
+            // BRANDING EMPRESARIAL
+            $empresaId = (int)Context::getEmpresaId();
+            $empresa = $this->empresaRepo->findById($empresaId);
+            
+            $brandingData = [
+                'logo_url' => $empresa->logo_url ?? null,
+                'favicon_url' => $empresa->favicon_url ?? null,
+                'color_primary' => !empty($_POST['color_primary']) ? $_POST['color_primary'] : null,
+                'color_secondary' => !empty($_POST['color_secondary']) ? $_POST['color_secondary'] : null,
+                'footer_text' => !empty($_POST['footer_text']) ? $_POST['footer_text'] : null,
+                'footer_address' => !empty($_POST['footer_address']) ? $_POST['footer_address'] : null,
+                'footer_phone' => !empty($_POST['footer_phone']) ? $_POST['footer_phone'] : null,
+                'footer_socials' => !empty($_POST['footer_socials']) ? $_POST['footer_socials'] : null,
+            ];
+
+            $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/branding';
+            if (!is_dir($dirUploads)) {
+                mkdir($dirUploads, 0777, true);
+            }
+
+            if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
+                $filename = 'logo_' . time() . '.' . $ext;
+                if (move_uploaded_file($_FILES['logo']['tmp_name'], $dirUploads . '/' . $filename)) {
+                    $brandingData['logo_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
+                }
+            }
+            if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION));
+                $filename = 'favicon_' . time() . '.' . $ext;
+                if (move_uploaded_file($_FILES['favicon']['tmp_name'], $dirUploads . '/' . $filename)) {
+                    $brandingData['favicon_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
+                }
+            }
+
+            $this->empresaRepo->updateBranding($empresaId, $brandingData);
+
             header('Location: /rxnTiendasIA/public/mi-empresa/configuracion?success=guardado');
             exit;
         } catch (\Exception $e) {

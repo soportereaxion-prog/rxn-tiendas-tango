@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,7 @@
         body { background-color: #f8f9fa; }
         .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; }
     </style>
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5" style="max-width: 700px;">

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +14,7 @@
         .form-label.text-secondary { color: #8d97a5 !important; }
         .btn-warning { background-color: #e5a93d; border-color: #e5a93d; }
     </style>
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5" style="max-width: 650px;">

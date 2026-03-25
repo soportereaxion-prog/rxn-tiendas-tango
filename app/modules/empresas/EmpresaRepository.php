@@ -86,4 +86,31 @@ class EmpresaRepository
             ':id' => $empresa->id,
         ]);
     }
+
+    public function updateBranding(int $id, array $data): void
+    {
+        $sql = "UPDATE empresas SET 
+                logo_url = :logo,
+                favicon_url = :favicon,
+                color_primary = :c_prim,
+                color_secondary = :c_sec,
+                footer_text = :f_text,
+                footer_address = :f_addr,
+                footer_phone = :f_phone,
+                footer_socials = :f_soc
+                WHERE id = :id";
+                
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':logo' => $data['logo_url'] ?? null,
+            ':favicon' => $data['favicon_url'] ?? null,
+            ':c_prim' => $data['color_primary'] ?? null,
+            ':c_sec' => $data['color_secondary'] ?? null,
+            ':f_text' => $data['footer_text'] ?? null,
+            ':f_addr' => $data['footer_address'] ?? null,
+            ':f_phone' => $data['footer_phone'] ?? null,
+            ':f_soc' => $data['footer_socials'] ?? null,
+            ':id' => $id,
+        ]);
+    }
 }

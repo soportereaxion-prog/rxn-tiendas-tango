@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,7 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
     </style>
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body class="d-flex align-items-center justify-content-center vh-100">
     <div class="text-center bg-white p-5 rounded-4 shadow-sm border" style="max-width: 500px;">

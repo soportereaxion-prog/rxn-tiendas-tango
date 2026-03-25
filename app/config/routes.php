@@ -10,6 +10,10 @@ return function (Router $router): void {
     $router->get('/', function () {
         View::render('app/modules/dashboard/views/home.php');
     });
+    
+    // --- MI PERFIL (B2B) ---
+    $router->get('/mi-perfil', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'index']);
+    $router->post('/mi-perfil', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardar']);
 
     // --- MÓDULO EMPRESAS ---
     $router->get('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'index']);

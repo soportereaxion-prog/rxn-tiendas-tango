@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,7 @@
         body { background-color: #f8f9fa; }
         .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; }
     </style>
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5" style="max-width: 600px;">
@@ -57,6 +58,56 @@
                         <label for="telefono" class="form-label">Teléfono</label>
                         <input type="text" class="form-control" id="telefono" name="telefono"
                                value="<?= htmlspecialchars($old['telefono'] ?? ($config->telefono ?? '')) ?>">
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="fw-bold mb-3 text-secondary">Identidad de Marca B2C (Store Front)</h5>
+                    <div class="row bg-light rounded border p-3 mx-0 mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-dark fw-bold small">Logo de Cabecera</label>
+                            <input type="file" class="form-control" name="logo" accept=".jpg,.jpeg,.png,.svg,.webp">
+                            <?php if(!empty($empresa->logo_url)): ?>
+                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$empresa->logo_url) ?>" height="40" class="mt-2 bg-white rounded p-1 border">
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-dark fw-bold small">Ícono del Navegador (Favicon)</label>
+                            <input type="file" class="form-control" name="favicon" accept=".ico,.png,.svg">
+                            <?php if(!empty($empresa->favicon_url)): ?>
+                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$empresa->favicon_url) ?>" height="32" class="mt-2">
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-dark small">Color Primario</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="color" class="form-control form-control-color" name="color_primary" value="<?= htmlspecialchars((string)($empresa->color_primary ?? '#000000')) ?>" title="Elegir color principal">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-dark small">Color Secundario</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="color" class="form-control form-control-color" name="color_secondary" value="<?= htmlspecialchars((string)($empresa->color_secondary ?? '#6c757d')) ?>" title="Elegir color de acento">
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3"><h6 class="text-secondary fw-bold small border-bottom pb-2">Datos del Footer Público</h6></div>
+                        
+                        <div class="col-md-12 mb-2">
+                            <label class="form-label text-secondary small">Texto de Presentación Breve</label>
+                            <input type="text" class="form-control" name="footer_text" placeholder="Somos la tienda #1 en distribución mayorista..." value="<?= htmlspecialchars((string)($empresa->footer_text ?? '')) ?>">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label text-secondary small">Dirección Física</label>
+                            <input type="text" class="form-control" name="footer_address" placeholder="Av Siempreviva 123" value="<?= htmlspecialchars((string)($empresa->footer_address ?? '')) ?>">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label text-secondary small">WhatsApp / Teléfono</label>
+                            <input type="text" class="form-control" name="footer_phone" placeholder="+54 9 11 0000-0000" value="<?= htmlspecialchars((string)($empresa->footer_phone ?? '')) ?>">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label text-secondary small">Instagram URL</label>
+                            <input type="url" class="form-control" name="footer_socials" placeholder="https://instagram.com/mitienda" value="<?= htmlspecialchars((string)($empresa->footer_socials ?? '')) ?>">
+                        </div>
                     </div>
 
                     <hr class="my-4">
