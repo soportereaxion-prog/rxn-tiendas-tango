@@ -163,42 +163,61 @@
                         <?php if($pedido['estado_tango'] === 'error_envio_tango' && !empty($pedido['mensaje_error'])): ?>
                             <div class="alert alert-danger mt-2 py-2 fs-6">
                                 <strong>Error detectado:</strong><br>
-                                <?= nl2br(htmlspecialchars((string)$pedido['mensaje_error'])) ?>
+                                <?php if (!$isGlobalAdmin): ?>
+                                    <span class="font-monospace"><?= htmlspecialchars((string)($cleanMessage ?? 'Error interno.')) ?></span>
+                                <?php else: ?>
+                                    <?= nl2br(htmlspecialchars((string)$pedido['mensaje_error'])) ?>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
-                        <ul class="nav nav-tabs mt-4" id="logTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="payload-tab" data-bs-toggle="tab" data-bs-target="#payload" type="button" role="tab" aria-controls="payload" aria-selected="true">Payload Enviado</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="response-tab" data-bs-toggle="tab" data-bs-target="#response" type="button" role="tab" aria-controls="response" aria-selected="false">Respuesta API</button>
-                            </li>
-                        </ul>
-                        <div class="tab-content py-3 border border-top-0 rounded-bottom px-3 bg-white" id="logTabsContent">
-                            <div class="tab-pane fade show active" id="payload" role="tabpanel" aria-labelledby="payload-tab">
-                                <?php if($pedido['payload_enviado']): ?>
-                                    <?php 
-                                        $decodedPayload = json_decode((string)$pedido['payload_enviado'], true);
-                                        $prettyPayload = $decodedPayload ? json_encode($decodedPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['payload_enviado']);
-                                    ?>
-                                    <pre class="json-view mb-0"><code><?= $prettyPayload ?></code></pre>
-                                <?php else: ?>
-                                    <p class="text-muted mb-0">No se registró payload.</p>
-                                <?php endif; ?>
+                        <?php if ($isGlobalAdmin): ?>
+                            <ul class="nav nav-tabs mt-4" id="logTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="payload-tab" data-bs-toggle="tab" data-bs-target="#payload" type="button" role="tab" aria-controls="payload" aria-selected="true">Payload Enviado</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="response-tab" data-bs-toggle="tab" data-bs-target="#response" type="button" role="tab" aria-controls="response" aria-selected="false">Respuesta API</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content py-3 border border-top-0 rounded-bottom px-3 bg-white" id="logTabsContent">
+                                <div class="tab-pane fade show active" id="payload" role="tabpanel" aria-labelledby="payload-tab">
+                                    <?php if($pedido['payload_enviado']): ?>
+                                        <?php 
+                                            $decodedPayload = json_decode((string)$pedido['payload_enviado'], true);
+                                            $prettyPayload = $decodedPayload ? json_encode($decodedPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['payload_enviado']);
+                                        ?>
+                                        <pre class="json-view mb-0"><code><?= $prettyPayload ?></code></pre>
+                                    <?php else: ?>
+                                        <p class="text-muted mb-0">No se registró payload.</p>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="tab-pane fade" id="response" role="tabpanel" aria-labelledby="response-tab">
+                                    <?php if($pedido['respuesta_tango']): ?>
+                                        <?php 
+                                            $decodedResponse = json_decode((string)$pedido['respuesta_tango'], true);
+                                            $prettyResponse = $decodedResponse ? json_encode($decodedResponse, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['respuesta_tango']);
+                                        ?>
+                                        <pre class="json-view mb-0"><code><?= $prettyResponse ?></code></pre>
+                                    <?php else: ?>
+                                        <p class="text-muted mb-0">Sin respuesta registrada (posible timeout/error de red).</p>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <div class="tab-pane fade" id="response" role="tabpanel" aria-labelledby="response-tab">
-                                <?php if($pedido['respuesta_tango']): ?>
-                                    <?php 
-                                        $decodedResponse = json_decode((string)$pedido['respuesta_tango'], true);
-                                        $prettyResponse = $decodedResponse ? json_encode($decodedResponse, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['respuesta_tango']);
-                                    ?>
-                                    <pre class="json-view mb-0"><code><?= $prettyResponse ?></code></pre>
-                                <?php else: ?>
-                                    <p class="text-muted mb-0">Sin respuesta registrada (posible timeout/error de red).</p>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                        <?php else: ?>
+                            <?php if($pedido['estado_tango'] !== 'pendiente_envio_tango'): ?>
+                                <div class="mt-4 p-3 border rounded shadow-sm bg-white">
+                                    <h6 class="fw-bold mb-2">Estado de Transacción Servidor Tango:</h6>
+                                    <p class="mb-0 text-dark">
+                                        <?php if ($pedido['estado_tango'] === 'enviado_tango'): ?>
+                                            <span class="text-success fw-bold">✔ Operación Exitosa.</span> La orden fue asimilada por el sistema central.
+                                        <?php else: ?>
+                                            <span class="text-danger fw-bold">❌ Operación Rechazada.</span> Revisar corrección comercial o de configuración.
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
 

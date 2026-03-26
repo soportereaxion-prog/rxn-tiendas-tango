@@ -62,8 +62,43 @@ class PedidoWebController extends Controller
             exit;
         }
 
+        $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+        $cleanMessage = null;
+
+        if (!$isGlobalAdmin && $pedido['respuesta_tango']) {
+            $respArray = json_decode((string)$pedido['respuesta_tango'], true);
+            $dataBody = $respArray['data'] ?? $respArray;
+
+            $msgs = [];
+            if (is_array($dataBody)) {
+                if (isset($dataBody[0]) && is_array($dataBody[0])) {
+                    foreach ($dataBody as $item) {
+                        if (isset($item['description'])) {
+                            $msgs[] = $item['description'];
+                        } elseif (isset($item['message'])) {
+                            $msgs[] = $item['message'];
+                        }
+                    }
+                }
+                
+                if (empty($msgs)) {
+                    if (isset($dataBody['messages']) && is_array($dataBody['messages'])) {
+                        foreach ($dataBody['messages'] as $m) {
+                            $msgs[] = $m['description'] ?? $m['message'] ?? (is_string($m) ? $m : 'Error desconocido de integración');
+                        }
+                    } elseif (isset($dataBody['Message']) && is_string($dataBody['Message'])) {
+                        $msgs[] = $dataBody['Message'];
+                    }
+                }
+            }
+
+            $cleanMessage = !empty($msgs) ? implode(" | ", $msgs) : "Denegado por reglas de negocio del ERP.";
+        }
+
         View::render('app/modules/Pedidos/views/show.php', [
-            'pedido' => $pedido
+            'pedido' => $pedido,
+            'isGlobalAdmin' => $isGlobalAdmin,
+            'cleanMessage' => $cleanMessage
         ]);
     }
 
