@@ -1,14 +1,14 @@
 {
-    "FECHA": "2026-03-26 18:07:51",
+    "FECHA": "2026-03-26 18:18:21",
     "HTTP_REQUEST_TRACE": {
         "method": "GET",
-        "url": "https:\/\/000357-014.connect.axoft.com\/Api\/Api\/Get?process=2941&pageSize=100&pageIndex=0&view=",
+        "url": "https:\/\/000357-017.connect.axoft.com\/Api\/Api\/Get?process=2941&pageSize=100&pageIndex=0&view=",
         "headers": [
-            "ApiAuthorization: c894f9cf-9078-4cce-b296-888b7439e390",
-            "Company: 312",
+            "ApiAuthorization: 390A44F6-EE7C-4AFB-80CC-227CBA68FFC3",
+            "Company: 157",
             "Accept: application\/json",
             "Content-Type: application\/json",
-            "Client-Id: 000357\/014"
+            "Client-Id: 000357\/017"
         ]
     },
     "LISTAS_API_RAW": {

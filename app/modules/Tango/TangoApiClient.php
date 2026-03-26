@@ -93,9 +93,8 @@ class TangoApiClient
     public function testConnection(): bool
     {
         try {
-            // Un ping ligero a Artículos con Top 1
-            $this->getArticulos(1, 1);
-            return true;
+            $res = $this->client->get('Get', ['process' => 87, 'top' => 1]);
+            return ($res && isset($res['status']) && $res['status'] === 200);
         } catch (\Exception $e) {
             return false;
         }
@@ -116,7 +115,7 @@ class TangoApiClient
         
         try {
             while (true) {
-                $data = $this->client->get('/Api/Get', [
+                $data = $this->client->get('Get', [
                     'process' => 2941,
                     'pageSize' => $pageSize,
                     'pageIndex' => $page,
@@ -163,7 +162,7 @@ class TangoApiClient
 
         try {
             while (true) {
-                $data = $this->client->get('/Api/Get', [
+                $data = $this->client->get('Get', [
                     'process' => 984,
                     'pageSize' => $pageSize,
                     'pageIndex' => $page,
