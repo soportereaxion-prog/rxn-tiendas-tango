@@ -12,6 +12,7 @@ class TangoApiClient
     private ApiClient $client;
     public $debugLastRawDepositos = null;
     public $debugLastRawListas = null;
+    public $debugLastHttpRequest = [];
 
     public function __construct(string $apiUrl, string $accessToken, string $companyId, ?string $clientKey = null)
     {
@@ -124,6 +125,7 @@ class TangoApiClient
                 
                 if ($page === 0) {
                     $this->debugLastRawDepositos = $data;
+                    $this->debugLastHttpRequest = $this->client->debugLastRequest ?? [];
                 }
 
                 if (empty($data['data']['list'])) {

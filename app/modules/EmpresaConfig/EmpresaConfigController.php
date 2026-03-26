@@ -223,6 +223,7 @@ class EmpresaConfigController extends Controller
 
                 $debugDump = [
                     'FECHA' => date('Y-m-d H:i:s'),
+                    'HTTP_REQUEST_TRACE' => $client->debugLastHttpRequest ?? 'Inaccesible',
                     'LISTAS_API_RAW' => $client->debugLastRawListas ?? 'No capturado',
                     'DEPOSITOS_API_RAW' => $client->debugLastRawDepositos ?? 'No capturado',
                     'LISTAS_NORMALIZADAS' => [],

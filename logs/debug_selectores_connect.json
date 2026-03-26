@@ -1,0 +1,18 @@
+{
+    "FECHA": "2026-03-26 17:54:11",
+    "LISTAS_API_RAW": {
+        "status": 200,
+        "data": null
+    },
+    "DEPOSITOS_API_RAW": {
+        "status": 200,
+        "data": null
+    },
+    "LISTAS_NORMALIZADAS": [],
+    "DEPOSITOS_NORMALIZADOS": [],
+    "VALOR_DB": {
+        "lista_default": "",
+        "lista_alternate": "",
+        "deposito_codigo": ""
+    }
+}

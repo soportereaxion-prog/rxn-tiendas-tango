@@ -10,6 +10,7 @@ class ApiClient
 {
     private string $baseUrl;
     private array $defaultHeaders;
+    public array $debugLastRequest = [];
 
     public function __construct(string $baseUrl, array $defaultHeaders = [])
     {
@@ -34,6 +35,12 @@ class ApiClient
 
     private function request(string $method, string $url, array $data = []): array
     {
+        $this->debugLastRequest = [
+            'method' => $method,
+            'url' => $url,
+            'headers' => $this->defaultHeaders
+        ];
+
         $ch = curl_init();
         
         $options = [
