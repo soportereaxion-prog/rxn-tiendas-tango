@@ -99,52 +99,76 @@ class TangoApiClient
     }
 
     /**
-     * Agrupa y extrae un Maestro de Depósitos deduciéndolo de los reportes de Stock.
+     * Agrupa y extrae un Maestro de Depósitos deduciéndolo de Process 2941.
      */
     public function getMaestroDepositos(): array
     {
         $depositos = [];
         try {
-            $stockData = $this->getStock(1, 2000); // Muestra amplia
-            if (!empty($stockData['data']['list'])) {
-                foreach ($stockData['data']['list'] as $item) {
-                    if (isset($item['ID_STA22'])) {
-                        $id = (int)$item['ID_STA22'];
-                        $desc = $item['DESCRIPCION_DEPOSITO'] ?? ("Depósito #" . $id);
-                        if (!isset($depositos[$id])) {
-                            $depositos[$id] = $desc;
+            $data = $this->client->get('/Api/Get', ['process' => 2941]);
+            if (!empty($data['data']['list'])) {
+                foreach ($data['data']['list'] as $item) {
+                    // Hunt for Code and Description regardless of exact casing/naming
+                    $id = null;
+                    $desc = null;
+                    
+                    foreach ($item as $k => $v) {
+                        $upKey = strtoupper($k);
+                        if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID'))) {
+                            $id = $v;
+                        } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
+                            $desc = $v;
                         }
+                    }
+                    
+                    if ($id !== null) {
+                        // Crucial: agresivo trim() y cast explícito a string porque Tango inyecta paddings (" 1", "00 ")
+                        $cleanId = trim((string)$id);
+                        // Si el valor numérico coincide, eliminar ceros a la izquierda (01 -> 1) si es el caso, 
+                        // pero es más seguro usar ltrim solo si sabemos que es numérico. Lo dejamos como trim limpio.
+                        if (is_numeric($cleanId)) {
+                            $cleanId = (string)($cleanId + 0); // forza conversion "01" -> "1", "00" -> "0"
+                        }
+                        $depositos[$cleanId] = trim((string)($desc ?? ("Depósito " . $cleanId)));
                     }
                 }
             }
-        } catch (\Exception $e) {
-            // Retorna vacío si falla la extracción
-        }
+        } catch (\Exception $e) {}
         return $depositos;
     }
 
     /**
-     * Agrupa y extrae identificadores de Listas de Precios.
+     * Agrupa y extrae identificadores de Listas de Precios de Process 984.
      */
     public function getMaestroListasPrecio(): array
     {
         $listas = [];
         try {
-            $precioData = $this->getPrecios(1, 1000);
-            if (!empty($precioData['data']['list'])) {
-                foreach ($precioData['data']['list'] as $item) {
-                    if (isset($item['NRO_DE_LIS'])) {
-                        $id = (int)$item['NRO_DE_LIS'];
-                        if (!isset($listas[$id])) {
-                            $listas[$id] = "Lista Matriz #" . $id; 
-                            // Tango process 20091 carece de nombres comerciales de lista, se deducen numeralmente.
+            $data = $this->client->get('/Api/Get', ['process' => 984]);
+            if (!empty($data['data']['list'])) {
+                foreach ($data['data']['list'] as $item) {
+                    $id = null;
+                    $desc = null;
+                    
+                    foreach ($item as $k => $v) {
+                        $upKey = strtoupper($k);
+                        if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID') || str_contains($upKey, 'NRO'))) {
+                            $id = $v;
+                        } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
+                            $desc = $v;
                         }
+                    }
+
+                    if ($id !== null) {
+                        $cleanId = trim((string)$id);
+                        if (is_numeric($cleanId)) {
+                            $cleanId = (string)($cleanId + 0); // "02" -> "2"
+                        }
+                        $listas[$cleanId] = trim((string)($desc ?? ("Lista " . $cleanId)));
                     }
                 }
             }
-        } catch (\Exception $e) {
-            // Fallback silencioso
-        }
+        } catch (\Exception $e) {}
         return $listas;
     }
 }
