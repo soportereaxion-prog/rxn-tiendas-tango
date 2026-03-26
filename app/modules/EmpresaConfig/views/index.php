@@ -434,42 +434,24 @@
                 // Render Listas
                 let preHtmlL1 = '<option value="">-- Sin asignar --</option>';
                 let preHtmlL2 = '<option value="">-- Sin asignar --</option>';
-                let matchL1 = false, matchL2 = false;
 
                 data.listas_precios.forEach(l => {
                     let sel1 = (origL1 == l.id) ? 'selected' : '';
                     let sel2 = (origL2 == l.id) ? 'selected' : '';
-                    if (sel1) matchL1 = true;
-                    if (sel2) matchL2 = true;
-                    preHtmlL1 += `<option value="${l.id}" ${sel1}>[ID: ${l.id}] ${l.descripcion}</option>`;
-                    preHtmlL2 += `<option value="${l.id}" ${sel2}>[ID: ${l.id}] ${l.descripcion}</option>`;
+                    preHtmlL1 += `<option value="${l.id}" ${sel1}>${l.descripcion}</option>`;
+                    preHtmlL2 += `<option value="${l.id}" ${sel2}>${l.descripcion}</option>`;
                 });
-
-                // Compatibilidad Legacy Transitoria
-                if (origL1 && !matchL1) {
-                    preHtmlL1 += `<option value="${origL1}" selected>⚠️ No matchea API (Valor: ${origL1})</option>`;
-                }
-                if (origL2 && !matchL2) {
-                    preHtmlL2 += `<option value="${origL2}" selected>⚠️ No matchea API (Valor: ${origL2})</option>`;
-                }
 
                 sL1.innerHTML = preHtmlL1;
                 sL2.innerHTML = preHtmlL2;
 
                 // Render Depósitos
                 let preHtmlDep = '<option value="">-- Ignorar Stock / Sin asignar --</option>';
-                let matchDep = false;
                 
                 data.depositos.forEach(d => {
                     let selD = (origDep == d.id) ? 'selected' : '';
-                    if (selD) matchDep = true;
-                    preHtmlDep += `<option value="${d.id}" ${selD}>[STA22: ${d.id}] ${d.descripcion}</option>`;
+                    preHtmlDep += `<option value="${d.id}" ${selD}>${d.descripcion}</option>`;
                 });
-
-                // Compatibilidad Legacy Transitoria
-                if (origDep && !matchDep) {
-                    preHtmlDep += `<option value="${origDep}" selected>⚠️ Cód obsoleto, elegí uno de arriba (Valor DB: ${origDep})</option>`;
-                }
 
                 sDepo.innerHTML = preHtmlDep;
             }

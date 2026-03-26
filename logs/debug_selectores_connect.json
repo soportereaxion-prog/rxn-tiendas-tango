@@ -1,5 +1,16 @@
 {
-    "FECHA": "2026-03-26 17:54:11",
+    "FECHA": "2026-03-26 18:07:51",
+    "HTTP_REQUEST_TRACE": {
+        "method": "GET",
+        "url": "https:\/\/000357-014.connect.axoft.com\/Api\/Api\/Get?process=2941&pageSize=100&pageIndex=0&view=",
+        "headers": [
+            "ApiAuthorization: c894f9cf-9078-4cce-b296-888b7439e390",
+            "Company: 312",
+            "Accept: application\/json",
+            "Content-Type: application\/json",
+            "Client-Id: 000357\/014"
+        ]
+    },
     "LISTAS_API_RAW": {
         "status": 200,
         "data": null

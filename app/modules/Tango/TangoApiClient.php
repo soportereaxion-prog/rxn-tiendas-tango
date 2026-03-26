@@ -128,45 +128,21 @@ class TangoApiClient
                     $this->debugLastHttpRequest = $this->client->debugLastRequest ?? [];
                 }
 
-                if (empty($data['data']['list'])) {
+                $list = $data['data']['resultData']['list'] ?? [];
+                if (empty($list)) {
                     break; // Fin de resultados
                 }
                 
-                foreach ($data['data']['list'] as $item) {
-                    $id = null;
-                    $desc = null;
-                    
-                    // Prioridad 1: Nombres exactos
-                    if (isset($item['CODIGO'])) $id = $item['CODIGO'];
-                    elseif (isset($item['ID_STA22'])) $id = $item['ID_STA22'];
-                    elseif (isset($item['COD_DEPOSITO'])) $id = $item['COD_DEPOSITO'];
-                    
-                    if (isset($item['DESCRIPCION'])) $desc = $item['DESCRIPCION'];
-                    elseif (isset($item['DESCRIPCION_DEPOSITO'])) $desc = $item['DESCRIPCION_DEPOSITO'];
-                    elseif (isset($item['NOMBRE'])) $desc = $item['NOMBRE'];
-                    
-                    // Prioridad 2: Heurística sucia si cambian el esquema
-                    if ($id === null || $desc === null) {
-                        foreach ($item as $k => $v) {
-                            $upKey = strtoupper($k);
-                            if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID'))) {
-                                $id = $v;
-                            } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
-                                $desc = $v;
-                            }
-                        }
-                    }
+                foreach ($list as $item) {
+                    $id = $item['ID_STA22'] ?? null;
+                    $desc = $item['COD_DESCRIP'] ?? $item['NOMBRE_SUC'] ?? null;
                     
                     if ($id !== null) {
-                        $cleanId = trim((string)$id);
-                        if (is_numeric($cleanId)) {
-                            $cleanId = (string)($cleanId + 0); 
-                        }
-                        $depositos[$cleanId] = trim((string)($desc ?? ("Depósito " . $cleanId)));
+                        $depositos[(string)$id] = (string)$desc;
                     }
                 }
                 
-                if (count($data['data']['list']) < $pageSize) {
+                if (count($list) < $pageSize) {
                     break; // Última página
                 }
                 $page++;
@@ -198,44 +174,21 @@ class TangoApiClient
                     $this->debugLastRawListas = $data;
                 }
 
-                if (empty($data['data']['list'])) {
+                $list = $data['data']['resultData']['list'] ?? [];
+                if (empty($list)) {
                     break;
                 }
                 
-                foreach ($data['data']['list'] as $item) {
-                    $id = null;
-                    $desc = null;
-                    
-                    if (isset($item['CODIGO'])) $id = $item['CODIGO'];
-                    elseif (isset($item['NUMERO_DE_LISTA'])) $id = $item['NUMERO_DE_LISTA'];
-                    elseif (isset($item['ID_GVA10'])) $id = $item['ID_GVA10'];
-                    elseif (isset($item['NRO_DE_LIS'])) $id = $item['NRO_DE_LIS'];
-                    
-                    if (isset($item['DESCRIPCION'])) $desc = $item['DESCRIPCION'];
-                    elseif (isset($item['NOMBRE'])) $desc = $item['NOMBRE'];
-                    elseif (isset($item['NOMBRE_DE_LISTA'])) $desc = $item['NOMBRE_DE_LISTA'];
-                    
-                    if ($id === null || $desc === null) {
-                        foreach ($item as $k => $v) {
-                            $upKey = strtoupper($k);
-                            if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID') || str_contains($upKey, 'NRO'))) {
-                                $id = $v;
-                            } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
-                                $desc = $v;
-                            }
-                        }
-                    }
+                foreach ($list as $item) {
+                    $id = $item['ID_GVA10'] ?? null;
+                    $desc = $item['COD_DESCRIP'] ?? $item['NOMBRE_LIS'] ?? null;
 
                     if ($id !== null) {
-                        $cleanId = trim((string)$id);
-                        if (is_numeric($cleanId)) {
-                            $cleanId = (string)($cleanId + 0); 
-                        }
-                        $listas[$cleanId] = trim((string)($desc ?? ("Lista " . $cleanId)));
+                        $listas[(string)$id] = (string)$desc;
                     }
                 }
 
-                if (count($data['data']['list']) < $pageSize) {
+                if (count($list) < $pageSize) {
                     break;
                 }
                 $page++;
