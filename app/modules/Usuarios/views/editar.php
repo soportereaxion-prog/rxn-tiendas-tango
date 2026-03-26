@@ -12,7 +12,9 @@
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
                 <h2 class="fw-bold">Editar Usuario</h2>
-                <p class="text-muted">Modificando la cuenta de <?= htmlspecialchars($usuario->nombre) ?> (#<?= $usuario->id ?>)</p>
+                <p class="text-muted mb-0">Modificando la cuenta de <strong><?= htmlspecialchars($usuario->nombre) ?></strong> (#<?= $usuario->id ?>) 
+                    <span class="badge bg-secondary ms-2 align-middle">Empresa #<?= $usuario->empresa_id ?></span>
+                </p>
             </div>
         </div>
 
@@ -35,6 +37,20 @@
                         <input type="email" class="form-control" id="email" name="email" required
                                value="<?= htmlspecialchars($old['email'] ?? $usuario->email) ?>">
                     </div>
+
+                    <?php if (isset($isGlobalAdmin) && $isGlobalAdmin && !empty($empresas)): ?>
+                    <div class="mb-3">
+                        <label for="empresa_id" class="form-label">Transferir de Empresa (Gestión Master)</label>
+                        <select class="form-select border-primary" id="empresa_id" name="empresa_id">
+                            <?php foreach ($empresas as $emp): ?>
+                                <option value="<?= $emp->id ?>" <?= ((isset($old['empresa_id']) ? $old['empresa_id'] : $usuario->empresa_id) == $emp->id) ? 'selected' : '' ?>>
+                                    [#<?= $emp->id ?>] <?= htmlspecialchars($emp->nombre) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted">Cambiar esto transferirá el administrador instantáneamente a otro Inquilino.</small>
+                    </div>
+                    <?php endif; ?>
 
                     <div class="mb-4">
                         <label for="password" class="form-label">Nueva Contraseña <small class="text-muted">(Opcional)</small></label>

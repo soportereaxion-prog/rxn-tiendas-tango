@@ -47,6 +47,20 @@ class UsuarioRepository
         return $user ?: null;
     }
 
+    public function findAll(): array
+    {
+        $stmt = $this->db->query("SELECT * FROM usuarios ORDER BY id DESC");
+        return $stmt->fetchAll(PDO::FETCH_CLASS, Usuario::class);
+    }
+
+    public function findById(int $id): ?Usuario
+    {
+        $stmt = $this->db->prepare("SELECT * FROM usuarios WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $user = $stmt->fetchObject(Usuario::class);
+        return $user ?: null;
+    }
+
     public function save(Usuario $usuario): void
     {
         if ($usuario->id) {

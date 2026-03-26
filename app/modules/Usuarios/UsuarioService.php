@@ -29,14 +29,19 @@ class UsuarioService
 
     public function getAllForContext(): array
     {
+        if (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1) {
+            return $this->repository->findAll();
+        }
         return $this->repository->findAllByEmpresaId($this->getContextId());
     }
 
     public function getByIdForContext(int $id): Usuario
     {
-        // Requisito 2: "Todo acceso debe quedar encerrado en la empresa activa"
-        // Esta linea asegura un query: WHERE id = X AND empresa_id = Y
-        $usuario = $this->repository->findByIdAndEmpresaId($id, $this->getContextId());
+        if (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1) {
+            $usuario = $this->repository->findById($id);
+        } else {
+            $usuario = $this->repository->findByIdAndEmpresaId($id, $this->getContextId());
+        }
         
         if (!$usuario) {
             throw new RuntimeException("Rechazado: El usuario solicitado no existe o no pertenece a la titularidad de esta Empresa.");
@@ -54,8 +59,13 @@ class UsuarioService
             throw new RuntimeException('La contraseña es obligatoria para un nueva cuenta.');
         }
 
+        $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+        if ($isGlobalAdmin && !empty($data['empresa_id'])) {
+            $empresaId = (int)$data['empresa_id'];
+        }
+
         $usuario = new Usuario();
-        $usuario->empresa_id = $empresaId; // Injectamos el contexto de SESION sin leer el POST jamas.
+        $usuario->empresa_id = $empresaId; // Injectamos el contexto (dinámico si es RXN admin)
         $usuario->nombre = trim($data['nombre'] ?? '');
         $usuario->email = trim($data['email'] ?? '');
         $usuario->password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
@@ -84,6 +94,11 @@ class UsuarioService
         $usuario->email = trim($data['email'] ?? '');
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
+
+        $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+        if ($isGlobalAdmin && !empty($data['empresa_id'])) {
+            $usuario->empresa_id = (int)$data['empresa_id'];
+        }
 
         if (!empty($data['password'])) {
             $usuario->password_hash = password_hash($data['password'], PASSWORD_DEFAULT);

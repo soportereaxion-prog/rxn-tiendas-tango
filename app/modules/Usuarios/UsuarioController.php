@@ -7,6 +7,7 @@ namespace App\Modules\Usuarios;
 use App\Core\Controller;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Empresas\EmpresaRepository;
 
 class UsuarioController extends Controller
 {
@@ -40,7 +41,17 @@ class UsuarioController extends Controller
     public function create(): void
     {
         $this->requireAdmin();
-        View::render('app/modules/Usuarios/views/crear.php', []);
+        $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+        $empresas = [];
+        if ($isGlobalAdmin) {
+            $empresaRepo = new EmpresaRepository();
+            $empresas = $empresaRepo->findAll();
+        }
+        
+        View::render('app/modules/Usuarios/views/crear.php', [
+            'isGlobalAdmin' => $isGlobalAdmin,
+            'empresas' => $empresas
+        ]);
     }
 
     public function store(): void
@@ -65,8 +76,18 @@ class UsuarioController extends Controller
         try {
             $this->service = new UsuarioService();
             $usuario = $this->service->getByIdForContext((int) $id);
+            
+            $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+            $empresas = [];
+            if ($isGlobalAdmin) {
+                $empresaRepo = new EmpresaRepository();
+                $empresas = $empresaRepo->findAll();
+            }
+
             View::render('app/modules/Usuarios/views/editar.php', [
-                'usuario' => $usuario
+                'usuario' => $usuario,
+                'isGlobalAdmin' => $isGlobalAdmin,
+                'empresas' => $empresas
             ]);
         } catch (\Exception $e) {
             $this->renderDenegado($e->getMessage());
@@ -85,10 +106,20 @@ class UsuarioController extends Controller
         } catch (\Exception $e) {
             try {
                 $usuario = $this->service->getByIdForContext((int) $id);
+                
+                $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+                $empresas = [];
+                if ($isGlobalAdmin) {
+                    $empresaRepo = new EmpresaRepository();
+                    $empresas = $empresaRepo->findAll();
+                }
+
                 View::render('app/modules/Usuarios/views/editar.php', [
                     'error' => $e->getMessage(),
                     'usuario' => $usuario,
-                    'old' => $_POST
+                    'old' => $_POST,
+                    'isGlobalAdmin' => $isGlobalAdmin,
+                    'empresas' => $empresas
                 ]);
             } catch (\Exception $ex) {
                 // Manipulación interceptada por Contexto.

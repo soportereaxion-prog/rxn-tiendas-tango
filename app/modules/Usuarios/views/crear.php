@@ -36,6 +36,20 @@
                                value="<?= htmlspecialchars($old['email'] ?? '') ?>">
                     </div>
 
+                    <?php if (isset($isGlobalAdmin) && $isGlobalAdmin && !empty($empresas)): ?>
+                    <div class="mb-3">
+                        <label for="empresa_id" class="form-label">Empresa Asignada (Gestión Local)</label>
+                        <select class="form-select border-primary" id="empresa_id" name="empresa_id">
+                            <?php foreach ($empresas as $emp): ?>
+                                <option value="<?= $emp->id ?>" <?= (isset($old['empresa_id']) && $old['empresa_id'] == $emp->id) ? 'selected' : '' ?>>
+                                    [#<?= $emp->id ?>] <?= htmlspecialchars($emp->nombre) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted">Como Master RXN puedes delegar este usuario a cualquier Inquilino.</small>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="mb-4">
                         <label for="password" class="form-label">Contraseña</label>
                         <input type="password" class="form-control" id="password" name="password" required>
