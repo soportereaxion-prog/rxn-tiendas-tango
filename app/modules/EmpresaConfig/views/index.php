@@ -199,27 +199,40 @@
 
                         <div class="col-md-4">
                             <label for="lista_precio_1" class="form-label">Lista de Precio Default (1)</label>
-                            <input type="text" class="form-control" id="lista_precio_1" name="lista_precio_1"
-                                    value="<?= htmlspecialchars($old['lista_precio_1'] ?? ($config->lista_precio_1 ?? '')) ?>" placeholder="Ej: 1">
+                            <?php $valLista1 = htmlspecialchars((string)($old['lista_precio_1'] ?? ($config->lista_precio_1 ?? ''))); ?>
+                            <select class="form-select tango-dynamic" id="lista_precio_1" name="lista_precio_1" data-original="<?= $valLista1 ?>">
+                                <?php if($valLista1): ?><option value="<?= $valLista1 ?>">Cód. Actual guardado (<?= $valLista1 ?>)</option><?php else: ?><option value="">Validar conexión primero...</option><?php endif; ?>
+                            </select>
                         </div>
                         <div class="col-md-4">
                             <label for="lista_precio_2" class="form-label">Lista de Precio Alternate (2)</label>
-                            <input type="text" class="form-control" id="lista_precio_2" name="lista_precio_2"
-                                    value="<?= htmlspecialchars($old['lista_precio_2'] ?? ($config->lista_precio_2 ?? '')) ?>" placeholder="Ej: 2">
+                            <?php $valLista2 = htmlspecialchars((string)($old['lista_precio_2'] ?? ($config->lista_precio_2 ?? ''))); ?>
+                            <select class="form-select tango-dynamic" id="lista_precio_2" name="lista_precio_2" data-original="<?= $valLista2 ?>">
+                                <?php if($valLista2): ?><option value="<?= $valLista2 ?>">Cód. Actual guardado (<?= $valLista2 ?>)</option><?php else: ?><option value="">Validar conexión primero...</option><?php endif; ?>
+                            </select>
                         </div>
                         <div class="col-md-4">
-                            <label for="deposito_codigo" class="form-label text-danger">ID Depósito Tango (ID_STA22)</label>
-                            <input type="text" class="form-control border-danger" id="deposito_codigo" name="deposito_codigo" maxlength="2"
-                                    value="<?= htmlspecialchars($old['deposito_codigo'] ?? ($config->deposito_codigo ?? '')) ?>" placeholder="Ej: 1">
-                            <div class="form-text text-danger" style="font-size: 0.75rem;">Usa el ID relacional nativo (ej: 1), no el 00.</div>
+                            <label for="deposito_codigo" class="form-label text-danger">Depósito Tango (Descarga)</label>
+                            <?php $valDepo = htmlspecialchars((string)($old['deposito_codigo'] ?? ($config->deposito_codigo ?? ''))); ?>
+                            <select class="form-select border-danger tango-dynamic" id="deposito_codigo" name="deposito_codigo" data-original="<?= $valDepo ?>">
+                                <?php if($valDepo): ?><option value="<?= $valDepo ?>">Dep. Salvado ID: (<?= $valDepo ?>)</option><?php else: ?><option value="">Validar conexión primero...</option><?php endif; ?>
+                            </select>
+                            <div class="form-text text-danger" style="font-size: 0.75rem;">Representa el almacén base de la contabilidad web.</div>
                         </div>
 
                         <div class="col-12 mt-2">
-                            <label for="tango_connect_token" class="form-label">Token de Acceso</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="tango_connect_token" name="tango_connect_token"
-                                       value="<?= htmlspecialchars($old['tango_connect_token'] ?? ($config->tango_connect_token ?? '')) ?>">
-                                <button class="btn btn-outline-secondary" type="button" id="toggleTokenEye" title="Mostrar/Ocultar">👁️</button>
+                            <div class="row align-items-end">
+                                <div class="col-md-9">
+                                    <label for="tango_connect_token" class="form-label">Token de Acceso</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="tango_connect_token" name="tango_connect_token"
+                                               value="<?= htmlspecialchars($old['tango_connect_token'] ?? ($config->tango_connect_token ?? '')) ?>">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggleTokenEye" title="Mostrar/Ocultar">👁️</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mt-3 mt-md-0 d-grid">
+                                    <button type="button" id="btn-validate-tango" class="btn btn-primary d-flex justify-content-center align-items-center gap-2 shadow-sm"><i class="bi bi-shield-check"></i> <span>Validar Conexión</span></button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -358,6 +371,86 @@
                         testBtn.disabled = false;
                     }
                 });
+            }
+            // Ajax Tango Connector & Metadata Loader
+            const tangoBtn = document.getElementById('btn-validate-tango');
+            if (tangoBtn) {
+                tangoBtn.addEventListener('click', async () => {
+                    const originalBtnHtml = tangoBtn.innerHTML;
+                    tangoBtn.innerHTML = '⏳ Validando...';
+                    tangoBtn.disabled = true;
+
+                    try {
+                        const formData = new FormData(document.querySelector('form'));
+                        
+                        // 1. Handshake Auth
+                        const resAuth = await fetch('/rxnTiendasIA/public/mi-empresa/configuracion/test-tango', { method: 'POST', body: formData });
+                        const jsonAuth = await resAuth.json();
+
+                        if (!jsonAuth.success) {
+                            tangoBtn.innerHTML = '❌ Falla Integración';
+                            tangoBtn.classList.replace('btn-primary', 'btn-danger');
+                            alert('Tango Connect advierte error:\n\n' + jsonAuth.message);
+                            return;
+                        }
+
+                        // Handshake OK -> Verde
+                        tangoBtn.innerHTML = '✅ Configurado y Funcional';
+                        tangoBtn.classList.replace('btn-primary', 'btn-success');
+                        
+                        // 2. Fetch Metadata for Selectors
+                        const resMeta = await fetch('/rxnTiendasIA/public/mi-empresa/configuracion/tango-metadata', { method: 'POST', body: formData });
+                        const jsonMeta = await resMeta.json();
+
+                        if (jsonMeta.success && jsonMeta.data) {
+                            populateTangoSelects(jsonMeta.data);
+                        }
+
+                    } catch (error) {
+                        tangoBtn.innerHTML = '❌ Falla Local';
+                        tangoBtn.classList.replace('btn-primary', 'btn-danger');
+                        alert('Problema al contactar tu propia instancia de red (CORS/Timeout).');
+                    } finally {
+                        setTimeout(() => {
+                            if (!tangoBtn.classList.contains('btn-success')) {
+                                tangoBtn.innerHTML = originalBtnHtml;
+                                tangoBtn.disabled = false;
+                                tangoBtn.classList.replace('btn-danger', 'btn-primary');
+                            }
+                        }, 5000); // Only reset if failed. If Green, keep it green.
+                    }
+                });
+            }
+
+            function populateTangoSelects(data) {
+                const sL1 = document.getElementById('lista_precio_1');
+                const sL2 = document.getElementById('lista_precio_2');
+                const sDepo = document.getElementById('deposito_codigo');
+
+                const origL1 = sL1.getAttribute('data-original');
+                const origL2 = sL2.getAttribute('data-original');
+                const origDep = sDepo.getAttribute('data-original');
+
+                // Render Listas
+                let preHtmlList = '<option value="">-- Sin asignar --</option>';
+                data.listas_precios.forEach(l => {
+                    let sel1 = (origL1 == l.id) ? 'selected' : '';
+                    let sel2 = (origL2 == l.id) ? 'selected' : '';
+                    preHtmlList += `<option value="${l.id}">[ID: ${l.id}] ${l.descripcion}</option>`;
+                });
+                sL1.innerHTML = preHtmlList;
+                sL2.innerHTML = preHtmlList;
+                sL1.value = origL1;
+                sL2.value = origL2;
+
+                // Render Depósitos
+                let preHtmlDep = '<option value="">-- Ignorar Stock / Sin asignar --</option>';
+                data.depositos.forEach(d => {
+                    let selD = (origDep == d.id) ? 'selected' : '';
+                    preHtmlDep += `<option value="${d.id}">[STA22: ${d.id}] ${d.descripcion}</option>`;
+                });
+                sDepo.innerHTML = preHtmlDep;
+                sDepo.value = origDep;
             }
         });
     </script>

@@ -59,6 +59,8 @@ return function (Router $router): void {
     $router->get('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'index']);
     $router->post('/mi-empresa/configuracion', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'store']);
     $router->post('/mi-empresa/configuracion/test-smtp', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'testConnection']);
+    $router->post('/mi-empresa/configuracion/test-tango', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'testConnectTango']);
+    $router->post('/mi-empresa/configuracion/tango-metadata', [\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getConnectTangoMetadata']);
 
     // --- MÓDULO USUARIOS OPERATIVOS ---
     $router->get('/mi-empresa/usuarios', [\App\Modules\Usuarios\UsuarioController::class, 'index']);

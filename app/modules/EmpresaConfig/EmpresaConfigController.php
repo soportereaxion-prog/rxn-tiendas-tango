@@ -135,4 +135,103 @@ class EmpresaConfigController extends Controller
         echo json_encode($result);
         exit;
     }
+
+    /**
+     * Validador AJAX de Credenciales Tango Connect
+     */
+    public function testConnectTango(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+
+        $apiUrl = trim($_POST['tango_api_url'] ?? '');
+        $companyId = trim($_POST['tango_connect_company_id'] ?? '');
+        $clientKey = trim($_POST['tango_connect_key'] ?? '');
+        $token = trim($_POST['tango_connect_token'] ?? '');
+
+        if (empty($token)) {
+            $repoConf = $this->service->getConfig();
+            $token = $repoConf->tango_connect_token ?? '';
+        }
+
+        if (empty($apiUrl) || empty($companyId) || empty($token)) {
+            echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos (URL, ID Empresa o Token).']);
+            exit;
+        }
+
+        try {
+            $tangoKeyParsed = str_replace('/', '-', $clientKey);
+            $finalUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
+            
+            // Si no usan el esquema connect.axoft, fallback al literal
+            if (empty($clientKey) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+                $finalUrl = rtrim($apiUrl, '/');
+            }
+
+            $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId, $clientKey);
+            $isValid = $client->testConnection();
+
+            if ($isValid) {
+                echo json_encode(['success' => true, 'message' => 'Handshake completado exitosamente con Axoft.']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Credenciales inválidas o servidor inalcanzable.']);
+            }
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Proveedor AJAX de Metadata (Listas y Depósitos) para los Selects
+     */
+    public function getConnectTangoMetadata(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+
+        $apiUrl = trim($_POST['tango_api_url'] ?? '');
+        $companyId = trim($_POST['tango_connect_company_id'] ?? '');
+        $clientKey = trim($_POST['tango_connect_key'] ?? '');
+        $token = trim($_POST['tango_connect_token'] ?? '');
+
+        if (empty($token)) {
+            $repoConf = $this->service->getConfig();
+            $token = $repoConf->tango_connect_token ?? '';
+        }
+
+        try {
+            $tangoKeyParsed = str_replace('/', '-', $clientKey);
+            $finalUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
+            if (empty($clientKey) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+                $finalUrl = rtrim($apiUrl, '/');
+            }
+
+            $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId, $clientKey);
+            
+            $depositosObj = $client->getMaestroDepositos();
+            $listasObj = $client->getMaestroListasPrecio();
+
+            // Transform objects to Arrays for JS mapping
+            $depositos = [];
+            foreach($depositosObj as $id => $desc) {
+                $depositos[] = ['id' => $id, 'descripcion' => $desc];
+            }
+            $listas = [];
+            foreach($listasObj as $id => $desc) {
+                $listas[] = ['id' => $id, 'descripcion' => $desc];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'depositos' => $depositos,
+                    'listas_precios' => $listas
+                ]
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
 }

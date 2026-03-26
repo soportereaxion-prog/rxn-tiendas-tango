@@ -83,4 +83,68 @@ class TangoApiClient
 
         return $this->client->get($endpoint, $params);
     }
+
+    /**
+     * Valida si las credenciales proporcionan acceso autorizado (Handshake).
+     */
+    public function testConnection(): bool
+    {
+        try {
+            // Un ping ligero a Artículos con Top 1
+            $this->getArticulos(1, 1);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Agrupa y extrae un Maestro de Depósitos deduciéndolo de los reportes de Stock.
+     */
+    public function getMaestroDepositos(): array
+    {
+        $depositos = [];
+        try {
+            $stockData = $this->getStock(1, 2000); // Muestra amplia
+            if (!empty($stockData['data']['list'])) {
+                foreach ($stockData['data']['list'] as $item) {
+                    if (isset($item['ID_STA22'])) {
+                        $id = (int)$item['ID_STA22'];
+                        $desc = $item['DESCRIPCION_DEPOSITO'] ?? ("Depósito #" . $id);
+                        if (!isset($depositos[$id])) {
+                            $depositos[$id] = $desc;
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Retorna vacío si falla la extracción
+        }
+        return $depositos;
+    }
+
+    /**
+     * Agrupa y extrae identificadores de Listas de Precios.
+     */
+    public function getMaestroListasPrecio(): array
+    {
+        $listas = [];
+        try {
+            $precioData = $this->getPrecios(1, 1000);
+            if (!empty($precioData['data']['list'])) {
+                foreach ($precioData['data']['list'] as $item) {
+                    if (isset($item['NRO_DE_LIS'])) {
+                        $id = (int)$item['NRO_DE_LIS'];
+                        if (!isset($listas[$id])) {
+                            $listas[$id] = "Lista Matriz #" . $id; 
+                            // Tango process 20091 carece de nombres comerciales de lista, se deducen numeralmente.
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Fallback silencioso
+        }
+        return $listas;
+    }
 }
