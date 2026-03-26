@@ -101,39 +101,70 @@ class TangoApiClient
     /**
      * Agrupa y extrae un Maestro de Depósitos deduciéndolo de Process 2941.
      */
+    /**
+     * Agrupa y extrae un Maestro de Depósitos deduciéndolo de Process 2941.
+     * Incorpora paginación total para garantizar Catálogo Exhaustivo.
+     */
     public function getMaestroDepositos(): array
     {
         $depositos = [];
+        $page = 0;
+        $pageSize = 100;
+        
         try {
-            $data = $this->client->get('/Api/Get', ['process' => 2941]);
-            if (!empty($data['data']['list'])) {
+            while (true) {
+                $data = $this->client->get('/Api/Get', [
+                    'process' => 2941,
+                    'pageSize' => $pageSize,
+                    'pageIndex' => $page,
+                    'view' => ''
+                ]);
+                
+                if (empty($data['data']['list'])) {
+                    break; // Fin de resultados
+                }
+                
                 foreach ($data['data']['list'] as $item) {
-                    // Hunt for Code and Description regardless of exact casing/naming
                     $id = null;
                     $desc = null;
                     
-                    foreach ($item as $k => $v) {
-                        $upKey = strtoupper($k);
-                        if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID'))) {
-                            $id = $v;
-                        } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
-                            $desc = $v;
+                    // Prioridad 1: Nombres exactos
+                    if (isset($item['CODIGO'])) $id = $item['CODIGO'];
+                    elseif (isset($item['ID_STA22'])) $id = $item['ID_STA22'];
+                    elseif (isset($item['COD_DEPOSITO'])) $id = $item['COD_DEPOSITO'];
+                    
+                    if (isset($item['DESCRIPCION'])) $desc = $item['DESCRIPCION'];
+                    elseif (isset($item['DESCRIPCION_DEPOSITO'])) $desc = $item['DESCRIPCION_DEPOSITO'];
+                    elseif (isset($item['NOMBRE'])) $desc = $item['NOMBRE'];
+                    
+                    // Prioridad 2: Heurística sucia si cambian el esquema
+                    if ($id === null || $desc === null) {
+                        foreach ($item as $k => $v) {
+                            $upKey = strtoupper($k);
+                            if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID'))) {
+                                $id = $v;
+                            } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
+                                $desc = $v;
+                            }
                         }
                     }
                     
                     if ($id !== null) {
-                        // Crucial: agresivo trim() y cast explícito a string porque Tango inyecta paddings (" 1", "00 ")
                         $cleanId = trim((string)$id);
-                        // Si el valor numérico coincide, eliminar ceros a la izquierda (01 -> 1) si es el caso, 
-                        // pero es más seguro usar ltrim solo si sabemos que es numérico. Lo dejamos como trim limpio.
                         if (is_numeric($cleanId)) {
-                            $cleanId = (string)($cleanId + 0); // forza conversion "01" -> "1", "00" -> "0"
+                            $cleanId = (string)($cleanId + 0); 
                         }
                         $depositos[$cleanId] = trim((string)($desc ?? ("Depósito " . $cleanId)));
                     }
                 }
+                
+                if (count($data['data']['list']) < $pageSize) {
+                    break; // Última página
+                }
+                $page++;
             }
         } catch (\Exception $e) {}
+        
         return $depositos;
     }
 
@@ -143,32 +174,62 @@ class TangoApiClient
     public function getMaestroListasPrecio(): array
     {
         $listas = [];
+        $page = 0;
+        $pageSize = 100;
+
         try {
-            $data = $this->client->get('/Api/Get', ['process' => 984]);
-            if (!empty($data['data']['list'])) {
+            while (true) {
+                $data = $this->client->get('/Api/Get', [
+                    'process' => 984,
+                    'pageSize' => $pageSize,
+                    'pageIndex' => $page,
+                    'view' => ''
+                ]);
+
+                if (empty($data['data']['list'])) {
+                    break;
+                }
+                
                 foreach ($data['data']['list'] as $item) {
                     $id = null;
                     $desc = null;
                     
-                    foreach ($item as $k => $v) {
-                        $upKey = strtoupper($k);
-                        if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID') || str_contains($upKey, 'NRO'))) {
-                            $id = $v;
-                        } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
-                            $desc = $v;
+                    if (isset($item['CODIGO'])) $id = $item['CODIGO'];
+                    elseif (isset($item['NUMERO_DE_LISTA'])) $id = $item['NUMERO_DE_LISTA'];
+                    elseif (isset($item['ID_GVA10'])) $id = $item['ID_GVA10'];
+                    elseif (isset($item['NRO_DE_LIS'])) $id = $item['NRO_DE_LIS'];
+                    
+                    if (isset($item['DESCRIPCION'])) $desc = $item['DESCRIPCION'];
+                    elseif (isset($item['NOMBRE'])) $desc = $item['NOMBRE'];
+                    elseif (isset($item['NOMBRE_DE_LISTA'])) $desc = $item['NOMBRE_DE_LISTA'];
+                    
+                    if ($id === null || $desc === null) {
+                        foreach ($item as $k => $v) {
+                            $upKey = strtoupper($k);
+                            if ($id === null && (str_contains($upKey, 'COD') || str_contains($upKey, 'ID') || str_contains($upKey, 'NRO'))) {
+                                $id = $v;
+                            } elseif ($desc === null && (str_contains($upKey, 'DESC') || str_contains($upKey, 'NOMB'))) {
+                                $desc = $v;
+                            }
                         }
                     }
 
                     if ($id !== null) {
                         $cleanId = trim((string)$id);
                         if (is_numeric($cleanId)) {
-                            $cleanId = (string)($cleanId + 0); // "02" -> "2"
+                            $cleanId = (string)($cleanId + 0); 
                         }
                         $listas[$cleanId] = trim((string)($desc ?? ("Lista " . $cleanId)));
                     }
                 }
+
+                if (count($data['data']['list']) < $pageSize) {
+                    break;
+                }
+                $page++;
             }
         } catch (\Exception $e) {}
+        
         return $listas;
     }
 }
