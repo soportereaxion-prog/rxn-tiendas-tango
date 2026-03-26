@@ -10,6 +10,8 @@ use RuntimeException;
 class TangoApiClient
 {
     private ApiClient $client;
+    public $debugLastRawDepositos = null;
+    public $debugLastRawListas = null;
 
     public function __construct(string $apiUrl, string $accessToken, string $companyId, ?string $clientKey = null)
     {
@@ -120,6 +122,10 @@ class TangoApiClient
                     'view' => ''
                 ]);
                 
+                if ($page === 0) {
+                    $this->debugLastRawDepositos = $data;
+                }
+
                 if (empty($data['data']['list'])) {
                     break; // Fin de resultados
                 }
@@ -185,6 +191,10 @@ class TangoApiClient
                     'pageIndex' => $page,
                     'view' => ''
                 ]);
+
+                if ($page === 0) {
+                    $this->debugLastRawListas = $data;
+                }
 
                 if (empty($data['data']['list'])) {
                     break;

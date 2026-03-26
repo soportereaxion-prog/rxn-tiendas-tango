@@ -212,6 +212,51 @@ class EmpresaConfigController extends Controller
             $depositosObj = $client->getMaestroDepositos();
             $listasObj = $client->getMaestroListasPrecio();
 
+            // === BLOQUE DEBUG TEMPORAL CONTROLADO ===
+            try {
+                $logDir = BASE_PATH . '/logs';
+                if (!is_dir($logDir)) { mkdir($logDir, 0777, true); }
+                
+                $configStmt = \App\Core\Database::getConnection()->prepare("SELECT lista_precio_1, lista_precio_2, deposito_codigo FROM empresa_config WHERE empresa_id = :empId LIMIT 1");
+                $configStmt->execute(['empId' => $_SESSION['empresa_id'] ?? 1]);
+                $configDb = $configStmt->fetch(\PDO::FETCH_OBJ);
+
+                $debugDump = [
+                    'FECHA' => date('Y-m-d H:i:s'),
+                    'LISTAS_API_RAW' => $client->debugLastRawListas ?? 'No capturado',
+                    'DEPOSITOS_API_RAW' => $client->debugLastRawDepositos ?? 'No capturado',
+                    'LISTAS_NORMALIZADAS' => [],
+                    'DEPOSITOS_NORMALIZADOS' => [],
+                    'VALOR_DB' => [
+                        'lista_default' => $configDb->lista_precio_1 ?? '',
+                        'lista_alternate' => $configDb->lista_precio_2 ?? '',
+                        'deposito_codigo' => $configDb->deposito_codigo ?? ''
+                    ]
+                ];
+
+                foreach ($listasObj as $id => $desc) {
+                    $matchL1 = ((string)$id === (string)($configDb->lista_precio_1 ?? ''));
+                    $matchL2 = ((string)$id === (string)($configDb->lista_precio_2 ?? ''));
+                    $debugDump['LISTAS_NORMALIZADAS'][] = [
+                        'id' => $id, 
+                        'descripcion' => $desc,
+                        'MATCH_L1' => $matchL1 ? 'SI' : 'NO',
+                        'MATCH_L2' => $matchL2 ? 'SI' : 'NO'
+                    ];
+                }
+                foreach ($depositosObj as $id => $desc) {
+                    $match = ((string)$id === (string)($configDb->deposito_codigo ?? ''));
+                    $debugDump['DEPOSITOS_NORMALIZADOS'][] = [
+                        'id' => $id, 
+                        'descripcion' => $desc,
+                        'MATCH_DEPOSITO' => $match ? 'SI' : 'NO'
+                    ];
+                }
+
+                file_put_contents($logDir . '/debug_selectores_connect.json', json_encode($debugDump, JSON_PRETTY_PRINT));
+            } catch (\Exception $ed) { }
+            // ========================================
+
             // Transform objects to Arrays for JS mapping
             $depositos = [];
             foreach($depositosObj as $id => $desc) {
