@@ -8,11 +8,14 @@
     <link href="/rxnTiendasIA/public/css/rxn-ui.css" rel="stylesheet">
     <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
-    <div class="card shadow-sm p-4" style="max-width: 400px; width: 100%;">
+<body class="rxn-page-shell rxn-auth-screen">
+    <div class="container rxn-responsive-container rxn-form-shell-sm rxn-auth-shell">
+    <div class="card rxn-form-card rxn-auth-card shadow-sm p-4 p-lg-5 w-100">
         <div class="text-center mb-4">
-            <h4 class="text-dark fw-bold">Reenviar Correo</h4>
-            <p class="text-secondary small">Si no recibiste tu enlace de validación, te enviamos uno nuevo.</p>
+            <img src="/rxnTiendasIA/public/uploads/empresas/1/branding/logo_1774467026.png" alt="Reaxion Soluciones Inteligentes" class="rxn-auth-logo mb-3">
+            <p class="rxn-auth-eyebrow mb-3">Suite RXN</p>
+            <h4 class="rxn-auth-title fw-bold">Reenviar Correo</h4>
+            <p class="text-secondary small rxn-auth-subtitle">Si no recibiste tu enlace de validación, te enviamos uno nuevo al instante.</p>
         </div>
 
         <?php if (!empty($error)): ?>
@@ -34,6 +37,12 @@
         <div class="text-center mt-4">
             <a href="javascript:history.back()" class="text-decoration-none small text-secondary">← Volver</a>
         </div>
+
+        <div class="text-center mt-4 pt-3 border-top rxn-auth-footer">
+            <a href="https://reaxion.com.ar/" target="_blank" rel="noopener noreferrer" class="text-decoration-none small d-block mb-2">reaxion.com.ar</a>
+            <a href="mailto:soporte@reaxion.com.ar" class="text-decoration-none text-muted small">soporte@reaxion.com.ar</a>
+        </div>
+    </div>
     </div>
 </body>
 </html>

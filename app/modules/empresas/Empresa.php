@@ -13,6 +13,8 @@ class Empresa
     public ?string $cuit = null;
     public ?string $slug = null;
     public int $activa = 1;
+    public int $modulo_tiendas = 0;
+    public int $modulo_crm = 0;
     public ?string $created_at = null;
     public ?string $updated_at = null;
 

@@ -13,6 +13,9 @@ class Articulo
     public ?float $precio_lista_2 = null;
     public ?float $stock_actual = null;
     public int $activo = 1;
+    public ?int $categoria_id = null;
+    public ?string $categoria_nombre = null;
+    public ?string $categoria_slug = null;
     public ?string $fecha_ultima_sync = null;
     public ?string $imagen_principal = null;
 }

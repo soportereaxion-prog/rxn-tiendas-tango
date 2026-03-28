@@ -20,22 +20,46 @@ class EmpresaController extends Controller
 
     public function index(): void
     {
-        AuthService::requireRxnAdmin();
-        $empresas = $this->service->findAll();
+        AuthService::requireBackofficeAdmin();
+        $result = $this->service->findAll($_GET);
         View::render('app/modules/empresas/views/index.php', [
-            'empresas' => $empresas
+            'empresas' => $result['items'],
+            'filters' => $result['filters'],
+            'totalEmpresas' => $result['total'],
+            'filteredCount' => $result['filteredTotal'],
+            'pagination' => $result['pagination'],
         ]);
     }
 
     public function create(): void
     {
-        AuthService::requireRxnAdmin();
+        AuthService::requireBackofficeAdmin();
         View::render('app/modules/empresas/views/crear.php');
+    }
+
+    public function suggestions(): void
+    {
+        AuthService::requireBackofficeAdmin();
+        header('Content-Type: application/json');
+
+        try {
+            echo json_encode([
+                'success' => true,
+                'data' => $this->service->findSuggestions($_GET),
+            ]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'No se pudieron obtener sugerencias.',
+                'data' => [],
+            ]);
+        }
     }
 
     public function store(): void
     {
-        AuthService::requireRxnAdmin();
+        AuthService::requireBackofficeAdmin();
         try {
             $this->service->create($_POST);
             // Redirigir al listado con feedback
@@ -57,7 +81,7 @@ class EmpresaController extends Controller
 
     public function edit(string $id): void
     {
-        AuthService::requireRxnAdmin();
+        AuthService::requireBackofficeAdmin();
         $empresa = $this->service->findById((int) $id);
         if (!$empresa) {
             header('Location: /rxnTiendasIA/public/empresas?error=No+encontrada');
@@ -71,7 +95,7 @@ class EmpresaController extends Controller
 
     public function update(string $id): void
     {
-        AuthService::requireRxnAdmin();
+        AuthService::requireBackofficeAdmin();
         try {
             $this->service->update((int) $id, $_POST);
             header('Location: /rxnTiendasIA/public/empresas?success=actualizada');

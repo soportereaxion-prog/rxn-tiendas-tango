@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos de Servicio CRM - rxnTiendasIA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
+</head>
+<body class="rxn-page-shell">
+    <?php
+    $buildQuery = function (array $overrides = []) use ($search, $field, $estado, $limit, $sort, $dir, $page) {
+        $params = [
+            'search' => $search,
+            'field' => $field,
+            'estado' => $estado,
+            'limit' => $limit,
+            'sort' => $sort,
+            'dir' => $dir,
+            'page' => $page,
+        ];
+
+        foreach ($overrides as $key => $value) {
+            if ($value === null || $value === '') {
+                unset($params[$key]);
+                continue;
+            }
+            $params[$key] = $value;
+        }
+
+        return http_build_query($params);
+    };
+    ?>
+    <div class="container mt-5 rxn-responsive-container">
+        <div class="rxn-module-header mb-4">
+            <div>
+                <h2>CRM - Pedidos de Servicio</h2>
+                <p class="text-muted mb-0">Registro operativo con calculo de tiempos, descuentos y cierre del servicio.</p>
+            </div>
+            <div class="rxn-module-actions">
+                <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/crear" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nuevo pedido</a>
+                <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al CRM</a>
+            </div>
+        </div>
+
+        <?php require BASE_PATH . '/app/shared/views/components/module_notes_panel.php'; ?>
+
+        <?php $flash = \App\Core\Flash::get(); ?>
+        <?php if ($flash): ?>
+            <div class="rxn-flash-banner rxn-flash-banner-<?= htmlspecialchars((string) $flash['type']) ?> shadow-sm mb-4" role="alert">
+                <div class="rxn-flash-icon"><i class="bi <?= $flash['type'] === 'success' ? 'bi-check-circle-fill' : ($flash['type'] === 'warning' ? 'bi-exclamation-triangle-fill' : ($flash['type'] === 'danger' ? 'bi-x-circle-fill' : 'bi-info-circle-fill')) ?>"></i></div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold mb-1"><?= ucfirst((string) $flash['type']) ?></div>
+                    <div><?= htmlspecialchars((string) $flash['message']) ?></div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <div class="card rxn-crud-card">
+            <div class="card-body p-4">
+                <div class="rxn-toolbar-split mb-4">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <span class="badge bg-dark text-light fs-6 py-2 px-3"><i class="bi bi-tools"></i> Total: <?= (int) $totalItems ?></span>
+                        <span class="badge text-bg-light border py-2 px-3">Calculo neto = finalizado - inicio - descuento</span>
+                    </div>
+                    <div class="small text-muted">El cliente se resuelve desde la base hoy disponible y el pedido guarda snapshot local de cliente/articulo.</div>
+                </div>
+
+                <div class="rxn-toolbar-split mb-3">
+                    <div class="small text-muted">Buscador con sugerencias en vivo; el listado solo se filtra al confirmar.</div>
+                    <form action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 980px; max-width: 100%;" data-search-form>
+                        <input type="hidden" name="search" value="<?= htmlspecialchars((string) $search) ?>" data-search-hidden>
+                        <select name="estado" class="form-select form-select-sm border-secondary rxn-filter-compact" style="width: 145px;" onchange="this.form.submit()">
+                            <option value="">Todos</option>
+                            <option value="abierto" <?= $estado === 'abierto' ? 'selected' : '' ?>>Abiertos</option>
+                            <option value="finalizado" <?= $estado === 'finalizado' ? 'selected' : '' ?>>Finalizados</option>
+                        </select>
+                        <select name="limit" class="form-select form-select-sm border-secondary rxn-filter-compact" style="width: 80px;" onchange="this.form.submit()">
+                            <option value="25" <?= $limit === 25 ? 'selected' : '' ?>>25</option>
+                            <option value="50" <?= $limit === 50 ? 'selected' : '' ?>>50</option>
+                            <option value="100" <?= $limit === 100 ? 'selected' : '' ?>>100</option>
+                        </select>
+                        <select name="field" class="form-select form-select-sm border-secondary rxn-filter-compact rxn-search-field-wrap" style="width: 165px;" data-search-field>
+                            <option value="all" <?= $field === 'all' ? 'selected' : '' ?>>Todos los campos</option>
+                            <option value="numero" <?= $field === 'numero' ? 'selected' : '' ?>>Numero</option>
+                            <option value="cliente" <?= $field === 'cliente' ? 'selected' : '' ?>>Cliente</option>
+                            <option value="solicito" <?= $field === 'solicito' ? 'selected' : '' ?>>Solicito</option>
+                            <option value="articulo" <?= $field === 'articulo' ? 'selected' : '' ?>>Articulo</option>
+                            <option value="clasificacion" <?= $field === 'clasificacion' ? 'selected' : '' ?>>Clasificacion</option>
+                            <option value="estado" <?= $field === 'estado' ? 'selected' : '' ?>>Estado</option>
+                        </select>
+                        <div class="rxn-search-input-wrap rxn-filter-grow" style="width: 270px;">
+                            <input type="text" class="form-control form-control-sm border-secondary" placeholder="Buscar por numero, cliente, articulo..." value="<?= htmlspecialchars((string) $search) ?>" data-search-input data-suggestions-url="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/sugerencias" autocomplete="off">
+                            <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-sm text-white">Buscar</button>
+                        <?php if ($search !== '' || $estado !== ''): ?>
+                            <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio" class="btn btn-light btn-sm border">Limpiar</a>
+                        <?php endif; ?>
+                    </form>
+                </div>
+
+                <div class="form-text rxn-search-help text-md-end mb-3">El formulario calcula duracion bruta y neta usando segundos reales del rango horario.</div>
+
+                <div class="table-responsive rxn-table-responsive">
+                    <table class="table table-hover align-middle table-sm rxn-crud-table" style="font-size: 0.92rem;">
+                        <thead class="table-light">
+                            <?php
+                            $sortLink = function (string $fieldName, string $label) use ($buildQuery, $sort, $dir) {
+                                $newDir = ($sort === $fieldName && $dir === 'ASC') ? 'DESC' : 'ASC';
+                                $icon = ($sort === $fieldName) ? ($dir === 'ASC' ? '▲' : '▼') : '';
+                                $href = '?' . $buildQuery(['sort' => $fieldName, 'dir' => $newDir]);
+                                return '<a href="' . $href . '" class="rxn-sort-link"><span>' . $label . '</span><span class="rxn-sort-indicator">' . $icon . '</span></a>';
+                            };
+                            ?>
+                            <tr>
+                                <th><?= $sortLink('numero', 'Numero') ?></th>
+                                <th><?= $sortLink('fecha_inicio', 'Inicio') ?></th>
+                                <th><?= $sortLink('fecha_finalizado', 'Finalizado') ?></th>
+                                <th><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
+                                <th>Solicito</th>
+                                <th><?= $sortLink('articulo_nombre', 'Articulo') ?></th>
+                                <th><?= $sortLink('clasificacion_codigo', 'Clasificacion') ?></th>
+                                <th><?= $sortLink('duracion_neta_segundos', 'Tiempo neto') ?></th>
+                                <th>Estado</th>
+                                <th class="rxn-row-chevron-col"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ($pedidos === []): ?>
+                                <tr>
+                                    <td colspan="10" class="rxn-empty-state text-muted">
+                                        <div class="mb-2 fs-3"><i class="bi bi-tools"></i></div>
+                                        Todavia no hay pedidos de servicio cargados o no existen coincidencias con el filtro actual.
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($pedidos as $pedido): ?>
+                                    <tr data-row-link="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" class="rxn-row-link">
+                                        <td class="fw-bold text-dark">#<?= (int) $pedido['numero'] ?></td>
+                                        <td class="text-nowrap"><small><?= htmlspecialchars((string) $pedido['fecha_inicio']) ?></small></td>
+                                        <td class="text-nowrap"><small><?= htmlspecialchars((string) ($pedido['fecha_finalizado'] ?? '--')) ?></small></td>
+                                        <td class="text-wrap" style="max-width: 210px;"><?= htmlspecialchars((string) $pedido['cliente_nombre']) ?></td>
+                                        <td><?= htmlspecialchars((string) $pedido['solicito']) ?></td>
+                                        <td class="text-wrap" style="max-width: 220px;"><?= htmlspecialchars((string) $pedido['articulo_nombre']) ?></td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border"><?= htmlspecialchars((string) ($pedido['clasificacion_codigo'] ?: 'Sin clasificar')) ?></span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-success"><?= htmlspecialchars((string) sprintf('%02d:%02d:%02d', intdiv((int) ($pedido['duracion_neta_segundos'] ?? 0), 3600), intdiv(((int) ($pedido['duracion_neta_segundos'] ?? 0) % 3600), 60), ((int) ($pedido['duracion_neta_segundos'] ?? 0) % 60))) ?></div>
+                                            <small class="text-muted">Bruto: <?= htmlspecialchars((string) sprintf('%02d:%02d:%02d', intdiv((int) ($pedido['duracion_bruta_segundos'] ?? 0), 3600), intdiv(((int) ($pedido['duracion_bruta_segundos'] ?? 0) % 3600), 60), ((int) ($pedido['duracion_bruta_segundos'] ?? 0) % 60))) ?></small>
+                                        </td>
+                                        <td>
+                                            <?php if (empty($pedido['fecha_finalizado'])): ?>
+                                                <span class="badge bg-warning text-dark">Abierto</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-success">Finalizado</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="rxn-row-chevron-col">
+                                            <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <?php if ($totalPages > 1): ?>
+                    <nav class="mt-4 rxn-pagination-wrap">
+                        <ul class="pagination justify-content-center pagination-sm">
+                            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                                <a class="page-link" href="?<?= htmlspecialchars($buildQuery(['page' => max(1, $page - 1)])) ?>">Anterior</a>
+                            </li>
+                            <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
+                                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                                    <a class="page-link" href="?<?= htmlspecialchars($buildQuery(['page' => $i])) ?>"><?= $i ?></a>
+                                </li>
+                            <?php endfor; ?>
+                            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                                <a class="page-link" href="?<?= htmlspecialchars($buildQuery(['page' => min($totalPages, $page + 1)])) ?>">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
+    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
+</body>
+</html>

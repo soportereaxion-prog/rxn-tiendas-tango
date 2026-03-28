@@ -20,7 +20,7 @@ class StoreResolver
         $db = Database::getConnection();
         
         // Buscamos empresa por slug normalizado
-        $stmt = $db->prepare("SELECT * FROM empresas WHERE slug = :slug AND activa = 1");
+        $stmt = $db->prepare("SELECT * FROM empresas WHERE slug = :slug AND activa = 1 AND modulo_tiendas = 1");
         $stmt->execute([':slug' => $slug]);
         $empresa = $stmt->fetch(\PDO::FETCH_ASSOC);
         

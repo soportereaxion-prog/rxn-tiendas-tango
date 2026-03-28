@@ -20,12 +20,12 @@
                             <th class="py-3 px-4 fw-semibold text-secondary">Fecha</th>
                             <th class="py-3 px-4 fw-semibold text-secondary text-end">Total</th>
                             <th class="py-3 px-4 fw-semibold text-secondary text-center">Estado</th>
-                            <th class="py-3 px-4 fw-semibold text-secondary text-end">Acción</th>
+                            <th class="py-3 px-4 fw-semibold text-secondary rxn-row-chevron-col"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($pedidos as $p): ?>
-                            <tr>
+                            <tr data-row-link="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos/ver/<?= $p['id'] ?>">
                                 <td class="px-4 fw-medium text-dark border-bottom-0">
                                     <span class="text-secondary small">ID:</span> <?= $p['id'] ?>
                                 </td>
@@ -44,8 +44,8 @@
                                         <span class="badge bg-secondary px-3 py-2 rounded-pill">En Revisión</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-4 text-end border-bottom-0">
-                                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos/ver/<?= $p['id'] ?>" class="btn btn-sm btn-light fw-medium border rounded-3 px-3">Ver Detalle</a>
+                                <td class="px-4 text-end border-bottom-0 rxn-row-chevron-col">
+                                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos/ver/<?= $p['id'] ?>" class="btn btn-sm btn-light fw-medium border rounded-3 px-2 rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

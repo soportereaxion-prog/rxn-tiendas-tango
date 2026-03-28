@@ -1,7 +1,24 @@
 <?php
 // Extracción segura del JSON de ordenamiento guardado
 $orderJson = $_SESSION['dashboard_order'] ?? '[]';
-$orderArray = json_decode($orderJson, true) ?: [];
+$decodedOrder = json_decode($orderJson, true);
+
+if (is_array($decodedOrder) && array_is_list($decodedOrder)) {
+    $orderArray = $decodedOrder;
+} elseif (is_array($decodedOrder)) {
+    $orderArray = $decodedOrder['tiendas'] ?? [];
+} else {
+    $orderArray = [];
+}
+$canViewRelease = \App\Modules\Auth\AuthService::hasAdminPrivileges();
+
+if ($canViewRelease) {
+    $release = \App\Shared\Services\VersionService::current();
+    $releaseLabel = \App\Shared\Services\VersionService::currentLabel();
+    $releaseBuild = \App\Shared\Services\VersionService::currentBuildLabel();
+    $releaseDate = \App\Shared\Services\VersionService::formattedDate($release['released_at'] ?? null);
+    $releaseItems = \App\Shared\Services\VersionService::currentHighlights(2);
+}
 
 // Generamos las Tarjetas Nivel 2B
 $defaultCards = [
@@ -10,6 +27,12 @@ $defaultCards = [
         'desc' => 'Gestión de tu catálogo, imágenes y precios online.', 
         'icon' => '<i class="bi bi-box-seam"></i>', 
         'link' => '/rxnTiendasIA/public/mi-empresa/articulos'
+    ],
+    'categorias' => [
+        'title' => 'Categorías',
+        'desc' => 'Ordena el catálogo y publica accesos directos por rubro.',
+        'icon' => '<i class="bi bi-grid-3x3-gap"></i>',
+        'link' => '/rxnTiendasIA/public/mi-empresa/categorias'
     ],
     'clientes' => [
         'title' => 'Clientes Web', 
@@ -27,13 +50,13 @@ $defaultCards = [
         'title' => 'Mi Perfil', 
         'desc' => 'Ajustes de credenciales y apariencia de tu entorno.', 
         'icon' => '<i class="bi bi-person-badge"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-perfil'
+        'link' => '/rxnTiendasIA/public/mi-perfil?area=tiendas'
     ],
     'usuarios' => [
         'title' => 'Administrar Cuentas', 
         'desc' => 'Alta, baja y modificación de accesos corporativos.', 
         'icon' => '<i class="bi bi-shield-lock"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-empresa/usuarios'
+        'link' => '/rxnTiendasIA/public/mi-empresa/usuarios?area=tiendas'
     ],
     'configuracion' => [
         'title' => 'Configuración', 
@@ -42,14 +65,6 @@ $defaultCards = [
         'link' => '/rxnTiendasIA/public/mi-empresa/configuracion'
     ]
 ];
-
-// Regla de Seguridad: Ocultar Administrar Cuentas si el Auth NO es Tenant Admin ni Global Admin
-$isTenantAdmin = (!empty($_SESSION['es_admin']) && $_SESSION['es_admin'] == 1);
-$isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
-
-if (!$isTenantAdmin && !$isGlobalAdmin) {
-    unset($defaultCards['usuarios']);
-}
 
 // Transformación del array según matriz persistente del usuario
 $finalCards = [];
@@ -68,7 +83,7 @@ foreach ($defaultCards as $cardId => $cardData) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entorno Operativo - rxnTiendasIA</title>
+    <title>Entorno Operativo de Tiendas - rxnTiendasIA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
@@ -98,22 +113,45 @@ foreach ($defaultCards as $cardId => $cardData) {
             margin-bottom: 1rem;
             opacity: 0.9;
         }
+
+        .release-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+        }
+
+        .release-list {
+            margin-bottom: 0;
+            padding-left: 1rem;
+            color: #c7c7c7;
+        }
+
+        .release-list li + li {
+            margin-top: 0.45rem;
+        }
     </style>
 </head>
-<body class="d-flex flex-column min-vh-100 p-4 p-md-5">
+<body class="d-flex flex-column min-vh-100 p-4 p-md-5 rxn-launcher-shell">
 
-    <div class="container-fluid" style="max-width: 1200px;">
+    <div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">
         
-        <div class="d-flex justify-content-between align-items-center mb-5 pb-2 border-bottom border-secondary border-opacity-25">
+        <div class="rxn-module-header mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
-                <h1 class="hero-title mb-1"><i class="bi bi-rocket-takeoff"></i> Entorno Operativo</h1>
-                <p class="text-muted mb-0">Portal corporativo <span class="badge bg-secondary ms-1">Empresa #<?= $_SESSION['empresa_id'] ?? '' ?></span></p>
+                <h1 class="hero-title mb-1"><i class="bi bi-shop-window"></i> Entorno Operativo de Tiendas</h1>
+                <p class="text-muted mb-0">Circuito comercial web del tenant <span class="badge bg-secondary ms-1">Empresa #<?= $_SESSION['empresa_id'] ?? '' ?></span></p>
             </div>
-            <div class="d-flex align-items-center gap-3">
+            <div class="rxn-module-actions">
                 <span class="text-secondary small d-none d-md-block fw-bold"><i class="bi bi-person"></i> <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuario') ?></span>
+                <a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
             </div>
         </div>
+
+        <?php
+        $moduleNotesKey = 'entorno_operativo_tiendas';
+        $moduleNotesLabel = 'Entorno Operativo de Tiendas';
+        require BASE_PATH . '/app/shared/views/components/module_notes_panel.php';
+        ?>
 
         <!-- El grid sortable -->
         <div id="dashboard-grid" class="row g-4">
@@ -130,6 +168,32 @@ foreach ($defaultCards as $cardId => $cardData) {
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <?php if ($canViewRelease): ?>
+            <div class="mt-5">
+                <div class="release-card p-4 p-md-5 shadow-sm">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-3">
+                        <div>
+                            <span class="badge rounded-pill text-bg-light text-dark mb-3">Novedades</span>
+                            <h2 class="h4 fw-bold text-white mb-2"><?= htmlspecialchars((string) ($release['title'] ?? 'Release actual')) ?></h2>
+                            <p class="text-muted mb-0"><?= htmlspecialchars((string) ($release['summary'] ?? '')) ?></p>
+                        </div>
+                        <div class="text-md-end small text-muted">
+                            <div class="fw-bold text-white"><?= htmlspecialchars($releaseLabel) ?></div>
+                            <?php if ($releaseBuild !== ''): ?><div><?= htmlspecialchars($releaseBuild) ?></div><?php endif; ?>
+                            <?php if ($releaseDate !== ''): ?><div><?= htmlspecialchars($releaseDate) ?></div><?php endif; ?>
+                        </div>
+                    </div>
+                    <?php if ($releaseItems !== []): ?>
+                        <ul class="release-list small">
+                            <?php foreach ($releaseItems as $releaseItem): ?>
+                                <li><?= htmlspecialchars($releaseItem) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
 
     </div>
 
@@ -151,7 +215,7 @@ foreach ($defaultCards as $cardId => $cardData) {
                 fetch('/rxnTiendasIA/public/mi-perfil/dashboard-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order: currentOrder })
+                    body: JSON.stringify({ area: 'tiendas', order: currentOrder })
                 })
                 .then(response => response.json())
                 .catch(err => console.error("Error interconexión D&D", err));

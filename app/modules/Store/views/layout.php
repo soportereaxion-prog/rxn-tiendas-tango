@@ -99,6 +99,9 @@ $footerSocials = $empresaObj->footer_socials ?? '';
                 <li class="nav-item me-3">
                     <a class="nav-link text-dark fw-medium" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>">Catálogo</a>
                 </li>
+                <li class="nav-item me-3">
+                    <a class="nav-link text-dark fw-medium" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>#categorias">Categorías</a>
+                </li>
                 <?php if (\App\Modules\Store\Context\ClienteWebContext::isLoggedIn(\App\Modules\Store\Context\PublicStoreContext::getEmpresaId())): ?>
                     <li class="nav-item dropdown me-3">
                         <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" id="clienteDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -149,22 +152,22 @@ $footerSocials = $empresaObj->footer_socials ?? '';
 
 <footer class="py-5 border-top" style="background-color: var(--surface-color); color: var(--text-color);">
     <div class="container">
-        <div class="row gx-5">
-            <div class="col-md-5 mb-4">
+        <div class="row gx-5 gy-4">
+            <div class="col-lg-5 col-md-6 mb-4">
                 <h5 class="fw-bold mb-3" style="color: var(--color-primary);"><?= htmlspecialchars($empresa_nombre) ?></h5>
                 <p class="small text-muted opacity-75"><?= nl2br(htmlspecialchars($footerText)) ?></p>
             </div>
-            <div class="col-md-4 mb-4">
+            <div class="col-lg-4 col-md-6 mb-4">
                 <h6 class="fw-bold mb-3">Contacto</h6>
                 <ul class="list-unstyled small text-muted">
                     <?php if ($footerAddr): ?><li class="mb-2">📍 <?= htmlspecialchars($footerAddr) ?></li><?php endif; ?>
                     <?php if ($footerPhone): ?><li class="mb-2">📞 <?= htmlspecialchars($footerPhone) ?></li><?php endif; ?>
                 </ul>
             </div>
-            <div class="col-md-3 mb-4">
+            <div class="col-lg-3 col-md-6 mb-4">
                 <h6 class="fw-bold mb-3">Redes</h6>
                 <?php if ($footerSocials): ?>
-                    <a href="<?= htmlspecialchars($footerSocials) ?>" target="_blank" class="text-decoration-none fw-bold" style="color: var(--color-secondary);">Seguinos Aquí</a>
+                    <p class="small text-muted opacity-75 mb-0"><?= nl2br(htmlspecialchars($footerSocials)) ?></p>
                 <?php endif; ?>
             </div>
         </div>
@@ -175,6 +178,7 @@ $footerSocials = $empresaObj->footer_socials ?? '';
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     

@@ -7,5 +7,7 @@
 /tmp/
 /cache/
 /logs/*.log
+/app/storage/module_notes.json
+/public/uploads/module-notes/
 .DS_Store
 Thumbs.db

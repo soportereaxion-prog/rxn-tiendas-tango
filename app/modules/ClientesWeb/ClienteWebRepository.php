@@ -10,10 +10,74 @@ use PDO;
 class ClienteWebRepository
 {
     private PDO $db;
+    private string $clientesTable;
+    private const SEARCHABLE_FIELDS = [
+        'id' => 'CAST(id AS CHAR)',
+        'nombre' => 'nombre',
+        'email' => 'email',
+        'documento' => 'documento',
+        'codigo_tango' => 'codigo_tango',
+    ];
 
-    public function __construct()
+    public function __construct(string $table = 'clientes_web', bool $bootstrap = false)
     {
         $this->db = Database::getConnection();
+        $this->clientesTable = preg_replace('/[^a-z0-9_]/', '', strtolower($table)) ?: 'clientes_web';
+        
+        if ($bootstrap) {
+            $this->ensureSchema();
+        }
+    }
+
+    public static function forCrm(): self
+    {
+        return new self('crm_clientes', true);
+    }
+
+    private function ensureSchema(): void
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS {$this->clientesTable} (
+            `id` int NOT NULL AUTO_INCREMENT,
+            `empresa_id` int NOT NULL,
+            `codigo_tango` varchar(15) DEFAULT NULL COMMENT 'Si es nulo se manda 000000',
+            `nombre` varchar(100) NOT NULL,
+            `apellido` varchar(100) NOT NULL,
+            `email` varchar(150) NOT NULL,
+            `email_verificado` tinyint(1) DEFAULT '0',
+            `email_verificado_at` datetime DEFAULT NULL,
+            `verification_token` varchar(64) DEFAULT NULL,
+            `verification_expires` datetime DEFAULT NULL,
+            `password_hash` varchar(255) DEFAULT NULL,
+            `reset_token` varchar(64) DEFAULT NULL,
+            `reset_expires` datetime DEFAULT NULL,
+            `telefono` varchar(50) DEFAULT NULL,
+            `documento` varchar(50) DEFAULT NULL,
+            `razon_social` varchar(150) DEFAULT NULL,
+            `direccion` varchar(255) DEFAULT NULL,
+            `localidad` varchar(100) DEFAULT NULL,
+            `provincia` varchar(100) DEFAULT NULL,
+            `codigo_postal` varchar(20) DEFAULT NULL,
+            `observaciones` text,
+            `activo` tinyint(1) DEFAULT '1',
+            `id_gva14_tango` int DEFAULT NULL,
+            `id_gva01_condicion_venta` int DEFAULT NULL,
+            `id_gva01_tango` int DEFAULT NULL,
+            `id_gva10_lista_precios` int DEFAULT NULL,
+            `id_gva10_tango` int DEFAULT NULL,
+            `id_gva23_vendedor` int DEFAULT NULL,
+            `id_gva23_tango` int DEFAULT NULL,
+            `id_gva24_transporte` int DEFAULT NULL,
+            `id_gva24_tango` int DEFAULT NULL,
+            `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_emp_email_{$this->clientesTable}` (`empresa_id`,`email`),
+            KEY `idx_empresa_id_{$this->clientesTable}` (`empresa_id`),
+            KEY `idx_email_{$this->clientesTable}` (`email`),
+            KEY `idx_documento_{$this->clientesTable}` (`documento`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        
+        $this->db->exec($sql);
     }
 
     /**
@@ -22,7 +86,7 @@ class ClienteWebRepository
      */
     public function findByDocumentoOrEmail(int $empresaId, ?string $documento, string $email): ?array
     {
-        $sql = "SELECT * FROM clientes_web 
+        $sql = "SELECT * FROM {$this->clientesTable} 
                 WHERE empresa_id = :empresa_id ";
 
         $params = ['empresa_id' => $empresaId];
@@ -50,7 +114,7 @@ class ClienteWebRepository
      */
     public function create(array $data): int
     {
-        $sql = "INSERT INTO clientes_web (
+        $sql = "INSERT INTO {$this->clientesTable} (
             empresa_id, codigo_tango, nombre, apellido, email, telefono, documento, razon_social,
             direccion, localidad, provincia, codigo_postal, observaciones, activo, created_at, updated_at
         ) VALUES (
@@ -87,7 +151,7 @@ class ClienteWebRepository
     public function updateIfChanged(int $id, array $newData): void
     {
         // Actualizamos los campos de contacto y envío
-        $sql = "UPDATE clientes_web SET 
+        $sql = "UPDATE {$this->clientesTable} SET 
             nombre = :nombre, 
             apellido = :apellido, 
             telefono = :telefono, 
@@ -116,24 +180,17 @@ class ClienteWebRepository
     /**
      * Obtiene todos los clientes paginados para el ABM.
      */
-    public function findAllPaginated(int $empresaId, int $page, int $limit, string $search, string $sort, string $dir): array
+    public function findAllPaginated(int $empresaId, int $page, int $limit, string $search, string $field, string $sort, string $dir): array
     {
         $offset = ($page - 1) * $limit;
         $orderDir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
         $allowedSorts = ['id', 'nombre', 'apellido', 'email', 'codigo_tango', 'id_gva14_tango', 'created_at'];
         $orderBy = in_array(strtolower($sort), $allowedSorts) ? $sort : 'created_at';
 
-        $sql = "SELECT * FROM clientes_web WHERE empresa_id = :emp_id";
+        $sql = "SELECT * FROM {$this->clientesTable} WHERE empresa_id = :emp_id";
         $params = ['emp_id' => $empresaId];
 
-        if (!empty($search)) {
-            $sql .= " AND (nombre LIKE :s1 OR apellido LIKE :s2 OR email LIKE :s3 OR documento LIKE :s4 OR codigo_tango LIKE :s5)";
-            $params['s1'] = "%$search%";
-            $params['s2'] = "%$search%";
-            $params['s3'] = "%$search%";
-            $params['s4'] = "%$search%";
-            $params['s5'] = "%$search%";
-        }
+        $this->applySearch($sql, $params, $search, $field, true);
 
         $sql .= " ORDER BY $orderBy $orderDir LIMIT :limit OFFSET :offset";
 
@@ -151,23 +208,61 @@ class ClienteWebRepository
     /**
      * Cuenta clientes para paginación.
      */
-    public function countAll(int $empresaId, string $search): int
+    public function countAll(int $empresaId, string $search, string $field): int
     {
-        $sql = "SELECT COUNT(*) FROM clientes_web WHERE empresa_id = :emp_id";
+        $sql = "SELECT COUNT(*) FROM {$this->clientesTable} WHERE empresa_id = :emp_id";
         $params = ['emp_id' => $empresaId];
-
-        if (!empty($search)) {
-            $sql .= " AND (nombre LIKE :s1 OR apellido LIKE :s2 OR email LIKE :s3 OR documento LIKE :s4 OR codigo_tango LIKE :s5)";
-            $params['s1'] = "%$search%";
-            $params['s2'] = "%$search%";
-            $params['s3'] = "%$search%";
-            $params['s4'] = "%$search%";
-            $params['s5'] = "%$search%";
-        }
+        $this->applySearch($sql, $params, $search, $field, true);
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return (int) $stmt->fetchColumn();
+    }
+
+    public function findSuggestions(int $empresaId, string $search, string $field, int $limit = 3): array
+    {
+        if (trim($search) === '') {
+            return [];
+        }
+
+        $sql = "SELECT id, nombre, apellido, email, documento, codigo_tango FROM {$this->clientesTable} WHERE empresa_id = :emp_id";
+        $params = ['emp_id' => $empresaId];
+        $this->applySearch($sql, $params, $search, $field, true);
+        $sql .= ' ORDER BY nombre ASC LIMIT :limit';
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(':' . ltrim((string) $key, ':'), $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function applySearch(string &$sql, array &$params, string $search, string $field, bool $hasWhere = false): void
+    {
+        $search = trim($search);
+
+        if ($search === '') {
+            return;
+        }
+
+        $operator = $hasWhere ? ' AND ' : ' WHERE ';
+
+        if ($field !== 'all' && isset(self::SEARCHABLE_FIELDS[$field])) {
+            $sql .= $operator . self::SEARCHABLE_FIELDS[$field] . ' LIKE :search';
+            $params['search'] = '%' . $search . '%';
+            return;
+        }
+
+        $sql .= $operator . ' (nombre LIKE :s1 OR apellido LIKE :s2 OR email LIKE :s3 OR documento LIKE :s4 OR codigo_tango LIKE :s5 OR CAST(id AS CHAR) LIKE :s6)';
+        $params['s1'] = '%' . $search . '%';
+        $params['s2'] = '%' . $search . '%';
+        $params['s3'] = '%' . $search . '%';
+        $params['s4'] = '%' . $search . '%';
+        $params['s5'] = '%' . $search . '%';
+        $params['s6'] = '%' . $search . '%';
     }
 
     /**
@@ -175,7 +270,7 @@ class ClienteWebRepository
      */
     public function findById(int $id, int $empresaId): ?array
     {
-        $sql = "SELECT * FROM clientes_web WHERE id = :id AND empresa_id = :emp_id LIMIT 1";
+        $sql = "SELECT * FROM {$this->clientesTable} WHERE id = :id AND empresa_id = :emp_id LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['id' => $id, 'emp_id' => $empresaId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -187,7 +282,7 @@ class ClienteWebRepository
      */
     public function update(int $id, array $data): void
     {
-        $sql = "UPDATE clientes_web SET 
+        $sql = "UPDATE {$this->clientesTable} SET 
             nombre = :nombre, 
             apellido = :apellido, 
             email = :email,
@@ -223,7 +318,7 @@ class ClienteWebRepository
 
     public function updateTangoData(int $id, array $tangoData): void
     {
-        $sql = "UPDATE clientes_web SET 
+        $sql = "UPDATE {$this->clientesTable} SET 
             id_gva14_tango = :gva14,
             id_gva01_condicion_venta = :gva01,
             id_gva10_lista_precios = :gva10,
@@ -251,5 +346,65 @@ class ClienteWebRepository
             'id_gva24_tango' => $tangoData['id_gva24_tango'] ?? null,
             'codigo_tango' => $tangoData['codigo_tango'] ?? null
         ]);
+    }
+
+    public function clearTangoData(int $id, ?string $codigoTango = null): void
+    {
+        $sql = "UPDATE clientes_web SET
+            id_gva14_tango = NULL,
+            id_gva01_condicion_venta = NULL,
+            id_gva10_lista_precios = NULL,
+            id_gva23_vendedor = NULL,
+            id_gva24_transporte = NULL,
+            id_gva01_tango = NULL,
+            id_gva10_tango = NULL,
+            id_gva23_tango = NULL,
+            id_gva24_tango = NULL,
+            codigo_tango = :codigo_tango,
+            updated_at = NOW()
+            WHERE id = :id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'id' => $id,
+            'codigo_tango' => $codigoTango !== null && $codigoTango !== '' ? $codigoTango : null,
+        ]);
+    }
+
+    public function updateRelacionOverrides(int $id, array $data): void
+    {
+        $sql = "UPDATE clientes_web SET
+            id_gva01_condicion_venta = :gva01_codigo,
+            id_gva10_lista_precios = :gva10_codigo,
+            id_gva23_vendedor = :gva23_codigo,
+            id_gva24_transporte = :gva24_codigo,
+            id_gva01_tango = :gva01_id,
+            id_gva10_tango = :gva10_id,
+            id_gva23_tango = :gva23_id,
+            id_gva24_tango = :gva24_id,
+            updated_at = NOW()
+            WHERE id = :id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'id' => $id,
+            'gva01_codigo' => $this->normalizeNullableInt($data['id_gva01_condicion_venta'] ?? null),
+            'gva10_codigo' => $this->normalizeNullableInt($data['id_gva10_lista_precios'] ?? null),
+            'gva23_codigo' => $this->normalizeNullableInt($data['id_gva23_vendedor'] ?? null),
+            'gva24_codigo' => $this->normalizeNullableInt($data['id_gva24_transporte'] ?? null),
+            'gva01_id' => $this->normalizeNullableInt($data['id_gva01_tango'] ?? null),
+            'gva10_id' => $this->normalizeNullableInt($data['id_gva10_tango'] ?? null),
+            'gva23_id' => $this->normalizeNullableInt($data['id_gva23_tango'] ?? null),
+            'gva24_id' => $this->normalizeNullableInt($data['id_gva24_tango'] ?? null),
+        ]);
+    }
+
+    private function normalizeNullableInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
     }
 }

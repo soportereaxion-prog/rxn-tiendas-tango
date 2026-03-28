@@ -55,6 +55,10 @@ class CartService
             return false;
         }
 
+        if (((float) $articulo->stock_actual) <= 0) {
+            return false;
+        }
+
         // Definir precio a usar (Acá podríamos elegir L1 o L2 según config, pero usaremos el bruto o el que haya por defecto)
         // Como convención simple de esta iteración 1: el de primera lista o el genérico.
         $precioSnapshot = $articulo->precio_lista_1 ?? $articulo->precio ?? 0.0;

@@ -10,10 +10,26 @@ use RuntimeException;
 class EmpresaConfigService
 {
     private EmpresaConfigRepository $repository;
+    private string $uploadSegment;
+    private bool $clearStoreCache;
 
-    public function __construct()
+    public function __construct(?EmpresaConfigRepository $repository = null, string $uploadSegment = 'config', bool $clearStoreCache = true)
     {
-        $this->repository = new EmpresaConfigRepository();
+        $this->repository = $repository ?? new EmpresaConfigRepository();
+        $this->uploadSegment = $uploadSegment;
+        $this->clearStoreCache = $clearStoreCache;
+    }
+
+    public static function forCrm(): self
+    {
+        return new self(EmpresaConfigRepository::forCrm(), 'config-crm', false);
+    }
+
+    public static function forArea(string $area): self
+    {
+        return strtolower(trim($area)) === 'crm'
+            ? self::forCrm()
+            : new self();
     }
 
     private function getContextId(): int
@@ -88,7 +104,7 @@ class EmpresaConfigService
         $config->smtp_from_name = !empty($data['smtp_from_name']) ? trim($data['smtp_from_name']) : null;
 
         if (isset($data['smtp_pass']) && $data['smtp_pass'] !== '') {
-            $config->smtp_pass = trim($data['smtp_pass']);
+                $config->smtp_pass = trim($data['smtp_pass']);
         }
 
         // --- MÓDULO IMAGEN FALLBACK ---
@@ -98,7 +114,7 @@ class EmpresaConfigService
             $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
             
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/config';
+                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment;
                 if (!is_dir($dirUploads)) {
                     mkdir($dirUploads, 0777, true);
                 }
@@ -107,9 +123,11 @@ class EmpresaConfigService
                 $rutaAbsoluta = $dirUploads . '/' . $filename;
                 
                 if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
-                    $config->imagen_default_producto = '/uploads/empresas/' . $empresaId . '/config/' . $filename;
+                    $config->imagen_default_producto = '/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment . '/' . $filename;
                     // Limpieza obligatoria del menú ya que cambiamos el aspet global visual
-                    \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
+                    if ($this->clearStoreCache) {
+                        \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
+                    }
                 }
             }
         }

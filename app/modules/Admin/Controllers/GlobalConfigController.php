@@ -23,8 +23,7 @@ class GlobalConfigController extends Controller
      */
     public function showSmtpGlobal(): void
     {
-        // Regla de Negocio: En un futuro aquí se forzará rol === 'superadmin'
-        AuthService::requireLogin();
+        AuthService::requireBackofficeAdmin();
         
         $envVars = $this->envManager->getParsedVariables();
 
@@ -51,7 +50,7 @@ class GlobalConfigController extends Controller
      */
     public function updateSmtpGlobal(): void
     {
-        AuthService::requireLogin();
+        AuthService::requireBackofficeAdmin();
 
         try {
             $updates = [
@@ -84,7 +83,7 @@ class GlobalConfigController extends Controller
      */
     public function testConnection(): void
     {
-        AuthService::requireLogin();
+        AuthService::requireBackofficeAdmin();
         
         header('Content-Type: application/json');
         

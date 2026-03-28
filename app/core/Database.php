@@ -28,16 +28,40 @@ class Database
                 $config['charset']
             );
 
-            try {
-                self::$connection = new PDO($dsn, $config['user'], $config['pass'], [
-                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES   => false,
-                ]);
-            } catch (PDOException $e) {
-                // No exponer detalles de conexión al cliente.
-                error_log('Database connection error: ' . $e->getMessage());
-                throw new \RuntimeException('Error al conectar con la base de datos.');
+            $maxAttempts = 3;
+            $lastException = null;
+
+            for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                try {
+                    self::$connection = new PDO($dsn, $config['user'], $config['pass'], [
+                        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES   => false,
+                    ]);
+                    break;
+                } catch (PDOException $e) {
+                    $lastException = $e;
+                    error_log(sprintf(
+                        'Database connection error [attempt %d/%d] %s:%s - %s',
+                        $attempt,
+                        $maxAttempts,
+                        (string) ($config['host'] ?? 'n/a'),
+                        (string) ($config['port'] ?? 'n/a'),
+                        $e->getMessage()
+                    ));
+
+                    if ($attempt < $maxAttempts) {
+                        usleep(250000);
+                    }
+                }
+            }
+
+            if (self::$connection === null) {
+                throw new \RuntimeException(sprintf(
+                    'Error al conectar con la base de datos (%s:%s). Verificá que el motor MySQL esté levantado.',
+                    (string) ($config['host'] ?? 'n/a'),
+                    (string) ($config['port'] ?? 'n/a')
+                ), previous: $lastException);
             }
         }
 

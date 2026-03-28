@@ -6,6 +6,9 @@ $hasStock = ((float)$articulo->stock_actual) > 0;
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="text-decoration-none text-muted">Catálogo</a></li>
+            <?php if (!empty($articulo->categoria_nombre) && !empty($articulo->categoria_slug)): ?>
+                <li class="breadcrumb-item"><a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>?categoria=<?= urlencode((string) $articulo->categoria_slug) ?>" class="text-decoration-none text-muted"><?= htmlspecialchars((string) $articulo->categoria_nombre) ?></a></li>
+            <?php endif; ?>
             <li class="breadcrumb-item active text-dark fw-medium" aria-current="page"><?= htmlspecialchars((string)$articulo->nombre) ?></li>
         </ol>
     </nav>
@@ -86,6 +89,13 @@ $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
         
         <div class="col-md-6">
             <span class="badge bg-secondary mb-3 fs-6 px-3 py-2 fw-normal opacity-75">SKU: <?= htmlspecialchars((string)$articulo->codigo_externo) ?></span>
+            <?php if (!empty($articulo->categoria_nombre) && !empty($articulo->categoria_slug)): ?>
+                <div class="mb-3">
+                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>?categoria=<?= urlencode((string) $articulo->categoria_slug) ?>" class="badge rounded-pill text-bg-light border text-decoration-none px-3 py-2">
+                        <?= htmlspecialchars((string) $articulo->categoria_nombre) ?>
+                    </a>
+                </div>
+            <?php endif; ?>
             <h1 class="fw-bolder mb-3 text-dark"><?= htmlspecialchars((string)$articulo->nombre) ?></h1>
             
             <div class="mb-4">
@@ -123,8 +133,10 @@ $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
                         <input type="number" id="qty" name="cantidad" class="form-control text-center fw-bold" value="1" min="1" max="99" style="width: 80px;">
                     </div>
                     <div class="col">
-                        <?php if ($price !== null): ?>
+                        <?php if ($price !== null && $hasStock): ?>
                             <button type="submit" class="btn btn-dark w-100 py-3 fw-bold fs-5 shadow-sm rounded-3">Añadir al Carrito</button>
+                        <?php elseif ($price !== null): ?>
+                            <button type="button" class="btn btn-secondary w-100 py-3 fw-bold fs-5 rounded-3" disabled>Sin Stock</button>
                         <?php else: ?>
                             <button type="button" class="btn btn-secondary w-100 py-3 fw-bold fs-5 rounded-3" disabled>No Disponible</button>
                         <?php endif; ?>

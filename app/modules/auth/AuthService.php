@@ -51,6 +51,14 @@ class AuthService
         }
     }
 
+    public static function hasAdminPrivileges(): bool
+    {
+        $isTenantAdmin = !empty($_SESSION['es_admin']) && $_SESSION['es_admin'] == 1;
+        $isGlobalAdmin = !empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1;
+
+        return $isTenantAdmin || $isGlobalAdmin;
+    }
+
     public static function requireRxnAdmin(): void
     {
         self::requireLogin();
@@ -59,6 +67,21 @@ class AuthService
             echo "<div style='font-family:sans-serif; text-align:center; margin-top:50px;'>";
             echo "<h2>⚠️ Acceso Denegado (Área Restringida RXN)</h2>";
             echo "<p>Usted no posee credenciales centralizadas para auditar o administrar licencias. Contacte a soporte de RXN.</p>";
+            echo "<a href='/rxnTiendasIA/public/'>Volver Seguro</a>";
+            echo "</div>";
+            exit;
+        }
+    }
+
+    public static function requireBackofficeAdmin(): void
+    {
+        self::requireLogin();
+
+        if (!self::hasAdminPrivileges()) {
+            http_response_code(403);
+            echo "<div style='font-family:sans-serif; text-align:center; margin-top:50px;'>";
+            echo "<h2>⚠️ Acceso Denegado (Backoffice)</h2>";
+            echo "<p>Necesita privilegios de administrador para ingresar al backoffice.</p>";
             echo "<a href='/rxnTiendasIA/public/'>Volver Seguro</a>";
             echo "</div>";
             exit;

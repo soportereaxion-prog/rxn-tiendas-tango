@@ -10,8 +10,12 @@ use RuntimeException;
 class TangoApiClient
 {
     private ApiClient $client;
+    private string $apiUrl;
+    private string $accessToken;
+    private ?string $clientKey;
     public $debugLastRawDepositos = null;
     public $debugLastRawListas = null;
+    public $debugLastRawEmpresas = null;
     public $debugLastHttpRequest = [];
 
     public function __construct(string $apiUrl, string $accessToken, string $companyId, ?string $clientKey = null)
@@ -20,19 +24,32 @@ class TangoApiClient
             throw new \App\Infrastructure\Exceptions\ConfigurationException("Configuración HTTP de integración Tango incompleta para este entorno operativo.");
         }
 
+        $this->apiUrl = rtrim($apiUrl, '/');
+        $this->accessToken = $accessToken;
+        $this->clientKey = $clientKey;
+
+        $this->client = $this->buildClient($companyId);
+    }
+
+    private function buildClient(string $companyId): ApiClient
+    {
+        if ($companyId === '') {
+            throw new \App\Infrastructure\Exceptions\ConfigurationException("El header Company no puede viajar vacio hacia Tango Connect.");
+        }
+
         // Estándar puro demandado por Connect
         $headers = [
-            'ApiAuthorization: ' . $accessToken,
+            'ApiAuthorization: ' . $this->accessToken,
             'Company: ' . $companyId,
             'Accept: application/json',
             'Content-Type: application/json'
         ];
         
-        if ($clientKey) {
-            $headers[] = 'Client-Id: ' . $clientKey;
+        if ($this->clientKey) {
+            $headers[] = 'Client-Id: ' . $this->clientKey;
         }
 
-        $this->client = new ApiClient($apiUrl, $headers);
+        return new ApiClient($this->apiUrl, $headers);
     }
 
     /**
@@ -109,46 +126,12 @@ class TangoApiClient
      */
     public function getMaestroDepositos(): array
     {
-        $depositos = [];
-        $page = 0;
-        $pageSize = 100;
-        
-        try {
-            while (true) {
-                $data = $this->client->get('Get', [
-                    'process' => 2941,
-                    'pageSize' => $pageSize,
-                    'pageIndex' => $page,
-                    'view' => ''
-                ]);
-                
-                if ($page === 0) {
-                    $this->debugLastRawDepositos = $data;
-                    $this->debugLastHttpRequest = $this->client->debugLastRequest ?? [];
-                }
-
-                $list = $data['data']['resultData']['list'] ?? [];
-                if (empty($list)) {
-                    break; // Fin de resultados
-                }
-                
-                foreach ($list as $item) {
-                    $id = $item['ID_STA22'] ?? null;
-                    $desc = $item['COD_DESCRIP'] ?? $item['NOMBRE_SUC'] ?? null;
-                    
-                    if ($id !== null) {
-                        $depositos[(string)$id] = (string)$desc;
-                    }
-                }
-                
-                if (count($list) < $pageSize) {
-                    break; // Última página
-                }
-                $page++;
-            }
-        } catch (\Exception $e) {}
-        
-        return $depositos;
+        return $this->fetchCatalog(
+            2941,
+            ['ID_STA22'],
+            ['COD_DESCRIP', 'NOMBRE_SUC'],
+            $this->debugLastRawDepositos
+        );
     }
 
     /**
@@ -156,44 +139,100 @@ class TangoApiClient
      */
     public function getMaestroListasPrecio(): array
     {
-        $listas = [];
+        return $this->fetchCatalog(
+            984,
+            ['ID_GVA10'],
+            ['COD_DESCRIP', 'NOMBRE_LIS'],
+            $this->debugLastRawListas
+        );
+    }
+
+    public function getMaestroEmpresas(): array
+    {
+        return $this->fetchCatalog(
+            1418,
+            ['ID_EMPRESA', 'ID', 'EMPRESA'],
+            ['NOMBRE_EMPRESA', 'NOMBRE', 'RAZON_SOCIAL', 'DESCRIPCION', 'COD_DESCRIP'],
+            $this->debugLastRawEmpresas,
+            '-1'
+        );
+    }
+
+    private function fetchCatalog(
+        int $process,
+        array $idKeys,
+        array $descriptionKeys,
+        mixed &$debugRawStore,
+        ?string $companyOverride = null
+    ): array {
+        $items = [];
         $page = 0;
         $pageSize = 100;
+        $client = $companyOverride !== null ? $this->buildClient($companyOverride) : $this->client;
 
         try {
             while (true) {
-                $data = $this->client->get('Get', [
-                    'process' => 984,
+                $data = $client->get('Get', [
+                    'process' => $process,
                     'pageSize' => $pageSize,
                     'pageIndex' => $page,
                     'view' => ''
                 ]);
 
                 if ($page === 0) {
-                    $this->debugLastRawListas = $data;
+                    $debugRawStore = $data;
+                    $this->debugLastHttpRequest = $client->debugLastRequest ?? [];
                 }
 
                 $list = $data['data']['resultData']['list'] ?? [];
                 if (empty($list)) {
                     break;
                 }
-                
-                foreach ($list as $item) {
-                    $id = $item['ID_GVA10'] ?? null;
-                    $desc = $item['COD_DESCRIP'] ?? $item['NOMBRE_LIS'] ?? null;
 
-                    if ($id !== null) {
-                        $listas[(string)$id] = (string)$desc;
+                foreach ($list as $item) {
+                    $id = $this->firstAvailableValue($item, $idKeys);
+                    if ($id === null) {
+                        continue;
                     }
+
+                    $description = $this->firstAvailableValue($item, $descriptionKeys);
+                    $normalizedId = $this->normalizeCatalogValue($id);
+                    $normalizedDescription = $description !== null ? trim((string) $description) : $normalizedId;
+
+                    $items[$normalizedId] = $normalizedDescription !== '' ? $normalizedDescription : $normalizedId;
                 }
 
                 if (count($list) < $pageSize) {
                     break;
                 }
+
                 $page++;
             }
-        } catch (\Exception $e) {}
-        
-        return $listas;
+        } catch (\Exception $e) {
+        }
+
+        return $items;
+    }
+
+    private function firstAvailableValue(array $item, array $keys): mixed
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $item) && $item[$key] !== null && $item[$key] !== '') {
+                return $item[$key];
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeCatalogValue(mixed $value): string
+    {
+        $normalized = trim((string) $value);
+
+        if ($normalized !== '' && is_numeric($normalized)) {
+            return (string) ($normalized + 0);
+        }
+
+        return $normalized;
     }
 }

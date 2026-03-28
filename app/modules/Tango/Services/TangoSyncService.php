@@ -3,6 +3,8 @@ declare(strict_types=1);
 namespace App\Modules\Tango\Services;
 
 use App\Core\Context;
+use App\Modules\EmpresaConfig\EmpresaConfigService;
+use App\Modules\EmpresaConfig\EmpresaConfig;
 use App\Modules\Tango\TangoService;
 use App\Modules\Tango\Repositories\TangoSyncLogRepository;
 use App\Modules\Articulos\ArticuloRepository;
@@ -13,13 +15,22 @@ class TangoSyncService
     private TangoService $tangoService;
     private TangoSyncLogRepository $logRepo;
     private ArticuloRepository $articuloRepo;
+    private EmpresaConfigService $configService;
+    private string $area;
 
-    public function __construct()
+    public function __construct(string $area = 'tiendas')
     {
+        $this->area = $this->normalizeArea($area);
         // Instanciamos el túnel abstracto, que internamente ya valida credenciales por empresa.
-        $this->tangoService = new TangoService();
+        $this->tangoService = new TangoService($this->area);
         $this->logRepo = new TangoSyncLogRepository();
-        $this->articuloRepo = new ArticuloRepository();
+        $this->articuloRepo = $this->area === 'crm' ? ArticuloRepository::forCrm() : new ArticuloRepository();
+        $this->configService = EmpresaConfigService::forArea($this->area);
+    }
+
+    public static function forCrm(): self
+    {
+        return new self('crm');
     }
 
     public function syncArticulos(): array
@@ -76,7 +87,7 @@ class TangoSyncService
 
             // 4. Concluir Trazabilidad en Verde
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
-            \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
+            $this->clearAreaCaches((int) $empresaId);
             return $stats;
 
         } catch (\Exception $e) {
@@ -93,11 +104,54 @@ class TangoSyncService
             throw new \RuntimeException("Sincronización abortada: Sin empresa activa en sesión.");
         }
 
-        // 1. Leer configuraciones por empresa
-        $configService = new \App\Modules\EmpresaConfig\EmpresaConfigService();
-        $config = $configService->getConfig();
-        $lista1 = $config->lista_precio_1;
-        $lista2 = $config->lista_precio_2;
+        $config = $this->getEmpresaConfig();
+
+        return $this->syncPreciosWithConfig((int) $empresaId, $config);
+    }
+
+    public function syncStock(): array
+    {
+        $empresaId = Context::getEmpresaId();
+        if (!$empresaId) {
+            throw new \RuntimeException("Sincronización abortada: Sin empresa activa en sesión.");
+        }
+
+        $config = $this->getEmpresaConfig();
+
+        return $this->syncStockWithConfig((int) $empresaId, $config);
+    }
+
+    public function syncTodo(): array
+    {
+        $empresaId = Context::getEmpresaId();
+        if (!$empresaId) {
+            throw new \RuntimeException("Sincronización abortada: Sin empresa activa en sesión.");
+        }
+
+        $config = $this->getEmpresaConfig();
+
+        $articulos = $this->syncArticulos();
+        $precios = $this->syncPreciosWithConfig((int) $empresaId, $config);
+        $stock = $this->syncStockWithConfig((int) $empresaId, $config);
+
+        return [
+            'recibidos' => (int) ($articulos['recibidos'] ?? 0) + (int) ($precios['recibidos'] ?? 0) + (int) ($stock['recibidos'] ?? 0),
+            'insertados' => (int) ($articulos['insertados'] ?? 0),
+            'actualizados' => (int) ($articulos['actualizados'] ?? 0) + (int) ($precios['actualizados'] ?? 0) + (int) ($stock['actualizados'] ?? 0),
+            'omitidos' => (int) ($articulos['omitidos'] ?? 0) + (int) ($precios['omitidos'] ?? 0) + (int) ($stock['omitidos'] ?? 0),
+            'sin_match' => (int) ($precios['sin_match'] ?? 0) + (int) ($stock['sin_match'] ?? 0),
+            'etapas' => [
+                'articulos' => $articulos,
+                'precios' => $precios,
+                'stock' => $stock,
+            ],
+        ];
+    }
+
+    private function syncPreciosWithConfig(int $empresaId, object $config): array
+    {
+        $lista1 = $config->lista_precio_1 ?? null;
+        $lista2 = $config->lista_precio_2 ?? null;
 
         if (empty($lista1) && empty($lista2)) {
             throw new \RuntimeException("Sincronización abortada: No hay listas de precios configuradas (lista_precio_1 / lista_precio_2) para esta Empresa.");
@@ -160,7 +214,7 @@ class TangoSyncService
 
             // 4. Concluir Trazabilidad en Verde
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
-            \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
+            $this->clearAreaCaches((int) $empresaId);
             return $stats;
 
         } catch (\Exception $e) {
@@ -169,16 +223,9 @@ class TangoSyncService
         }
     }
 
-    public function syncStock(): array
+    private function syncStockWithConfig(int $empresaId, object $config): array
     {
-        $empresaId = Context::getEmpresaId();
-        if (!$empresaId) {
-            throw new \RuntimeException("Sincronización abortada: Sin empresa activa en sesión.");
-        }
-
-        $configService = new \App\Modules\EmpresaConfig\EmpresaConfigService();
-        $config = $configService->getConfig();
-        $deposito = $config->deposito_codigo;
+        $deposito = $config->deposito_codigo ?? null;
 
         if ($deposito === null || $deposito === '') {
             throw new \RuntimeException("Sincronización abortada: No hay Depósito (deposito_codigo) configurado para esta Empresa.");
@@ -234,12 +281,32 @@ class TangoSyncService
             }
 
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
-            \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
+            $this->clearAreaCaches((int) $empresaId);
             return $stats;
 
         } catch (\Exception $e) {
             $this->logRepo->endLog($logId, $stats, 'ERROR', $e->getMessage());
             throw $e; 
         }
+    }
+
+    private function getEmpresaConfig(): EmpresaConfig
+    {
+        return $this->configService->getConfig();
+    }
+
+    private function clearAreaCaches(int $empresaId): void
+    {
+        if ($this->area !== 'tiendas') {
+            return;
+        }
+
+        \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
+        \App\Core\FileCache::clearPrefix("categorias_store_empresa_{$empresaId}");
+    }
+
+    private function normalizeArea(string $area): string
+    {
+        return strtolower(trim($area)) === 'crm' ? 'crm' : 'tiendas';
     }
 }

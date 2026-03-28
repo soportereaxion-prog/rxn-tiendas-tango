@@ -14,9 +14,19 @@ class MailService
 {
     private EmpresaConfigRepository $configRepo;
 
-    public function __construct()
+    public function __construct(?EmpresaConfigRepository $configRepo = null)
     {
-        $this->configRepo = new EmpresaConfigRepository();
+        $this->configRepo = $configRepo ?? new EmpresaConfigRepository();
+    }
+
+    public static function forCrm(): self
+    {
+        return new self(EmpresaConfigRepository::forCrm());
+    }
+
+    public static function forArea(string $area): self
+    {
+        return new self(EmpresaConfigRepository::forArea($area));
     }
 
     /**

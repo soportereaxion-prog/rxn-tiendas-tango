@@ -10,22 +10,137 @@ use PDO;
 class EmpresaRepository
 {
     private PDO $db;
+    private const SEARCHABLE_FIELDS = [
+        'id' => 'CAST(id AS CHAR)',
+        'codigo' => 'codigo',
+        'nombre' => 'nombre',
+        'slug' => 'slug',
+        'razon_social' => 'razon_social',
+        'cuit' => 'cuit',
+    ];
+    private const SORTABLE_FIELDS = [
+        'id' => 'id',
+        'codigo' => 'codigo',
+        'nombre' => 'nombre',
+        'slug' => 'slug',
+        'razon_social' => 'razon_social',
+        'cuit' => 'cuit',
+        'activa' => 'activa',
+    ];
 
     public function __construct()
     {
         $this->db = Database::getConnection();
     }
 
-    public function findAll(): array
+    public function findAll(
+        ?string $search = null,
+        string $field = 'all',
+        string $sort = 'nombre',
+        string $dir = 'asc',
+        int $limit = 10,
+        int $offset = 0
+    ): array
     {
-        $stmt = $this->db->query("SELECT * FROM empresas ORDER BY nombre ASC");
+        $sql = 'SELECT * FROM empresas';
+        $params = [];
+        $this->applySearch($sql, $params, $search, $field);
+        $sql .= sprintf(
+            ' ORDER BY %s %s LIMIT :limit OFFSET :offset',
+            $this->normalizeSortField($sort),
+            $this->normalizeSortDirection($dir)
+        );
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_CLASS, Empresa::class);
+    }
+
+    public function countAll(): int
+    {
+        return (int) $this->db->query('SELECT COUNT(*) FROM empresas')->fetchColumn();
+    }
+
+    public function countFiltered(?string $search = null, string $field = 'all'): int
+    {
+        $sql = 'SELECT COUNT(*) FROM empresas';
+        $params = [];
+        $this->applySearch($sql, $params, $search, $field);
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function findSuggestions(?string $search = null, string $field = 'all', int $limit = 3): array
+    {
+        $search = trim((string) $search);
+
+        if ($search === '') {
+            return [];
+        }
+
+        $sql = 'SELECT id, codigo, nombre, slug, razon_social, cuit, activa FROM empresas';
+        $params = [];
+        $this->applySearch($sql, $params, $search, $field);
+        $sql .= ' ORDER BY nombre ASC LIMIT :limit';
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function applySearch(string &$sql, array &$params, ?string $search, string $field): void
+    {
+        $search = trim((string) $search);
+
+        if ($search == '') {
+            return;
+        }
+
+        $term = '%' . $search . '%';
+
+        if ($field !== 'all' && isset(self::SEARCHABLE_FIELDS[$field])) {
+            $sql .= ' WHERE ' . self::SEARCHABLE_FIELDS[$field] . ' LIKE :search';
+            $params[':search'] = $term;
+            return;
+        }
+
+        $conditions = [];
+        foreach (self::SEARCHABLE_FIELDS as $key => $column) {
+            $placeholder = ':search_' . $key;
+            $conditions[] = $column . ' LIKE ' . $placeholder;
+            $params[$placeholder] = $term;
+        }
+
+        $sql .= ' WHERE (' . implode(' OR ', $conditions) . ')';
+    }
+
+    private function normalizeSortField(string $field): string
+    {
+        return self::SORTABLE_FIELDS[$field] ?? self::SORTABLE_FIELDS['nombre'];
+    }
+
+    private function normalizeSortDirection(string $direction): string
+    {
+        return strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
     }
 
     public function save(Empresa $empresa): void
     {
-        $sql = "INSERT INTO empresas (codigo, nombre, razon_social, cuit, slug, activa) 
-                VALUES (:codigo, :nombre, :razon_social, :cuit, :slug, :activa)";
+        $sql = "INSERT INTO empresas (codigo, nombre, razon_social, cuit, slug, activa, modulo_tiendas, modulo_crm) 
+                VALUES (:codigo, :nombre, :razon_social, :cuit, :slug, :activa, :modulo_tiendas, :modulo_crm)";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -35,6 +150,8 @@ class EmpresaRepository
             ':cuit' => $empresa->cuit,
             ':slug' => $empresa->slug,
             ':activa' => $empresa->activa,
+            ':modulo_tiendas' => $empresa->modulo_tiendas,
+            ':modulo_crm' => $empresa->modulo_crm,
         ]);
         
         $empresa->id = (int) $this->db->lastInsertId();
@@ -64,6 +181,23 @@ class EmpresaRepository
         return $empresa ?: null;
     }
 
+    public function findBySlug(string $slug, ?int $excludeId = null): ?Empresa
+    {
+        $sql = "SELECT * FROM empresas WHERE slug = :slug";
+        $params = [':slug' => $slug];
+
+        if ($excludeId !== null) {
+            $sql .= " AND id != :excludeId";
+            $params[':excludeId'] = $excludeId;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $empresa = $stmt->fetchObject(Empresa::class);
+
+        return $empresa ?: null;
+    }
+
     public function update(Empresa $empresa): void
     {
         $sql = "UPDATE empresas SET 
@@ -72,7 +206,9 @@ class EmpresaRepository
                 razon_social = :razon_social, 
                 cuit = :cuit, 
                 slug = :slug,
-                activa = :activa 
+                activa = :activa,
+                modulo_tiendas = :modulo_tiendas,
+                modulo_crm = :modulo_crm 
                 WHERE id = :id";
                 
         $stmt = $this->db->prepare($sql);
@@ -83,6 +219,8 @@ class EmpresaRepository
             ':cuit' => $empresa->cuit,
             ':slug' => $empresa->slug,
             ':activa' => $empresa->activa,
+            ':modulo_tiendas' => $empresa->modulo_tiendas,
+            ':modulo_crm' => $empresa->modulo_crm,
             ':id' => $empresa->id,
         ]);
     }

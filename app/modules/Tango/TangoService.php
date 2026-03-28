@@ -7,15 +7,17 @@ namespace App\Modules\Tango;
 use App\Core\Context;
 use App\Modules\EmpresaConfig\EmpresaConfigService;
 use App\Modules\Tango\DTOs\TangoResponseDTO;
-use RuntimeException;
 
 class TangoService
 {
     private TangoApiClient $apiClient;
     private int $syncAmount = 50;
+    private string $area;
 
-    public function __construct()
+    public function __construct(string $area = 'tiendas')
     {
+        $this->area = $this->normalizeArea($area);
+
         // 1. Obtener la empresa activa desde el Contexto Central
         $empresaId = Context::getEmpresaId();
         if (!$empresaId) {
@@ -23,7 +25,7 @@ class TangoService
         }
 
         // 2. Extraer parámetros de conexión específicos para esta empresa.
-        $configService = new \App\Modules\EmpresaConfig\EmpresaConfigService();
+        $configService = EmpresaConfigService::forArea($this->area);
         $config = $configService->getConfig();
 
         // CONTRATO OBLIGATORIO DE CONFIGURACIÓN POR EMPRESA
@@ -48,6 +50,11 @@ class TangoService
 
         // 3. Levantar Cliente Rest inyectando config estricta por empresa
         $this->apiClient = new TangoApiClient($apiUrl, $apiToken, $companyId, $clientKey);
+    }
+
+    public static function forCrm(): self
+    {
+        return new self('crm');
     }
 
     /**
@@ -112,5 +119,10 @@ class TangoService
         }
 
         return $dto;
+    }
+
+    private function normalizeArea(string $area): string
+    {
+        return strtolower(trim($area)) === 'crm' ? 'crm' : 'tiendas';
     }
 }

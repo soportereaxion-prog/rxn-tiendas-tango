@@ -5,35 +5,37 @@ declare(strict_types=1);
 namespace App\Modules\EmpresaConfig;
 
 use App\Core\Controller;
+use App\Core\Context;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
 use App\Modules\Empresas\EmpresaRepository;
-use App\Core\Context;
+use App\Shared\Services\OperationalAreaService;
 
 class EmpresaConfigController extends Controller
 {
-    private EmpresaConfigService $service;
     private EmpresaRepository $empresaRepo;
 
     public function __construct()
     {
-        $this->service = new EmpresaConfigService();
         $this->empresaRepo = new EmpresaRepository();
     }
 
     public function index(): void
     {
         AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $service = $this->resolveService($area);
+        $viewContext = $this->buildViewContext($area);
         
         try {
-            $config = $this->service->getConfig();
+            $config = $service->getConfig();
             $empresaId = Context::getEmpresaId();
             $empresa = $this->empresaRepo->findById((int)$empresaId);
             
-            View::render('app/modules/EmpresaConfig/views/index.php', [
+            View::render('app/modules/EmpresaConfig/views/index.php', array_merge($viewContext, [
                 'config' => $config,
                 'empresa' => $empresa
-            ]);
+            ]));
         } catch (\Exception $e) {
             http_response_code(403);
             echo "<h2>Acceso Denegado</h2><p>" . htmlspecialchars($e->getMessage()) . "</p>";
@@ -43,61 +45,31 @@ class EmpresaConfigController extends Controller
     public function store(): void
     {
         AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $service = $this->resolveService($area);
+        $viewContext = $this->buildViewContext($area);
         
         try {
-            $this->service->save($_POST);
+            $service->save($_POST);
 
-            // BRANDING EMPRESARIAL
-            $empresaId = (int)Context::getEmpresaId();
-            $empresa = $this->empresaRepo->findById($empresaId);
-            
-            $brandingData = [
-                'logo_url' => $empresa->logo_url ?? null,
-                'favicon_url' => $empresa->favicon_url ?? null,
-                'color_primary' => !empty($_POST['color_primary']) ? $_POST['color_primary'] : null,
-                'color_secondary' => !empty($_POST['color_secondary']) ? $_POST['color_secondary'] : null,
-                'footer_text' => !empty($_POST['footer_text']) ? $_POST['footer_text'] : null,
-                'footer_address' => !empty($_POST['footer_address']) ? $_POST['footer_address'] : null,
-                'footer_phone' => !empty($_POST['footer_phone']) ? $_POST['footer_phone'] : null,
-                'footer_socials' => !empty($_POST['footer_socials']) ? $_POST['footer_socials'] : null,
-            ];
-
-            $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/branding';
-            if (!is_dir($dirUploads)) {
-                mkdir($dirUploads, 0777, true);
+            if ($area === OperationalAreaService::AREA_TIENDAS) {
+                $this->persistStoreBranding();
             }
 
-            if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-                $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-                $filename = 'logo_' . time() . '.' . $ext;
-                if (move_uploaded_file($_FILES['logo']['tmp_name'], $dirUploads . '/' . $filename)) {
-                    $brandingData['logo_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
-                }
-            }
-            if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] === UPLOAD_ERR_OK) {
-                $ext = strtolower(pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION));
-                $filename = 'favicon_' . time() . '.' . $ext;
-                if (move_uploaded_file($_FILES['favicon']['tmp_name'], $dirUploads . '/' . $filename)) {
-                    $brandingData['favicon_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
-                }
-            }
-
-            $this->empresaRepo->updateBranding($empresaId, $brandingData);
-
-            header('Location: /rxnTiendasIA/public/mi-empresa/configuracion?success=guardado');
+            header('Location: ' . $viewContext['basePath'] . '?success=guardado');
             exit;
         } catch (\Exception $e) {
             try {
-                $config = $this->service->getConfig();
+                $config = $service->getConfig();
                 $empresaId = Context::getEmpresaId();
                 $empresa = $this->empresaRepo->findById((int)$empresaId);
 
-                View::render('app/modules/EmpresaConfig/views/index.php', [
+                View::render('app/modules/EmpresaConfig/views/index.php', array_merge($viewContext, [
                     'error' => 'Error al guardar: ' . $e->getMessage(),
                     'config' => $config,
                     'empresa' => $empresa,
                     'old' => $_POST
-                ]);
+                ]));
             } catch (\Exception $ex) {
                 http_response_code(403);
                 echo "<h2>Acceso Denegado</h2><p>" . htmlspecialchars($ex->getMessage()) . "</p>";
@@ -112,6 +84,7 @@ class EmpresaConfigController extends Controller
     {
         AuthService::requireLogin();
         header('Content-Type: application/json');
+        $service = $this->resolveService($this->resolveArea());
 
         $empresaId = Context::getEmpresaId();
         
@@ -125,7 +98,7 @@ class EmpresaConfigController extends Controller
 
         // Recuperar password oculta preservando el behaviour real del backend si se evalúa guardado previo vs field vacío
         if (empty($configData['pass'])) {
-            $repoConf = $this->service->getConfig();
+            $repoConf = $service->getConfig();
             $configData['pass'] = $repoConf->smtp_pass ?? '';
         }
 
@@ -143,19 +116,28 @@ class EmpresaConfigController extends Controller
     {
         AuthService::requireLogin();
         header('Content-Type: application/json');
+        $service = $this->resolveService($this->resolveArea());
 
         $apiUrl = trim($_POST['tango_api_url'] ?? '');
         $companyId = trim($_POST['tango_connect_company_id'] ?? '');
         $clientKey = trim($_POST['tango_connect_key'] ?? '');
         $token = trim($_POST['tango_connect_token'] ?? '');
+        $repoConf = $service->getConfig();
 
         if (empty($token)) {
-            $repoConf = $this->service->getConfig();
             $token = $repoConf->tango_connect_token ?? '';
         }
 
-        if (empty($apiUrl) || empty($companyId) || empty($token)) {
-            echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos (URL, ID Empresa o Token).']);
+        if (empty($clientKey)) {
+            $clientKey = trim((string) ($repoConf->tango_connect_key ?? ''));
+        }
+
+        if (empty($apiUrl)) {
+            $apiUrl = trim((string) ($repoConf->tango_api_url ?? ''));
+        }
+
+        if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
+            echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos. Debes informar Token y al menos una Llave o URL base.']);
             exit;
         }
 
@@ -168,7 +150,7 @@ class EmpresaConfigController extends Controller
                 $finalUrl = rtrim($apiUrl, '/');
             }
 
-            $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId, $clientKey);
+            $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey);
             $isValid = $client->testConnection();
 
             if ($isValid) {
@@ -183,21 +165,35 @@ class EmpresaConfigController extends Controller
     }
 
     /**
-     * Proveedor AJAX de Metadata (Listas y Depósitos) para los Selects
+     * Proveedor AJAX de Metadata (Empresas, Listas y Depósitos) para los Selects
      */
     public function getConnectTangoMetadata(): void
     {
         AuthService::requireLogin();
         header('Content-Type: application/json');
+        $service = $this->resolveService($this->resolveArea());
 
         $apiUrl = trim($_POST['tango_api_url'] ?? '');
         $companyId = trim($_POST['tango_connect_company_id'] ?? '');
         $clientKey = trim($_POST['tango_connect_key'] ?? '');
         $token = trim($_POST['tango_connect_token'] ?? '');
+        $repoConf = $service->getConfig();
 
         if (empty($token)) {
-            $repoConf = $this->service->getConfig();
             $token = $repoConf->tango_connect_token ?? '';
+        }
+
+        if (empty($clientKey)) {
+            $clientKey = trim((string) ($repoConf->tango_connect_key ?? ''));
+        }
+
+        if (empty($apiUrl)) {
+            $apiUrl = trim((string) ($repoConf->tango_api_url ?? ''));
+        }
+
+        if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
+            echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos. Debes informar Token y al menos una Llave o URL base.']);
+            exit;
         }
 
         try {
@@ -207,8 +203,9 @@ class EmpresaConfigController extends Controller
                 $finalUrl = rtrim($apiUrl, '/');
             }
 
-            $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId, $clientKey);
+            $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey);
             
+            $empresasObj = $client->getMaestroEmpresas();
             $depositosObj = $client->getMaestroDepositos();
             $listasObj = $client->getMaestroListasPrecio();
 
@@ -216,25 +213,34 @@ class EmpresaConfigController extends Controller
             try {
                 $logDir = BASE_PATH . '/logs';
                 if (!is_dir($logDir)) { mkdir($logDir, 0777, true); }
-                
-                $configStmt = \App\Core\Database::getConnection()->prepare("SELECT lista_precio_1, lista_precio_2, deposito_codigo FROM empresa_config WHERE empresa_id = :empId LIMIT 1");
-                $configStmt->execute(['empId' => $_SESSION['empresa_id'] ?? 1]);
-                $configDb = $configStmt->fetch(\PDO::FETCH_OBJ);
+
+                $configDb = $service->getConfig();
 
                 $debugDump = [
                     'FECHA' => date('Y-m-d H:i:s'),
                     'HTTP_REQUEST_TRACE' => $client->debugLastHttpRequest ?? 'Inaccesible',
+                    'EMPRESAS_API_RAW' => $client->debugLastRawEmpresas ?? 'No capturado',
                     'LISTAS_API_RAW' => $client->debugLastRawListas ?? 'No capturado',
                     'DEPOSITOS_API_RAW' => $client->debugLastRawDepositos ?? 'No capturado',
+                    'EMPRESAS_NORMALIZADAS' => [],
                     'LISTAS_NORMALIZADAS' => [],
                     'DEPOSITOS_NORMALIZADOS' => [],
                     'VALOR_DB' => [
+                        'tango_connect_company_id' => $configDb->tango_connect_company_id ?? '',
                         'lista_default' => $configDb->lista_precio_1 ?? '',
                         'lista_alternate' => $configDb->lista_precio_2 ?? '',
                         'deposito_codigo' => $configDb->deposito_codigo ?? ''
                     ]
                 ];
 
+                foreach ($empresasObj as $id => $desc) {
+                    $matchEmpresa = ((string)$id === (string)($configDb->tango_connect_company_id ?? ''));
+                    $debugDump['EMPRESAS_NORMALIZADAS'][] = [
+                        'id' => $id,
+                        'descripcion' => $desc,
+                        'MATCH_EMPRESA' => $matchEmpresa ? 'SI' : 'NO'
+                    ];
+                }
                 foreach ($listasObj as $id => $desc) {
                     $matchL1 = ((string)$id === (string)($configDb->lista_precio_1 ?? ''));
                     $matchL2 = ((string)$id === (string)($configDb->lista_precio_2 ?? ''));
@@ -259,6 +265,10 @@ class EmpresaConfigController extends Controller
             // ========================================
 
             // Transform objects to Arrays for JS mapping
+            $empresas = [];
+            foreach($empresasObj as $id => $desc) {
+                $empresas[] = ['id' => $id, 'descripcion' => $desc];
+            }
             $depositos = [];
             foreach($depositosObj as $id => $desc) {
                 $depositos[] = ['id' => $id, 'descripcion' => $desc];
@@ -271,6 +281,7 @@ class EmpresaConfigController extends Controller
             echo json_encode([
                 'success' => true,
                 'data' => [
+                    'empresas' => $empresas,
                     'depositos' => $depositos,
                     'listas_precios' => $listas
                 ]
@@ -279,5 +290,113 @@ class EmpresaConfigController extends Controller
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
         exit;
+    }
+
+    private function resolveArea(): string
+    {
+        $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+
+        return str_contains($uri, '/mi-empresa/crm/') ? 'crm' : 'tiendas';
+    }
+
+    private function buildViewContext(string $area): array
+    {
+                        if ($area === 'crm') {
+            return [
+                'area' => $area,
+                'pageTitle' => 'Configuracion CRM',
+                'headerTitle' => 'Configuracion de la Empresa',
+                'headerSubtitle' => 'Gestion independiente del entorno operativo de CRM.',
+                'consoleTitle' => 'Consola de Configuracion CRM',
+                'consoleSubtitle' => 'Ajustes propios del modulo CRM para la empresa #[%s].',
+                'dashboardPath' => '/rxnTiendasIA/public/mi-empresa/crm/dashboard',
+                'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_CRM),
+                'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/configuracion',
+                'moduleNotesKey' => 'crm_configuracion',
+                'moduleNotesLabel' => 'Configuracion CRM',
+                'sharedScopeNotice' => 'CRM ahora guarda su configuracion operativa en un origen propio. El branding publico y la URL de la tienda se siguen administrando desde Tiendas.',
+                'showStoreSlug' => false,
+                'showStoreBranding' => false,
+                'generalSectionTitle' => '1. Datos Generales CRM',
+                'fallbackSectionTitle' => '2. Identidad Visual CRM',
+                'fallbackSectionHelp' => 'Si un articulo interno de CRM no posee imagen propia, se mostrara este fallback visual.',
+                'tangoSectionTitle' => '3. Integracion CRM con Tango Connect',
+                'smtpSectionTitle' => '4. Correo Operativo CRM (SMTP)',
+                'smtpIntroText' => 'Estas credenciales quedan reservadas para procesos del entorno CRM. No alteran el envio operativo de Tiendas.',
+            ];
+        }
+
+        return [
+            'area' => $area,
+            'pageTitle' => 'Configuracion de Empresa',
+            'headerTitle' => 'Configuracion de la Empresa',
+            'headerSubtitle' => 'Gestion del entorno operativo actual.',
+            'consoleTitle' => 'Consola de Configuracion',
+            'consoleSubtitle' => 'Personaliza la identidad online y el enlace con el ERP de #[%s].',
+            'dashboardPath' => '/rxnTiendasIA/public/mi-empresa/dashboard',
+            'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_TIENDAS),
+            'basePath' => '/rxnTiendasIA/public/mi-empresa/configuracion',
+            'moduleNotesKey' => 'empresa_configuracion',
+            'moduleNotesLabel' => 'Configuracion de Empresa',
+            'sharedScopeNotice' => '',
+            'showStoreSlug' => true,
+            'showStoreBranding' => true,
+            'generalSectionTitle' => '1. Datos Generales',
+            'fallbackSectionTitle' => '3. Identidad Visual Corporativa',
+            'fallbackSectionHelp' => 'Si un articulo de Tango no posee imagenes sincronizadas en el sistema publico, se exhibira automaticamente este placeholder visual.',
+            'tangoSectionTitle' => '4. Integracion Tango Connect',
+            'smtpSectionTitle' => '5. Transmision de Correo Electronico (SMTP)',
+            'smtpIntroText' => 'Fallback Automatico de RXN: Si la llave SMTP esta apagada, el sistema utilizara de forma totalmente transparente nuestro SMTP Global de alta reputacion garantizando que los correos logisticos lleguen a la bandeja de entrada de tus clientes.',
+        ];
+    }
+
+    private function resolveService(string $area): EmpresaConfigService
+    {
+        return $area === OperationalAreaService::AREA_CRM
+            ? EmpresaConfigService::forCrm()
+            : new EmpresaConfigService();
+    }
+
+    private function persistStoreBranding(): void
+    {
+        $empresaId = (int) Context::getEmpresaId();
+        $empresa = $this->empresaRepo->findById($empresaId);
+        if ($empresa === null) {
+            return;
+        }
+
+        $brandingData = [
+            'logo_url' => $empresa->logo_url ?? null,
+            'favicon_url' => $empresa->favicon_url ?? null,
+            'color_primary' => !empty($_POST['color_primary']) ? $_POST['color_primary'] : null,
+            'color_secondary' => !empty($_POST['color_secondary']) ? $_POST['color_secondary'] : null,
+            'footer_text' => !empty($_POST['footer_text']) ? $_POST['footer_text'] : null,
+            'footer_address' => !empty($_POST['footer_address']) ? $_POST['footer_address'] : null,
+            'footer_phone' => !empty($_POST['footer_phone']) ? $_POST['footer_phone'] : null,
+            'footer_socials' => !empty($_POST['footer_socials']) ? $_POST['footer_socials'] : null,
+        ];
+
+        $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/branding';
+        if (!is_dir($dirUploads)) {
+            mkdir($dirUploads, 0777, true);
+        }
+
+        if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
+            $filename = 'logo_' . time() . '.' . $ext;
+            if (move_uploaded_file($_FILES['logo']['tmp_name'], $dirUploads . '/' . $filename)) {
+                $brandingData['logo_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
+            }
+        }
+
+        if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION));
+            $filename = 'favicon_' . time() . '.' . $ext;
+            if (move_uploaded_file($_FILES['favicon']['tmp_name'], $dirUploads . '/' . $filename)) {
+                $brandingData['favicon_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
+            }
+        }
+
+        $this->empresaRepo->updateBranding($empresaId, $brandingData);
     }
 }

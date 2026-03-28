@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalle Orden #<?= $pedido['pedido_id'] ?> - rxnTiendasIA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body { background-color: #f8f9fa; }
         .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; overflow: hidden; }
@@ -28,21 +29,32 @@
                     <?php endif; ?>
                 </h2>
                 <p class="text-muted mb-0">Fecha de Alta: <?= htmlspecialchars((string)$pedido['pedido_fecha']) ?></p>
-                <?php if ($pedido['intentos_envio_tango'] > 0): ?>
-                    <p class="text-muted mb-0"><small>Intentos de envío a Tango: <strong><?= (int)$pedido['intentos_envio_tango'] ?></strong></small></p>
-                <?php endif; ?>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span class="badge <?= $pedido['estado_tango'] === 'enviado_tango' ? 'bg-success' : ($pedido['estado_tango'] === 'error_envio_tango' ? 'bg-danger' : 'bg-warning text-dark') ?>">
+                        <?= $pedido['estado_tango'] === 'enviado_tango' ? 'Enviado a Tango' : ($pedido['estado_tango'] === 'error_envio_tango' ? 'Error de integración' : 'Pendiente') ?>
+                    </span>
+                    <span class="badge <?= ((int)$pedido['intentos_envio_tango'] > 0 ? ($pedido['estado_tango'] === 'enviado_tango' ? 'bg-success' : ($pedido['estado_tango'] === 'error_envio_tango' ? 'bg-danger' : 'bg-secondary')) : 'bg-secondary') ?>">
+                        Envíos a Tango: <?= (int)$pedido['intentos_envio_tango'] ?>
+                    </span>
+                </div>
             </div>
             <div class="d-flex gap-2">
                 <?php if(empty($pedido['id_gva14_tango'])): ?>
                     <a href="/rxnTiendasIA/public/mi-empresa/clientes/<?= $pedido['cliente_web_id'] ?>/editar" class="btn btn-danger text-white border-0 shadow-sm" title="Falta resolución comercial del cliente">⚠️ Vincular Cliente en Tango Módulo</a>
                 <?php else: ?>
-                    <form action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $pedido['pedido_id'] ?>/reprocesar" method="POST" onsubmit="return confirm('¿Reintentar envío a Tango con los datos comerciales resueltos?');">
-                        <button type="submit" class="btn <?= $pedido['estado_tango'] === 'error_envio_tango' ? 'btn-warning' : ($pedido['estado_tango'] === 'enviado_tango' ? 'btn-outline-success shadow-sm' : 'btn-success shadow-sm') ?> text-dark "><i class="bi bi-arrow-repeat"></i> Enviar a Tango</button>
+                    <form action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $pedido['pedido_id'] ?>/reprocesar" method="POST">
+                        <button type="submit" class="btn <?= $pedido['estado_tango'] === 'error_envio_tango' ? 'btn-warning' : ($pedido['estado_tango'] === 'enviado_tango' ? 'btn-outline-success shadow-sm' : 'btn-success shadow-sm') ?> text-dark " data-rxn-confirm="¿Reintentar envío a Tango con los datos comerciales resueltos?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Enviar a Tango</button>
                     </form>
                 <?php endif; ?>
                 <a href="/rxnTiendasIA/public/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
             </div>
         </div>
+
+        <?php
+        $moduleNotesKey = 'pedidos_web';
+        $moduleNotesLabel = 'Pedidos Web';
+        require BASE_PATH . '/app/shared/views/components/module_notes_panel.php';
+        ?>
 
         <div class="row g-4">
             <!-- Bloque Izquierdo: Datos del Cliente y Resumen -->
@@ -161,13 +173,18 @@
                         </div>
 
                         <?php if($pedido['estado_tango'] === 'error_envio_tango' && !empty($pedido['mensaje_error'])): ?>
-                            <div class="alert alert-danger mt-2 py-2 fs-6">
-                                <strong>Error detectado:</strong><br>
-                                <?php if (!$isGlobalAdmin): ?>
-                                    <span class="font-monospace"><?= htmlspecialchars((string)($cleanMessage ?? 'Error interno.')) ?></span>
-                                <?php else: ?>
-                                    <?= nl2br(htmlspecialchars((string)$pedido['mensaje_error'])) ?>
-                                <?php endif; ?>
+                            <div class="rxn-flash-banner rxn-flash-banner-danger mt-2 shadow-sm">
+                                <div class="rxn-flash-icon"><i class="bi bi-x-circle-fill"></i></div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold mb-1">Error detectado</div>
+                                    <div>
+                                        <?php if (!$isGlobalAdmin): ?>
+                                            <span class="font-monospace"><?= htmlspecialchars((string)($cleanMessage ?? 'Error interno.')) ?></span>
+                                        <?php else: ?>
+                                            <?= nl2br(htmlspecialchars((string)$pedido['mensaje_error'])) ?>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                             </div>
                         <?php endif; ?>
 
@@ -225,5 +242,6 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
 </body>
 </html>
