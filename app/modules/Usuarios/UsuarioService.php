@@ -164,6 +164,15 @@ class UsuarioService
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
 
+        if (!empty($data['tango_perfil_pedido'])) {
+            $parts = explode('|', $data['tango_perfil_pedido']);
+            if (count($parts) === 3) {
+                $usuario->tango_perfil_pedido_id = (int) $parts[0];
+                $usuario->tango_perfil_pedido_codigo = $parts[1];
+                $usuario->tango_perfil_pedido_nombre = $parts[2];
+            }
+        }
+
         // Forced Email Lifecycle (No verification = No Login)
         $usuario->email_verificado = 0;
         $usuario->verification_token = bin2hex(random_bytes(16));
@@ -190,6 +199,21 @@ class UsuarioService
         $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
         if ($isGlobalAdmin && !empty($data['empresa_id'])) {
             $usuario->empresa_id = (int)$data['empresa_id'];
+        }
+
+        if (isset($data['tango_perfil_pedido'])) {
+            if ($data['tango_perfil_pedido'] === '') {
+                $usuario->tango_perfil_pedido_id = null;
+                $usuario->tango_perfil_pedido_codigo = null;
+                $usuario->tango_perfil_pedido_nombre = null;
+            } else {
+                $parts = explode('|', $data['tango_perfil_pedido']);
+                if (count($parts) === 3) {
+                    $usuario->tango_perfil_pedido_id = (int) $parts[0];
+                    $usuario->tango_perfil_pedido_codigo = $parts[1];
+                    $usuario->tango_perfil_pedido_nombre = $parts[2];
+                }
+            }
         }
 
         if (!empty($data['password'])) {

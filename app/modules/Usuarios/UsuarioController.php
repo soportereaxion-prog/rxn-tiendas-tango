@@ -77,10 +77,33 @@ class UsuarioController extends Controller
             $empresaRepo = new EmpresaRepository();
             $empresas = $empresaRepo->findAll();
         }
+
+        $empresaId = \App\Core\Context::getEmpresaId();
+        $tangoProfiles = [];
+        if ($empresaId) {
+            try {
+                $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                $config = $configRepo->findByEmpresaId($empresaId);
+                if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
+                    $apiUrl = rtrim($config->tango_api_url ?? '', '/');
+                    if (!preg_match('/\/api$/i', $apiUrl)) {
+                        $apiUrl .= '/Api';
+                    }
+                    $tangoClient = new \App\Modules\Tango\TangoApiClient(
+                        $apiUrl,
+                        $config->tango_connect_token,
+                        $config->tango_connect_company_id ?? '',
+                        $config->tango_connect_key ?? ''
+                    );
+                    $tangoProfiles = $tangoClient->getPerfilesPedidos();
+                }
+            } catch (\Exception $e) { }
+        }
         
         View::render('app/modules/Usuarios/views/crear.php', array_merge($ui, [
             'isGlobalAdmin' => $isGlobalAdmin,
             'empresas' => $empresas,
+            'tangoProfiles' => $tangoProfiles,
             'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
         ]));
     }
@@ -95,9 +118,39 @@ class UsuarioController extends Controller
             header('Location: ' . $this->withSuccess($ui['indexPath'], 'Usuario registrado exitosamente'));
             exit;
         } catch (\Exception $e) {
+            $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+            $empresas = [];
+            if ($isGlobalAdmin) {
+                $empresaRepo = new EmpresaRepository();
+                $empresas = $empresaRepo->findAll();
+            }
+            $empresaId = \App\Core\Context::getEmpresaId();
+            $tangoProfiles = [];
+            if ($empresaId) {
+                try {
+                    $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                    $config = $configRepo->findByEmpresaId($empresaId);
+                    if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
+                        $apiUrl = rtrim($config->tango_api_url ?? '', '/');
+                        if (!preg_match('/\/api$/i', $apiUrl)) {
+                            $apiUrl .= '/Api';
+                        }
+                        $tangoClient = new \App\Modules\Tango\TangoApiClient(
+                            $apiUrl,
+                            $config->tango_connect_token,
+                            $config->tango_connect_company_id ?? '',
+                            $config->tango_connect_key ?? ''
+                        );
+                        $tangoProfiles = $tangoClient->getPerfilesPedidos();
+                    }
+                } catch (\Exception $ex) { }
+            }
             View::render('app/modules/Usuarios/views/crear.php', array_merge($ui, [
                 'error' => $e->getMessage(),
                 'old' => $_POST,
+                'isGlobalAdmin' => $isGlobalAdmin,
+                'empresas' => $empresas,
+                'tangoProfiles' => $tangoProfiles,
                 'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
             ]));
         }
@@ -118,10 +171,30 @@ class UsuarioController extends Controller
                 $empresas = $empresaRepo->findAll();
             }
 
+            $tangoProfiles = [];
+            try {
+                $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                $config = $configRepo->findByEmpresaId($usuario->empresa_id);
+                if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
+                    $apiUrl = rtrim($config->tango_api_url ?? '', '/');
+                    if (!preg_match('/\/api$/i', $apiUrl)) {
+                        $apiUrl .= '/Api';
+                    }
+                    $tangoClient = new \App\Modules\Tango\TangoApiClient(
+                        $apiUrl,
+                        $config->tango_connect_token,
+                        $config->tango_connect_company_id ?? '',
+                        $config->tango_connect_key ?? ''
+                    );
+                    $tangoProfiles = $tangoClient->getPerfilesPedidos();
+                }
+            } catch (\Exception $e) { }
+
             View::render('app/modules/Usuarios/views/editar.php', array_merge($ui, [
                 'usuario' => $usuario,
                 'isGlobalAdmin' => $isGlobalAdmin,
                 'empresas' => $empresas,
+                'tangoProfiles' => $tangoProfiles,
                 'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
             ]));
         } catch (\Exception $e) {

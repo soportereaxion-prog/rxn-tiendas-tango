@@ -173,7 +173,10 @@ class UsuarioRepository
                     email = :email,
                     password_hash = :password_hash,
                     activo = :activo,
-                    es_admin = :es_admin
+                    es_admin = :es_admin,
+                    tango_perfil_pedido_id = :tango_perfil_pedido_id,
+                    tango_perfil_pedido_codigo = :tango_perfil_pedido_codigo,
+                    tango_perfil_pedido_nombre = :tango_perfil_pedido_nombre
                     WHERE id = :id AND empresa_id = :empresa_id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -182,12 +185,15 @@ class UsuarioRepository
                 ':password_hash' => $usuario->password_hash,
                 ':activo' => $usuario->activo,
                 ':es_admin' => $usuario->es_admin,
+                ':tango_perfil_pedido_id' => $usuario->tango_perfil_pedido_id,
+                ':tango_perfil_pedido_codigo' => $usuario->tango_perfil_pedido_codigo,
+                ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre,
                 ':id' => $usuario->id,
                 ':empresa_id' => $usuario->empresa_id
             ]);
         } else {
-            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires) 
-                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires)";
+            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre) 
+                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $usuario->empresa_id,
@@ -198,7 +204,10 @@ class UsuarioRepository
                 ':es_admin' => $usuario->es_admin,
                 ':email_verificado' => current([$usuario->email_verificado ?? 0]),
                 ':verification_token' => $usuario->verification_token ?? null,
-                ':verification_expires' => $usuario->verification_expires ?? null
+                ':verification_expires' => $usuario->verification_expires ?? null,
+                ':tango_perfil_pedido_id' => $usuario->tango_perfil_pedido_id,
+                ':tango_perfil_pedido_codigo' => $usuario->tango_perfil_pedido_codigo,
+                ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre
             ]);
             $usuario->id = (int) $this->db->lastInsertId();
         }

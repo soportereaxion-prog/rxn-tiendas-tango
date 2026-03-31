@@ -118,6 +118,52 @@ class TangoApiClient
     }
 
     /**
+     * Obtiene el listado de Perfiles de Pedido habilitados. (process 20020)
+     */
+    public function getPerfilesPedidos(): array
+    {
+        $items = [];
+        try {
+            $data = $this->client->get('/Api/Get', [
+                'process' => 20020,
+                'pageSize' => 500,
+                'pageIndex' => 0,
+                'view' => 'Habilitados'
+            ]);
+
+            $list = $data['data']['resultData']['list'] ?? [];
+            foreach ($list as $item) {
+                if (!empty($item['ID_PERFIL'])) {
+                    $items[] = [
+                        'id' => (int) $item['ID_PERFIL'],
+                        'codigo' => trim((string) ($item['COD_PERFIL'] ?? '')),
+                        'nombre' => trim((string) ($item['DESC_PERFIL'] ?? '')),
+                    ];
+                }
+            }
+        } catch (\Exception $e) {
+            // Silencioso en extraccion de catalogo
+        }
+        return $items;
+    }
+
+    /**
+     * Obtiene el detalle de metadata interna de un Perfil de Pedido (vendedores, talonarios, etc).
+     */
+    public function getPerfilPedidoById(string|int $profileId): ?array
+    {
+        try {
+            $data = $this->client->get('/Api/GetById', [
+                'process' => 20020,
+                'id' => (int) $profileId
+            ]);
+            return $data['data']['resultData'] ?? null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
      * Agrupa y extrae un Maestro de Depósitos deduciéndolo de Process 2941.
      */
     /**

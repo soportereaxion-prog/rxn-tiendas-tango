@@ -70,6 +70,35 @@
                     </div>
 
                     <div class="rxn-form-section">
+                        <div class="rxn-form-section-title">Integración Tango</div>
+                        <div class="rxn-form-grid">
+                            <div class="rxn-form-span-12">
+                                <label for="tango_perfil_pedido" class="form-label">Perfil de Pedido (Operativa CRM/Ventas)</label>
+                                <select class="form-select" id="tango_perfil_pedido" name="tango_perfil_pedido">
+                                    <option value="">(No asociado / Usar Predeterminado)</option>
+                                    <?php if (!empty($tangoProfiles)): ?>
+                                        <?php foreach ($tangoProfiles as $perfil): ?>
+                                            <?php 
+                                            $perfilVal = $perfil['id'] . '|' . $perfil['codigo'] . '|' . $perfil['nombre'];
+                                            $currentId = isset($old['tango_perfil_pedido']) 
+                                                            ? explode('|', $old['tango_perfil_pedido'])[0] 
+                                                            : null;
+                                            $isSelected = ((int)$currentId === (int)$perfil['id']) ? 'selected' : '';
+                                            ?>
+                                            <option value="<?= htmlspecialchars($perfilVal) ?>" <?= $isSelected ?>>
+                                                [<?= htmlspecialchars($perfil['codigo']) ?>] <?= htmlspecialchars($perfil['nombre']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="" disabled>Sin acceso a Tango o sin perfiles configurados.</option>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="form-text">Si se asocia, todas las cabeceras de pedidos o presupuestos emitidos por esta persona se generarán con los vendedores y talonarios definidos en este Perfil de Tango.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rxn-form-section">
                         <div class="rxn-form-section-title">Permisos y estado</div>
                         <div class="rxn-form-switches">
                             <div class="rxn-form-switch-card">
