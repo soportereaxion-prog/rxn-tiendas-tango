@@ -22,6 +22,8 @@ class ArticuloRepository
     private string $categoriaMapTable;
     private string $imagenesTable;
     private string $configTable;
+    private ?string $storeFlagsTable;
+    private bool $supportsStoreFlags;
 
     public function __construct(array $tables = [])
     {
@@ -30,6 +32,10 @@ class ArticuloRepository
         $this->categoriaMapTable = $this->normalizeTableName($tables['categoria_map'] ?? 'articulo_categoria_map');
         $this->imagenesTable = $this->normalizeTableName($tables['imagenes'] ?? 'articulo_imagenes');
         $this->configTable = $this->normalizeTableName($tables['config'] ?? 'empresa_config');
+        $this->supportsStoreFlags = !array_key_exists('store_flags', $tables) || $tables['store_flags'] !== null;
+        $this->storeFlagsTable = $this->supportsStoreFlags
+            ? $this->normalizeTableName($tables['store_flags'] ?? 'articulo_store_flags')
+            : null;
 
         if (!empty($tables['bootstrap']) && is_array($tables['bootstrap'])) {
             $this->ensureSchema($tables['bootstrap']);
@@ -43,6 +49,7 @@ class ArticuloRepository
             'categoria_map' => 'crm_articulo_categoria_map',
             'imagenes' => 'crm_articulo_imagenes',
             'config' => 'empresa_config_crm',
+            'store_flags' => null,
             'bootstrap' => [
                 'articulos' => 'articulos',
                 'categoria_map' => 'articulo_categoria_map',
@@ -114,7 +121,7 @@ class ArticuloRepository
         ?int $categoriaId = null
     ): array {
         $offset = max(0, ($page - 1) * $limit);
-        $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug,
+        $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug' . $this->selectStoreFlagsColumns('asf') . ',
                 COALESCE(
                     (SELECT ruta FROM ' . $this->quoteTable($this->imagenesTable) . '
                         WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1
@@ -127,19 +134,23 @@ class ArticuloRepository
                 AND ' . $this->buildSkuJoinCondition('a', 'acm') . '
             LEFT JOIN categorias c
                 ON c.id = acm.categoria_id
-                AND c.empresa_id = a.empresa_id
+                AND c.empresa_id = a.empresa_id' . $this->joinStoreFlags('a', 'asf') . '
             WHERE a.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
 
         $this->applyCategoriaFilter($sql, $params, $categoriaId);
         $this->applySearch($sql, $params, $search, $field, true);
 
-        $allowedColumns = ['codigo_externo', 'nombre', 'precio_lista_1', 'precio_lista_2', 'stock_actual', 'activo', 'fecha_ultima_sync', 'categoria_nombre'];
+        $allowedColumns = ['codigo_externo', 'nombre', 'precio_lista_1', 'precio_lista_2', 'stock_actual', 'activo', 'fecha_ultima_sync', 'categoria_nombre', 'mostrar_oferta_store'];
         if (!in_array($orderBy, $allowedColumns, true)) {
             $orderBy = 'nombre';
         }
 
-        $orderColumn = $orderBy === 'categoria_nombre' ? 'categoria_nombre' : 'a.' . $orderBy;
+        if ($orderBy === 'categoria_nombre' || $orderBy === 'mostrar_oferta_store') {
+            $orderColumn = $orderBy;
+        } else {
+            $orderColumn = 'a.' . $orderBy;
+        }
         $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
 
         $sql .= " ORDER BY {$orderColumn} {$orderDir}, a.nombre ASC LIMIT " . (int) $limit . ' OFFSET ' . (int) $offset;
@@ -181,7 +192,7 @@ class ArticuloRepository
         ?string $categoriaSlug = null
     ): array {
         $offset = max(0, ($page - 1) * $limit);
-        $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug,
+        $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug' . $this->selectStoreFlagsColumns('asf') . ',
                 COALESCE(
                     (SELECT ruta FROM ' . $this->quoteTable($this->imagenesTable) . '
                         WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1
@@ -194,7 +205,7 @@ class ArticuloRepository
                 AND ' . $this->buildSkuJoinCondition('a', 'acm') . '
             LEFT JOIN categorias c
                 ON c.id = acm.categoria_id
-                AND c.empresa_id = a.empresa_id
+                AND c.empresa_id = a.empresa_id' . $this->joinStoreFlags('a', 'asf') . '
             WHERE a.empresa_id = :empresa_id
                 AND a.activo = 1';
         $params = [':empresa_id' => $empresaId];
@@ -220,7 +231,23 @@ class ArticuloRepository
         $sql = 'SELECT a.id, a.codigo_externo, a.nombre, a.descripcion FROM ' . $this->quoteTable($this->articulosTable) . ' a WHERE a.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
-        $sql .= ' ORDER BY a.nombre ASC LIMIT :limit';
+        $sql .= ' ORDER BY
+            CASE
+                WHEN a.codigo_externo = :o_exact1 THEN 1
+                WHEN a.codigo_externo LIKE :o_start1 THEN 2
+                WHEN a.codigo_externo LIKE :o_any1 THEN 3
+                WHEN a.nombre = :o_exact2 THEN 4
+                WHEN a.nombre LIKE :o_start2 THEN 5
+                WHEN a.nombre LIKE :o_any2 THEN 6
+                ELSE 7
+            END ASC, a.nombre ASC LIMIT :limit';
+
+        $params[':o_exact1'] = $search;
+        $params[':o_start1'] = $search . '%';
+        $params[':o_any1']   = '%' . $search . '%';
+        $params[':o_exact2'] = $search;
+        $params[':o_start2'] = $search . '%';
+        $params[':o_any2']   = '%' . $search . '%';
 
         $stmt = $this->db->prepare($sql);
         foreach ($params as $key => $value) {
@@ -303,7 +330,7 @@ class ArticuloRepository
 
     public function findById(int $id, int $empresaId): ?Articulo
     {
-        $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug,
+        $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug' . $this->selectStoreFlagsColumns('asf') . ',
                 COALESCE(
                     (SELECT ruta FROM ' . $this->quoteTable($this->imagenesTable) . '
                         WHERE articulo_id = a.id AND empresa_id = a.empresa_id AND es_principal = 1
@@ -316,7 +343,7 @@ class ArticuloRepository
                 AND ' . $this->buildSkuJoinCondition('a', 'acm') . '
             LEFT JOIN categorias c
                 ON c.id = acm.categoria_id
-                AND c.empresa_id = a.empresa_id
+                AND c.empresa_id = a.empresa_id' . $this->joinStoreFlags('a', 'asf') . '
             WHERE a.id = :id AND a.empresa_id = :empresa_id';
 
         $stmt = $this->db->prepare($sql);
@@ -344,6 +371,7 @@ class ArticuloRepository
         $articulo->categoria_id = isset($row['categoria_id']) && $row['categoria_id'] !== null ? (int) $row['categoria_id'] : null;
         $articulo->categoria_nombre = $row['categoria_nombre'] ?? null;
         $articulo->categoria_slug = $row['categoria_slug'] ?? null;
+        $articulo->mostrar_oferta_store = (int) ($row['mostrar_oferta_store'] ?? 0) === 1;
         $articulo->fecha_ultima_sync = $row['fecha_ultima_sync'];
         $articulo->imagen_principal = $row['imagen_principal'] ?? null;
 
@@ -376,6 +404,7 @@ class ArticuloRepository
 
         if ($updated) {
             $this->syncCategoriaMapping($articulo->empresa_id, $articulo->codigo_externo, $articulo->categoria_id);
+            $this->syncStoreOfferFlag($articulo->empresa_id, $articulo->codigo_externo, $articulo->mostrar_oferta_store);
         }
 
         return $updated;
@@ -399,6 +428,30 @@ class ArticuloRepository
             ':empresa_id' => $empresaId,
             ':codigo_externo' => $codigoExterno,
             ':categoria_id' => $categoriaId,
+        ]);
+    }
+
+    public function syncStoreOfferFlag(int $empresaId, string $codigoExterno, bool $mostrarOferta): void
+    {
+        if (!$this->supportsStoreFlags || $this->storeFlagsTable === null) {
+            return;
+        }
+
+        $deleteStmt = $this->db->prepare('DELETE FROM ' . $this->quoteTable($this->storeFlagsTable) . ' WHERE empresa_id = :empresa_id AND articulo_codigo_externo = :codigo_externo');
+        $deleteStmt->execute([
+            ':empresa_id' => $empresaId,
+            ':codigo_externo' => $codigoExterno,
+        ]);
+
+        if (!$mostrarOferta) {
+            return;
+        }
+
+        $insertStmt = $this->db->prepare('INSERT INTO ' . $this->quoteTable($this->storeFlagsTable) . ' (empresa_id, articulo_codigo_externo, mostrar_oferta_store)
+            VALUES (:empresa_id, :codigo_externo, 1)');
+        $insertStmt->execute([
+            ':empresa_id' => $empresaId,
+            ':codigo_externo' => $codigoExterno,
         ]);
     }
 
@@ -529,13 +582,40 @@ class ArticuloRepository
         return '`' . $this->normalizeTableName($table) . '`';
     }
 
+    private function selectStoreFlagsColumns(string $flagsAlias): string
+    {
+        if (!$this->supportsStoreFlags || $this->storeFlagsTable === null) {
+            return ', 0 AS mostrar_oferta_store';
+        }
+
+        return ', COALESCE(' . $flagsAlias . '.mostrar_oferta_store, 0) AS mostrar_oferta_store';
+    }
+
+    private function joinStoreFlags(string $articuloAlias, string $flagsAlias): string
+    {
+        if (!$this->supportsStoreFlags || $this->storeFlagsTable === null) {
+            return '';
+        }
+
+        return ' LEFT JOIN ' . $this->quoteTable($this->storeFlagsTable) . ' ' . $flagsAlias . '
+                ON ' . $flagsAlias . '.empresa_id = ' . $articuloAlias . '.empresa_id
+                AND ' . $this->buildExternalCodeJoinCondition($articuloAlias, 'codigo_externo', $flagsAlias, 'articulo_codigo_externo');
+    }
+
     private function buildSkuJoinCondition(string $articuloAlias, string $mapAlias): string
     {
+        return $this->buildExternalCodeJoinCondition($articuloAlias, 'codigo_externo', $mapAlias, 'articulo_codigo_externo');
+    }
+
+    private function buildExternalCodeJoinCondition(string $leftAlias, string $leftColumn, string $rightAlias, string $rightColumn): string
+    {
         return sprintf(
-            '%s.codigo_externo COLLATE %s = %s.articulo_codigo_externo COLLATE %s',
-            $articuloAlias,
+            '%s.%s COLLATE %s = %s.%s COLLATE %s',
+            $leftAlias,
+            $leftColumn,
             self::JOIN_COLLATION,
-            $mapAlias,
+            $rightAlias,
+            $rightColumn,
             self::JOIN_COLLATION
         );
     }
