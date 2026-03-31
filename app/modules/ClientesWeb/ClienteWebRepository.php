@@ -228,29 +228,7 @@ class ClienteWebRepository
         $sql = "SELECT id, nombre, apellido, razon_social, email, documento, codigo_tango, id_gva14_tango FROM {$this->clientesTable} WHERE empresa_id = :emp_id";
         $params = ['emp_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
-        $sql .= ' ORDER BY
-            CASE
-                WHEN razon_social = :o_exact1 THEN 1
-                WHEN razon_social LIKE :o_start1 THEN 2
-                WHEN razon_social LIKE :o_any1 THEN 3
-                WHEN nombre = :o_exact2 THEN 4
-                WHEN nombre LIKE :o_start2 THEN 5
-                WHEN nombre LIKE :o_any2 THEN 6
-                WHEN codigo_tango = :o_exact3 THEN 7
-                WHEN codigo_tango LIKE :o_start3 THEN 8
-                WHEN codigo_tango LIKE :o_any3 THEN 9
-                ELSE 10
-            END ASC, razon_social ASC, nombre ASC LIMIT :limit';
-
-        $params['o_exact1'] = $search;
-        $params['o_start1'] = $search . '%';
-        $params['o_any1']   = '%' . $search . '%';
-        $params['o_exact2'] = $search;
-        $params['o_start2'] = $search . '%';
-        $params['o_any2']   = '%' . $search . '%';
-        $params['o_exact3'] = $search;
-        $params['o_start3'] = $search . '%';
-        $params['o_any3']   = '%' . $search . '%';
+        $sql .= ' ORDER BY nombre ASC LIMIT :limit';
 
         $stmt = $this->db->prepare($sql);
         foreach ($params as $key => $value) {
@@ -278,8 +256,7 @@ class ClienteWebRepository
             return;
         }
 
-        $sql .= $operator . ' (razon_social LIKE :s0 OR nombre LIKE :s1 OR apellido LIKE :s2 OR email LIKE :s3 OR documento LIKE :s4 OR codigo_tango LIKE :s5 OR CAST(id AS CHAR) LIKE :s6)';
-        $params['s0'] = '%' . $search . '%';
+        $sql .= $operator . ' (nombre LIKE :s1 OR apellido LIKE :s2 OR email LIKE :s3 OR documento LIKE :s4 OR codigo_tango LIKE :s5 OR CAST(id AS CHAR) LIKE :s6)';
         $params['s1'] = '%' . $search . '%';
         $params['s2'] = '%' . $search . '%';
         $params['s3'] = '%' . $search . '%';

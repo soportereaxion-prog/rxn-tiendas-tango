@@ -83,8 +83,6 @@
 * **Presupuestos Imprimibles:** El modulo de presupuestos se engancha al motor documental inyectando un `ContextBuilder` plano y sumando un boton `Imprimir` que despacha el documento final HTML listo para PDF.
 * **Envíos Automatizados (PDS y Presupuestos):** CRM ahora integra un `DocumentMailerService` que despacha correos utilizando la configuración SMTP tenant, procesando el cuerpo de la plantilla HTML definida y agregando el PDF adjunto (`DomPDF`) derivado del canvas (`PrintForms`) on the fly, previa validación visual de una opción "Enviar por Correo".
 * **Contexto visible en Backoffice:** Las cabeceras del backoffice ahora muestran `Hola, {usuario}` y, si la empresa en sesion tiene Tiendas habilitado con slug valido, un acceso rapido a su URL publica.
-* **Motores de Búsqueda SQL Optimizados:** Los autocompletables de Clientes y Artículos (incluyendo el backend oculto del PDS para ClientesWeb forCrm) ahora implementan jerarquías de prioridad inyectando `ORDER BY CASE WHEN` para asegurar que las Razones Sociales exactas/parciales primen sobre IDs crudos.
-
 
 ## entorno local de referencia
 

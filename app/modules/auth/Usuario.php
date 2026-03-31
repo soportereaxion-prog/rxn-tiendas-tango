@@ -31,6 +31,11 @@ class Usuario
     public string $preferencia_fuente = 'md';
     public ?string $avatar_url = null;
     
-    // UI Dashboard State Arrays
+    // Dashboard State Arrays
     public ?string $dashboard_order = null;
+
+    // Integración Tango Perfil Pedido
+    public ?int $tango_perfil_pedido_id = null;
+    public ?string $tango_perfil_pedido_codigo = null;
+    public ?string $tango_perfil_pedido_nombre = null;
 }

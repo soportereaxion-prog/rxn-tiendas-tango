@@ -1,21 +1,9 @@
 <?php
 
 return [
-    'current_version' => '1.1.38',
-    'current_build' => '20260331.2',
+    'current_version' => '1.1.37',
+    'current_build' => '20260331.1',
     'history' => [
-        [
-            'version' => '1.1.38',
-            'build' => '20260331.2',
-            'released_at' => '2026-03-31',
-            'title' => 'Refactoreo Profundo de Motores de Búsqueda CRM y PDS',
-            'summary' => 'Se rediseñó la lógica SQL de los autocompletables para Artículos y Clientes, priorizando de forma contundente las coincidencias por Razón Social y Nombre por encima de los códigos internos, reparando fallos silenciosos y mejorando la experiencia comercial.',
-            'items' => [
-                'El buscador de Clientes en PDS ahora busca correctamente por Razón Social (estaba omitido) y prioriza coincidencias exactas y parciales.',
-                'Los repositorios CRM (Clientes y Artículos) implementan ORDER BY CASE matemático en sus consultas para garantizar la prioridad visual comercial, delegando el peso al motor SQL para escalar en miles de registros sin impacto de memoria.',
-                'Resolución estructural del crash PDO 500 (Invalid parameter number) rediseñando la inyección de parámetros nativos únicos.',
-            ],
-        ],
         [
             'version' => '1.1.37',
             'build' => '20260331.1',
