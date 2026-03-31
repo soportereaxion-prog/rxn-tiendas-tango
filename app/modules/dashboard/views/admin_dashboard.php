@@ -72,6 +72,7 @@ if ($canViewRelease) {
                 <p class="text-muted mb-0">Gestión global de licenciatarios y configuración maestra.</p>
             </div>
             <div class="rxn-module-actions">
+                <?php require BASE_PATH . '/app/shared/views/components/backoffice_user_banner.php'; ?>
                 <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
             </div>
         </div>

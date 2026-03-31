@@ -62,7 +62,13 @@ class EmpresaConfigRepository
                     smtp_pass = :smtp_pass,
                     smtp_secure = :smtp_secure,
                     smtp_from_email = :smtp_from_email,
-                    smtp_from_name = :smtp_from_name
+                    smtp_from_name = :smtp_from_name,
+                    tango_pds_talonario_id = :tango_pds_talonario_id,
+                    tango_perfil_pedido_id = :tango_perfil_pedido_id,
+                    tango_perfil_pedido_codigo = :tango_perfil_pedido_codigo,
+                    tango_perfil_pedido_nombre = :tango_perfil_pedido_nombre,
+                    tango_perfil_snapshot_json = :tango_perfil_snapshot_json,
+                    tango_perfil_snapshot_date = :tango_perfil_snapshot_date
                     WHERE id = :id';
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -86,11 +92,17 @@ class EmpresaConfigRepository
                 ':smtp_secure' => $config->smtp_secure,
                 ':smtp_from_email' => $config->smtp_from_email,
                 ':smtp_from_name' => $config->smtp_from_name,
+                ':tango_pds_talonario_id' => $config->tango_pds_talonario_id,
+                ':tango_perfil_pedido_id' => $config->tango_perfil_pedido_id,
+                ':tango_perfil_pedido_codigo' => $config->tango_perfil_pedido_codigo,
+                ':tango_perfil_pedido_nombre' => $config->tango_perfil_pedido_nombre,
+                ':tango_perfil_snapshot_json' => $config->tango_perfil_snapshot_json,
+                ':tango_perfil_snapshot_date' => $config->tango_perfil_snapshot_date,
                 ':id' => $config->id,
             ]);
         } else {
-            $sql = 'INSERT INTO ' . $this->quoteTable() . ' (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto, usa_smtp_propio, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_email, smtp_from_name) 
-                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto, :usa_smtp_propio, :smtp_host, :smtp_port, :smtp_user, :smtp_pass, :smtp_secure, :smtp_from_email, :smtp_from_name)';
+            $sql = 'INSERT INTO ' . $this->quoteTable() . ' (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto, usa_smtp_propio, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_email, smtp_from_name, tango_pds_talonario_id, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date) 
+                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto, :usa_smtp_propio, :smtp_host, :smtp_port, :smtp_user, :smtp_pass, :smtp_secure, :smtp_from_email, :smtp_from_name, :tango_pds_talonario_id, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date)';
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $config->empresa_id,
@@ -114,6 +126,12 @@ class EmpresaConfigRepository
                 ':smtp_secure' => $config->smtp_secure,
                 ':smtp_from_email' => $config->smtp_from_email,
                 ':smtp_from_name' => $config->smtp_from_name,
+                ':tango_pds_talonario_id' => $config->tango_pds_talonario_id,
+                ':tango_perfil_pedido_id' => $config->tango_perfil_pedido_id,
+                ':tango_perfil_pedido_codigo' => $config->tango_perfil_pedido_codigo,
+                ':tango_perfil_pedido_nombre' => $config->tango_perfil_pedido_nombre,
+                ':tango_perfil_snapshot_json' => $config->tango_perfil_snapshot_json,
+                ':tango_perfil_snapshot_date' => $config->tango_perfil_snapshot_date,
             ]);
             $config->id = (int) $this->db->lastInsertId();
         }

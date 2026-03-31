@@ -81,6 +81,27 @@ class TangoService
     }
 
     /**
+     * Extrae el Listado de Clientes
+     */
+    public function fetchClientes(int $page = 1): TangoResponseDTO
+    {
+        $dto = new TangoResponseDTO();
+        
+        try {
+            $response = $this->apiClient->getClientes($page, $this->syncAmount);
+
+            $dto->isSuccess = ($response['status'] >= 200 && $response['status'] < 300);
+            $dto->payload = $response['data'] ?? [];
+
+        } catch (\Exception $e) {
+            $dto->isSuccess = false;
+            $dto->errorMessage = $e->getMessage();
+        }
+
+        return $dto;
+    }
+
+    /**
      * Extrae diccionario de precios
      */
     public function fetchPrecios(int $page = 1): TangoResponseDTO

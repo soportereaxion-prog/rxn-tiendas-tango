@@ -101,6 +101,7 @@
 
             try {
                 var response = await fetch(url + '?q=' + encodeURIComponent(term), {
+                    credentials: 'same-origin',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }

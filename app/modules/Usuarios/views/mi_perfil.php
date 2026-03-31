@@ -17,6 +17,7 @@
         <div class="rxn-module-header mb-4">
             <h2 class="fw-bold m-0">Mi Perfil B2B</h2>
             <div class="rxn-module-actions">
+                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
                 <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>

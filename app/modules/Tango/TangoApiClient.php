@@ -72,6 +72,21 @@ class TangoApiClient
     }
 
     /**
+     * Extrae el Listado de Clientes desde Tango Connect /Api/Get?process=2117
+     */
+    public function getClientes(int $page = 1, int $pageSize = 50): array
+    {
+        $endpoint = '/Api/Get';
+        $params = [
+            'process' => 2117,
+            'pageSize' => $pageSize,
+            'pageIndex' => max(0, $page - 1),
+            'view' => ''
+        ];
+        return $this->client->get($endpoint, $params);
+    }
+
+    /**
      * Extrae el Listado de Precios desde Tango Connect /Api/Get?process=20091
      */
     public function getPrecios(int $page = 1, int $pageSize = 100): array

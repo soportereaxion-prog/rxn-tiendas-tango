@@ -117,6 +117,7 @@ return function (Router $router): void {
 
     $router->get('/mi-empresa/crm/sync/todo', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncTodo', $requireCrm));
     $router->get('/mi-empresa/crm/sync/articulos', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncArticulos', $requireCrm));
+    $router->get('/mi-empresa/crm/sync/clientes', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncClientes', $requireCrm));
     $router->get('/mi-empresa/crm/sync/precios', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncPrecios', $requireCrm));
     $router->get('/mi-empresa/crm/sync/stock', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncStock', $requireCrm));
 
@@ -135,13 +136,12 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'editar', $requireCrm));
     $router->post('/mi-empresa/crm/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'actualizar', $requireCrm));
 
-    $router->get('/mi-empresa/crm/clientes', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'index', $requireCrm));
-    $router->get('/mi-empresa/crm/clientes/sugerencias', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'suggestions', $requireCrm));
-    $router->get('/mi-empresa/crm/clientes/buscar-tango', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'buscarTango', $requireCrm));
-    $router->get('/mi-empresa/crm/clientes/metadata-tango', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'obtenerMetadataTango', $requireCrm));
-    $router->get('/mi-empresa/crm/clientes/{id}/editar', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'edit', $requireCrm));
-    $router->post('/mi-empresa/crm/clientes/{id}/editar', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'update', $requireCrm));
-    $router->post('/mi-empresa/crm/clientes/{id}/validar-tango', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'validarTango', $requireCrm));
+    $router->get('/mi-empresa/crm/clientes', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/clientes/sugerencias', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'suggestions', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/purgar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'purgar', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/eliminar-masivo', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'eliminarMasivo', $requireCrm));
+    $router->get('/mi-empresa/crm/clientes/editar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'editar', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/editar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'actualizar', $requireCrm));
 
     // --- MODULO CRM PEDIDOS DE SERVICIO ---
     $router->get('/mi-empresa/crm/pedidos-servicio', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'index', $requireCrm));
@@ -153,6 +153,41 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/pedidos-servicio/clasificaciones/sugerencias', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'classificationSuggestions', $requireCrm));
     $router->get('/mi-empresa/crm/pedidos-servicio/{id}/editar', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'edit', $requireCrm));
     $router->post('/mi-empresa/crm/pedidos-servicio/{id}', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'update', $requireCrm));
+
+    // --- MODULO CRM NOTAS ---
+    $router->get('/mi-empresa/crm/notas', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/notas/sugerencias-tags', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'tagsSuggestions', $requireCrm));
+    $router->get('/mi-empresa/crm/notas/sugerencias-clientes', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'clientSuggestions', $requireCrm));
+    $router->get('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'showImportForm', $requireCrm));
+    $router->post('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'processImport', $requireCrm));
+    $router->get('/mi-empresa/crm/notas/descargar-plantilla', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'downloadTemplate', $requireCrm));
+    $router->get('/mi-empresa/crm/notas/crear', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'create', $requireCrm));
+    $router->post('/mi-empresa/crm/notas', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'store', $requireCrm));
+    $router->get('/mi-empresa/crm/notas/ver/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'show', $requireCrm));
+    $router->get('/mi-empresa/crm/notas/editar/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'edit', $requireCrm));
+    $router->post('/mi-empresa/crm/notas/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'update', $requireCrm));
+    $router->post('/mi-empresa/crm/notas/{id}/copiar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'copy', $requireCrm));
+    $router->post('/mi-empresa/crm/notas/{id}/eliminar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'destroy', $requireCrm));
+    // --- MODULO CRM PRESUPUESTOS ---
+    $router->get('/mi-empresa/crm/presupuestos', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/sugerencias', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'suggestions', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/crear', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'create', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'store', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/catalogos/sincronizar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'syncCatalogs', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/clientes/sugerencias', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'clientSuggestions', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/clientes/contexto', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'clientContext', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/articulos/sugerencias', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'articleSuggestions', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/articulos/contexto', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'articleContext', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/{id}/editar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'edit', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'update', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/copiar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'copy', $requireCrm));
+    $router->get('/mi-empresa/crm/presupuestos/{id}/imprimir', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'printPreview', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/enviar-email', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'sendEmail', $requireCrm));
+
+    // --- MODULO FORMULARIOS DE IMPRESIÓN ---
+    $router->get('/mi-empresa/crm/formularios-impresion', $action(\App\Modules\PrintForms\PrintFormController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/formularios-impresion/{documentKey}', $action(\App\Modules\PrintForms\PrintFormController::class, 'edit', $requireCrm));
+    $router->post('/mi-empresa/crm/formularios-impresion/{documentKey}', $action(\App\Modules\PrintForms\PrintFormController::class, 'update', $requireCrm));
 
     // --- MODULO CATEGORIAS ---
     $router->get('/mi-empresa/categorias', $action(\App\Modules\Categorias\CategoriaController::class, 'index', $requireTiendas));

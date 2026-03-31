@@ -60,6 +60,7 @@
 * **Payload de PDS dinámico:** Envío a Tango inyecta Vendedor (`ID_GVA23`) y Talonario (`ID_GVA43`) del perfil configurado al usuario operador, consumiéndose desde la API "al vuelo" directamente.
 * **Finalizado PDS Obligatorio:** El campo `fecha_finalizado` ahora es estrictamente requerido para guardar en el CRM, previniendo el envío de tiempo nulo ($0) a Tango.
 * **Manejo F10 Estricto:** Se corrigió el shortcut global `F10 / Ctrl+Enter` para que priorice el guardado principal del formulario (`button[form]`) en lugar de otros submits previos del DOM (como `Enviar a Tango`), aplicable a PDS y Presupuestos.
+* **Tango API Order Number Extracción:** Dado que la API de Tango Connect (proceso 19845) NO retorna el número de pedido formateado, se agregó la captura mandatoria del valor `savedId` desde el payload de éxito, permitiendo que el sistema guarde y referencie internamente la confirmación de Tango en el campo `nro_pedido`.
 * **Usuarios por Tenant:** El modulo `Administrar Cuentas` queda disponible para usuarios autenticados del tenant, manteniendo el aislamiento por empresa en consulta y persistencia.
 * **Escalado de Privilegios Controlado:** Los operadores del tenant pueden administrar usuarios de su propia empresa, pero no ven ni pueden otorgar el flag `es_admin` salvo que ya tengan capacidad para gestionar privilegios.
 * **Visual de Slug en EmpresaConfig:** El slug visible del tenant se muestra sin prefijo duro `/rxnTiendasIA/public/`, evitando ruido visual y manteniendo el alcance en solo lectura.

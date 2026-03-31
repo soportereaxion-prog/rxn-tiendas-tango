@@ -15,6 +15,7 @@
                 <p class="text-muted mb-0">Centro interno para revisar las anotaciones levantadas desde cada modulo por administradores.</p>
             </div>
             <div class="rxn-module-actions">
+                <?php require BASE_PATH . '/app/shared/views/components/backoffice_user_banner.php'; ?>
                 <span class="badge text-bg-dark px-3 py-2"><?= (int) ($totalNotes ?? 0) ?> notas</span>
                 <a href="/rxnTiendasIA/public/admin/dashboard" class="btn btn-outline-secondary">Volver al Backoffice</a>
             </div>

@@ -141,7 +141,8 @@ foreach ($defaultCards as $cardId => $cardData) {
                 <p class="text-muted mb-0">Circuito comercial web del tenant <span class="badge bg-secondary ms-1">Empresa #<?= $_SESSION['empresa_id'] ?? '' ?></span></p>
             </div>
             <div class="rxn-module-actions">
-                <span class="text-secondary small d-none d-md-block fw-bold"><i class="bi bi-person"></i> <?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuario') ?></span>
+                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+                
                 <a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
             </div>

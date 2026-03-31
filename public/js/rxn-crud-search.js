@@ -103,6 +103,7 @@
                 }
 
                 var response = await fetch(url + query, {
+                    credentials: 'same-origin',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }

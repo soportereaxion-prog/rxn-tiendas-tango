@@ -44,6 +44,7 @@
                 <p class="text-muted mb-0"><?= htmlspecialchars(sprintf((string) $consoleSubtitle, $_SESSION['empresa_id'] ?? '')) ?></p>
             </div>
             <div class="rxn-module-actions">
+                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
                 <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info shadow-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary shadow-sm"><i class="bi bi-arrow-left"></i> Volver al Entorno</a>
             </div>

@@ -26,6 +26,10 @@ class UsuarioRepository
     public function __construct()
     {
         $this->db = Database::getConnection();
+        
+        try {
+            $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_snapshot_json JSON NULL AFTER tango_perfil_pedido_nombre, ADD COLUMN tango_perfil_snapshot_date DATETIME NULL AFTER tango_perfil_snapshot_json;');
+        } catch (\Throwable $e) {}
     }
 
     public function findByEmail(string $email, ?int $excludeId = null): ?Usuario
@@ -176,7 +180,9 @@ class UsuarioRepository
                     es_admin = :es_admin,
                     tango_perfil_pedido_id = :tango_perfil_pedido_id,
                     tango_perfil_pedido_codigo = :tango_perfil_pedido_codigo,
-                    tango_perfil_pedido_nombre = :tango_perfil_pedido_nombre
+                    tango_perfil_pedido_nombre = :tango_perfil_pedido_nombre,
+                    tango_perfil_snapshot_json = :tango_perfil_snapshot_json,
+                    tango_perfil_snapshot_date = :tango_perfil_snapshot_date
                     WHERE id = :id AND empresa_id = :empresa_id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -185,15 +191,17 @@ class UsuarioRepository
                 ':password_hash' => $usuario->password_hash,
                 ':activo' => $usuario->activo,
                 ':es_admin' => $usuario->es_admin,
-                ':tango_perfil_pedido_id' => $usuario->tango_perfil_pedido_id,
-                ':tango_perfil_pedido_codigo' => $usuario->tango_perfil_pedido_codigo,
-                ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre,
+                ':tango_perfil_pedido_id' => $usuario->tango_perfil_pedido_id ?? null,
+                ':tango_perfil_pedido_codigo' => $usuario->tango_perfil_pedido_codigo ?? null,
+                ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre ?? null,
+                ':tango_perfil_snapshot_json' => $usuario->tango_perfil_snapshot_json ?? null,
+                ':tango_perfil_snapshot_date' => $usuario->tango_perfil_snapshot_date ?? null,
                 ':id' => $usuario->id,
                 ':empresa_id' => $usuario->empresa_id
             ]);
         } else {
-            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre) 
-                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre)";
+            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date) 
+                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $usuario->empresa_id,
@@ -205,9 +213,11 @@ class UsuarioRepository
                 ':email_verificado' => current([$usuario->email_verificado ?? 0]),
                 ':verification_token' => $usuario->verification_token ?? null,
                 ':verification_expires' => $usuario->verification_expires ?? null,
-                ':tango_perfil_pedido_id' => $usuario->tango_perfil_pedido_id,
-                ':tango_perfil_pedido_codigo' => $usuario->tango_perfil_pedido_codigo,
-                ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre
+                ':tango_perfil_pedido_id' => $usuario->tango_perfil_pedido_id ?? null,
+                ':tango_perfil_pedido_codigo' => $usuario->tango_perfil_pedido_codigo ?? null,
+                ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre ?? null,
+                ':tango_perfil_snapshot_json' => $usuario->tango_perfil_snapshot_json ?? null,
+                ':tango_perfil_snapshot_date' => $usuario->tango_perfil_snapshot_date ?? null
             ]);
             $usuario->id = (int) $this->db->lastInsertId();
         }

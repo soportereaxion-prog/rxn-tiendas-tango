@@ -40,6 +40,7 @@
                 <p class="text-muted">Monitor de Integración de Pedidos hacia Tango Connect.</p>
             </div>
             <div class="rxn-module-actions">
+                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
                 <a href="/rxnTiendasIA/public/mi-empresa/ayuda" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
             </div>

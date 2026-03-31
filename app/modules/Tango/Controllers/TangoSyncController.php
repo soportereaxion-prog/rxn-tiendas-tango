@@ -8,6 +8,26 @@ use App\Modules\Tango\Services\TangoSyncService;
 
 class TangoSyncController extends Controller
 {
+    public function syncClientes(): void
+    {
+        AuthService::requireLogin();
+        $syncService = $this->resolveService();
+        $redirectPath = '/rxnTiendasIA/public/mi-empresa/crm/clientes';
+        
+        try {
+            $stats = $syncService->syncClientes();
+            
+            \App\Core\Flash::set('success', 'Sincronización de Clientes finalizada exitosamente.', $stats);
+            header('Location: ' . $redirectPath);
+            exit;
+            
+        } catch (\Exception $e) {
+            \App\Core\Flash::set('danger', 'Error de Sincronización de Clientes: ' . $e->getMessage());
+            header('Location: ' . $redirectPath);
+            exit;
+        }
+    }
+
     public function syncArticulos(): void
     {
         AuthService::requireLogin();

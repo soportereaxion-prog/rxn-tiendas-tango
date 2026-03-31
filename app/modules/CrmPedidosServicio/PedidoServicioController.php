@@ -123,7 +123,19 @@ class PedidoServicioController
         try {
             $payload = $this->validateRequest($_POST, $empresaId, null);
             $pedidoId = $this->repository->create($payload);
-            Flash::set('success', 'Pedido de servicio creado correctamente.');
+            
+            if (($_POST['action'] ?? '') === 'tango') {
+                $tangoService = new PedidoServicioTangoService();
+                $res = $tangoService->send($pedidoId, $empresaId);
+                if ($res['ok']) {
+                    Flash::set('success', 'Pedido de servicio creado y ' . $res['message']);
+                } else {
+                    Flash::set('danger', 'Pedido creado exitosamente, pero falló el envío a Tango: ' . $res['message']);
+                }
+            } else {
+                Flash::set('success', 'Pedido de servicio creado correctamente.');
+            }
+            
             header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . $pedidoId . '/editar');
             exit;
         } catch (ValidationException $e) {
@@ -172,7 +184,19 @@ class PedidoServicioController
         try {
             $payload = $this->validateRequest($_POST, $empresaId, $pedidoActual);
             $this->repository->update((int) $id, $empresaId, $payload);
-            Flash::set('success', 'Pedido de servicio actualizado correctamente.');
+            
+            if (($_POST['action'] ?? '') === 'tango') {
+                $tangoService = new PedidoServicioTangoService();
+                $res = $tangoService->send((int) $id, $empresaId);
+                if ($res['ok']) {
+                    Flash::set('success', $res['message']);
+                } else {
+                    Flash::set('danger', $res['message']);
+                }
+            } else {
+                Flash::set('success', 'Pedido de servicio actualizado correctamente.');
+            }
+            
             header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
             exit;
         } catch (ValidationException $e) {
@@ -274,7 +298,7 @@ class PedidoServicioController
         $nroPedido = trim((string) ($input['nro_pedido'] ?? ''));
         $clasificacion = strtoupper(trim((string) ($input['clasificacion_codigo'] ?? '')));
         $diagnostico = trim((string) ($input['diagnostico'] ?? ''));
-        $falla = trim((string) ($input['falla'] ?? ''));
+        $motivo_descuento = trim((string) ($input['motivo_descuento'] ?? ''));
         $descuentoInput = trim((string) ($input['descuento'] ?? '00:00:00'));
         $clienteId = (int) ($input['cliente_id'] ?? 0);
         $articuloId = (int) ($input['articulo_id'] ?? 0);
@@ -285,7 +309,9 @@ class PedidoServicioController
         }
 
         $fechaFinalizado = null;
-        if ($fechaFinalizadoInput !== '') {
+        if ($fechaFinalizadoInput === '') {
+            $errors['fecha_finalizado'] = 'La fecha de finalización es obligatoria para guardar.';
+        } else {
             $fechaFinalizado = $this->parseDateTimeInput($fechaFinalizadoInput);
             if ($fechaFinalizado === null) {
                 $errors['fecha_finalizado'] = 'La fecha de finalizacion no tiene un formato valido.';
@@ -381,7 +407,7 @@ class PedidoServicioController
             'clasificacion_codigo' => $clasificacion !== '' ? $clasificacion : null,
             'descuento_segundos' => $descuentoSegundos,
             'diagnostico' => $diagnostico !== '' ? $diagnostico : null,
-            'falla' => $falla !== '' ? $falla : null,
+            'motivo_descuento' => $motivo_descuento !== '' ? $motivo_descuento : null,
             'duracion_bruta_segundos' => $duracionBruta,
             'duracion_neta_segundos' => $duracionNeta,
         ];
@@ -421,7 +447,7 @@ class PedidoServicioController
             'clasificacion_codigo' => '',
             'descuento' => '00:00:00',
             'diagnostico' => '',
-            'falla' => '',
+            'motivo_descuento' => '',
             'duracion_bruta_segundos' => null,
             'duracion_neta_segundos' => null,
             'duracion_bruta_hhmmss' => '--:--:--',
@@ -446,7 +472,7 @@ class PedidoServicioController
             'clasificacion_codigo' => (string) ($pedido['clasificacion_codigo'] ?? ''),
             'descuento' => $this->formatDuration((int) ($pedido['descuento_segundos'] ?? 0)),
             'diagnostico' => (string) ($pedido['diagnostico'] ?? ''),
-            'falla' => (string) ($pedido['falla'] ?? ''),
+            'motivo_descuento' => (string) ($pedido['motivo_descuento'] ?? ''),
             'duracion_bruta_segundos' => isset($pedido['duracion_bruta_segundos']) ? (int) $pedido['duracion_bruta_segundos'] : null,
             'duracion_neta_segundos' => isset($pedido['duracion_neta_segundos']) ? (int) $pedido['duracion_neta_segundos'] : null,
             'duracion_bruta_hhmmss' => isset($pedido['duracion_bruta_segundos']) ? $this->formatDuration((int) $pedido['duracion_bruta_segundos']) : '--:--:--',
@@ -469,7 +495,7 @@ class PedidoServicioController
         $state['clasificacion_codigo'] = strtoupper(trim((string) ($input['clasificacion_codigo'] ?? $state['clasificacion_codigo'])));
         $state['descuento'] = trim((string) ($input['descuento'] ?? $state['descuento']));
         $state['diagnostico'] = trim((string) ($input['diagnostico'] ?? $state['diagnostico']));
-        $state['falla'] = trim((string) ($input['falla'] ?? $state['falla']));
+        $state['motivo_descuento'] = trim((string) ($input['motivo_descuento'] ?? $state['motivo_descuento']));
 
         $inicio = $this->parseDateTimeInput($state['fecha_inicio']);
         $fin = $this->parseDateTimeInput($state['fecha_finalizado']);

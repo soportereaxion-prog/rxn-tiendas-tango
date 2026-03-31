@@ -39,6 +39,7 @@
                 <p class="text-muted mb-0">Registro operativo con calculo de tiempos, descuentos y cierre del servicio.</p>
             </div>
             <div class="rxn-module-actions">
+                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/crear" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nuevo pedido</a>
                 <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al CRM</a>

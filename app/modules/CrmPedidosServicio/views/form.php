@@ -134,7 +134,9 @@
                 <p class="text-muted mb-0">CRM operativo con control de inicio, cierre, descuento horario y calculo neto.</p>
             </div>
             <div class="rxn-module-actions">
-                <button type="submit" form="crm-pedido-servicio-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> <?= $formMode === 'edit' ? 'Guardar pedido' : 'Crear pedido' ?></button>
+                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+                <button type="submit" form="crm-pedido-servicio-form" name="action" value="save" class="btn btn-primary"><i class="bi bi-check2-circle"></i> <?= $formMode === 'edit' ? 'Guardar pedido' : 'Crear pedido' ?></button>
+                <button type="submit" form="crm-pedido-servicio-form" name="action" value="tango" class="btn btn-success" onclick="return confirm('¿Confirma que desea enviar este pedido de servicio a Tango?');"><i class="bi bi-cloud-upload"></i> Guardar y Enviar a Tango</button>
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al listado</a>
             </div>
@@ -180,7 +182,7 @@
 
                             <div class="crm-col-3">
                                 <label for="fecha_finalizado" class="form-label mb-1">Finalizado</label>
-                                <input type="datetime-local" step="1" class="form-control form-control-sm <?= isset($errors['fecha_finalizado']) ? 'is-invalid' : '' ?>" id="fecha_finalizado" name="fecha_finalizado" value="<?= htmlspecialchars((string) $pedido['fecha_finalizado']) ?>" data-calc-end>
+                                <input type="datetime-local" step="1" class="form-control form-control-sm <?= isset($errors['fecha_finalizado']) ? 'is-invalid' : '' ?>" id="fecha_finalizado" name="fecha_finalizado" value="<?= htmlspecialchars((string) $pedido['fecha_finalizado']) ?>" required data-calc-end>
                                 <?php if (isset($errors['fecha_finalizado'])): ?><div class="invalid-feedback"><?= htmlspecialchars((string) $errors['fecha_finalizado']) ?></div><?php endif; ?>
                             </div>
 
@@ -274,15 +276,16 @@
                                 <textarea class="form-control" id="diagnostico" name="diagnostico" rows="8" placeholder="Describe el contexto, pruebas, observaciones y resolucion prevista."><?= htmlspecialchars((string) $pedido['diagnostico']) ?></textarea>
                             </div>
                             <div class="rxn-form-span-12">
-                                <label for="falla" class="form-label">Falla</label>
-                                <textarea class="form-control" id="falla" name="falla" rows="4" placeholder="Resume la falla principal detectada."><?= htmlspecialchars((string) $pedido['falla']) ?></textarea>
+                                <label for="motivo_descuento" class="form-label">Motivo de descuento</label>
+                                <textarea class="form-control" id="motivo_descuento" name="motivo_descuento" rows="4" placeholder="Explica el motivo si aplicaste un descuento de tiempo."><?= htmlspecialchars((string) $pedido['motivo_descuento']) ?></textarea>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rxn-form-actions">
-                        <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-light">Cancelar</a>
-                        <button type="submit" class="btn btn-primary py-2 fw-bold"><?= $formMode === 'edit' ? 'Guardar cambios' : 'Crear pedido de servicio' ?></button>
+                    <div class="rxn-form-actions d-flex gap-2 justify-content-end">
+                        <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-light me-auto">Cancelar</a>
+                        <button type="submit" name="action" value="tango" class="btn btn-success py-2 fw-bold" onclick="return confirm('¿Confirma que desea enviar este pedido de servicio a Tango?');">Guardar y Enviar a Tango</button>
+                        <button type="submit" name="action" value="save" class="btn btn-primary py-2 fw-bold"><?= $formMode === 'edit' ? 'Guardar cambios' : 'Crear pedido de servicio' ?></button>
                     </div>
                 </form>
             </div>

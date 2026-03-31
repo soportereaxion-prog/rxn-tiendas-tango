@@ -126,6 +126,7 @@
 
             try {
                 var response = await fetch(url + '?q=' + encodeURIComponent(term), {
+                    credentials: 'same-origin',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -382,6 +383,7 @@
 
         async function fetchJson(url) {
             var response = await fetch(url, {
+                credentials: 'same-origin',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }

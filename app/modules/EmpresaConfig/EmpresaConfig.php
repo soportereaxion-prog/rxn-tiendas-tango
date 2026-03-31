@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\EmpresaConfig;
 
+#[\AllowDynamicProperties]
 class EmpresaConfig
 {
     public ?int $id = null;
@@ -20,6 +21,14 @@ class EmpresaConfig
     public ?string $lista_precio_2 = null;
     public ?string $deposito_codigo = null;
     public ?string $imagen_default_producto = null;
+
+    // Campos de Configuración de Tango
+    public ?int $tango_pds_talonario_id = null;
+    public ?int $tango_perfil_pedido_id = null;
+    public ?string $tango_perfil_pedido_codigo = null;
+    public ?string $tango_perfil_pedido_nombre = null;
+    public ?string $tango_perfil_snapshot_json = null;
+    public ?string $tango_perfil_snapshot_date = null;
     
     // Configuracion SMTP
     public int $usa_smtp_propio = 0;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Auth;
 
+#[\AllowDynamicProperties]
 class Usuario
 {
     public ?int $id = null;
@@ -38,4 +39,8 @@ class Usuario
     public ?int $tango_perfil_pedido_id = null;
     public ?string $tango_perfil_pedido_codigo = null;
     public ?string $tango_perfil_pedido_nombre = null;
+    
+    // Almacenamiento cacheado del perfil de tango en formato JSON para el resolver local (evita latencia API)
+    public ?string $tango_perfil_snapshot_json = null;
+    public ?string $tango_perfil_snapshot_date = null;
 }

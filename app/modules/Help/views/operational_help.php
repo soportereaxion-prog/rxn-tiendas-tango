@@ -98,6 +98,7 @@
                 <p class="text-muted mb-0">Explicaciones largas, simples y directas para que cualquier administrador entienda que hace cada parte del sistema. Contexto actual: <?= htmlspecialchars((string) $environmentLabel) ?>.</p>
             </div>
             <div class="rxn-module-actions">
+                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
                 <span class="text-muted small">Hola, <?= htmlspecialchars((string) $userName) ?></span>
                 <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Entorno</a>
             </div>

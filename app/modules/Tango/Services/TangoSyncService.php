@@ -33,6 +33,71 @@ class TangoSyncService
         return new self('crm');
     }
 
+    public function syncClientes(): array
+    {
+        $empresaId = Context::getEmpresaId();
+        if (!$empresaId) {
+            throw new \RuntimeException("Sincronización abortada: Sin empresa activa en el contexto temporal.");
+        }
+
+        $logId = $this->logRepo->startLog((int)$empresaId, 'CLIENTES_CRM');
+        $stats = ['recibidos' => 0, 'insertados' => 0, 'actualizados' => 0, 'omitidos' => 0];
+
+        try {
+            $page = 1;
+            do {
+                $dto = $this->tangoService->fetchClientes($page);
+
+                if (!$dto->isSuccess) {
+                    throw new \App\Infrastructure\Exceptions\HttpException("Respuesta fallida/rebotada desde Tango: " . $dto->errorMessage);
+                }
+
+                $items = is_array($dto->payload) ? $dto->payload : [];
+                if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
+                    $items = $items['resultData']['list'];
+                } elseif (isset($items['Data']) && is_array($items['Data'])) {
+                    $items = $items['Data'];
+                } elseif (isset($items['data']) && is_array($items['data'])) {
+                    $items = $items['data'];
+                }
+
+                $count = count($items);
+                $stats['recibidos'] += $count;
+
+                $crmClienteRepo = new \App\Modules\CrmClientes\CrmClienteRepository();
+
+                foreach ($items as $item) {
+                    $mapped = \App\Modules\Tango\Mappers\CrmClienteMapper::fromConnectJson($item);
+                    if (!$mapped) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    $res = $crmClienteRepo->upsertFromTango((int)$empresaId, $mapped);
+
+                    if ($res === 'inserted') {
+                        $stats['insertados']++;
+                    } elseif ($res === 'updated') {
+                        $stats['actualizados']++;
+                    } elseif ($res === 'skipped') {
+                        $stats['omitidos']++;
+                    }
+                }
+                
+                // Paginación si vinieron exactamente la cantidad máxima (ej. 50/1000)
+                // TangoService -> fetchClientes(page, syncAmount)
+                $page++;
+            } while ($count > 0 && $page < 100); // Límite de seguridad 100 páginas
+
+            $this->logRepo->endLog($logId, $stats, 'SUCCESS');
+            return $stats;
+
+        } catch (\Exception $e) {
+            $this->logRepo->endLog($logId, $stats, 'ERROR', $e->getMessage());
+            throw $e;
+        }
+    }
+
     public function syncArticulos(): array
     {
         $empresaId = Context::getEmpresaId();
