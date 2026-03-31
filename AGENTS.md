@@ -184,13 +184,12 @@ Después:
 
 ## Documentación y trazabilidad
 
-Toda modificación relevante DEBE:
+Toda modificación relevante o cierre de iteración DEBE aplicar de manera autónoma y directa (vía SafeToAutoRun o solicitando confirmación si el agente lo considera riesgoso para el entorno local, pero accionando siempre por default):
 
-- crear o actualizar archivo en `/docs/logs`
-- formato obligatorio:
-  `YYYY-MM-DD_HHMM_descripcion.md`
-- revisar si corresponde actualizar `docs/estado/current.md`
-- revisar si corresponde actualizar `app/config/version.php`
+1. **Log:** Crear o actualizar archivo en `/docs/logs` (formato: `YYYY-MM-DD_HHMM_descripcion.md`).
+2. **Estado:** Revisar y obligatoriamente actualizar `docs/estado/current.md` con nuevos bullet points.
+3. **Versión:** Bump obligatorio en `app/config/version.php` insertando un nuevo bloque history con `version`, `build` y detalles de los items.
+4. **Git:** Ejecutar `git add .` (o los modificados) seguido de `git commit -m "feat/fix/refactor: motivo"`. No se requiere pedir permiso explicito; el usuario confía en este proceso al final de la iteración.
 
 Contenido mínimo:
 - qué se hizo
