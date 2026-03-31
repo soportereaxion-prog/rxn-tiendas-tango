@@ -1,9 +1,22 @@
 <?php
 
 return [
-    'current_version' => '1.1.37',
-    'current_build' => '20260331.1',
+    'current_version' => '1.1.38',
+    'current_build' => '20260331.2',
     'history' => [
+        [
+            'version' => '1.1.38',
+            'build' => '20260331.2',
+            'released_at' => '2026-03-31',
+            'title' => 'Restauración de Esquemas, Optimizaciones de Búsqueda y JSON Snapshots',
+            'summary' => 'Se restauraron y fortalecieron integraciones perdidas: snapshots JSON de perfiles de Tango, lógica robusta de F10 en PDS, y optimizaciones de ranking en buscadores de catálogos y clientes CRM.',
+            'items' => [
+                'El esquema de usuarios suma resiliencia al migrar en runtime JSON snapshots faltantes de Tango Connect.',
+                'Renombre del campo `falla` a `motivo_descuento` a lo largo de PDS y los reportes en Canvas Impresión.',
+                'El buscador de Clientes y Artículos CRM implementa ranking por peso (Match exacto > Prefix match > Fulltext).',
+                'El formulario PDS diferencia con confirmación el envío a ERP vs un guardado en borrador simple validando fecha finalizado.',
+            ],
+        ],
         [
             'version' => '1.1.37',
             'build' => '20260331.1',
