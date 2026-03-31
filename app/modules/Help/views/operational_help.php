@@ -156,7 +156,7 @@
                 <div class="help-anchor-grid">
                     <a href="#modulo-articulos" class="help-anchor"><strong><?= $isCrm ? 'Articulos CRM' : 'Catalogo de Articulos' ?></strong><br><small class="text-muted"><?= $isCrm ? 'Articulos internos, precios, stock, imagenes y sync CRM.' : 'Productos, precios, stock, imagenes y sync.' ?></small></a>
                     <?php if ($isCrm): ?>
-                        <a href="#modulo-pedidos-servicio" class="help-anchor"><strong>Pedidos de Servicio</strong><br><small class="text-muted">Alta, tiempos, diagnostico, falla y cierre.</small></a>
+                        <a href="#modulo-pedidos-servicio" class="help-anchor"><strong>Pedidos de Servicio</strong><br><small class="text-muted">Alta, tiempos, diagnostico, motivo de descuento y cierre.</small></a>
                     <?php else: ?>
                         <a href="#modulo-clientes" class="help-anchor"><strong>Clientes Web</strong><br><small class="text-muted">Clientes, datos, vinculo con Tango.</small></a>
                         <a href="#modulo-pedidos" class="help-anchor"><strong>Pedidos Web</strong><br><small class="text-muted">Seguimiento, estados y reproceso.</small></a>
@@ -190,7 +190,7 @@
         </div>
 
         <?php if ($isCrm): ?>
-            <div class="card rxn-form-card help-card" id="modulo-pedidos-servicio" data-help-item data-help-text="crm pedidos servicio servicio tecnico diagnostico falla descuento inicio finalizado clasificacion cliente articulo tiempo neto bruto">
+            <div class="card rxn-form-card help-card" id="modulo-pedidos-servicio" data-help-item data-help-text="crm pedidos servicio servicio tecnico diagnostico motivo descuento finalizado clasificacion cliente articulo tiempo neto bruto">
                 <div class="card-body p-4 p-lg-5">
                     <h2 class="h4 fw-bold mb-3">Pedidos de Servicio</h2>
                     <p class="text-muted">Este modulo sirve para registrar trabajo tecnico o comercial en formato operativo. Piensalo como la ficha de cada intervencion.</p>
@@ -199,7 +199,7 @@
                         <li><strong>Descuento:</strong> es tiempo que no debe computarse. Se escribe en formato <code>HH:MM:SS</code>.</li>
                         <li><strong>Tiempo bruto:</strong> fin menos inicio.</li>
                         <li><strong>Tiempo neto:</strong> bruto menos descuento.</li>
-                        <li><strong>Diagnostico y Falla:</strong> son los textos principales del trabajo y conviene completarlos con lenguaje claro.</li>
+                        <li><strong>Diagnostico y Motivo Descuento:</strong> son los textos principales del trabajo y conviene completarlos con lenguaje claro.</li>
                     </ul>
                     <div class="help-highlight">
                         <strong>Dato importante:</strong> el pedido guarda snapshot de cliente y articulo. Eso significa que el historico sigue legible aunque mas adelante cambie el origen de datos.
@@ -231,10 +231,10 @@
                 <ul class="help-list-tight mb-4">
                     <li><strong>Pendiente:</strong> el pedido existe localmente pero todavia no se completo su envio correcto al ERP.</li>
                     <li><strong>Enviado OK:</strong> el pedido ya paso al sistema comercial.</li>
-                    <li><strong>Con Error:</strong> hubo un rechazo o una falla, y conviene revisar cliente, articulos o configuracion.</li>
+                    <li><strong>Con Error:</strong> hubo un rechazo o una falla técnica, y conviene revisar cliente, articulos o configuracion.</li>
                     <li><strong>Reprocesar:</strong> intenta enviar de nuevo el pedido despues de corregir la causa del problema.</li>
                 </ul>
-                <p class="mb-0">Si un pedido falla, no siempre hay que tocar el pedido mismo. A veces el error esta en el cliente, en el articulo o en una configuracion faltante.</p>
+                <p class="mb-0">Si un pedido falla o se rechaza, no siempre hay que tocar el pedido mismo. A veces el error esta en el cliente, en el articulo o en una configuracion faltante.</p>
             </div>
         </div>
         <?php endif; ?>
