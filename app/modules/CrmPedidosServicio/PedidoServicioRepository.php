@@ -158,7 +158,7 @@ class PedidoServicioRepository
                     clasificacion_codigo,
                     descuento_segundos,
                     diagnostico,
-                    falla,
+                    motivo_descuento,
                     duracion_bruta_segundos,
                     duracion_neta_segundos,
                     tiempo_decimal,
@@ -183,7 +183,7 @@ class PedidoServicioRepository
                     :clasificacion_codigo,
                     :descuento_segundos,
                     :diagnostico,
-                    :falla,
+                    :motivo_descuento,
                     :duracion_bruta_segundos,
                     :duracion_neta_segundos,
                     :tiempo_decimal,
@@ -231,7 +231,7 @@ class PedidoServicioRepository
                 clasificacion_codigo = :clasificacion_codigo,
                 descuento_segundos = :descuento_segundos,
                 diagnostico = :diagnostico,
-                falla = :falla,
+                motivo_descuento = :motivo_descuento,
                 duracion_bruta_segundos = :duracion_bruta_segundos,
                 duracion_neta_segundos = :duracion_neta_segundos,
                 tiempo_decimal = :tiempo_decimal,
@@ -261,12 +261,24 @@ class PedidoServicioRepository
                 OR documento LIKE :term
                 OR CAST(id AS CHAR) LIKE :term
             )
-            ORDER BY razon_social ASC, nombre ASC, apellido ASC
+            ORDER BY
+                CASE 
+                    WHEN documento = :exact THEN 1
+                    WHEN documento LIKE :starts THEN 2
+                    WHEN razon_social = :exact THEN 3
+                    WHEN razon_social LIKE :starts THEN 4
+                    WHEN nombre LIKE :starts OR apellido LIKE :starts THEN 5
+                    ELSE 99 
+                END ASC,
+                razon_social ASC, nombre ASC, apellido ASC
             LIMIT :limit';
 
+        $termRaw = trim($term);
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
-        $stmt->bindValue(':term', '%' . trim($term) . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':term', '%' . $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':exact', $termRaw, PDO::PARAM_STR);
+        $stmt->bindValue(':starts', $termRaw . '%', PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -304,12 +316,23 @@ class PedidoServicioRepository
                 OR descripcion LIKE :term
                 OR CAST(id AS CHAR) LIKE :term
             )
-            ORDER BY nombre ASC
+            ORDER BY
+                CASE 
+                    WHEN codigo_externo = :exact THEN 1
+                    WHEN codigo_externo LIKE :starts THEN 2
+                    WHEN nombre = :exact THEN 3
+                    WHEN nombre LIKE :starts THEN 4
+                    ELSE 99
+                END ASC,
+                nombre ASC
             LIMIT :limit';
 
+        $termRaw = trim($term);
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
-        $stmt->bindValue(':term', '%' . trim($term) . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':term', '%' . $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':exact', $termRaw, PDO::PARAM_STR);
+        $stmt->bindValue(':starts', $termRaw . '%', PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -421,10 +444,47 @@ class PedidoServicioRepository
             ':clasificacion_codigo' => $data['clasificacion_codigo'],
             ':descuento_segundos' => (int) $data['descuento_segundos'],
             ':diagnostico' => $data['diagnostico'],
-            ':falla' => $data['falla'],
+            ':motivo_descuento' => $data['motivo_descuento'],
             ':duracion_bruta_segundos' => $data['duracion_bruta_segundos'],
             ':duracion_neta_segundos' => $data['duracion_neta_segundos'],
         ];
+    }
+
+    public function markAsSentToTango(int $id, int $empresaId, string $pedidoNumero, string $payload, string $response): void
+    {
+        $stmt = $this->db->prepare('UPDATE crm_pedidos_servicio SET
+            tango_sync_status = "success",
+            tango_sync_error = NULL,
+            tango_sync_payload = :payload,
+            tango_sync_response = :response,
+            nro_pedido = :nro_pedido
+            WHERE id = :id AND empresa_id = :empresa_id');
+        
+        $stmt->execute([
+            ':id' => $id,
+            ':empresa_id' => $empresaId,
+            ':nro_pedido' => $pedidoNumero,
+            ':payload' => $payload,
+            ':response' => $response,
+        ]);
+    }
+
+    public function markAsErrorToTango(int $id, int $empresaId, string $payload, string $errorText, string $response = ''): void
+    {
+        $stmt = $this->db->prepare('UPDATE crm_pedidos_servicio SET
+            tango_sync_status = "error",
+            tango_sync_error = :error_text,
+            tango_sync_payload = :payload,
+            tango_sync_response = :response
+            WHERE id = :id AND empresa_id = :empresa_id');
+        
+        $stmt->execute([
+            ':id' => $id,
+            ':empresa_id' => $empresaId,
+            ':error_text' => $errorText,
+            ':payload' => $payload,
+            ':response' => $response === '' ? null : $response,
+        ]);
     }
 
     private function ensureSchema(): void
@@ -448,9 +508,13 @@ class PedidoServicioRepository
             clasificacion_codigo VARCHAR(80) NULL,
             descuento_segundos INT UNSIGNED NOT NULL DEFAULT 0,
             diagnostico TEXT NULL,
-            falla TEXT NULL,
+            motivo_descuento TEXT NULL,
             duracion_bruta_segundos INT UNSIGNED NULL,
             duracion_neta_segundos INT UNSIGNED NULL,
+            tango_sync_status VARCHAR(50) NULL,
+            tango_sync_error TEXT NULL,
+            tango_sync_payload JSON NULL,
+            tango_sync_response JSON NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_crm_pedidos_servicio_empresa_numero (empresa_id, numero),
@@ -459,5 +523,13 @@ class PedidoServicioRepository
             KEY idx_crm_pedidos_servicio_articulo (empresa_id, articulo_id),
             KEY idx_crm_pedidos_servicio_clasificacion (empresa_id, clasificacion_codigo)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+        try {
+            $this->db->exec('ALTER TABLE crm_pedidos_servicio CHANGE falla motivo_descuento TEXT NULL');
+        } catch (\Throwable $e) {}
+        
+        try {
+            $this->db->exec('ALTER TABLE crm_pedidos_servicio ADD COLUMN tango_sync_status VARCHAR(50) NULL AFTER duracion_neta_segundos, ADD COLUMN tango_sync_error TEXT NULL AFTER tango_sync_status, ADD COLUMN tango_sync_payload JSON NULL AFTER tango_sync_error, ADD COLUMN tango_sync_response JSON NULL AFTER tango_sync_payload');
+        } catch (\Throwable $e) {}
     }
 }
