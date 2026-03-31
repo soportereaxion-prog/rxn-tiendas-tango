@@ -170,6 +170,28 @@ class UsuarioService
                 $usuario->tango_perfil_pedido_id = (int) $parts[0];
                 $usuario->tango_perfil_pedido_codigo = $parts[1];
                 $usuario->tango_perfil_pedido_nombre = $parts[2];
+
+                try {
+                    $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                    $config = $configRepo->findByEmpresaId($usuario->empresa_id);
+                    if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
+                        $apiUrl = rtrim($config->tango_api_url ?? '', '/');
+                        if (!preg_match('/\/api$/i', $apiUrl)) {
+                            $apiUrl .= '/Api';
+                        }
+                        $tangoClient = new \App\Modules\Tango\TangoApiClient(
+                            $apiUrl,
+                            $config->tango_connect_token,
+                            $config->tango_connect_company_id ?? '',
+                            $config->tango_connect_key ?? ''
+                        );
+                        $perfilData = $tangoClient->getPerfilPedidoById($usuario->tango_perfil_pedido_id);
+                        if ($perfilData) {
+                            $usuario->tango_perfil_snapshot_json = json_encode($perfilData, JSON_UNESCAPED_UNICODE);
+                            $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
+                        }
+                    }
+                } catch (\Throwable $e) {}
             }
         }
 
@@ -206,12 +228,36 @@ class UsuarioService
                 $usuario->tango_perfil_pedido_id = null;
                 $usuario->tango_perfil_pedido_codigo = null;
                 $usuario->tango_perfil_pedido_nombre = null;
+                $usuario->tango_perfil_snapshot_json = null;
+                $usuario->tango_perfil_snapshot_date = null;
             } else {
                 $parts = explode('|', $data['tango_perfil_pedido']);
                 if (count($parts) === 3) {
                     $usuario->tango_perfil_pedido_id = (int) $parts[0];
                     $usuario->tango_perfil_pedido_codigo = $parts[1];
                     $usuario->tango_perfil_pedido_nombre = $parts[2];
+
+                    try {
+                        $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                        $config = $configRepo->findByEmpresaId($usuario->empresa_id);
+                        if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
+                            $apiUrl = rtrim($config->tango_api_url ?? '', '/');
+                            if (!preg_match('/\/api$/i', $apiUrl)) {
+                                $apiUrl .= '/Api';
+                            }
+                            $tangoClient = new \App\Modules\Tango\TangoApiClient(
+                                $apiUrl,
+                                $config->tango_connect_token,
+                                $config->tango_connect_company_id ?? '',
+                                $config->tango_connect_key ?? ''
+                            );
+                            $perfilData = $tangoClient->getPerfilPedidoById($usuario->tango_perfil_pedido_id);
+                            if ($perfilData) {
+                                $usuario->tango_perfil_snapshot_json = json_encode($perfilData, JSON_UNESCAPED_UNICODE);
+                                $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
+                            }
+                        }
+                    } catch (\Throwable $e) {}
                 }
             }
         }
