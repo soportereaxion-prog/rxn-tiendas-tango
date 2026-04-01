@@ -164,8 +164,8 @@ class UsuarioService
 
         $usuario = new Usuario();
         $usuario->empresa_id = $empresaId; // Injectamos el contexto (dinámico si es RXN admin)
-        $usuario->nombre = trim($data['nombre'] ?? '');
-        $usuario->email = trim($data['email'] ?? '');
+        $usuario->nombre = strip_tags(trim($data['nombre'] ?? ''));
+        $usuario->email = filter_var(trim($data['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         $usuario->password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
@@ -215,8 +215,8 @@ class UsuarioService
         
         $this->validateEmail($data['email'] ?? '', $id);
 
-        $usuario->nombre = trim($data['nombre'] ?? '');
-        $usuario->email = trim($data['email'] ?? '');
+        $usuario->nombre = strip_tags(trim($data['nombre'] ?? ''));
+        $usuario->email = filter_var(trim($data['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
 
@@ -298,6 +298,10 @@ class UsuarioService
     {
         if (empty($email)) {
             throw new RuntimeException('El correo electrónico es obligatorio.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('El formato del correo electrónico no es válido.');
         }
 
         // En RXN Fase 1 definimos email único GLOBAlmente por estar la key UNIQUE integrada en el esquema de base de datos MariaDB base.
