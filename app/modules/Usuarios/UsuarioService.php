@@ -49,15 +49,17 @@ class UsuarioService
         $field = $this->normalizeSearchField($filters['field'] ?? 'all');
         $sort = $this->normalizeSortField($filters['sort'] ?? 'id');
         $dir = $this->normalizeSortDirection($filters['dir'] ?? 'desc');
+        $status = $filters['status'] ?? 'activos';
+        $onlyDeleted = $status === 'papelera';
         $isGlobalAdmin = !empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1;
 
         if ($isGlobalAdmin) {
-            $total = $this->repository->countAll();
-            $filteredTotal = $this->repository->countFiltered($search, $field);
+            $total = $this->repository->countAll($onlyDeleted);
+            $filteredTotal = $this->repository->countFiltered($search, $field, $onlyDeleted);
         } else {
             $empresaId = $this->getContextId();
-            $total = $this->repository->countAllByEmpresaId($empresaId);
-            $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field);
+            $total = $this->repository->countAllByEmpresaId($empresaId, $onlyDeleted);
+            $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field, $onlyDeleted);
         }
 
         $lastPage = max(1, (int) ceil($filteredTotal / self::PER_PAGE));
@@ -65,9 +67,9 @@ class UsuarioService
         $offset = ($page - 1) * self::PER_PAGE;
 
         if ($isGlobalAdmin) {
-            $items = $this->repository->findFilteredPaginated($search, $field, $sort, $dir, self::PER_PAGE, $offset);
+            $items = $this->repository->findFilteredPaginated($search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted);
         } else {
-            $items = $this->repository->findFilteredPaginatedByEmpresaId($empresaId, $search, $field, $sort, $dir, self::PER_PAGE, $offset);
+            $items = $this->repository->findFilteredPaginatedByEmpresaId($empresaId, $search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted);
         }
 
         return [
@@ -78,6 +80,7 @@ class UsuarioService
                 'sort' => $sort,
                 'dir' => $dir,
                 'page' => $page,
+                'status' => $status,
             ],
             'total' => $total,
             'filteredTotal' => $filteredTotal,
@@ -127,18 +130,21 @@ class UsuarioService
         }, $rows);
     }
 
-    public function getByIdForContext(int $id): Usuario
+    public function getByIdForContext(int $id, bool $includeDeleted = false): Usuario
     {
+        // Actually, we use a separate query or bypass it locally to avoid rewriting all methods for includeDeleted.
+        // Let's implement a small hack or just run a specific query for checking ownership in restore/forceDelete.
+        // Wait, for now let's just use raw query to check ownership inside restore/forceDelete.
         if (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1) {
             $usuario = $this->repository->findById($id);
         } else {
             $usuario = $this->repository->findByIdAndEmpresaId($id, $this->getContextId());
         }
         
-        if (!$usuario) {
+        if (!$usuario && !$includeDeleted) {
             throw new RuntimeException("Rechazado: El usuario solicitado no existe o no pertenece a la titularidad de esta Empresa.");
         }
-        return $usuario;
+        return $usuario ?: new Usuario();
     }
 
     public function create(array $data): void
@@ -171,27 +177,23 @@ class UsuarioService
                 $usuario->tango_perfil_pedido_codigo = $parts[1];
                 $usuario->tango_perfil_pedido_nombre = $parts[2];
 
-                try {
-                    $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
-                    $config = $configRepo->findByEmpresaId($usuario->empresa_id);
-                    if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
-                        $apiUrl = rtrim($config->tango_api_url ?? '', '/');
-                        if (!preg_match('/\/api$/i', $apiUrl)) {
-                            $apiUrl .= '/Api';
-                        }
-                        $tangoClient = new \App\Modules\Tango\TangoApiClient(
-                            $apiUrl,
-                            $config->tango_connect_token,
-                            $config->tango_connect_company_id ?? '',
-                            $config->tango_connect_key ?? ''
-                        );
-                        $perfilData = $tangoClient->getPerfilPedidoById($usuario->tango_perfil_pedido_id);
-                        if ($perfilData) {
-                            $usuario->tango_perfil_snapshot_json = json_encode($perfilData, JSON_UNESCAPED_UNICODE);
-                            $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
-                        }
+                    if (!empty($data['tango_perfil_snapshot_json'])) {
+                        $usuario->tango_perfil_snapshot_json = $data['tango_perfil_snapshot_json'];
+                        $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
+                    } else {
+                        try {
+                            $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                            $config = $configRepo->findByEmpresaId($usuario->empresa_id);
+                            if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
+                                $snapshotService = new \App\Modules\Tango\Services\TangoProfileSnapshotService();
+                                $perfilData = $snapshotService->fetch($config, $usuario->tango_perfil_pedido_id);
+                                if ($perfilData) {
+                                    $usuario->tango_perfil_snapshot_json = json_encode($perfilData, JSON_UNESCAPED_UNICODE);
+                                    $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
+                                }
+                            }
+                        } catch (\Throwable $e) {}
                     }
-                } catch (\Throwable $e) {}
             }
         }
 
@@ -224,6 +226,8 @@ class UsuarioService
         }
 
         if (isset($data['tango_perfil_pedido'])) {
+            $currentProfileId = $usuario->tango_perfil_pedido_id;
+
             if ($data['tango_perfil_pedido'] === '') {
                 $usuario->tango_perfil_pedido_id = null;
                 $usuario->tango_perfil_pedido_codigo = null;
@@ -233,31 +237,31 @@ class UsuarioService
             } else {
                 $parts = explode('|', $data['tango_perfil_pedido']);
                 if (count($parts) === 3) {
-                    $usuario->tango_perfil_pedido_id = (int) $parts[0];
+                    $newProfileId = (int) $parts[0];
+                    $profileChanged = ($currentProfileId !== $newProfileId);
+
+                    $usuario->tango_perfil_pedido_id = $newProfileId;
                     $usuario->tango_perfil_pedido_codigo = $parts[1];
                     $usuario->tango_perfil_pedido_nombre = $parts[2];
 
-                    try {
-                        $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
-                        $config = $configRepo->findByEmpresaId($usuario->empresa_id);
-                        if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
-                            $apiUrl = rtrim($config->tango_api_url ?? '', '/');
-                            if (!preg_match('/\/api$/i', $apiUrl)) {
-                                $apiUrl .= '/Api';
+                    if (!$profileChanged && !empty($data['tango_perfil_snapshot_json'])) {
+                        $usuario->tango_perfil_snapshot_json = $data['tango_perfil_snapshot_json'];
+                        $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
+                    } else {
+                        // Fallback API if not provided or if profile changed (prevent stale json propagation)
+                        try {
+                            $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                            $config = $configRepo->findByEmpresaId($usuario->empresa_id);
+                            if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
+                                $snapshotService = new \App\Modules\Tango\Services\TangoProfileSnapshotService();
+                                $perfilData = $snapshotService->fetch($config, $usuario->tango_perfil_pedido_id);
+                                if ($perfilData) {
+                                    $usuario->tango_perfil_snapshot_json = json_encode($perfilData, JSON_UNESCAPED_UNICODE);
+                                    $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
+                                }
                             }
-                            $tangoClient = new \App\Modules\Tango\TangoApiClient(
-                                $apiUrl,
-                                $config->tango_connect_token,
-                                $config->tango_connect_company_id ?? '',
-                                $config->tango_connect_key ?? ''
-                            );
-                            $perfilData = $tangoClient->getPerfilPedidoById($usuario->tango_perfil_pedido_id);
-                            if ($perfilData) {
-                                $usuario->tango_perfil_snapshot_json = json_encode($perfilData, JSON_UNESCAPED_UNICODE);
-                                $usuario->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
-                            }
-                        }
-                    } catch (\Throwable $e) {}
+                        } catch (\Throwable $e) {}
+                    }
                 }
             }
         }
@@ -267,6 +271,27 @@ class UsuarioService
         }
 
         $this->repository->save($usuario);
+
+        // Espejo a empresa_config: el perfil Tango debe vivir a nivel empresa,
+        // no atado a un usuario específico. El resolver lo lee desde config primero.
+        if (isset($data['tango_perfil_pedido']) && $usuario->tango_perfil_pedido_id !== null) {
+            try {
+                $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
+                $config = $configRepo->findByEmpresaId($usuario->empresa_id);
+                if ($config) {
+                    $config->tango_perfil_pedido_id     = $usuario->tango_perfil_pedido_id;
+                    $config->tango_perfil_pedido_codigo = $usuario->tango_perfil_pedido_codigo;
+                    $config->tango_perfil_pedido_nombre = $usuario->tango_perfil_pedido_nombre;
+                    if ($usuario->tango_perfil_snapshot_json !== null) {
+                        $config->tango_perfil_snapshot_json = $usuario->tango_perfil_snapshot_json;
+                        $config->tango_perfil_snapshot_date = $usuario->tango_perfil_snapshot_date;
+                    }
+                    $configRepo->save($config);
+                }
+            } catch (\Throwable $e) {
+                // No bloquear el guardado del usuario si falla el mirror de config
+            }
+        }
     }
 
     private function validateEmail(string $email, ?int $excludeId): void
@@ -279,6 +304,145 @@ class UsuarioService
         $existente = $this->repository->findByEmail($email, $excludeId);
         if ($existente) {
             throw new RuntimeException('El correo electrónico ya se encuentra registrado (Bloqueo Global).');
+        }
+    }
+
+    public function copy(int $id): void
+    {
+        $original = $this->getByIdForContext($id);
+        
+        $usuario = new Usuario();
+        $usuario->empresa_id = $original->empresa_id;
+        $usuario->nombre = $original->nombre . ' (Copia)';
+        
+        // Use a generic placeholder email since unique constraint protects DB
+        $usuario->email = 'copia_' . uniqid() . '_' . $original->email;
+        $usuario->password_hash = $original->password_hash; // Keep same password
+        
+        $usuario->activo = 0; // Copies are inactive by default
+        $usuario->es_admin = 0; // Strip admin privileges
+        
+        $usuario->tango_perfil_pedido_id = $original->tango_perfil_pedido_id;
+        $usuario->tango_perfil_pedido_codigo = $original->tango_perfil_pedido_codigo;
+        $usuario->tango_perfil_pedido_nombre = $original->tango_perfil_pedido_nombre;
+        $usuario->tango_perfil_snapshot_json = $original->tango_perfil_snapshot_json;
+        $usuario->tango_perfil_snapshot_date = $original->tango_perfil_snapshot_date;
+
+        $usuario->email_verificado = 0;
+        $usuario->verification_token = bin2hex(random_bytes(16));
+        $usuario->verification_expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        
+        $this->repository->save($usuario);
+    }
+
+    public function delete(int $id): void
+    {
+        $currentUserId = $_SESSION['usuario_id'] ?? null;
+        if ($id === (int)$currentUserId) {
+            throw new RuntimeException('No te podes auto-eliminar de la sesión activa.');
+        }
+
+        $this->verifyOwnershipIncludingDeleted($id);
+        $this->repository->deleteById($id);
+    }
+
+    public function bulkDelete(array $ids): int
+    {
+        $count = 0;
+        $currentUserId = $_SESSION['usuario_id'] ?? null;
+        $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+        $empresaId = $this->getContextId();
+
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id <= 0) continue;
+            
+            // Protect current user from suicide
+            if ($id === (int)$currentUserId) continue;
+
+            try {
+                if (!$isGlobalAdmin) {
+                    $target = $this->repository->findById($id);
+                    if (!$target || $target->empresa_id !== $empresaId) continue;
+                    
+                    // Don't let normal admins delete global admins
+                    if ($target->es_admin == 1 && $target->empresa_id == 1) continue; 
+                }
+
+                $this->repository->deleteById($id);
+                $count++;
+            } catch (\Exception $e) {
+                // Ignore failure on single item
+            }
+        }
+        return $count;
+    }
+
+    public function restore(int $id): void
+    {
+        $this->verifyOwnershipIncludingDeleted($id);
+        $this->repository->restoreById($id);
+    }
+
+    public function bulkRestore(array $ids): int
+    {
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id <= 0) continue;
+            try {
+                $this->restore($id);
+                $count++;
+            } catch (\Exception $e) {}
+        }
+        return $count;
+    }
+
+    public function forceDelete(int $id): void
+    {
+        $currentUserId = $_SESSION['usuario_id'] ?? null;
+        if ($id === (int)$currentUserId) {
+            throw new RuntimeException('No te podes eliminar a vos mismo definitivamente.');
+        }
+
+        $this->verifyOwnershipIncludingDeleted($id);
+        $this->repository->forceDeleteById($id);
+    }
+
+    public function bulkForceDelete(array $ids): int
+    {
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id <= 0) continue;
+            try {
+                $this->forceDelete($id);
+                $count++;
+            } catch (\Exception $e) {}
+        }
+        return $count;
+    }
+
+    private function verifyOwnershipIncludingDeleted(int $id): void
+    {
+        $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+        if ($isGlobalAdmin) {
+            return;
+        }
+
+        $empresaId = $this->getContextId();
+        // Fallback simple PDO call to check ownership without touching repository standard methods
+        $db = \App\Core\Database::getConnection();
+        $stmt = $db->prepare("SELECT empresa_id, es_admin FROM usuarios WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$row || (int)$row['empresa_id'] !== $empresaId) {
+            throw new RuntimeException('Rechazado: El usuario no existe o pertenece a otra empresa.');
+        }
+
+        if ($row['es_admin'] == 1 && $row['empresa_id'] == 1) {
+             throw new RuntimeException('Rechazado: Un operador no puede modificar un Root Global Admin.');
         }
     }
 

@@ -24,7 +24,13 @@ class TangoApiClient
             throw new \App\Infrastructure\Exceptions\ConfigurationException("Configuración HTTP de integración Tango incompleta para este entorno operativo.");
         }
 
-        $this->apiUrl = rtrim($apiUrl, '/');
+        $url = rtrim($apiUrl, '/');
+        // Ensure standard /Api suffix
+        if (!preg_match('/\/Api$/i', $url)) {
+            $url .= '/Api';
+        }
+
+        $this->apiUrl = $url;
         $this->accessToken = $accessToken;
         $this->clientKey = $clientKey;
 
@@ -59,7 +65,7 @@ class TangoApiClient
     public function getArticulos(int $page = 1, int $pageSize = 50): array
     {
         // El endpoint literal reportado operativo por Jefatura
-        $endpoint = '/Api/Get';
+        $endpoint = 'Get';
         
         $params = [
             'process' => 87,
@@ -76,7 +82,7 @@ class TangoApiClient
      */
     public function getClientes(int $page = 1, int $pageSize = 50): array
     {
-        $endpoint = '/Api/Get';
+        $endpoint = 'Get';
         $params = [
             'process' => 2117,
             'pageSize' => $pageSize,
@@ -91,7 +97,7 @@ class TangoApiClient
      */
     public function getPrecios(int $page = 1, int $pageSize = 100): array
     {
-        $endpoint = '/Api/Get';
+        $endpoint = 'Get';
         
         $params = [
             'process' => 20091,
@@ -107,7 +113,7 @@ class TangoApiClient
      */
     public function getStock(int $page = 1, int $pageSize = 100): array
     {
-        $endpoint = '/Api/GetApiLiveQueryData';
+        $endpoint = 'GetApiLiveQueryData';
         
         $params = [
             'process' => 17668,
@@ -139,14 +145,14 @@ class TangoApiClient
     {
         $items = [];
         try {
-            $data = $this->client->get('/Api/Get', [
+            $data = $this->client->get('Get', [
                 'process' => 20020,
                 'pageSize' => 500,
                 'pageIndex' => 0,
                 'view' => 'Habilitados'
             ]);
 
-            $list = $data['data']['resultData']['list'] ?? [];
+            $list = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
             foreach ($list as $item) {
                 if (!empty($item['ID_PERFIL'])) {
                     $items[] = [
@@ -168,11 +174,52 @@ class TangoApiClient
     public function getPerfilPedidoById(string|int $profileId): ?array
     {
         try {
-            $data = $this->client->get('/Api/GetById', [
+            $data = $this->client->get('GetById', [
                 'process' => 20020,
                 'id' => (int) $profileId
             ]);
-            return $data['data']['resultData'] ?? null;
+
+            // Caso 1: la respuesta ya tiene 'value' en el nivel raíz
+            if (isset($data['value']) && is_array($data['value'])) {
+                $val = $data['value'];
+                return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
+            }
+
+            // Caso 2: la respuesta tiene 'data.value' (envelope estándar del cliente HTTP)
+            // Tango Connect GetById devuelve {value: {...perfil...}, message, succeeded}
+            if (isset($data['data']['value']) && is_array($data['data']['value'])) {
+                $val = $data['data']['value'];
+                return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
+            }
+
+            // Caso 3: resultData directo
+            if (isset($data['resultData']) && is_array($data['resultData'])) {
+                return $data['resultData'];
+            }
+            if (isset($data['data']['resultData']) && is_array($data['data']['resultData'])) {
+                return $data['data']['resultData'];
+            }
+
+            // Caso 4: array indexado en data
+            if (isset($data['data'][0]) && is_array($data['data'][0])) {
+                return $data['data'][0];
+            }
+
+            // Caso 5: data plano que NO sea el envelope (evitar devolver {value, message, succeeded})
+            if (isset($data['data']) && is_array($data['data']) && !isset($data['data'][0])) {
+                $inner = $data['data'];
+                // Si es el envelope, extraer value de adentro
+                if (isset($inner['value']) && is_array($inner['value'])) {
+                    $val = $inner['value'];
+                    return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
+                }
+                // Si tiene las keys típicas de un perfil Tango, devolverlo
+                if (!isset($inner['succeeded']) && !isset($inner['message'])) {
+                    return $inner;
+                }
+            }
+
+            return null;
         } catch (\Exception $e) {
             return null;
         }
@@ -208,6 +255,8 @@ class TangoApiClient
         );
     }
 
+    public $debugLastRawClasificaciones = null;
+
     public function getMaestroEmpresas(): array
     {
         return $this->fetchCatalog(
@@ -218,11 +267,26 @@ class TangoApiClient
             '-1'
         );
     }
+    
+    public function getRawClient(): \App\Infrastructure\Http\ApiClient
+    {
+        return $this->client;
+    }
 
-    private function fetchCatalog(
+    public function getClasificacionesPds(): array
+    {
+        return $this->fetchRichCatalog(
+            326,
+            ['ID_GVA81'],
+            ['COD_GVA81', 'DESCRIP'],
+            $this->debugLastRawClasificaciones
+        );
+    }
+
+    private function fetchRichCatalog(
         int $process,
         array $idKeys,
-        array $descriptionKeys,
+        array $fieldKeys,
         mixed &$debugRawStore,
         ?string $companyOverride = null
     ): array {
@@ -230,6 +294,7 @@ class TangoApiClient
         $page = 0;
         $pageSize = 100;
         $client = $companyOverride !== null ? $this->buildClient($companyOverride) : $this->client;
+        $seenFirstIds = [];
 
         try {
             while (true) {
@@ -245,9 +310,85 @@ class TangoApiClient
                     $this->debugLastHttpRequest = $client->debugLastRequest ?? [];
                 }
 
-                $list = $data['data']['resultData']['list'] ?? [];
+                $list = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
                 if (empty($list)) {
                     break;
+                }
+
+                $firstId = $this->firstAvailableValue($list[0], $idKeys);
+                if ($firstId !== null) {
+                    $firstIdStr = (string)$firstId;
+                    if (isset($seenFirstIds[$firstIdStr])) {
+                        break; 
+                    }
+                    $seenFirstIds[$firstIdStr] = true;
+                }
+
+                foreach ($list as $item) {
+                    $id = $this->firstAvailableValue($item, $idKeys);
+                    if ($id === null) {
+                        continue;
+                    }
+
+                    $normalizedId = $this->normalizeCatalogValue($id);
+                    $richItem = ['id' => $normalizedId];
+                    foreach ($fieldKeys as $fk) {
+                        $richItem[$fk] = trim((string) ($item[$fk] ?? ''));
+                    }
+                    $items[] = $richItem;
+                }
+
+                if (count($list) < $pageSize || $page >= 30) {
+                    break;
+                }
+
+                $page++;
+            }
+        } catch (\Exception $e) {
+        }
+
+        return $items;
+    }
+
+    private function fetchCatalog(
+        int $process,
+        array $idKeys,
+        array $descriptionKeys,
+        mixed &$debugRawStore,
+        ?string $companyOverride = null
+    ): array {
+        $items = [];
+        $page = 0;
+        $pageSize = 100;
+        $client = $companyOverride !== null ? $this->buildClient($companyOverride) : $this->client;
+        $seenFirstIds = [];
+
+        try {
+            while (true) {
+                $data = $client->get('Get', [
+                    'process' => $process,
+                    'pageSize' => $pageSize,
+                    'pageIndex' => $page,
+                    'view' => ''
+                ]);
+
+                if ($page === 0) {
+                    $debugRawStore = $data;
+                    $this->debugLastHttpRequest = $client->debugLastRequest ?? [];
+                }
+
+                $list = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
+                if (empty($list)) {
+                    break;
+                }
+
+                $firstId = $this->firstAvailableValue($list[0], $idKeys);
+                if ($firstId !== null) {
+                    $firstIdStr = (string)$firstId;
+                    if (isset($seenFirstIds[$firstIdStr])) {
+                        break; 
+                    }
+                    $seenFirstIds[$firstIdStr] = true;
                 }
 
                 foreach ($list as $item) {
@@ -263,7 +404,7 @@ class TangoApiClient
                     $items[$normalizedId] = $normalizedDescription !== '' ? $normalizedDescription : $normalizedId;
                 }
 
-                if (count($list) < $pageSize) {
+                if (count($list) < $pageSize || $page >= 30) {
                     break;
                 }
 

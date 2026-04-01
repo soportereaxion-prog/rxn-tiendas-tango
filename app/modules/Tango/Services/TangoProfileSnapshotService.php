@@ -10,9 +10,9 @@ use RuntimeException;
 
 class TangoProfileSnapshotService
 {
-    public function fetch(EmpresaConfig $config): array
+    public function fetch(EmpresaConfig $config, ?int $explicitProfileId = null): array
     {
-        $profileId = trim((string) ($config->tango_perfil_pedido_id ?? ''));
+        $profileId = trim((string) ($explicitProfileId ?? $config->tango_perfil_pedido_id ?? ''));
         if ($profileId === '') {
             throw new RuntimeException('No se puede sincronizar el perfil: falta el ID seleccionado.');
         }
@@ -24,16 +24,45 @@ class TangoProfileSnapshotService
             throw new RuntimeException('Tango no devolvió el detalle del perfil seleccionado.');
         }
 
+        // Lookup case-insensitive, buscando múltiples variantes de cada key
+        $detailLower = array_change_key_case($detail, CASE_LOWER);
+        $getProp = function(array $keys) use ($detailLower) {
+            foreach ($keys as $k) {
+                $v = $detailLower[strtolower($k)] ?? null;
+                if ($v !== null && $v !== '') return $v;
+            }
+            return null;
+        };
+
         return [
-            'id_gva43_talonario_pedido' => $this->asInt($detail['ID_GVA43_TALONARIO_PEDIDO'] ?? null),
-            'id_gva01' => $this->asInt($detail['ID_GVA01'] ?? null),
-            'id_gva23_encabezado' => $this->asInt($detail['ID_GVA23_ENCABEZADO'] ?? null),
-            'id_sta22' => $this->asInt($detail['ID_STA22'] ?? null),
-            'id_gva10_encabezado' => $this->asInt($detail['ID_GVA10_ENCABEZADO'] ?? null),
-            'id_gva24' => $this->asInt($detail['ID_GVA24'] ?? null),
-            'moneda_habitual' => $this->normalizeMonedaFlag($detail['MONEDA_HABITUAL'] ?? null),
+            'id_gva43_talonario_pedido' => $this->asInt($getProp([
+                'ID_GVA43_TALONARIO_PEDIDO', 'ID_GVA43_TALON_PED', 'ID_GVA43',
+            ])),
+            'id_gva01' => $this->asInt($getProp([
+                'ID_GVA01_VENDEDOR', 'ID_GVA01',
+            ])),
+            'id_gva23_encabezado' => $this->asInt($getProp([
+                'ID_GVA23_ENCABEZADO', 'ID_GVA23_CONDICION_VENTA', 'ID_GVA23',
+            ])),
+            'id_sta22' => $this->asInt($getProp([
+                'ID_STA22_DEPOSITO', 'ID_STA22',
+            ])),
+            'id_gva10_encabezado' => $this->asInt($getProp([
+                'ID_GVA10_ENCABEZADO', 'ID_GVA10_ZONA', 'ID_GVA10',
+            ])),
+            'id_gva24' => $this->asInt($getProp([
+                'ID_GVA24_TRANSPORTE', 'ID_GVA24',
+            ])),
+            'id_gva81_encabezado' => $this->asInt($getProp([
+                'ID_GVA81_ENCABEZADO', 'ID_GVA81_CLASIFICACION', 'ID_GVA81',
+            ])),
+            'moneda_habitual' => $this->normalizeMonedaFlag($getProp([
+                'MONEDA_HABITUAL',
+            ])),
             'company_id' => trim((string) ($config->tango_connect_company_id ?? '')),
             'raw' => $detail,
+            // Debug: keys reales que devolvió la API (para diagnóstico)
+            'raw_keys' => array_keys($detail),
         ];
     }
 
@@ -41,11 +70,14 @@ class TangoProfileSnapshotService
     {
         $token = trim((string) ($config->tango_connect_token ?? ''));
         $companyId = trim((string) ($config->tango_connect_company_id ?? ''));
+        if ($companyId === '') {
+            $companyId = '-1';
+        }
         $clientKey = trim((string) ($config->tango_connect_key ?? ''));
         $apiUrl = $this->resolveApiUrl(trim((string) ($config->tango_api_url ?? '')), $clientKey);
 
-        if ($token === '' || $companyId === '' || $apiUrl === null) {
-            throw new RuntimeException('No se pudo armar el cliente de Tango: falta token, empresa o URL.');
+        if ($token === '' || $apiUrl === null) {
+            throw new RuntimeException('No se pudo armar el cliente de Tango: falta token o URL.');
         }
 
         return new TangoApiClient($apiUrl, $token, $companyId, $clientKey !== '' ? $clientKey : null);

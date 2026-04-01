@@ -36,7 +36,31 @@ class TangoOrderHeaderResolver
     public function resolveFromConfig(object $config, array $cliente, ?\App\Modules\Auth\Usuario $user = null): array
     {
         $profileId = $this->normalizePositiveInt($user->tango_perfil_pedido_id ?? $config->tango_perfil_pedido_id ?? null);
-        $profileDetail = $this->fetchProfileDetail($config, $profileId, $user);
+        
+        $cached = $this->getCachedProfileDetail($config, $profileId, $user);
+        if ($cached !== null) {
+            $profileDetail = $cached;
+        } else {
+            $profileDetail = $this->fetchProfileDetail($config, $profileId, $user);
+        }
+
+        $profileDetailLower = array_change_key_case($profileDetail, CASE_LOWER);
+        $rawLower = isset($profileDetail['raw']) && is_array($profileDetail['raw']) 
+            ? array_change_key_case($profileDetail['raw'], CASE_LOWER) 
+            : [];
+
+        $getProp = function(...$keys) use ($profileDetailLower, $rawLower) {
+            foreach ($keys as $key) {
+                $lower = strtolower($key);
+                if (isset($profileDetailLower[$lower])) {
+                    return $profileDetailLower[$lower];
+                }
+                if (isset($rawLower[$lower])) {
+                    return $rawLower[$lower];
+                }
+            }
+            return null;
+        };
 
         $resolved = [
             'ID_PERFIL_PEDIDO' => $this->firstPositiveInt([
@@ -44,30 +68,33 @@ class TangoOrderHeaderResolver
                 self::LEGACY_ID_PERFIL_PEDIDO,
             ]),
             'ID_GVA43_TALON_PED' => $this->firstPositiveInt([
-                $profileDetail['ID_GVA43_TALONARIO_PEDIDO'] ?? null,
+                $getProp('ID_GVA43_TALONARIO_PEDIDO', 'ID_GVA43_TALON_PED', 'ID_GVA43'),
                 $config->tango_pds_talonario_id ?? null,
-                self::LEGACY_ID_GVA43_TALON_PED,
+                $profileId ? null : self::LEGACY_ID_GVA43_TALON_PED,
             ]),
             'ID_GVA01' => $this->firstPositiveInt([
-                $profileDetail['ID_GVA01'] ?? null,
+                $getProp('ID_GVA01_VENDEDOR', 'ID_GVA01'),
                 $cliente['id_gva01_tango'] ?? null,
             ]),
             'ID_GVA23' => $this->firstPositiveInt([
-                $profileDetail['ID_GVA23_ENCABEZADO'] ?? null,
+                $getProp('ID_GVA23_ENCABEZADO', 'ID_GVA23_CONDICION_VENTA', 'ID_GVA23'),
                 $cliente['id_gva23_tango'] ?? null,
             ]),
             'ID_STA22' => $this->firstPositiveInt([
-                $profileDetail['ID_STA22'] ?? null,
+                $getProp('ID_STA22_DEPOSITO', 'ID_STA22'),
                 $config->deposito_codigo ?? null,
-                self::LEGACY_ID_STA22,
+                $profileId ? null : self::LEGACY_ID_STA22,
             ]),
             'ID_GVA10' => $this->firstPositiveInt([
-                $profileDetail['ID_GVA10_ENCABEZADO'] ?? null,
+                $getProp('ID_GVA10_ENCABEZADO', 'ID_GVA10_ZONA', 'ID_GVA10'),
                 $cliente['id_gva10_tango'] ?? null,
             ]),
             'ID_GVA24' => $this->firstPositiveInt([
-                $profileDetail['ID_GVA24'] ?? null,
+                $getProp('ID_GVA24_TRANSPORTE', 'ID_GVA24'),
                 $cliente['id_gva24_tango'] ?? null,
+            ]),
+            'ID_GVA81' => $this->firstPositiveInt([
+                $getProp('ID_GVA81_ENCABEZADO', 'ID_GVA81_CLASIFICACION', 'ID_GVA81'),
             ]),
             'ID_MONEDA' => $this->resolveCurrencyId($profileDetail, $config),
         ];
@@ -86,7 +113,8 @@ class TangoOrderHeaderResolver
             return self::MONEDA_LOCAL_OVERRIDE_BY_COMPANY[$companyId];
         }
 
-        $flag = strtoupper(trim((string) ($profileDetail['MONEDA_HABITUAL'] ?? '')));
+        $val = $profileDetail['MONEDA_HABITUAL'] ?? $profileDetail['moneda_habitual'] ?? ($profileDetail['raw']['MONEDA_HABITUAL'] ?? '');
+        $flag = strtoupper(trim((string) $val));
 
         if ($flag === self::MONEDA_LOCAL_FLAG) {
             return self::MONEDA_LOCAL_ID;
@@ -105,14 +133,6 @@ class TangoOrderHeaderResolver
             return [];
         }
 
-        // DESACTIVADO TEMPORALMENTE (Consumo al vuelo para pruebas)
-        /*
-        $cached = $this->getCachedProfileDetail($config, $profileId, $user);
-        if ($cached !== null) {
-            return $cached;
-        }
-        */
-
         $client = $this->buildApiClient($config);
         if ($client === null) {
             return [];
@@ -125,16 +145,26 @@ class TangoOrderHeaderResolver
         }
     }
 
-    private function getCachedProfileDetail(object $config, int $profileId, ?\App\Modules\Auth\Usuario $user = null): ?array
+    private function getCachedProfileDetail(object $config, ?int $profileId, ?\App\Modules\Auth\Usuario $user = null): ?array
     {
+        if ($profileId === null) {
+            return null;
+        }
+
         if ($user !== null && $this->normalizePositiveInt($user->tango_perfil_pedido_id) === $profileId) {
-            $raw = $this->decodeSnapshotJson($user->tango_perfil_snapshot_json ?? null);
-            if (!empty($raw)) {
-                return $raw;
+            $snap = $this->decodeSnapshotJson($user->tango_perfil_snapshot_json ?? null);
+            if (!empty($snap)) {
+                // Si el snapshot tiene el raw anidado, mergearlo al nivel raíz
+                // para que getProp encuentre ID_GVA43_TALONARIO_PEDIDO directamente
+                if (!empty($snap['raw']) && is_array($snap['raw'])) {
+                    return array_merge($snap['raw'], $snap);
+                }
+                return $snap;
             }
         }
 
-        $snapshotCompany = trim((string) ($config->tango_perfil_snapshot_company_id ?? ''));
+        $raw = $this->decodeSnapshotJson($config->tango_perfil_snapshot_json ?? null);
+        $snapshotCompany = trim((string) ($raw['company_id'] ?? ''));
         $currentCompany = trim((string) ($config->tango_connect_company_id ?? ''));
         if ($snapshotCompany === '' || $snapshotCompany !== $currentCompany) {
             return null;
@@ -155,12 +185,13 @@ class TangoOrderHeaderResolver
             'MONEDA_HABITUAL' => $config->tango_perfil_moneda_habitual ?? null,
         ], static fn ($value) => $value !== null && $value !== '');
 
-        $raw = $this->decodeSnapshotJson($config->tango_perfil_snapshot_json ?? null);
-        if (empty($typedValues) && empty($raw)) {
+        $configSnap = $this->decodeSnapshotJson($config->tango_perfil_snapshot_json ?? null);
+        if (empty($typedValues) && empty($configSnap)) {
             return null;
         }
-
-        return array_merge($raw, $typedValues);
+        // Mergear raw al nivel raíz para que getProp encuentre keys exactas de la API
+        $configRaw = (!empty($configSnap['raw']) && is_array($configSnap['raw'])) ? $configSnap['raw'] : [];
+        return array_merge($configRaw, $configSnap, $typedValues);
     }
 
     private function decodeSnapshotJson(?string $json): array
@@ -170,7 +201,14 @@ class TangoOrderHeaderResolver
         }
 
         $decoded = json_decode($json, true);
-        return is_array($decoded) ? $decoded : [];
+        if (is_array($decoded)) {
+            // Recovere from corrupted cache that stored the whole AJAX response instead of just the payload
+            if (isset($decoded['success']) && isset($decoded['data']) && is_array($decoded['data'])) {
+                return $decoded['data'];
+            }
+            return $decoded;
+        }
+        return [];
     }
 
     private function buildApiClient(object $config): ?TangoApiClient

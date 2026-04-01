@@ -96,7 +96,18 @@
                                         <option value="" disabled>Sin acceso a Tango o sin perfiles configurados.</option>
                                     <?php endif; ?>
                                 </select>
-                                <div class="form-text">Si se asocia, todas las cabeceras de pedidos o presupuestos emitidos por esta persona se generarán con los vendedores y talonarios definidos en este Perfil de Tango.</div>
+                                <input type="hidden" id="tango_perfil_snapshot_json" name="tango_perfil_snapshot_json" value="<?= htmlspecialchars($usuario->tango_perfil_snapshot_json ?? '') ?>">
+
+                                <!-- Panel de IDs resueltos del perfil -->
+                                <div id="tango_profile_ids_panel" class="mt-2 p-2 rounded border" style="font-size:0.82rem; display:none; background:var(--bs-body-bg,#1e1e2e);">
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <span>🗂 <strong>ID_GVA43</strong> <code id="lbl_gva43">–</code></span>
+                                        <span>🏭 <strong>ID_STA22</strong> <code id="lbl_sta22">–</code></span>
+                                        <span>💳 <strong>ID_GVA23</strong> <code id="lbl_gva23">–</code></span>
+                                    </div>
+                                    <div id="lbl_perfil_fetch_status" class="text-muted mt-1" style="font-size:0.75rem;"></div>
+                                </div>
+                                <div class="form-text">Si se asocia, las cabeceras de pedidos/presupuestos de esta empresa se generarán con los vendedores y talonarios del Perfil seleccionado.</div>
                             </div>
                         </div>
                     </div>
@@ -133,5 +144,107 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const elPerfil   = document.getElementById('tango_perfil_pedido');
+            const snapInput  = document.getElementById('tango_perfil_snapshot_json');
+            const panel      = document.getElementById('tango_profile_ids_panel');
+            const lblGva43   = document.getElementById('lbl_gva43');
+            const lblSta22   = document.getElementById('lbl_sta22');
+            const lblGva23   = document.getElementById('lbl_gva23');
+            const lblStatus  = document.getElementById('lbl_perfil_fetch_status');
+
+            // Case-insensitive multi-key finder
+            function findProp(obj, keys) {
+                const lower = {};
+                for (const k in obj) lower[k.toLowerCase()] = obj[k];
+                for (const k of keys) {
+                    const v = lower[k.toLowerCase()];
+                    if (v !== undefined && v !== null && v !== '') return v;
+                }
+                return null;
+            }
+
+            function renderFromSnap(snap) {
+                if (!snap || typeof snap !== 'object') return false;
+                // Prioridad: buscar en raw (respuesta directa API Tango) con keys exactas confirmadas
+                const raw = snap.raw || {};
+                const gva43 = findProp(raw,  ['ID_GVA43_TALONARIO_PEDIDO'])
+                           || findProp(snap, ['id_gva43_talonario_pedido']);
+                const sta22 = findProp(raw,  ['ID_STA22'])
+                           || findProp(snap, ['id_sta22']);
+                const gva23 = findProp(raw,  ['ID_GVA23_ENCABEZADO'])
+                           || findProp(snap, ['id_gva23_encabezado']);
+
+                lblGva43.textContent = gva43 ?? '–';
+                lblSta22.textContent = sta22 ?? '–';
+                lblGva23.textContent = gva23 ?? '–';
+                panel.style.display = '';
+                return !!(gva43 || sta22 || gva23);
+            }
+
+            // On page load: try to render from stored snapshot
+            let populated = false;
+            if (snapInput && snapInput.value) {
+                try {
+                    populated = renderFromSnap(JSON.parse(snapInput.value));
+                    if (populated) lblStatus.textContent = '✓ Datos del perfil guardado';
+                } catch(e) {}
+            }
+
+            // Si hay perfil seleccionado pero sin datos, ir a buscar
+            if (!populated && elPerfil && elPerfil.value) {
+                fetchProfile(elPerfil.value);
+            }
+
+            // On selector change: fetch fresh from API
+            if (elPerfil) {
+                elPerfil.addEventListener('change', () => {
+                    if (!elPerfil.value) {
+                        panel.style.display = 'none';
+                        snapInput.value = '';
+                        return;
+                    }
+                    fetchProfile(elPerfil.value);
+                });
+            }
+
+            function fetchProfile(perfilValue) {
+                lblStatus.textContent = '⏳ Consultando perfil en Tango...';
+                panel.style.display = '';
+                lblGva43.textContent = '...';
+                lblSta22.textContent = '...';
+                lblGva23.textContent = '...';
+
+                fetch('/rxnTiendasIA/public/mi-empresa/usuarios/fetch-tango-profile', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({tango_perfil_pedido: perfilValue})
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        snapInput.value = JSON.stringify(res.data);
+                        const ok = renderFromSnap(res.data);
+                        if (ok) {
+                            lblStatus.textContent = '✓ Datos actualizados desde Tango';
+                        } else {
+                            // Mostrar las raw_keys para diagnóstico
+                            const rawKeys = res.data.raw_keys || Object.keys(res.data.raw || {});
+                            lblStatus.textContent = '⚠ No se encontraron ID_GVA43/ID_STA22/ID_GVA23. Keys reales: ' + rawKeys.join(', ');
+                        }
+                    } else {
+                        lblStatus.textContent = '✗ ' + (res.message || 'Error al consultar Tango');
+                        lblGva43.textContent = '–';
+                        lblSta22.textContent = '–';
+                        lblGva23.textContent = '–';
+                    }
+                })
+                .catch(() => {
+                    lblStatus.textContent = '✗ Error de red al consultar Tango';
+                });
+            }
+        });
+    </script>
 </body>
 </html>
