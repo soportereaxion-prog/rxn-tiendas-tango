@@ -16,13 +16,13 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
     <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
     <?= $extraHead ?? '' ?>
 </head>
-<body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-3">
+<body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-2">
     
     <!-- Topbar global del admin (Banner de usuario) -->
     <?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
 
     <!-- Contenido principal -->
-    <main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1400px;">
+    <main class="container-fluid flex-grow-1 px-4 mb-4" style="max-width: 1400px;">
         <?php 
         $usePageHeader = $usePageHeader ?? false;
         $headerMode = $headerMode ?? 'standard';

@@ -10,7 +10,7 @@ ob_start();
         }
 
         .crm-service-form .card-body {
-            padding: 1.25rem 1.35rem;
+            padding: 0.95rem 1.05rem;
         }
 
         .crm-picker-wrap {
@@ -36,7 +36,7 @@ ob_start();
         .crm-sheet-grid {
             display: grid;
             grid-template-columns: repeat(16, minmax(0, 1fr));
-            gap: 0.9rem 1rem;
+            gap: 0.65rem 0.85rem;
         }
 
         .crm-col-16 { grid-column: span 16; }
@@ -52,14 +52,14 @@ ob_start();
         .crm-summary-strip {
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 0.85rem;
+            gap: 0.55rem;
         }
 
         .crm-summary-chip {
             border: 1px solid var(--bs-border-color);
             border-radius: 14px;
             background-color: var(--bs-body-bg);
-            padding: 0.75rem 0.9rem;
+            padding: 0.5rem 0.75rem;
         }
 
         .crm-summary-chip-title {
@@ -128,8 +128,8 @@ $extraHead = ob_get_clean();
 
 ob_start();
 ?>
-<div class="container-fluid mt-3 mb-4 rxn-responsive-container crm-service-shell">
-        <div class="rxn-module-header mb-3 d-flex justify-content-between align-items-start flex-wrap gap-3">
+<div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-service-shell">
+        <div class="rxn-module-header mb-2 d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>
                 <h2 class="mb-1 text-light fw-bold"><?= $formMode === 'edit' ? 'PDS #' . (int) $pedido['numero'] : 'Nuevo PDS' ?></h2>
                 <p class="text-secondary mb-0">CRM operativo con control horario, tiempo decimal y envío posterior a Tango.</p>

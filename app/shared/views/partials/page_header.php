@@ -18,9 +18,9 @@ $mode = $mode ?? 'standard';
 
 $headerClasses = 'rxn-module-header ';
 if ($mode === 'compact') {
-    $headerClasses .= 'mb-3 pb-2 border-bottom border-secondary border-opacity-25';
+    $headerClasses .= 'mb-2 pb-1 border-bottom border-secondary border-opacity-25';
 } else {
-    $headerClasses .= 'mb-4 pb-3 border-bottom border-secondary border-opacity-25';
+    $headerClasses .= 'mb-3 pb-2 border-bottom border-secondary border-opacity-25';
 }
 ?>
 <div class="<?= $headerClasses ?>">

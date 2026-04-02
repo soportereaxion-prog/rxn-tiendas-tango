@@ -10,7 +10,7 @@ ob_start();
         }
 
         .crm-budget-form .card-body {
-            padding: 0.85rem 1rem;
+            padding: 0.75rem 0.85rem;
         }
 
         .crm-budget-form .form-label {
@@ -20,7 +20,7 @@ ob_start();
         .crm-budget-grid {
             display: grid;
             grid-template-columns: repeat(12, minmax(0, 1fr));
-            gap: 0.45rem 0.65rem;
+            gap: 0.35rem 0.45rem;
         }
 
         .crm-budget-col-12 { grid-column: span 12; }
@@ -40,7 +40,7 @@ ob_start();
             border: 1px solid rgba(13, 110, 253, 0.1);
             border-radius: 14px;
             background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,249,253,0.98));
-            padding: 0.6rem 0.75rem;
+            padding: 0.4rem 0.6rem;
         }
 
         .crm-budget-chip-title {
@@ -123,7 +123,7 @@ ob_start();
 
         .crm-budget-totals {
             display: grid;
-            gap: 0.4rem;
+            gap: 0.25rem;
             min-width: 280px;
         }
 
@@ -254,8 +254,8 @@ ob_start();
         default => 'Borrador',
     };
     ?>
-    <div class="container-fluid mt-4 mb-4 rxn-responsive-container crm-budget-shell">
-        <div class="rxn-module-header mb-3">
+    <div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-budget-shell">
+        <div class="rxn-module-header mb-2">
             <div>
                 <h2 class="mb-1"><?= $formMode === 'edit' ? 'Presupuesto #' . (int) $presupuesto['numero'] : 'Nuevo Presupuesto CRM' ?></h2>
                 <p class="text-muted mb-0">Pantalla operativa de cabecera comercial y renglones acumulables para preparar el circuito documental del CRM.</p>

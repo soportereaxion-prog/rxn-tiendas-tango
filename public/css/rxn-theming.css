@@ -609,7 +609,7 @@ html[data-theme="dark"] .rxn-auth-footer a:hover {
 }
 
 .rxn-form-section + .rxn-form-section {
-    margin-top: 1.5rem;
+    margin-top: 1.1rem;
 }
 
 .rxn-form-section-title {
@@ -627,7 +627,7 @@ html[data-theme="dark"] .rxn-auth-footer a:hover {
 .rxn-form-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 1rem 1.25rem;
+    gap: 0.75rem 1rem;
 }
 
 .rxn-form-span-12 { grid-column: span 12; }
@@ -642,8 +642,8 @@ html[data-theme="dark"] .rxn-auth-footer a:hover {
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
-    margin-top: 1.75rem;
-    padding-top: 1rem;
+    margin-top: 1.25rem;
+    padding-top: 0.85rem;
     border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
@@ -788,4 +788,23 @@ html[data-theme="dark"] .rxn-form-switch-card {
     .rxn-auth-logo {
         max-width: 240px;
     }
+}
+
+/* Compactacion Sistemica Visual */
+.rxn-page-shell .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+.rxn-page-shell .form-control,
+.rxn-page-shell .form-select {
+    padding: 0.32rem 0.65rem;
+    font-size: 0.92rem;
+    min-height: 2.15rem;
+}
+.rxn-page-shell .card-body {
+    padding: 1.1rem;
+}
+.rxn-auth-card .card-body {
+    padding: 2.5rem 2rem; /* Restaurar login padding por si lo achica el de arriba */
 }
