@@ -1,22 +1,20 @@
+<?php
 $pageTitle = 'Notas CRM | ' . ($environmentLabel ?? 'App');
-
-ob_start();
+$usePageHeader = true;
+$pageHeaderTitle = 'Gestión de Notas';
+$pageHeaderSubtitle = 'Anotaciones, seguimientos e historial de clientes.';
+$pageHeaderIcon = 'bi bi-journal-text';
+$pageHeaderBackUrl = $dashboardPath ?? '/rxnTiendasIA/public/';
+$pageHeaderBackLabel = 'Volver';
 
 ob_start();
 ?>
 <a href="<?= htmlspecialchars($indexPath) ?>/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nueva Nota</a>
 <a href="<?= htmlspecialchars($indexPath) ?>/importar" class="btn btn-outline-info"><i class="bi bi-upload"></i> Importar CSV/Excel</a>
 <?php
-$actionsHtml = ob_get_clean();
+$pageHeaderActions = ob_get_clean();
 
-\App\Core\View::render('app/shared/views/partials/page_header.php', [
-    'title' => 'Gestión de Notas',
-    'subtitle' => 'Anotaciones, seguimientos e historial de clientes.',
-    'iconClass' => 'bi bi-journal-text',
-    'actionsHtml' => $actionsHtml,
-    'backUrl' => $dashboardPath ?? '/rxnTiendasIA/public/',
-    'backLabel' => 'Volver'
-]);
+ob_start();
 ?>
 
         <?php 

@@ -129,20 +129,19 @@ $extraHead = ob_get_clean();
 ob_start();
 ?>
 <?php
+$usePageHeader = true;
+$headerMode = 'compact';
+$pageHeaderTitle = 'Entorno Operativo de CRM';
+$pageHeaderSubtitle = 'Base inicial del circuito CRM <span class="badge bg-secondary ms-1">Empresa #' . ($_SESSION['empresa_id'] ?? '') . '</span>';
+$pageHeaderIcon = 'bi bi-diagram-3';
+$pageHeaderBackUrl = '/rxnTiendasIA/public/';
+$pageHeaderBackLabel = 'Volver al Launcher';
+
 ob_start();
 ?>
 <a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=crm" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
 <?php
-$actionsHtml = ob_get_clean();
-
-\App\Core\View::render('app/shared/views/partials/page_header.php', [
-    'title' => 'Entorno Operativo de CRM',
-    'subtitle' => 'Base inicial del circuito CRM <span class="badge bg-secondary ms-1">Empresa #' . ($_SESSION['empresa_id'] ?? '') . '</span>',
-    'iconClass' => 'bi bi-diagram-3',
-    'actionsHtml' => $actionsHtml,
-    'backUrl' => '/rxnTiendasIA/public/',
-    'backLabel' => 'Volver al Launcher'
-]);
+$pageHeaderActions = ob_get_clean();
 ?>
 
 <?php

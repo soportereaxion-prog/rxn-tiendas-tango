@@ -1,0 +1,6 @@
+# Fix visualización de Formulario de Impresión en Dark Mode
+
+- **Qué se hizo**: Se modificó temporalmente la inyección de atributos globales del tema oscuro en la cabecera de la vista `document_render.php` (módulo `PrintForms`). Pasó de usar `UIHelper::getHtmlAttributes()` a fijar hardcodeado `data-bs-theme="light"`. Además se blindó el CSS de `.print-page` (el canvas del documento) para forzar `background-color: #ffffff !important` y `color: #000000 !important`.
+- **Por qué**: Desde que se introdujo el modo oscuro en todo el backend mediante `UIHelper`, el renderizador de vistas previas de impresión (como Presupuestos o Pedidos de Servicio) heredaba estos atributos. El navegador y/o los estilos globales oscurecían toda la plantilla de papel, haciendo que en pantalla (y al imprimir directamente desde la app) se viera un rectángulo gris oscuro intransitable, perdiendo el diseño blanco limpio ("copado") que sí tenía el archivo PDF y el correo.
+- **Impacto**: Ahora la vista previa del documento para impresión será **siempre visualizada con fondo blanco y caracteres negros**, inmunizando al papel "digital" del modo nocturno.
+- **Decisiones tomadas**: Se quitó intencionalmente el Dark Mode explícito en los documentos destinados a imprimirse. El "papel" no tiene modo oscuro en la vida real.

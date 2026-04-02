@@ -14,8 +14,16 @@ $iconClass = $iconClass ?? '';
 $actionsHtml = $actionsHtml ?? '';
 $backUrl = $backUrl ?? '';
 $backLabel = $backLabel ?? 'Volver';
+$mode = $mode ?? 'standard';
+
+$headerClasses = 'rxn-module-header ';
+if ($mode === 'compact') {
+    $headerClasses .= 'mb-3 pb-2 border-bottom border-secondary border-opacity-25';
+} else {
+    $headerClasses .= 'mb-4 pb-3 border-bottom border-secondary border-opacity-25';
+}
 ?>
-<div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+<div class="<?= $headerClasses ?>">
     <div>
         <h1 class="h3 fw-bold mb-1">
             <?php if ($iconClass): ?><i class="<?= htmlspecialchars($iconClass) ?> me-2"></i><?php endif; ?>
