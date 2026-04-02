@@ -15,6 +15,7 @@ class PedidoServicioRepository
         'articulo' => 'ps.articulo_nombre',
         'clasificacion' => 'ps.clasificacion_codigo',
         'estado' => 'CASE WHEN ps.fecha_finalizado IS NULL THEN "abierto" ELSE "finalizado" END',
+        'usuario' => 'ps.usuario_nombre',
     ];
 
     private const DEFAULT_CLASSIFICATIONS = [
@@ -36,10 +37,15 @@ class PedidoServicioRepository
 
     public function previewNextNumero(int $empresaId): int
     {
-        $stmt = $this->db->prepare('SELECT COALESCE(MAX(numero), 0) + 1 FROM crm_pedidos_servicio WHERE empresa_id = :empresa_id');
-        $stmt->execute([':empresa_id' => $empresaId]);
+        $configStmt = $this->db->prepare('SELECT pds_numero_base FROM empresa_config_crm WHERE empresa_id = :empresa_id');
+        $configStmt->execute([':empresa_id' => $empresaId]);
+        $base = (int) $configStmt->fetchColumn();
 
-        return max(1, (int) $stmt->fetchColumn());
+        $stmt = $this->db->prepare('SELECT COALESCE(MAX(numero), 0) FROM crm_pedidos_servicio WHERE empresa_id = :empresa_id');
+        $stmt->execute([':empresa_id' => $empresaId]);
+        $maxDb = (int) $stmt->fetchColumn();
+
+        return max(1, $base + 1, $maxDb + 1);
     }
 
     public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = ''): int
@@ -47,7 +53,13 @@ class PedidoServicioRepository
         $sql = 'SELECT COUNT(*) FROM crm_pedidos_servicio ps WHERE ps.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
 
-        $this->applyEstadoFilter($sql, $params, $estado);
+        if ($estado === 'papelera') {
+            $sql .= ' AND ps.deleted_at IS NOT NULL';
+        } else {
+            $sql .= ' AND ps.deleted_at IS NULL';
+            $this->applyEstadoFilter($sql, $params, $estado);
+        }
+
         $this->applySearch($sql, $params, $search, $field, true);
 
         $stmt = $this->db->prepare($sql);
@@ -73,7 +85,13 @@ class PedidoServicioRepository
             WHERE ps.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
 
-        $this->applyEstadoFilter($sql, $params, $estado);
+        if ($estado === 'papelera') {
+            $sql .= ' AND ps.deleted_at IS NOT NULL';
+        } else {
+            $sql .= ' AND ps.deleted_at IS NULL';
+            $this->applyEstadoFilter($sql, $params, $estado);
+        }
+
         $this->applySearch($sql, $params, $search, $field, true);
 
         $allowedColumns = ['numero', 'fecha_inicio', 'fecha_finalizado', 'cliente_nombre', 'articulo_nombre', 'clasificacion_codigo', 'duracion_neta_segundos'];
@@ -101,7 +119,13 @@ class PedidoServicioRepository
             WHERE ps.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
 
-        $this->applyEstadoFilter($sql, $params, $estado);
+        if ($estado === 'papelera') {
+            $sql .= ' AND ps.deleted_at IS NOT NULL';
+        } else {
+            $sql .= ' AND ps.deleted_at IS NULL';
+            $this->applyEstadoFilter($sql, $params, $estado);
+        }
+        
         $this->applySearch($sql, $params, $search, $field, true);
         $sql .= ' ORDER BY ps.fecha_inicio DESC LIMIT :limit';
 
@@ -141,6 +165,8 @@ class PedidoServicioRepository
 
                 $stmt = $this->db->prepare('INSERT INTO crm_pedidos_servicio (
                     empresa_id,
+                    usuario_id,
+                    usuario_nombre,
                     numero,
                     fecha_inicio,
                     fecha_finalizado,
@@ -156,6 +182,7 @@ class PedidoServicioRepository
                     articulo_nombre,
                     articulo_precio_unitario,
                     clasificacion_codigo,
+                    clasificacion_id_tango,
                     descuento_segundos,
                     diagnostico,
                     motivo_descuento,
@@ -166,6 +193,8 @@ class PedidoServicioRepository
                     updated_at
                 ) VALUES (
                     :empresa_id,
+                    :usuario_id,
+                    :usuario_nombre,
                     :numero,
                     :fecha_inicio,
                     :fecha_finalizado,
@@ -181,6 +210,7 @@ class PedidoServicioRepository
                     :articulo_nombre,
                     :articulo_precio_unitario,
                     :clasificacion_codigo,
+                    :clasificacion_id_tango,
                     :descuento_segundos,
                     :diagnostico,
                     :motivo_descuento,
@@ -229,6 +259,7 @@ class PedidoServicioRepository
                 articulo_nombre = :articulo_nombre,
                 articulo_precio_unitario = :articulo_precio_unitario,
                 clasificacion_codigo = :clasificacion_codigo,
+                clasificacion_id_tango = :clasificacion_id_tango,
                 descuento_segundos = :descuento_segundos,
                 diagnostico = :diagnostico,
                 motivo_descuento = :motivo_descuento,
@@ -239,9 +270,73 @@ class PedidoServicioRepository
             WHERE id = :id AND empresa_id = :empresa_id');
 
         $payload = $this->buildPayload($data);
+        unset($payload[':numero'], $payload[':usuario_id'], $payload[':usuario_nombre']);
         $payload[':id'] = $id;
 
         return $stmt->execute($payload);
+    }
+
+    public function deleteByIds(array $ids, int $empresaId): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = 'UPDATE crm_pedidos_servicio SET deleted_at = NOW() WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
+
+        return $stmt->rowCount();
+    }
+
+    public function restoreByIds(array $ids, int $empresaId): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = 'UPDATE crm_pedidos_servicio SET deleted_at = NULL WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
+
+        return $stmt->rowCount();
+    }
+
+    public function forceDeleteByIds(array $ids, int $empresaId): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = 'DELETE FROM crm_pedidos_servicio WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
+
+        return $stmt->rowCount();
+    }
+
+    public function copy(int $id, int $empresaId): void
+    {
+        $pedido = $this->findById($id, $empresaId);
+        if (!$pedido) {
+            throw new \RuntimeException('El pedido de servicio a copiar no existe o no pertenece a la empresa.');
+        }
+
+        $pedido['numero'] = $this->previewNextNumero($empresaId);
+        $pedido['fecha_inicio'] = date('Y-m-d H:i:s');
+        $pedido['fecha_finalizado'] = null;
+        $pedido['usuario_id'] = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+        $pedido['usuario_nombre'] = $_SESSION['user_name'] ?? 'Usuario';
+        $pedido['nro_pedido'] = null;
+        $pedido['tango_sync_status'] = null;
+        $pedido['tango_sync_error'] = null;
+        $pedido['tango_sync_payload'] = null;
+        $pedido['tango_sync_response'] = null;
+
+        $this->create($pedido);
     }
 
     public function findClientSuggestions(int $empresaId, string $term, int $limit = 5): array
@@ -250,35 +345,55 @@ class PedidoServicioRepository
             return [];
         }
 
-        $sql = 'SELECT id, nombre, apellido, razon_social, email, documento
+        $sql = 'SELECT id, nombre, apellido, razon_social, email, documento, codigo_tango
             FROM crm_clientes
             WHERE empresa_id = :empresa_id
               AND (
-                nombre LIKE :term
-                OR apellido LIKE :term
-                OR razon_social LIKE :term
-                OR email LIKE :term
-                OR documento LIKE :term
-                OR CAST(id AS CHAR) LIKE :term
+                razon_social LIKE :t1
+                OR codigo_tango LIKE :t2
+                OR email LIKE :t3
+                OR documento LIKE :t4
+                OR nombre LIKE :t5
+                OR apellido LIKE :t6
+                OR CAST(id AS CHAR) LIKE :t7
             )
             ORDER BY
                 CASE 
-                    WHEN documento = :exact THEN 1
-                    WHEN documento LIKE :starts THEN 2
-                    WHEN razon_social = :exact THEN 3
-                    WHEN razon_social LIKE :starts THEN 4
-                    WHEN nombre LIKE :starts OR apellido LIKE :starts THEN 5
+                    WHEN razon_social = :o_exact1 THEN 1
+                    WHEN razon_social LIKE :o_start1 THEN 2
+                    WHEN razon_social LIKE :o_any1 THEN 3
+                    WHEN codigo_tango = :o_exact2 THEN 4
+                    WHEN codigo_tango LIKE :o_start2 THEN 5
+                    WHEN codigo_tango LIKE :o_any2 THEN 6
+                    WHEN documento = :o_exact3 THEN 7
                     ELSE 99 
                 END ASC,
                 razon_social ASC, nombre ASC, apellido ASC
             LIMIT :limit';
 
         $termRaw = trim($term);
+        $termWildcard = '%' . $termRaw . '%';
+        
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
-        $stmt->bindValue(':term', '%' . $termRaw . '%', PDO::PARAM_STR);
-        $stmt->bindValue(':exact', $termRaw, PDO::PARAM_STR);
-        $stmt->bindValue(':starts', $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':t1', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t2', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t3', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t4', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t5', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t6', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t7', $termWildcard, PDO::PARAM_STR);
+        
+        $stmt->bindValue(':o_exact1', $termRaw, PDO::PARAM_STR);
+        $stmt->bindValue(':o_start1', $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':o_any1', '%' . $termRaw . '%', PDO::PARAM_STR);
+        
+        $stmt->bindValue(':o_exact2', $termRaw, PDO::PARAM_STR);
+        $stmt->bindValue(':o_start2', $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':o_any2', '%' . $termRaw . '%', PDO::PARAM_STR);
+        
+        $stmt->bindValue(':o_exact3', $termRaw, PDO::PARAM_STR);
+        
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -308,31 +423,49 @@ class PedidoServicioRepository
         }
 
         $sql = 'SELECT id, codigo_externo, nombre, descripcion
-            FROM articulos
+            FROM crm_articulos
             WHERE empresa_id = :empresa_id
               AND (
-                codigo_externo LIKE :term
-                OR nombre LIKE :term
-                OR descripcion LIKE :term
-                OR CAST(id AS CHAR) LIKE :term
+                nombre LIKE :t1
+                OR codigo_externo LIKE :t2
+                OR descripcion LIKE :t3
+                OR CAST(id AS CHAR) LIKE :t4
             )
             ORDER BY
                 CASE 
-                    WHEN codigo_externo = :exact THEN 1
-                    WHEN codigo_externo LIKE :starts THEN 2
-                    WHEN nombre = :exact THEN 3
-                    WHEN nombre LIKE :starts THEN 4
+                    WHEN codigo_externo = :o_exact1 THEN 1
+                    WHEN codigo_externo LIKE :o_start1 THEN 2
+                    WHEN codigo_externo LIKE :o_any1 THEN 3
+                    WHEN descripcion = :o_exact2 THEN 4
+                    WHEN descripcion LIKE :o_start2 THEN 5
+                    WHEN descripcion LIKE :o_any2 THEN 6
+                    WHEN nombre = :o_exact3 THEN 7
+                    WHEN nombre LIKE :o_start3 THEN 8
                     ELSE 99
                 END ASC,
-                nombre ASC
+                codigo_externo ASC, nombre ASC
             LIMIT :limit';
 
         $termRaw = trim($term);
+        $termWildcard = '%' . $termRaw . '%';
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
-        $stmt->bindValue(':term', '%' . $termRaw . '%', PDO::PARAM_STR);
-        $stmt->bindValue(':exact', $termRaw, PDO::PARAM_STR);
-        $stmt->bindValue(':starts', $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':t1', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t2', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t3', $termWildcard, PDO::PARAM_STR);
+        $stmt->bindValue(':t4', $termWildcard, PDO::PARAM_STR);
+
+        $stmt->bindValue(':o_exact1', $termRaw, PDO::PARAM_STR);
+        $stmt->bindValue(':o_start1', $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':o_any1', '%' . $termRaw . '%', PDO::PARAM_STR);
+        
+        $stmt->bindValue(':o_exact2', $termRaw, PDO::PARAM_STR);
+        $stmt->bindValue(':o_start2', $termRaw . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':o_any2', '%' . $termRaw . '%', PDO::PARAM_STR);
+
+        $stmt->bindValue(':o_exact3', $termRaw, PDO::PARAM_STR);
+        $stmt->bindValue(':o_start3', $termRaw . '%', PDO::PARAM_STR);
+
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -342,7 +475,7 @@ class PedidoServicioRepository
     public function findArticleById(int $empresaId, int $articuloId): ?array
     {
         $stmt = $this->db->prepare('SELECT id, codigo_externo, nombre, descripcion, precio, precio_lista_1, precio_lista_2
-            FROM articulos
+            FROM crm_articulos
             WHERE empresa_id = :empresa_id AND id = :id
             LIMIT 1');
         $stmt->execute([
@@ -365,7 +498,7 @@ class PedidoServicioRepository
 
         $stmt = $this->db->prepare('SELECT DISTINCT clasificacion_codigo
             FROM crm_pedidos_servicio
-            WHERE empresa_id = :empresa_id AND clasificacion_codigo IS NOT NULL AND clasificacion_codigo <> ""
+            WHERE empresa_id = :empresa_id AND clasificacion_codigo IS NOT NULL AND clasificacion_codigo <> "" AND deleted_at IS NULL
             ORDER BY clasificacion_codigo ASC');
         $stmt->execute([':empresa_id' => $empresaId]);
 
@@ -428,6 +561,8 @@ class PedidoServicioRepository
     {
         return [
             ':empresa_id' => (int) $data['empresa_id'],
+            ':usuario_id' => $data['usuario_id'] ?? null,
+            ':usuario_nombre' => $data['usuario_nombre'] ?? null,
             ':numero' => (int) ($data['numero'] ?? 0),
             ':fecha_inicio' => $data['fecha_inicio'],
             ':fecha_finalizado' => $data['fecha_finalizado'],
@@ -441,13 +576,69 @@ class PedidoServicioRepository
             ':articulo_id' => $data['articulo_id'],
             ':articulo_codigo' => $data['articulo_codigo'],
             ':articulo_nombre' => $data['articulo_nombre'],
+            ':articulo_precio_unitario' => (float) ($data['articulo_precio_unitario'] ?? 0),
             ':clasificacion_codigo' => $data['clasificacion_codigo'],
+            ':clasificacion_id_tango' => $data['clasificacion_id_tango'] ?? null,
             ':descuento_segundos' => (int) $data['descuento_segundos'],
             ':diagnostico' => $data['diagnostico'],
             ':motivo_descuento' => $data['motivo_descuento'],
             ':duracion_bruta_segundos' => $data['duracion_bruta_segundos'],
             ':duracion_neta_segundos' => $data['duracion_neta_segundos'],
+            ':tiempo_decimal' => (float) ($data['tiempo_decimal'] ?? 0),
         ];
+    }
+
+    public function getAdjuntos(int $pedidoId): array
+    {
+        $stmt = $this->db->prepare('SELECT id, name as file_name, path as file_path, label, created_at FROM crm_pedidos_servicio_adjuntos WHERE pedido_servicio_id = :pedido_id ORDER BY id ASC');
+        $stmt->execute([':pedido_id' => $pedidoId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function syncAdjuntos(int $pedidoId, int $empresaId, array $base64Adjuntos): void
+    {
+        if (empty($base64Adjuntos)) {
+            return;
+        }
+
+        $baseDir = $_SERVER['DOCUMENT_ROOT'] . '/rxnTiendasIA/public/uploads/pds-diagnostico/' . date('Y/m');
+        if (!is_dir($baseDir) && !mkdir($baseDir, 0755, true) && !is_dir($baseDir)) {
+            return;
+        }
+
+        foreach ($base64Adjuntos as $rawItem) {
+            $item = json_decode((string) $rawItem, true);
+            if (!is_array($item) || empty($item['data']) || empty($item['extension'])) {
+                continue;
+            }
+
+            $imgParts = explode(';base64,', $item['data']);
+            if (count($imgParts) !== 2) {
+                continue;
+            }
+
+            $extension = strtolower(preg_replace('/[^a-z0-9]/', '', $item['extension']));
+            $fileData = base64_decode($imgParts[1]);
+            if ($fileData === false) {
+                continue;
+            }
+
+            $fileName = sprintf('pds_%d_%s.%s', $pedidoId, uniqid('', true), $extension);
+            $filePath = $baseDir . '/' . $fileName;
+            
+            if (file_put_contents($filePath, $fileData) !== false) {
+                $publicUrl = '/rxnTiendasIA/public/uploads/pds-diagnostico/' . date('Y/m') . '/' . $fileName;
+                
+                $stmt = $this->db->prepare('INSERT INTO crm_pedidos_servicio_adjuntos (pedido_servicio_id, empresa_id, name, path, label) VALUES (:pedido_id, :empresa_id, :file_name, :file_path, :label)');
+                $stmt->execute([
+                    ':pedido_id' => $pedidoId,
+                    ':empresa_id' => $empresaId,
+                    ':file_name' => $fileName,
+                    ':file_path' => $publicUrl,
+                    ':label' => $item['label'] ?? '#imagen'
+                ]);
+            }
+        }
     }
 
     public function markAsSentToTango(int $id, int $empresaId, string $pedidoNumero, string $payload, string $response): void
@@ -506,6 +697,7 @@ class PedidoServicioRepository
             articulo_codigo VARCHAR(60) NULL,
             articulo_nombre VARCHAR(255) NOT NULL,
             clasificacion_codigo VARCHAR(80) NULL,
+            clasificacion_id_tango INT NULL,
             descuento_segundos INT UNSIGNED NOT NULL DEFAULT 0,
             diagnostico TEXT NULL,
             motivo_descuento TEXT NULL,
@@ -530,6 +722,37 @@ class PedidoServicioRepository
         
         try {
             $this->db->exec('ALTER TABLE crm_pedidos_servicio ADD COLUMN tango_sync_status VARCHAR(50) NULL AFTER duracion_neta_segundos, ADD COLUMN tango_sync_error TEXT NULL AFTER tango_sync_status, ADD COLUMN tango_sync_payload JSON NULL AFTER tango_sync_error, ADD COLUMN tango_sync_response JSON NULL AFTER tango_sync_payload');
+        } catch (\Throwable $e) {}
+
+        try {
+            $this->db->exec('ALTER TABLE crm_pedidos_servicio ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL');
+        } catch (\Throwable $e) {}
+
+        try {
+            $this->db->exec('ALTER TABLE crm_pedidos_servicio ADD COLUMN clasificacion_id_tango INT NULL AFTER clasificacion_codigo');
+        } catch (\Throwable $e) {}
+
+        try {
+            $this->db->exec('ALTER TABLE crm_pedidos_servicio ADD COLUMN usuario_id INT NULL AFTER empresa_id, ADD COLUMN usuario_nombre VARCHAR(180) NULL AFTER usuario_id');
+        } catch (\Throwable $e) {}
+
+        try {
+            // Backfill temporal para setear el usuario 1 a los PDS historicos sin asignar
+            $this->db->exec("UPDATE crm_pedidos_servicio SET usuario_id = 1, usuario_nombre = 'Sergio Majeras' WHERE usuario_id IS NULL");
+        } catch (\Throwable $e) {}
+
+        try {
+            $this->db->exec('CREATE TABLE IF NOT EXISTS crm_pedidos_servicio_adjuntos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                pedido_servicio_id INT NOT NULL,
+                empresa_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                path VARCHAR(500) NOT NULL,
+                label VARCHAR(50) NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_adjuntos_pedido_id (pedido_servicio_id),
+                FOREIGN KEY (pedido_servicio_id) REFERENCES crm_pedidos_servicio(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         } catch (\Throwable $e) {}
     }
 }

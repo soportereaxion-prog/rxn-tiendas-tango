@@ -101,7 +101,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
                     <input type="hidden" name="categoria" value="<?= htmlspecialchars((string) $categoriaSlug) ?>">
                 <?php endif; ?>
                 <div class="input-group" style="max-width: 360px; width: 100%;">
-                    <input type="text" name="search" class="form-control rounded-start-pill border-end-0 bg-light" placeholder="Buscar productos..." value="<?= htmlspecialchars((string) ($search ?? '')) ?>">
+                    <input type="text" name="search" class="form-control rounded-start-pill border-end-0 bg-light" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string) ($search ?? '')) ?>" data-search-input autocomplete="off">
                     <button class="btn btn-light border border-start-0 rounded-end-pill text-muted px-3" type="submit">Buscar</button>
                 </div>
             </form>

@@ -17,4 +17,5 @@ class Categoria
     public int $articulos_count = 0;
     public ?string $created_at = null;
     public ?string $updated_at = null;
+    public ?string $deleted_at = null;
 }

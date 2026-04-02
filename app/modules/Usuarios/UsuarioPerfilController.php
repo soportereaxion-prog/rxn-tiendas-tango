@@ -93,9 +93,33 @@ class UsuarioPerfilController
             $_SESSION['dashboard_order'] = $jsonOrder;
             
             echo json_encode(['success' => true]);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Bad request']);
+        }
+        exit;
+    }
+
+    public function toggleTheme(): void
+    {
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'No autorizado']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $newTheme = $input['theme'] ?? 'light';
+        if (!in_array($newTheme, ['light', 'dark'])) {
+            $newTheme = 'light';
+        }
+
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare("UPDATE usuarios SET preferencia_tema = ? WHERE id = ?");
+            $stmt->execute([$newTheme, $_SESSION['user_id']]);
+            $_SESSION['pref_theme'] = $newTheme;
+            echo json_encode(['success' => true, 'theme' => $newTheme]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Error de BD']);
         }
         exit;
     }

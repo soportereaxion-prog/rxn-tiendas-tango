@@ -45,10 +45,13 @@ class ArticuloController extends Controller
             ? $this->categoriaRepository->findSelectableByEmpresaId($empresaId)
             : [];
 
-        $totalItems = $repository->countAll($empresaId, $search, $field, $categoriaId);
+        $status = $_GET['status'] ?? 'activos';
+        $onlyDeleted = $status === 'papelera';
+
+        $totalItems = $repository->countAll($empresaId, $search, $field, $categoriaId, $onlyDeleted);
         $totalPages = ceil($totalItems / $limit) ?: 1;
         $page = min($page, $totalPages);
-        $articulos = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $categoriaId);
+        $articulos = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $categoriaId, $onlyDeleted);
 
         View::render('app/modules/Articulos/views/index.php', array_merge($ui, [
             'articulos' => $articulos,
@@ -62,6 +65,7 @@ class ArticuloController extends Controller
             'totalItems' => $totalItems,
             'sort' => $sort,
             'dir' => $dir,
+            'status' => $status,
         ]));
     }
 
@@ -137,10 +141,133 @@ class ArticuloController extends Controller
                 $ids = array_map('intval', $ids);
                 $repository->deleteByIds($ids, $empresaId);
                 $this->clearEnvironmentCaches($area, $empresaId);
+                \App\Core\Flash::set('success', count($ids) . ' artículos enviados a la papelera.');
             }
         }
 
         $this->redirectTo($ui['basePath']);
+    }
+
+    public function copy(string $id): void
+    {
+        AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+
+        try {
+            if ($idInt > 0) {
+                // Not supported yet. Can implement repository copy similar to Clientes.
+                \App\Core\Flash::set('danger', 'La funcionalidad de copiar artículos aún no está implementada.');
+            }
+        } catch (\Exception $e) {
+            \App\Core\Flash::set('danger', $e->getMessage());
+        }
+
+        $this->redirectTo($ui['basePath']);
+    }
+
+    public function eliminar(string $id): void
+    {
+        AuthService::requireLogin();
+
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+
+        if ($idInt > 0) {
+            $repository->deleteByIds([$idInt], $empresaId);
+            $this->clearEnvironmentCaches($area, $empresaId);
+            \App\Core\Flash::set('success', 'Artículo enviado a la papelera.');
+        }
+
+        $this->redirectTo($ui['basePath']);
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int) Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $ids = array_map('intval', $ids);
+                $repository->restoreByIds($ids, $empresaId);
+                $this->clearEnvironmentCaches($area, $empresaId);
+                \App\Core\Flash::set('success', count($ids) . ' artículos restaurados.');
+            }
+        }
+
+        $this->redirectTo($ui['basePath'] . '?status=papelera');
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireLogin();
+
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+
+        if ($idInt > 0) {
+            $repository->restoreByIds([$idInt], $empresaId);
+            $this->clearEnvironmentCaches($area, $empresaId);
+            \App\Core\Flash::set('success', 'Artículo restaurado.');
+        }
+
+        $this->redirectTo($ui['basePath'] . '?status=papelera');
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int) Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $ids = array_map('intval', $ids);
+                $repository->forceDeleteByIds($ids, $empresaId);
+                $this->clearEnvironmentCaches($area, $empresaId);
+                \App\Core\Flash::set('success', count($ids) . ' artículos eliminados definitivamente.');
+            }
+        }
+
+        $this->redirectTo($ui['basePath'] . '?status=papelera');
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireLogin();
+
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+
+        if ($idInt > 0) {
+            $repository->forceDeleteByIds([$idInt], $empresaId);
+            $this->clearEnvironmentCaches($area, $empresaId);
+            \App\Core\Flash::set('success', 'Artículo eliminado de forma definitiva.');
+        }
+
+        $this->redirectTo($ui['basePath'] . '?status=papelera');
     }
 
     public function editar(): void

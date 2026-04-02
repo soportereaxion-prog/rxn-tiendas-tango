@@ -14,7 +14,7 @@
     <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body class="d-flex align-items-center justify-content-center vh-100">
-    <div class="text-center bg-white p-5 rounded-4 shadow-sm border" style="max-width: 500px;">
+    <div class="text-center  p-5 rounded-4 shadow-sm border" style="max-width: 500px;">
         <div class="display-1 text-muted mb-4">🏪🚫</div>
         <h2 class="fw-bold text-dark mb-3">Tienda no disponible</h2>
         <p class="text-secondary mb-4">
@@ -24,5 +24,6 @@
             Volver al inicio
         </a>
     </div>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
 </body>
 </html>

@@ -123,12 +123,13 @@ class PedidoWebRepository
         ]);
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = ''): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = '', string $status = 'activos'): int
     {
+        $activo = $status === 'papelera' ? 0 : 1;
         $sql = "SELECT COUNT(*) FROM pedidos_web p 
                 LEFT JOIN clientes_web c ON p.cliente_web_id = c.id
-                WHERE p.empresa_id = :empresa_id";
-        $params = [':empresa_id' => $empresaId];
+                WHERE p.empresa_id = :empresa_id AND p.activo = :activo";
+        $params = [':empresa_id' => $empresaId, ':activo' => $activo];
 
         if ($estado !== '') {
             $sql .= " AND p.estado_tango = :estado";
@@ -142,14 +143,15 @@ class PedidoWebRepository
         return (int)$stmt->fetchColumn();
     }
 
-    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = '', string $field = 'all', string $estado = '', string $orderBy = 'p.created_at', string $orderDir = 'DESC'): array
+    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = '', string $field = 'all', string $estado = '', string $orderBy = 'p.created_at', string $orderDir = 'DESC', string $status = 'activos'): array
     {
         $offset = max(0, ($page - 1) * $limit);
+        $activo = $status === 'papelera' ? 0 : 1;
         $sql = "SELECT p.*, c.nombre as cliente_nombre, c.apellido as cliente_apellido, c.email as cliente_email 
                 FROM pedidos_web p 
                 LEFT JOIN clientes_web c ON p.cliente_web_id = c.id
-                WHERE p.empresa_id = :empresa_id";
-        $params = [':empresa_id' => $empresaId];
+                WHERE p.empresa_id = :empresa_id AND p.activo = :activo";
+        $params = [':empresa_id' => $empresaId, ':activo' => $activo];
 
         if ($estado !== '') {
             $sql .= " AND p.estado_tango = :estado";
@@ -180,7 +182,7 @@ class PedidoWebRepository
         $sql = "SELECT p.id, p.estado_tango, c.nombre as cliente_nombre, c.apellido as cliente_apellido, c.email as cliente_email
                 FROM pedidos_web p
                 LEFT JOIN clientes_web c ON p.cliente_web_id = c.id
-                WHERE p.empresa_id = :empresa_id";
+                WHERE p.empresa_id = :empresa_id AND p.activo = 1";
         $params = [':empresa_id' => $empresaId];
 
         if ($estado !== '') {
@@ -203,7 +205,7 @@ class PedidoWebRepository
 
     public function findPendingIds(int $empresaId): array
     {
-        $stmt = $this->db->prepare('SELECT id FROM pedidos_web WHERE empresa_id = :empresa_id AND estado_tango = :estado ORDER BY created_at ASC');
+        $stmt = $this->db->prepare('SELECT id FROM pedidos_web WHERE empresa_id = :empresa_id AND estado_tango = :estado AND activo = 1 ORDER BY created_at ASC');
         $stmt->execute([
             ':empresa_id' => $empresaId,
             ':estado' => 'pendiente_envio_tango',
@@ -229,7 +231,7 @@ class PedidoWebRepository
             $params[$placeholder] = $id;
         }
 
-        $sql = 'SELECT id FROM pedidos_web WHERE empresa_id = :empresa_id AND id IN (' . implode(',', $placeholders) . ') ORDER BY created_at ASC';
+        $sql = 'SELECT id FROM pedidos_web WHERE empresa_id = :empresa_id AND activo = 1 AND id IN (' . implode(',', $placeholders) . ') ORDER BY created_at ASC';
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
 
@@ -283,5 +285,56 @@ class PedidoWebRepository
         // No es mandatorio pero aporta para el admin. Para no complicar, lo omito ya que nombre_articulo y id están.
 
         return $pedido;
+    }
+
+    public function softDelete(int $id, int $empresaId): void
+    {
+        $sql = "UPDATE pedidos_web SET activo = 0, updated_at = NOW() WHERE id = :id AND empresa_id = :emp_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id, 'emp_id' => $empresaId]);
+    }
+
+    public function restore(int $id, int $empresaId): void
+    {
+        $sql = "UPDATE pedidos_web SET activo = 1, updated_at = NOW() WHERE id = :id AND empresa_id = :emp_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id, 'emp_id' => $empresaId]);
+    }
+
+    public function forceDelete(int $id, int $empresaId): void
+    {
+        $sql = "DELETE FROM pedidos_web WHERE id = :id AND empresa_id = :emp_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id, 'emp_id' => $empresaId]);
+    }
+
+    public function softDeleteBulk(array $ids, int $empresaId): void
+    {
+        if (empty($ids)) return;
+        $in = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "UPDATE pedidos_web SET activo = 0, updated_at = NOW() WHERE empresa_id = ? AND id IN ($in)";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge([$empresaId], $ids);
+        $stmt->execute($params);
+    }
+
+    public function restoreBulk(array $ids, int $empresaId): void
+    {
+        if (empty($ids)) return;
+        $in = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "UPDATE pedidos_web SET activo = 1, updated_at = NOW() WHERE empresa_id = ? AND id IN ($in)";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge([$empresaId], $ids);
+        $stmt->execute($params);
+    }
+
+    public function forceDeleteBulk(array $ids, int $empresaId): void
+    {
+        if (empty($ids)) return;
+        $in = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "DELETE FROM pedidos_web WHERE empresa_id = ? AND id IN ($in)";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge([$empresaId], $ids);
+        $stmt->execute($params);
     }
 }

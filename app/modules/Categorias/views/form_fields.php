@@ -46,7 +46,7 @@ $visibleStoreChecked = $old !== []
     <div class="rxn-form-section-title">Imagen de portada</div>
     <div class="row g-4 align-items-start">
         <div class="col-lg-4">
-            <div class="border rounded-3 bg-white p-2 h-100">
+            <div class="border rounded-3  p-2 h-100">
                 <?php if (!empty($imagenActual)): ?>
                     <img src="/rxnTiendasIA/public<?= htmlspecialchars((string) $imagenActual) ?>" alt="Portada categoria" class="img-fluid rounded-3 w-100" style="max-height: 220px; object-fit: cover;">
                 <?php else: ?>

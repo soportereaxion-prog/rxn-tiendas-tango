@@ -47,15 +47,19 @@ class CrmNotasController extends Controller
         $perPage = 15;
         $offset = ($page - 1) * $perPage;
 
-        $totalItems = $this->repository->countAll($empresaId, $search);
-        $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir);
+        $status = $_GET['status'] ?? 'activos';
+        $onlyDeleted = $status === 'papelera';
+
+        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted);
+        $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted);
 
         View::render('app/modules/CrmNotas/views/index.php', array_merge($ui, [
             'notas' => $items,
             'search' => $search,
             'page' => $page,
             'totalPages' => max(1, ceil($totalItems / $perPage)),
-            'totalItems' => $totalItems
+            'totalItems' => $totalItems,
+            'status' => $status
         ]));
     }
 
@@ -305,11 +309,8 @@ class CrmNotasController extends Controller
 
             foreach ($reader->getSheetIterator() as $sheet) {
                 foreach ($sheet->getRowIterator() as $row) {
-                    $cells = $row->getCells();
-                    $rowData = [];
-                    foreach ($cells as $cell) {
-                        $rowData[] = $cell->getValue();
-                    }
+                    /** @var \OpenSpout\Common\Entity\Row|\OpenSpout\Reader\XLSX\Row $row */
+                    $rowData = $row->toArray();
 
                     if ($rowIndex === 0) {
                         // Leer cabeceras
@@ -411,14 +412,126 @@ class CrmNotasController extends Controller
         exit;
     }
 
-    public function destroy(string $id): void
+    public function eliminar(string $id): void
     {
         AuthService::requireLogin();
         $empresaId = $this->getEmpresaIdOrDie();
         $ui = $this->buildUiContext();
 
         $this->repository->delete((int) $id, $empresaId);
-        header('Location: ' . $this->withSuccess($ui['indexPath'], 'Nota eliminada.'));
+        header('Location: ' . $this->withSuccess($ui['indexPath'], 'Nota enviada a la papelera.'));
+        exit;
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+
+        $this->repository->restore((int) $id, $empresaId);
+        header('Location: ' . $this->withSuccess($ui['indexPath'] . '?status=papelera', 'Nota restaurada exitosamente.'));
+        exit;
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+
+        $this->repository->forceDelete((int) $id, $empresaId);
+        header('Location: ' . $this->withSuccess($ui['indexPath'] . '?status=papelera', 'Nota eliminada definitivamente.'));
+        exit;
+    }
+
+    public function eliminarMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . $ui['indexPath']);
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            header('Location: ' . $ui['indexPath']);
+            exit;
+        }
+
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id > 0) {
+                try {
+                    $this->repository->delete($id, $empresaId);
+                    $count++;
+                } catch (\Exception $e) {}
+            }
+        }
+        header('Location: ' . $this->withSuccess($ui['indexPath'], "Se enviaron {$count} notas a la papelera."));
+        exit;
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . $ui['indexPath'] . '?status=papelera');
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            header('Location: ' . $ui['indexPath'] . '?status=papelera');
+            exit;
+        }
+
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id > 0) {
+                try {
+                    $this->repository->restore($id, $empresaId);
+                    $count++;
+                } catch (\Exception $e) {}
+            }
+        }
+        header('Location: ' . $this->withSuccess($ui['indexPath'] . '?status=papelera', "Se restauraron {$count} notas exitosamente."));
+        exit;
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . $ui['indexPath'] . '?status=papelera');
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            header('Location: ' . $ui['indexPath'] . '?status=papelera');
+            exit;
+        }
+
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id > 0) {
+                try {
+                    $this->repository->forceDelete($id, $empresaId);
+                    $count++;
+                } catch (\Exception $e) {}
+            }
+        }
+        header('Location: ' . $this->withSuccess($ui['indexPath'] . '?status=papelera', "Se eliminaron {$count} notas definitivamente."));
         exit;
     }
 
@@ -451,4 +564,6 @@ class CrmNotasController extends Controller
         $separator = str_contains($path, '?') ? '&' : '?';
         return $path . $separator . 'success=' . urlencode($message);
     }
+
+
 }

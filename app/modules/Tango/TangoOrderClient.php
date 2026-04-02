@@ -52,14 +52,13 @@ class TangoOrderClient
         
         try {
             $response = $this->client->get($endpoint);
-            if (isset($response['data']['list'][0]['ID_STA11'])) {
-                return (int) $response['data']['list'][0]['ID_STA11'];
+            $list = $response['resultData']['list'] ?? $response['data']['resultData']['list'] ?? $response['data']['list'] ?? [];
+            if (isset($list[0]['ID_STA11'])) {
+                return (int) $list[0]['ID_STA11'];
             }
+            throw new \RuntimeException('El nodo ID_STA11 no se encontró en la respuesta: ' . json_encode($response, JSON_UNESCAPED_UNICODE));
         } catch (\Exception $e) {
-            // Log o silenciar, el pedido fallará si retorna null luego
-            error_log("Error resolviendo ID_STA11 para " . $codigoArticulo . ": " . $e->getMessage());
+            throw new \RuntimeException("Error resolviendo ID_STA11 para {$codigoArticulo}: " . $e->getMessage());
         }
-        
-        return null;
     }
 }

@@ -62,7 +62,7 @@ $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
     <div class="row g-5">
         <div class="col-md-6 mb-4 mb-md-0">
             <!-- Imagen Principal Grande con trigger Lightbox -->
-            <div class="bg-white border rounded-4 d-flex align-items-center justify-content-center shadow-sm overflow-hidden mb-3 position-relative" style="height: 400px; cursor: zoom-in;" onclick="openLightbox(currentGalleryIndex)">
+            <div class=" border rounded-4 d-flex align-items-center justify-content-center shadow-sm overflow-hidden mb-3 position-relative" style="height: 400px; cursor: zoom-in;" onclick="openLightbox(currentGalleryIndex)">
                 <img id="main-product-image" src="<?= $jsImages[0] ?>" alt="<?= htmlspecialchars((string)$articulo->nombre) ?>" class="w-100 h-100" style="object-fit: <?= $isFallbackOnly ? 'contain; padding: 40px; opacity: 0.5;' : 'cover;' ?> transition: opacity 0.3s ease;">
                 
                 <!-- Icono lupa indicador -->
@@ -123,7 +123,7 @@ $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
                 <?= htmlspecialchars((string)($articulo->descripcion ?: 'Este producto no cuenta con descripción adicional.')) ?>
             </p>
 
-            <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="p-4 bg-white border rounded-4 shadow-sm">
+            <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="p-4  border rounded-4 shadow-sm">
                 <input type="hidden" name="articulo_id" value="<?= $articulo->id ?>">
                 <div class="row g-3 align-items-center">
                     <div class="col-auto">

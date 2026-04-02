@@ -108,7 +108,7 @@ class CategoriaController extends Controller
             exit;
         } catch (\Exception $e) {
             try {
-                $categoria = $this->service->getByIdForContext((int) $id);
+                $categoria = $this->service->getByIdForContext((int) $id, true);
                 View::render('app/modules/Categorias/views/editar.php', array_merge($this->buildUiContext(), [
                     'error' => $e->getMessage(),
                     'categoria' => $categoria,
@@ -118,6 +118,123 @@ class CategoriaController extends Controller
                 $this->renderDenied($inner->getMessage());
             }
         }
+    }
+
+    public function copy(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+
+        try {
+            if ($idInt > 0) {
+                // To be implemented in CategoriaService
+                \App\Core\Flash::set('danger', 'La funcionalidad de copiar categorías aún no está implementada.');
+            }
+        } catch (\Exception $e) {
+            \App\Core\Flash::set('danger', $e->getMessage());
+        }
+
+        header('Location: ' . $this->buildUiContext()['basePath']);
+        exit;
+    }
+
+    public function eliminar(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $idInt > 0) {
+            $this->service->delete([$idInt]);
+            $this->clearStoreCache();
+            \App\Core\Flash::set('success', 'Categoría enviada a la papelera.');
+        }
+
+        header('Location: ' . $this->buildUiContext()['basePath']);
+        exit;
+    }
+
+    public function eliminarMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $ids = array_map('intval', $ids);
+                $this->service->delete($ids);
+                $this->clearStoreCache();
+                \App\Core\Flash::set('success', count($ids) . ' categorías enviadas a la papelera.');
+            }
+        }
+
+        header('Location: ' . $this->buildUiContext()['basePath']);
+        exit;
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $idInt > 0) {
+            $this->service->restore([$idInt]);
+            $this->clearStoreCache();
+            \App\Core\Flash::set('success', 'Categoría restaurada correctamente.');
+        }
+
+        header('Location: ' . $this->buildUiContext()['basePath'] . '?status=papelera');
+        exit;
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $ids = array_map('intval', $ids);
+                $this->service->restore($ids);
+                $this->clearStoreCache();
+                \App\Core\Flash::set('success', count($ids) . ' categorías restauradas.');
+            }
+        }
+
+        header('Location: ' . $this->buildUiContext()['basePath'] . '?status=papelera');
+        exit;
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $idInt > 0) {
+            $this->service->forceDelete([$idInt]);
+            $this->clearStoreCache();
+            \App\Core\Flash::set('success', 'Categoría eliminada definitivamente.');
+        }
+
+        header('Location: ' . $this->buildUiContext()['basePath'] . '?status=papelera');
+        exit;
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $ids = array_map('intval', $ids);
+                $this->service->forceDelete($ids);
+                $this->clearStoreCache();
+                \App\Core\Flash::set('success', count($ids) . ' categorías eliminadas definitivamente.');
+            }
+        }
+
+        header('Location: ' . $this->buildUiContext()['basePath'] . '?status=papelera');
+        exit;
     }
 
     private function renderDenied(string $message): void

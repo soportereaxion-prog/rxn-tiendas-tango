@@ -1,22 +1,32 @@
-﻿<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars((string) ($editTitle ?? 'Modificar Cliente CRM')) ?> - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/crm/clientes'; ?>
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/crm/clientes'; ?>
     <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="fw-bold mb-1"><?= htmlspecialchars((string) ($editTitle ?? 'Modificar Cliente CRM')) ?></h2>
                 <p class="text-muted mb-0">Ajustando ficha de <strong><?= htmlspecialchars((string) ($cliente['razon_social'] ?? 'Nuevo Cliente')) ?></strong> (#<?= (int) ($cliente['id'] ?? 0) ?>)</p>
             </div>
-            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">Volver al listado</a>
+            <div class="d-flex gap-2">
+                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver al listado
+                </a>
+                <?php if (!empty($cliente['id'])): ?>
+                    <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $cliente['id'] ?>/copiar" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-outline-success" title="Duplicar">
+                            <i class="bi bi-copy"></i>
+                        </button>
+                    </form>
+                    <form action="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" method="POST" class="d-inline" onsubmit="return confirm('¿Enviar cliente a la papelera?');">
+                        <input type="hidden" name="ids[]" value="<?= (int) $cliente['id'] ?>">
+                        <button type="submit" class="btn btn-outline-danger" title="Enviar a papelera">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php require BASE_PATH . '/app/shared/views/components/module_notes_panel.php'; ?>
@@ -80,7 +90,7 @@
                         <div class="rxn-form-grid">
                             <div class="rxn-form-span-8">
                                 <label class="form-label text-warning fw-bold mb-1">Ultima sincronizacion</label>
-                                <input type="text" class="form-control bg-white" value="<?= htmlspecialchars((string) ($cliente['fecha_ultima_sync'] ?? '')) ?>" disabled>
+                                <input type="text" class="form-control " value="<?= htmlspecialchars((string) ($cliente['fecha_ultima_sync'] ?? '')) ?>" disabled>
                                 <div class="form-text text-muted mt-2"><small>El origen maestro sigue siendo Tango/Connect. Esta ficha solo permite ajustes locales sobre la cache operativa.</small></div>
                             </div>
                             <div class="rxn-form-span-4 d-flex align-items-end">
@@ -103,8 +113,14 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
-</body>
-</html>
-
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

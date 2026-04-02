@@ -13,7 +13,7 @@ use Exception;
 
 class PedidoServicioController
 {
-    private const SEARCH_FIELDS = ['all', 'numero', 'cliente', 'solicito', 'articulo', 'clasificacion', 'estado'];
+    private const SEARCH_FIELDS = ['all', 'numero', 'cliente', 'solicito', 'articulo', 'clasificacion', 'estado', 'usuario'];
 
     private PedidoServicioRepository $repository;
 
@@ -56,6 +56,104 @@ class PedidoServicioController
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
         ]));
+    }
+
+
+
+    public function eliminar(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+
+        if ($idInt > 0) {
+            $this->repository->deleteByIds([$idInt], (int) Context::getEmpresaId());
+            Flash::set('success', 'Pedido de servicio enviado a la papelera.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        exit;
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+
+        if ($idInt > 0) {
+            $this->repository->restoreByIds([$idInt], (int) Context::getEmpresaId());
+            Flash::set('success', 'Pedido de servicio restaurado exitosamente.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        exit;
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+
+        if ($idInt > 0) {
+            $this->repository->forceDeleteByIds([$idInt], (int) Context::getEmpresaId());
+            Flash::set('success', 'Pedido de servicio eliminado permanentemente.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        exit;
+    }
+
+    public function eliminarMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (is_array($ids) && count($ids) > 0) {
+                $count = $this->repository->deleteByIds($ids, (int) Context::getEmpresaId());
+                Flash::set('success', "Se han enviado $count pedidos de servicio a la papelera.");
+            } else {
+                Flash::set('warning', 'No se seleccionó ningún pedido.');
+            }
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        exit;
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (is_array($ids) && count($ids) > 0) {
+                $count = $this->repository->restoreByIds($ids, (int) Context::getEmpresaId());
+                Flash::set('success', "Se han restaurado $count pedidos de servicio.");
+            } else {
+                Flash::set('warning', 'No se seleccionó ningún pedido.');
+            }
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        exit;
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (is_array($ids) && count($ids) > 0) {
+                $count = $this->repository->forceDeleteByIds($ids, (int) Context::getEmpresaId());
+                Flash::set('success', "Se han eliminado $count pedidos de servicio permanentemente.");
+            } else {
+                Flash::set('warning', 'No se seleccionó ningún pedido.');
+            }
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        exit;
     }
 
     public function suggestions(): void
@@ -121,9 +219,12 @@ class PedidoServicioController
         $empresaId = (int) Context::getEmpresaId();
 
         try {
-            $payload = $this->validateRequest($_POST, $empresaId, null);
+            $payload = $this->validateRequest($_POST, $empresaId, null, $_POST['action'] ?? '');
             $pedidoId = $this->repository->create($payload);
-            
+            if (!empty($_POST['capturas_diagnostico_base64'])) {
+                $this->repository->syncAdjuntos($pedidoId, $empresaId, $_POST['capturas_diagnostico_base64']);
+            }
+
             if (($_POST['action'] ?? '') === 'tango') {
                 $tangoService = new PedidoServicioTangoService();
                 $res = $tangoService->send($pedidoId, $empresaId);
@@ -182,8 +283,11 @@ class PedidoServicioController
         }
 
         try {
-            $payload = $this->validateRequest($_POST, $empresaId, $pedidoActual);
+            $payload = $this->validateRequest($_POST, $empresaId, $pedidoActual, $_POST['action'] ?? '');
             $this->repository->update((int) $id, $empresaId, $payload);
+            if (!empty($_POST['capturas_diagnostico_base64'])) {
+                $this->repository->syncAdjuntos((int) $id, $empresaId, $_POST['capturas_diagnostico_base64']);
+            }
             
             if (($_POST['action'] ?? '') === 'tango') {
                 $tangoService = new PedidoServicioTangoService();
@@ -208,6 +312,184 @@ class PedidoServicioController
                 'errors' => $e->errors(),
             ]));
         }
+    }
+
+    public function copy(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $pedidoOriginal = $this->repository->findById((int) $id, $empresaId);
+
+        if ($pedidoOriginal === null) {
+            Flash::set('danger', 'El pedido de servicio base no existe o no pertenece a tu empresa.');
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            exit;
+        }
+
+        try {
+            $data = $pedidoOriginal;
+            unset($data['id'], $data['numero']);
+
+            $data['fecha_inicio'] = date('Y-m-d H:i:s');
+            $data['fecha_finalizado'] = null;
+            $data['descuento_segundos'] = 0;
+            $data['duracion_bruta_segundos'] = null;
+            $data['duracion_neta_segundos'] = null;
+            
+            // Limpieza requerida para estado y sync con ERP
+            $data['nro_pedido'] = null;
+            $data['tango_sync_status'] = null;
+            $data['tango_sync_error'] = null;
+            $data['tango_sync_payload'] = null;
+            $data['tango_sync_response'] = null;
+
+            $data['usuario_id'] = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+            $data['usuario_nombre'] = $_SESSION['user_name'] ?? 'Usuario';
+
+            $nuevoId = $this->repository->create($data);
+
+            Flash::set('success', 'Pedido de servicio copiado exitosamente.');
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . $nuevoId . '/editar');
+            exit;
+        } catch (\Throwable $e) {
+            Flash::set('danger', 'Falla al copiar el pedido de servicio: ' . $e->getMessage());
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+            exit;
+        }
+    }
+
+    public function printPreview(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $pedido = $this->repository->findById((int) $id, $empresaId);
+
+        if ($pedido === null) {
+            Flash::set('danger', 'El pedido de servicio no existe o no pertenece a tu empresa.');
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            exit;
+        }
+
+        $contextBuilder = new PedidoServicioPrintContextBuilder();
+        $context = $contextBuilder->build($empresaId, $pedido);
+
+        $printRepo = new \App\Modules\PrintForms\PrintFormRepository();
+        $renderer = new \App\Modules\PrintForms\PrintFormRenderer();
+
+        try {
+            $configRepo = \App\Modules\EmpresaConfig\EmpresaConfigRepository::forCrm();
+            $config = $configRepo->findByEmpresaId($empresaId);
+            $canvasId = $config->pds_email_pdf_canvas_id ?? null;
+
+            if ($canvasId) {
+                $template = $printRepo->resolveTemplateByDefinitionId($empresaId, (int)$canvasId);
+            } else {
+                $template = $printRepo->resolveTemplateForDocument($empresaId, 'crm_pedido_servicio');
+            }
+
+            $rendered = $renderer->buildDocument(
+                $template['page_config'] ?? [],
+                $template['objects'] ?? [],
+                $context,
+                (string) ($template['background_url'] ?? '')
+            );
+
+            $html = \App\Core\View::renderToString('app/modules/PrintForms/views/document_render.php', [
+                'title' => 'Pedido de Servicio #' . $pedido['numero'],
+                'subtitle' => 'Cliente: ' . ($pedido['cliente_nombre'] ?? 'Sin nombre'),
+                'page' => $rendered['page'],
+                'renderedObjects' => $rendered['objects'],
+                'hideToolbar' => true,
+            ]);
+
+            $options = new \Dompdf\Options();
+            $options->set('isRemoteEnabled', true);
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('defaultPaperSize', 'A4');
+            
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->render();
+            
+            $filename = 'PedidoServicio_' . str_pad((string)$pedido['numero'], 6, '0', STR_PAD_LEFT) . '.pdf';
+            $dompdf->stream($filename, ["Attachment" => false]);
+            exit;
+        } catch (\Throwable $e) {
+            Flash::set('danger', 'No se pudo generar la impresion: ' . $e->getMessage());
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+            exit;
+        }
+    }
+
+    public function sendEmail(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $pedido = $this->repository->findById((int) $id, $empresaId);
+
+        if ($pedido === null) {
+            Flash::set('danger', 'El pedido de servicio no existe o no pertenece a tu empresa.');
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            exit;
+        }
+
+        $cliente = $this->repository->findClientById($empresaId, (int) $pedido['cliente_id']);
+        $email = $cliente['email'] ?? '';
+        
+        if (trim((string)$email) === '') {
+            if (trim((string)($pedido['cliente_email'] ?? '')) !== '') {
+                $email = $pedido['cliente_email'];
+            } else {
+                Flash::set('danger', 'El cliente asociado no tiene un correo electronico configurado.');
+                header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+                exit;
+            }
+        }
+
+        $contextBuilder = new PedidoServicioPrintContextBuilder();
+        $contextData = $contextBuilder->build($empresaId, $pedido);
+
+        $mailer = new \App\Shared\Services\DocumentMailerService();
+        $filename = 'PedidoServicio_' . str_pad((string)$pedido['numero'], 6, '0', STR_PAD_LEFT);
+        
+        
+        $adjuntos = [];
+        $capturasDir = $_SERVER['DOCUMENT_ROOT'] . '/rxnTiendasIA/public/uploads/pds-diagnostico/';
+        $dbAdjuntos = $this->repository->getAdjuntos((int) $id);
+        
+        foreach ($dbAdjuntos as $adjunto) {
+            $path = str_replace('/rxnTiendasIA/public/uploads/pds-diagnostico/', $capturasDir, $adjunto['file_path']);
+            if (is_file($path)) {
+                $adjuntos[] = [
+                    'path' => $path,
+                    'filename' => $adjunto['label'] ?? 'adjunto.jpg'
+                ];
+            }
+        }
+
+        try {
+            $success = $mailer->sendDocument(
+                $empresaId,
+                trim((string)$email),
+                $contextData,
+                'pds',
+                'crm_pds',
+                'Tu Pedido de Servicio #' . $pedido['numero'],
+                $filename,
+                $adjuntos
+            );
+
+            if ($success) {
+                Flash::set('success', 'Email enviado correctamente a ' . htmlspecialchars((string)$email));
+            } else {
+                Flash::set('danger', 'Error al enviar el correo. Revise su configuracion SMTP en Empresa -> Configuracion.');
+            }
+        } catch (\Throwable $e) {
+            Flash::set('danger', 'Falla en la generacion/envio de documento: ' . $e->getMessage());
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+        exit;
     }
 
     public function clientSuggestions(): void
@@ -237,7 +519,7 @@ class PedidoServicioController
             ];
         }, $rows);
 
-        echo json_encode(['success' => true, 'data' => $data]);
+        echo json_encode(['success' => true, 'data' => $data], JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
@@ -249,24 +531,24 @@ class PedidoServicioController
         $empresaId = (int) Context::getEmpresaId();
         $term = trim((string) ($_GET['q'] ?? ''));
         if (mb_strlen($term) < 2) {
-            echo json_encode(['success' => true, 'data' => []]);
+            echo json_encode(['success' => true, 'data' => []], JSON_INVALID_UTF8_SUBSTITUTE);
             exit;
         }
 
         $rows = $this->repository->findArticleSuggestions($empresaId, $term, 5);
         $data = array_map(static function (array $row): array {
-            $nombre = trim((string) ($row['nombre'] ?? ''));
+            $nombre = trim((string) ($row['nombre'] ?? 'Articulo'));
             $codigo = trim((string) ($row['codigo_externo'] ?? ''));
 
             return [
                 'id' => (int) ($row['id'] ?? 0),
-                'label' => $nombre !== '' ? $nombre : 'Articulo',
-                'value' => $nombre !== '' ? $nombre : 'Articulo',
+                'label' => $nombre,
+                'value' => $nombre,
                 'caption' => trim('#' . (int) ($row['id'] ?? 0) . ' | ' . ($codigo !== '' ? $codigo : 'Sin codigo')),
             ];
         }, $rows);
 
-        echo json_encode(['success' => true, 'data' => $data]);
+        echo json_encode(['success' => true, 'data' => $data], JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
@@ -276,20 +558,86 @@ class PedidoServicioController
         header('Content-Type: application/json');
 
         $empresaId = (int) Context::getEmpresaId();
-        $term = trim((string) ($_GET['q'] ?? ''));
-        $items = $this->repository->findClasificacionSuggestions($empresaId, $term, 6);
-        $data = array_map(static fn (string $code): array => [
-            'id' => $code,
-            'label' => $code,
-            'value' => $code,
-            'caption' => 'Clasificacion operativa',
-        ], $items);
+        $term = mb_strtolower(trim((string) ($_GET['q'] ?? '')));
+        $config = \App\Modules\EmpresaConfig\EmpresaConfigService::forCrm()->getConfig();
+        
+        $raw = trim((string)($config->clasificaciones_pds_raw ?? ''));
+        $useRaw = false;
+        $items = [];
+        
+        if ($raw !== '') {
+            $parsed = json_decode($raw, true);
+            if (is_array($parsed)) {
+                $items = $parsed;
+                $useRaw = true;
+            }
+        }
+        
+        if (!$useRaw) {
+            $token = trim((string) ($config->tango_connect_token ?? ''));
+            if ($token !== '') {
+                try {
+                    $client = new \App\Modules\Tango\TangoApiClient(
+                        rtrim((string) ($config->tango_api_url ?? ''), '/') . '/Api',
+                        $token,
+                        trim((string) ($config->tango_connect_company_id ?? '')),
+                        trim((string) ($config->tango_connect_key ?? '')) ?: null
+                    );
+                    
+                    // Petición ágil y directa (1 sola hoja grande para traer todo sin loops lentos)
+                    $data = $client->getRawClient()->get('Get', [
+                        'process' => 326,
+                        'pageSize' => 150,
+                        'pageIndex' => 0,
+                        'view' => ''
+                    ]);
+                    $items = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
+                } catch (\Throwable $e) {
+                    $items = [];
+                }
+            }
+        }
 
-        echo json_encode(['success' => true, 'data' => $data]);
+        $filtered = [];
+        foreach ($items as $item) {
+            $extraId = $item['ID_GVA81'] ?? ($item['id'] ?? '');
+            $code = $item['COD_GVA81'] ?? ($item['codigo'] ?? '');
+            $desc = $item['DESCRIP'] ?? ($item['descripcion'] ?? '');
+            
+            if ($term !== '') {
+                $codeMatch = str_contains(mb_strtolower((string)$code), $term);
+                $descMatch = str_contains(mb_strtolower((string)$desc), $term);
+                if (!$codeMatch && !$descMatch) {
+                    continue;
+                }
+            }
+            
+            // `id`: el cod para guardar local en `clasificacion_codigo`
+            // `value`: lo que se ve en el input text del picker
+            // `extraId`: lo que va a ir a `clasificacion_id_tango` para armar el requerimiento de Tango
+            $filtered[] = [
+                'id' => trim((string)$code),
+                'extraId' => $extraId, 
+                'value' => mb_substr(trim((string)$code), 0, 80),
+                'label' => trim((string)$desc) !== '' ? trim((string)$code) . ' - ' . trim((string)$desc) : trim((string)$code),
+                'caption' => 'Clasificación PDS',
+            ];
+        }
+        
+        usort($filtered, static function($a, $b) use ($term) {
+            if ($term === '') return strnatcasecmp($a['id'], $b['id']);
+            $codeAStarts = str_starts_with(mb_strtolower($a['id']), $term);
+            $codeBStarts = str_starts_with(mb_strtolower($b['id']), $term);
+            if ($codeAStarts && !$codeBStarts) return -1;
+            if (!$codeAStarts && $codeBStarts) return 1;
+            return strnatcasecmp($a['id'], $b['id']);
+        });
+
+        echo json_encode(['success' => true, 'data' => array_slice($filtered, 0, 15)], JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
-    private function validateRequest(array $input, int $empresaId, ?array $pedidoActual): array
+    private function validateRequest(array $input, int $empresaId, ?array $pedidoActual, string $action = ''): array
     {
         $errors = [];
         $fechaInicioInput = trim((string) ($input['fecha_inicio'] ?? ''));
@@ -297,6 +645,7 @@ class PedidoServicioController
         $solicito = trim((string) ($input['solicito'] ?? ''));
         $nroPedido = trim((string) ($input['nro_pedido'] ?? ''));
         $clasificacion = strtoupper(trim((string) ($input['clasificacion_codigo'] ?? '')));
+        $clasificacionIdTango = trim((string) ($input['clasificacion_id_tango'] ?? ''));
         $diagnostico = trim((string) ($input['diagnostico'] ?? ''));
         $motivo_descuento = trim((string) ($input['motivo_descuento'] ?? ''));
         $descuentoInput = trim((string) ($input['descuento'] ?? '00:00:00'));
@@ -310,7 +659,9 @@ class PedidoServicioController
 
         $fechaFinalizado = null;
         if ($fechaFinalizadoInput === '') {
-            $errors['fecha_finalizado'] = 'La fecha de finalización es obligatoria para guardar.';
+            if ($action === 'tango') {
+                $errors['fecha_finalizado'] = 'La fecha de finalización es obligatoria para enviar a Tango (Finalizado).';
+            }
         } else {
             $fechaFinalizado = $this->parseDateTimeInput($fechaFinalizadoInput);
             if ($fechaFinalizado === null) {
@@ -325,6 +676,8 @@ class PedidoServicioController
         $descuentoSegundos = $this->parseDuration($descuentoInput);
         if ($descuentoSegundos === null) {
             $errors['descuento'] = 'El descuento debe respetar el formato HH:MM:SS.';
+        } elseif ($descuentoSegundos > 0 && $motivo_descuento === '') {
+            $errors['motivo_descuento'] = 'Debes indicar por que se aplica un descuento.';
         }
 
         $cliente = null;
@@ -392,6 +745,8 @@ class PedidoServicioController
 
         return [
             'empresa_id' => $empresaId,
+            'usuario_id' => isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+            'usuario_nombre' => $_SESSION['user_name'] ?? 'Usuario',
             'fecha_inicio' => $fechaInicio?->format('Y-m-d H:i:s'),
             'fecha_finalizado' => $fechaFinalizado?->format('Y-m-d H:i:s'),
             'cliente_id' => $clienteId,
@@ -405,11 +760,13 @@ class PedidoServicioController
             'articulo_codigo' => $articulo['codigo_externo'] ?? null,
             'articulo_nombre' => trim((string) ($articulo['nombre'] ?? '')),
             'clasificacion_codigo' => $clasificacion !== '' ? $clasificacion : null,
+            'clasificacion_id_tango' => $clasificacionIdTango !== '' && is_numeric($clasificacionIdTango) ? (int)$clasificacionIdTango : null,
             'descuento_segundos' => $descuentoSegundos,
             'diagnostico' => $diagnostico !== '' ? $diagnostico : null,
             'motivo_descuento' => $motivo_descuento !== '' ? $motivo_descuento : null,
             'duracion_bruta_segundos' => $duracionBruta,
             'duracion_neta_segundos' => $duracionNeta,
+            'tiempo_decimal' => $duracionNeta !== null ? round(max(0, $duracionNeta) / 3600, 4) : null,
         ];
     }
 
@@ -436,8 +793,8 @@ class PedidoServicioController
         return [
             'id' => null,
             'numero' => $this->repository->previewNextNumero($empresaId),
-            'fecha_inicio' => $now->format('Y-m-d\TH:i:s'),
-            'fecha_finalizado' => '',
+            'fecha_inicio' => isset($_GET['inicio']) ? trim($_GET['inicio']) : $now->format('Y-m-d\TH:i:s'),
+            'fecha_finalizado' => isset($_GET['fin']) ? trim($_GET['fin']) : '',
             'cliente_id' => '',
             'cliente_nombre' => '',
             'solicito' => '',
@@ -445,14 +802,16 @@ class PedidoServicioController
             'articulo_id' => '',
             'articulo_nombre' => '',
             'clasificacion_codigo' => '',
+            'clasificacion_id_tango' => '',
             'descuento' => '00:00:00',
-            'diagnostico' => '',
+            'diagnostico' => isset($_GET['diagnostico']) ? trim($_GET['diagnostico']) : '',
             'motivo_descuento' => '',
             'duracion_bruta_segundos' => null,
             'duracion_neta_segundos' => null,
             'duracion_bruta_hhmmss' => '--:--:--',
             'duracion_neta_hhmmss' => '--:--:--',
             'estado_ui' => 'abierto',
+            'capturas' => [],
         ];
     }
 
@@ -470,6 +829,7 @@ class PedidoServicioController
             'articulo_id' => (string) ($pedido['articulo_id'] ?? ''),
             'articulo_nombre' => (string) ($pedido['articulo_nombre'] ?? ''),
             'clasificacion_codigo' => (string) ($pedido['clasificacion_codigo'] ?? ''),
+            'clasificacion_id_tango' => (string) ($pedido['clasificacion_id_tango'] ?? ''),
             'descuento' => $this->formatDuration((int) ($pedido['descuento_segundos'] ?? 0)),
             'diagnostico' => (string) ($pedido['diagnostico'] ?? ''),
             'motivo_descuento' => (string) ($pedido['motivo_descuento'] ?? ''),
@@ -478,6 +838,15 @@ class PedidoServicioController
             'duracion_bruta_hhmmss' => isset($pedido['duracion_bruta_segundos']) ? $this->formatDuration((int) $pedido['duracion_bruta_segundos']) : '--:--:--',
             'duracion_neta_hhmmss' => isset($pedido['duracion_neta_segundos']) ? $this->formatDuration((int) $pedido['duracion_neta_segundos']) : '--:--:--',
             'estado_ui' => empty($pedido['fecha_finalizado']) ? 'abierto' : 'finalizado',
+            'tango_sync_payload' => $pedido['tango_sync_payload'] ?? null,
+            'tango_sync_response' => $pedido['tango_sync_response'] ?? null,
+            'capturas' => array_map(static function(array $adj) {
+                return [
+                    'id' => $adj['id'],
+                    'url' => $adj['file_path'],
+                    'label' => $adj['label'] ?? ''
+                ];
+            }, $this->repository->getAdjuntos((int) ($pedido['id'] ?? 0))),
         ];
     }
 
@@ -493,6 +862,7 @@ class PedidoServicioController
         $state['articulo_id'] = trim((string) ($input['articulo_id'] ?? $state['articulo_id']));
         $state['articulo_nombre'] = trim((string) ($input['articulo_nombre'] ?? $state['articulo_nombre']));
         $state['clasificacion_codigo'] = strtoupper(trim((string) ($input['clasificacion_codigo'] ?? $state['clasificacion_codigo'])));
+        $state['clasificacion_id_tango'] = trim((string) ($input['clasificacion_id_tango'] ?? $state['clasificacion_id_tango']));
         $state['descuento'] = trim((string) ($input['descuento'] ?? $state['descuento']));
         $state['diagnostico'] = trim((string) ($input['diagnostico'] ?? $state['diagnostico']));
         $state['motivo_descuento'] = trim((string) ($input['motivo_descuento'] ?? $state['motivo_descuento']));
@@ -515,6 +885,21 @@ class PedidoServicioController
         $state['duracion_bruta_hhmmss'] = $duracionBruta !== null ? $this->formatDuration($duracionBruta) : '--:--:--';
         $state['duracion_neta_hhmmss'] = $duracionNeta !== null ? $this->formatDuration($duracionNeta) : '--:--:--';
         $state['estado_ui'] = $state['fecha_finalizado'] !== '' ? 'finalizado' : 'abierto';
+
+        $state['capturas'] = $state['capturas'] ?? [];
+        if (!empty($input['capturas_diagnostico_base64']) && is_array($input['capturas_diagnostico_base64'])) {
+            foreach ($input['capturas_diagnostico_base64'] as $b64Str) {
+                $decoded = json_decode((string) $b64Str, true);
+                if (is_array($decoded) && isset($decoded['data'], $decoded['label'])) {
+                    $state['capturas'][] = [
+                        'id' => 'temp_' . uniqid(),
+                        'url' => $decoded['data'],
+                        'label' => $decoded['label'],
+                        'is_temp' => $b64Str
+                    ];
+                }
+            }
+        }
 
         return $state;
     }

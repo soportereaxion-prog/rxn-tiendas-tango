@@ -707,6 +707,29 @@
             });
         });
 
+        var variableSearchInput = document.getElementById('print-variable-search');
+        if (variableSearchInput) {
+            variableSearchInput.addEventListener('input', function (e) {
+                var term = e.target.value.toLowerCase().trim();
+                var groups = form.querySelectorAll('.print-variable-group');
+                groups.forEach(function (group) {
+                    var hasVisibleItem = false;
+                    var items = group.querySelectorAll('.print-variable-chip');
+                    items.forEach(function (item) {
+                        var text = (item.textContent || '').toLowerCase();
+                        var source = (item.getAttribute('data-add-variable') || '').toLowerCase();
+                        if (term === '' || text.indexOf(term) > -1 || source.indexOf(term) > -1) {
+                            item.style.display = '';
+                            hasVisibleItem = true;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                    group.style.display = hasVisibleItem ? '' : 'none';
+                });
+            });
+        }
+
         if (deleteButton) {
             deleteButton.addEventListener('click', function () {
                 if (!state.selectedId) {

@@ -1,9 +1,34 @@
 <?php
 
 return [
-    'current_version' => '1.1.38',
-    'current_build' => '20260331.2',
+    'current_version' => '1.1.40',
+    'current_build' => '20260401.2',
     'history' => [
+        [
+            'version' => '1.1.40',
+            'build' => '20260401.2',
+            'released_at' => '2026-04-01',
+            'title' => 'Integración de Telefonía Anura con Generación de PDS',
+            'summary' => 'Se implementó la recepción de webhooks de la central telefónica Anura para visualizar el historial de llamadas en el CRM. Además, se permite derivar llamadas atendidas y finalizadas (HANGUP) directamente a Pedidos de Servicio (PDS), enlazando la duración y horarios automáticamente.',
+            'items' => [
+                'Nuevo módulo Historial de Llamadas con filtro, papelera y ordenamiento por fecha o duración de llamada.',
+                'Botón "Generar PDS" en llamadas válidas que auto-completa el diagnóstico del PDS asimilando al llamante y horarios exactos de sonado/corte.',
+                'Validación de seguridad operativa que impide derivar llamadas desde internos de telefonía que no coincidan con la configuración del perfil del usuario.',
+                'PDS recibe correctamente la fecha de inicio de la llamada y calcula el momento de finalización a partir de la métrica provista por la central.',
+            ],
+        ],
+        [
+            'version' => '1.1.39',
+            'build' => '20260401.1',
+            'released_at' => '2026-04-01',
+            'title' => 'Estandarización Visual Global (Dark/Light Mode Ready)',
+            'summary' => 'Se implementó una arquitectura visual robusta mediante Tokens CSS, estandarizando componentes (cards, tablas, formularios) y purgando el esquema Bootstrap legado para garantizar transiciones transparentes entre modos Claro y Oscuro en todo el sistema.',
+            'items' => [
+                'Expansión extensa de CSS Variables en rxn-theming.css gobernando fondos, contrastes de texto y bordes operacionales.',
+                'Refactorización profunda sobre más de 15 módulos ABM quitando clases inflexibles (bg-white, text-dark) que rompían la legibilidad.',
+                'Los inputs, textareas y selectores ahora asumen por defecto los fondos del motor visual para no brillar o cegar al operador en entornos oscuros.',
+            ],
+        ],
         [
             'version' => '1.1.38',
             'build' => '20260331.2',

@@ -48,8 +48,8 @@ class PrintFormRenderer
             ? $this->resolveValue((string) ($object['source'] ?? ''), $context)
             : $this->interpolateText((string) ($object['content'] ?? ''), $context);
 
-        if ($content === '') {
-            $content = $isVariable && !empty($object['source']) ? '{{' . (string) $object['source'] . '}}' : '';
+        if ($content === '' && $isVariable && str_starts_with((string) $object['source'], 'sample.')) {
+            $content = '{{' . (string) $object['source'] . '}}';
         }
 
         return [

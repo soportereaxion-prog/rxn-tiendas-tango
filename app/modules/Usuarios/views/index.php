@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Usuarios - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $filters = $filters ?? ['search' => '', 'field' => 'all', 'sort' => 'id', 'dir' => 'desc', 'page' => 1];
     $pagination = $pagination ?? ['page' => 1, 'totalPages' => 1, 'hasPrevious' => false, 'hasNext' => false, 'previousPage' => 1, 'nextPage' => 1];
     $search = $filters['search'] ?? '';
@@ -16,6 +10,8 @@
     $sort = $filters['sort'] ?? 'id';
     $dir = $filters['dir'] ?? 'desc';
     $page = (int) ($filters['page'] ?? 1);
+    $status = $filters['status'] ?? 'activos';
+    $isPapelera = $status === 'papelera';
     $hasSearch = $search !== '';
     $area = $area ?? 'tiendas';
     $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/usuarios';
@@ -26,7 +22,7 @@
     $contextLabel = $isGlobalAdmin
         ? 'Vista global RXN sobre todos los usuarios.'
         : $environmentLabel . ' | Empresa #' . (string) \App\Core\Context::getEmpresaId();
-    $buildQuery = static function (array $overrides = []) use ($search, $field, $sort, $dir, $page, $area): string {
+    $buildQuery = static function (array $overrides = []) use ($search, $field, $sort, $dir, $page, $area, $status): string {
         $params = [
             'area' => $area,
             'search' => $search,
@@ -34,6 +30,7 @@
             'sort' => $sort,
             'dir' => $dir,
             'page' => $page,
+            'status' => $status,
         ];
 
         foreach ($overrides as $key => $value) {
@@ -98,6 +95,7 @@
                     <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
                     <input type="hidden" name="dir" value="<?= htmlspecialchars($dir) ?>">
                     <input type="hidden" name="area" value="<?= htmlspecialchars((string) $area) ?>">
+                    <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
                     <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>" data-search-hidden>
                     <div class="col-12 col-lg-3 rxn-search-field-wrap">
                         <label for="field" class="form-label">Buscar por</label>
@@ -115,7 +113,7 @@
                             class="form-control"
                             id="search"
                             value="<?= htmlspecialchars($search) ?>"
-                            placeholder="Buscar por nombre o email"
+                            placeholder='🔎 Presioná F3 o "/" para buscar'
                             autocomplete="off"
                             data-search-input
                             data-suggestions-url="<?= htmlspecialchars($basePath) ?>/sugerencias?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>"
@@ -142,6 +140,19 @@
             </div>
         </div>
 
+        <ul class="nav nav-tabs mb-4 rxn-crud-tabs">
+            <li class="nav-item">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars($basePath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
+                    Activos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars($basePath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
+                    <i class="bi bi-trash"></i> Papelera
+                </a>
+            </li>
+        </ul>
+
         <div class="card rxn-crud-card">
             <div class="card-body p-0">
                 <?php if (empty($usuarios)): ?>
@@ -156,21 +167,41 @@
                         </div>
                     </div>
                 <?php else: ?>
+                <?php if (!$isPapelera): ?>
+                <div class="mb-3">
+                    <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar los usuarios seleccionados a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionados</button>
+                </div>
+                <?php else: ?>
+                <div class="mb-3 d-flex gap-2">
+                    <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar los usuarios seleccionados?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente los usuarios seleccionados?"><i class="bi bi-x-circle"></i> Destruir Seleccionados</button>
+                </div>
+                <?php endif; ?>
+
+                <form id="hiddenFormBulk" method="POST">
+                    <input type="hidden" name="area" value="<?= htmlspecialchars((string) $area) ?>">
+
                     <div class="table-responsive rxn-table-responsive">
                         <table class="table table-hover mb-0 align-middle rxn-crud-table">
                             <thead class="table-light">
                                 <tr>
+                                    <th style="width: 40px;" class="text-center">
+                                        <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onclick="document.querySelectorAll('.row-checkbox').forEach(e => e.checked = this.checked);">
+                                    </th>
                                     <th><?= $sortLink('id', 'ID') ?></th>
                                     <th><?= $sortLink('nombre', 'Nombre') ?></th>
                                     <th><?= $sortLink('email', 'Email') ?></th>
                                     <th><?= $sortLink('es_admin', 'Rol') ?></th>
                                     <th><?= $sortLink('activo', 'Estado') ?></th>
-                                    <th class="rxn-row-chevron-col"></th>
+                                    <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($usuarios as $u): ?>
                                     <tr data-row-link="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $u->id) ?>/editar?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>">
+                                        <td class="text-center" data-row-link-ignore>
+                                            <input type="checkbox" class="form-check-input row-checkbox" name="ids[]" value="<?= htmlspecialchars((string) $u->id) ?>" form="hiddenFormBulk">
+                                        </td>
                                         <td class="text-muted"><?= htmlspecialchars((string) $u->id) ?></td>
                                         <td class="fw-bold"><?= htmlspecialchars($u->nombre) ?></td>
                                         <td><?= htmlspecialchars($u->email) ?></td>
@@ -188,16 +219,45 @@
                                                 <span class="badge bg-dark">Inactivo</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="rxn-row-chevron-col">
-                                            <a href="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $u->id) ?>/editar?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" class="btn btn-sm btn-outline-primary px-2 rxn-row-link-action rxn-row-chevron" title="Abrir usuario" aria-label="Abrir usuario" data-row-link-ignore>›</a>
+                                        <td class="text-end text-nowrap">
+                                            <div class="btn-group" data-row-link-ignore>
+                                                <?php if (!$isPapelera): ?>
+                                                    <a href="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $u->id) ?>/editar?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" class="btn btn-sm btn-outline-info" title="Editar"><i class="bi bi-pencil"></i></a>
+                                                    
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $u->id) ?>/copiar?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Copiar usuario (duplicar registro)?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success" style="border-radius: 0;" title="Copiar">
+                                                            <i class="bi bi-files"></i>
+                                                        </button>
+                                                    </form>
+                                                    
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $u->id) ?>/eliminar?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar usuario a la papelera?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Eliminar (Papelera)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $u->id) ?>/restore?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Confirma restaurar este usuario?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success border-end-0" title="Restaurar Usuario">
+                                                            <i class="bi bi-arrow-counterclockwise"></i> Restaurar
+                                                        </button>
+                                                    </form>
+
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $u->id) ?>/force-delete?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Esta acción es irreversible. ¿Eliminar definitivamente?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Eliminar Definitivamente">
+                                                            <i class="bi bi-x-circle"></i> Destruir
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
+                    </form>
                     <?php if (($pagination['totalPages'] ?? 1) > 1): ?>
-                        <div class="card-footer bg-white border-0 pt-3 pb-3">
+                        <div class="card-footer  border-0 pt-3 pb-3">
                             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                                 <div class="rxn-crud-pagination-note">
                                     <?= $hasSearch ? 'La paginacion conserva filtros y orden actuales.' : 'La paginacion conserva el orden actual del listado.' ?>
@@ -224,8 +284,18 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
+    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-</body>
-</html>
+
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

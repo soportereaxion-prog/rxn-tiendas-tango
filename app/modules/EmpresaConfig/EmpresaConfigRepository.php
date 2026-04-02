@@ -17,6 +17,22 @@ class EmpresaConfigRepository
     {
         $this->db = Database::getConnection();
         $this->tableName = $this->normalizeTableName($tableName);
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN clasificaciones_pds_raw LONGTEXT NULL'); } catch (\Throwable $e) {}
+        
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN tango_perfil_pedido_id INT NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN tango_perfil_pedido_codigo VARCHAR(100) NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN tango_perfil_pedido_nombre VARCHAR(255) NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN tango_perfil_snapshot_json JSON NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN tango_perfil_snapshot_date DATETIME NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN pds_numero_base INT NULL DEFAULT 0'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN presupuesto_numero_base INT NULL DEFAULT 0'); } catch (\Throwable $e) {}
+        
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN pds_email_pdf_canvas_id INT NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN presupuesto_email_pdf_canvas_id INT NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN pds_email_body_canvas_id INT NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN presupuesto_email_body_canvas_id INT NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN pds_email_asunto VARCHAR(255) NULL'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN presupuesto_email_asunto VARCHAR(255) NULL'); } catch (\Throwable $e) {}
     }
 
     public static function forCrm(): self
@@ -68,7 +84,18 @@ class EmpresaConfigRepository
                     tango_perfil_pedido_codigo = :tango_perfil_pedido_codigo,
                     tango_perfil_pedido_nombre = :tango_perfil_pedido_nombre,
                     tango_perfil_snapshot_json = :tango_perfil_snapshot_json,
-                    tango_perfil_snapshot_date = :tango_perfil_snapshot_date
+                    tango_perfil_snapshot_date = :tango_perfil_snapshot_date,
+                    clasificaciones_pds_raw = :clasificaciones_pds_raw,
+                    pds_numero_base = :pds_numero_base,
+                    presupuesto_numero_base = :presupuesto_numero_base,
+                    pds_email_pdf_canvas_id = :pds_email_pdf_canvas_id,
+                    presupuesto_email_pdf_canvas_id = :presupuesto_email_pdf_canvas_id,
+                    pds_email_body_canvas_id = :pds_email_body_canvas_id,
+                    presupuesto_email_body_canvas_id = :presupuesto_email_body_canvas_id,
+                    pds_email_asunto = :pds_email_asunto,
+                    presupuesto_email_asunto = :presupuesto_email_asunto,
+                    impresion_header_url = :impresion_header_url,
+                    impresion_footer_url = :impresion_footer_url
                     WHERE id = :id';
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -98,11 +125,22 @@ class EmpresaConfigRepository
                 ':tango_perfil_pedido_nombre' => $config->tango_perfil_pedido_nombre,
                 ':tango_perfil_snapshot_json' => $config->tango_perfil_snapshot_json,
                 ':tango_perfil_snapshot_date' => $config->tango_perfil_snapshot_date,
+                ':clasificaciones_pds_raw' => $config->clasificaciones_pds_raw,
+                ':pds_numero_base' => $config->pds_numero_base !== null ? (int)$config->pds_numero_base : null,
+                ':presupuesto_numero_base' => $config->presupuesto_numero_base !== null ? (int)$config->presupuesto_numero_base : null,
+                ':pds_email_pdf_canvas_id' => $config->pds_email_pdf_canvas_id !== null ? (int)$config->pds_email_pdf_canvas_id : null,
+                ':presupuesto_email_pdf_canvas_id' => $config->presupuesto_email_pdf_canvas_id !== null ? (int)$config->presupuesto_email_pdf_canvas_id : null,
+                ':pds_email_body_canvas_id' => $config->pds_email_body_canvas_id !== null ? (int)$config->pds_email_body_canvas_id : null,
+                ':presupuesto_email_body_canvas_id' => $config->presupuesto_email_body_canvas_id !== null ? (int)$config->presupuesto_email_body_canvas_id : null,
+                ':pds_email_asunto' => $config->pds_email_asunto,
+                ':presupuesto_email_asunto' => $config->presupuesto_email_asunto,
+                ':impresion_header_url' => $config->impresion_header_url,
+                ':impresion_footer_url' => $config->impresion_footer_url,
                 ':id' => $config->id,
             ]);
         } else {
-            $sql = 'INSERT INTO ' . $this->quoteTable() . ' (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto, usa_smtp_propio, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_email, smtp_from_name, tango_pds_talonario_id, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date) 
-                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto, :usa_smtp_propio, :smtp_host, :smtp_port, :smtp_user, :smtp_pass, :smtp_secure, :smtp_from_email, :smtp_from_name, :tango_pds_talonario_id, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date)';
+            $sql = 'INSERT INTO ' . $this->quoteTable() . ' (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto, usa_smtp_propio, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_email, smtp_from_name, tango_pds_talonario_id, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, clasificaciones_pds_raw, pds_numero_base, presupuesto_numero_base, pds_email_pdf_canvas_id, presupuesto_email_pdf_canvas_id, pds_email_body_canvas_id, presupuesto_email_body_canvas_id, pds_email_asunto, presupuesto_email_asunto, impresion_header_url, impresion_footer_url) 
+                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto, :usa_smtp_propio, :smtp_host, :smtp_port, :smtp_user, :smtp_pass, :smtp_secure, :smtp_from_email, :smtp_from_name, :tango_pds_talonario_id, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :clasificaciones_pds_raw, :pds_numero_base, :presupuesto_numero_base, :pds_email_pdf_canvas_id, :presupuesto_email_pdf_canvas_id, :pds_email_body_canvas_id, :presupuesto_email_body_canvas_id, :pds_email_asunto, :presupuesto_email_asunto, :impresion_header_url, :impresion_footer_url)';
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $config->empresa_id,
@@ -132,6 +170,17 @@ class EmpresaConfigRepository
                 ':tango_perfil_pedido_nombre' => $config->tango_perfil_pedido_nombre,
                 ':tango_perfil_snapshot_json' => $config->tango_perfil_snapshot_json,
                 ':tango_perfil_snapshot_date' => $config->tango_perfil_snapshot_date,
+                ':clasificaciones_pds_raw' => $config->clasificaciones_pds_raw,
+                ':pds_numero_base' => $config->pds_numero_base !== null ? (int)$config->pds_numero_base : null,
+                ':presupuesto_numero_base' => $config->presupuesto_numero_base !== null ? (int)$config->presupuesto_numero_base : null,
+                ':pds_email_pdf_canvas_id' => $config->pds_email_pdf_canvas_id !== null ? (int)$config->pds_email_pdf_canvas_id : null,
+                ':presupuesto_email_pdf_canvas_id' => $config->presupuesto_email_pdf_canvas_id !== null ? (int)$config->presupuesto_email_pdf_canvas_id : null,
+                ':pds_email_body_canvas_id' => $config->pds_email_body_canvas_id !== null ? (int)$config->pds_email_body_canvas_id : null,
+                ':presupuesto_email_body_canvas_id' => $config->presupuesto_email_body_canvas_id !== null ? (int)$config->presupuesto_email_body_canvas_id : null,
+                ':pds_email_asunto' => $config->pds_email_asunto,
+                ':presupuesto_email_asunto' => $config->presupuesto_email_asunto,
+                ':impresion_header_url' => $config->impresion_header_url,
+                ':impresion_footer_url' => $config->impresion_footer_url,
             ]);
             $config->id = (int) $this->db->lastInsertId();
         }

@@ -64,6 +64,7 @@ class CrmPresupuestoPrintContextBuilder
                 'transporte' => trim((string) ($presupuesto['transporte_nombre_snapshot'] ?? ($presupuesto['transporte_codigo'] ?? ''))),
                 'lista' => trim((string) ($presupuesto['lista_nombre_snapshot'] ?? ($presupuesto['lista_codigo'] ?? ''))),
                 'vendedor' => trim((string) ($presupuesto['vendedor_nombre_snapshot'] ?? ($presupuesto['vendedor_codigo'] ?? ''))),
+                'usuario' => trim((string) ($presupuesto['usuario_nombre'] ?? 'Sin asignar')),
                 'estado' => $this->formatEstado((string) ($presupuesto['estado'] ?? 'borrador')),
             ],
             'totales' => [
@@ -97,12 +98,12 @@ class CrmPresupuestoPrintContextBuilder
     private function formatDate(?string $date): string
     {
         if (!is_string($date) || trim($date) === '') {
-            return '';
+            return '--/--/---- --:--:--';
         }
 
         try {
             $dt = new \DateTimeImmutable($date);
-            return $dt->format('d/m/Y H:i');
+            return $dt->format('d/m/Y H:i:s');
         } catch (\Throwable) {
             return trim($date);
         }

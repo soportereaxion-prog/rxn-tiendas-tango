@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Perfil - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
     $helpPath = $helpPath ?? '/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas';
     $formPath = $formPath ?? '/rxnTiendasIA/public/mi-perfil?area=tiendas';
@@ -71,5 +65,13 @@
             </div>
         </div>
     </div>
-</body>
-</html>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

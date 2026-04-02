@@ -62,5 +62,6 @@
             </div>
         </div>
     </div>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
 </body>
 </html>

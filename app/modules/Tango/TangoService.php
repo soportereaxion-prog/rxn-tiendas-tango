@@ -44,7 +44,12 @@ class TangoService
         if (empty($apiUrl) && !empty($clientKey)) {
             $keyDash = str_replace('/', '-', $clientKey);
             $apiUrl = "https://{$keyDash}.connect.axoft.com/Api";
-        } elseif (empty($apiUrl)) {
+        } elseif (!empty($apiUrl)) {
+            $apiUrl = rtrim($apiUrl, '/');
+            if (!str_ends_with(strtolower($apiUrl), '/api')) {
+                $apiUrl .= '/Api';
+            }
+        } else {
             throw new \App\Infrastructure\Exceptions\ConfigurationException("No se estableció una URL Base ni una Llave (Key) para derivar el Host de Connect.");
         }
 

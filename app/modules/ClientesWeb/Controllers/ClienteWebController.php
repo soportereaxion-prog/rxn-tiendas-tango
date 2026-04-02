@@ -30,9 +30,10 @@ class ClienteWebController
         $field = $this->normalizeSearchField($_GET['field'] ?? 'all');
         $sort = $_GET['sort'] ?? 'id';
         $dir = $_GET['dir'] ?? 'DESC';
+        $status = $_GET['status'] ?? 'activos';
 
-        $clientes = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir);
-        $total = $repository->countAll($empresaId, $search, $field);
+        $clientes = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $status);
+        $total = $repository->countAll($empresaId, $search, $field, $status);
         $totalPages = ceil($total / $limit) ?: 1;
 
         View::render('app/modules/ClientesWeb/views/index.php', array_merge($ui, [
@@ -42,7 +43,8 @@ class ClienteWebController
             'search' => $search,
             'field' => $field,
             'sort' => $sort,
-            'dir' => $dir
+            'dir' => $dir,
+            'status' => $status
         ]));
     }
 
@@ -179,6 +181,117 @@ class ClienteWebController
             header("Location: {$ui['basePath']}/$id/editar");
             exit;
         }
+    }
+
+    public function eliminar(int $id): void
+    {
+        AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int)Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $repository->softDelete($id, $empresaId);
+            $_SESSION['flash_success'] = "Cliente enviado a la papelera.";
+        }
+        header('Location: ' . $ui['basePath']);
+        exit;
+    }
+
+    public function restore(int $id): void
+    {
+        AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int)Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $repository->restore($id, $empresaId);
+            $_SESSION['flash_success'] = "Cliente restaurado correctamente.";
+        }
+        header('Location: ' . $ui['basePath'] . '?status=papelera');
+        exit;
+    }
+
+    public function forceDelete(int $id): void
+    {
+        AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int)Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $repository->forceDelete($id, $empresaId);
+            $_SESSION['flash_success'] = "Cliente eliminado definitivamente.";
+        }
+        header('Location: ' . $ui['basePath'] . '?status=papelera');
+        exit;
+    }
+
+    public function eliminarMasivo(): void
+    {
+        AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int)Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = array_filter(array_map('intval', $_POST['ids'] ?? []));
+            if (!empty($ids)) {
+                $repository->softDeleteBulk($ids, $empresaId);
+                $_SESSION['flash_success'] = count($ids) . " clientes enviados a la papelera.";
+            } else {
+                $_SESSION['flash_error'] = "No se seleccionaron clientes.";
+            }
+        }
+        header('Location: ' . $ui['basePath']);
+        exit;
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int)Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = array_filter(array_map('intval', $_POST['ids'] ?? []));
+            if (!empty($ids)) {
+                $repository->restoreBulk($ids, $empresaId);
+                $_SESSION['flash_success'] = count($ids) . " clientes restaurados.";
+            } else {
+                $_SESSION['flash_error'] = "No se seleccionaron clientes.";
+            }
+        }
+        header('Location: ' . $ui['basePath'] . '?status=papelera');
+        exit;
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+        $area = $this->resolveArea();
+        $repository = $this->resolveRepository($area);
+        $ui = $this->buildUiContext($area);
+        $empresaId = (int)Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = array_filter(array_map('intval', $_POST['ids'] ?? []));
+            if (!empty($ids)) {
+                $repository->forceDeleteBulk($ids, $empresaId);
+                $_SESSION['flash_success'] = count($ids) . " clientes eliminados definitivamente.";
+            } else {
+                $_SESSION['flash_error'] = "No se seleccionaron clientes.";
+            }
+        }
+        header('Location: ' . $ui['basePath'] . '?status=papelera');
+        exit;
     }
 
     public function buscarTango(): void

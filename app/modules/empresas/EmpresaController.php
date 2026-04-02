@@ -116,4 +116,131 @@ class EmpresaController extends Controller
             ]);
         }
     }
+
+    public function copy(string $id): void
+    {
+        AuthService::requireBackofficeAdmin();
+        try {
+            $this->service->copy((int) $id);
+            header('Location: /rxnTiendasIA/public/empresas?success=Empresa+copiada');
+            exit;
+        } catch (InvalidArgumentException $e) {
+            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode($e->getMessage()));
+            exit;
+        } catch (\PDOException $e) {
+            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode('Error en clonación. Verifique código original.'));
+            exit;
+        }
+    }
+
+    public function eliminarMasivo(): void
+    {
+        AuthService::requireBackofficeAdmin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /rxnTiendasIA/public/empresas');
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            header('Location: /rxnTiendasIA/public/empresas');
+            exit;
+        }
+
+        try {
+            $count = $this->service->bulkDelete($ids);
+            header('Location: /rxnTiendasIA/public/empresas?success=' . urlencode("Se eliminaron {$count} empresas correctamente."));
+            exit;
+        } catch (\Exception $e) {
+            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode("Error parcial o total al eliminar: " . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function eliminar(string $id): void
+    {
+        AuthService::requireBackofficeAdmin();
+        try {
+            $this->service->bulkDelete([(int)$id]);
+            header('Location: /rxnTiendasIA/public/empresas?success=' . urlencode('Empresa enviada a la papelera'));
+            exit;
+        } catch (\Exception $e) {
+            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireBackofficeAdmin();
+        try {
+            $this->service->restore((int)$id);
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode('Empresa restaurada exitosamente'));
+            exit;
+        } catch (\Exception $e) {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode('Error al restaurar: ' . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireBackofficeAdmin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            exit;
+        }
+
+        try {
+            $count = $this->service->bulkRestore($ids);
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode("Se restauraron {$count} empresas correctamente."));
+            exit;
+        } catch (\Exception $e) {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode("Error al restaurar: " . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireBackofficeAdmin();
+        try {
+            $this->service->forceDelete((int)$id);
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode('Empresa eliminada definitivamente'));
+            exit;
+        } catch (\Exception $e) {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireBackofficeAdmin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            exit;
+        }
+
+        try {
+            $count = $this->service->bulkForceDelete($ids);
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode("Se destruyeron {$count} empresas correctamente."));
+            exit;
+        } catch (\Exception $e) {
+            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode("Error al destruir: " . $e->getMessage()));
+            exit;
+        }
+    }
 }

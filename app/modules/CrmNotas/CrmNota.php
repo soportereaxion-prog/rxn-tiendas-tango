@@ -15,6 +15,7 @@ class CrmNota
     public int $activo = 1;
     public ?string $created_at = null;
     public ?string $updated_at = null;
+    public ?string $deleted_at = null;
 
     // Campos virtuales
     public ?string $cliente_nombre = null;

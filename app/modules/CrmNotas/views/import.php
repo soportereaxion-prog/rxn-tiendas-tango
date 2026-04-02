@@ -3,18 +3,11 @@ use App\Core\Helpers\UIHelper;
 use App\Core\View;
 $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : [];
 ?>
-<!DOCTYPE html>
-<html lang="es" <?= UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Importar Notas | <?= htmlspecialchars($environmentLabel ?? 'App') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-3">
-    <?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
 
     <main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 900px; margin: 0 auto;">
         
@@ -80,6 +73,14 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
             </div>
         </div>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

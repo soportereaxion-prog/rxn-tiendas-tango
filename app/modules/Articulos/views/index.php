@@ -1,15 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars((string) ($pageTitle ?? 'Articulos')) ?> - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $field = $field ?? 'all';
     $categoriaId = $categoriaId ?? null;
     $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/articulos';
@@ -33,9 +26,11 @@
             'field' => $field,
             'categoria_id' => $categoriaId,
             'limit' => $limit,
+            'limit' => $limit,
             'sort' => $sort,
             'dir' => $dir,
             'page' => $page,
+            'status' => $status ?? 'activos',
         ];
 
         foreach ($overrides as $key => $value) {
@@ -84,6 +79,24 @@
             </div>
         <?php endif; ?>
 
+        <?php 
+        $status = $status ?? 'activos';
+        $isPapelera = $status === 'papelera';
+        ?>
+
+        <ul class="nav nav-tabs mb-4 border-secondary border-opacity-25" style="border-bottom-width: 2px;">
+            <li class="nav-item">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold bg-dark text-light border-secondary border-bottom-0' : 'text-muted border-0 hover-text-light' ?>" href="<?= htmlspecialchars($basePath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
+                    Activos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold bg-dark border-secondary border-bottom-0' : 'border-0 hover-text-danger' ?>" href="<?= htmlspecialchars($basePath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
+                    <i class="bi bi-trash"></i> Papelera
+                </a>
+            </li>
+        </ul>
+
         <div class="card rxn-crud-card">
             <div class="card-body p-4">
                 <div class="rxn-toolbar-split mb-4">
@@ -108,11 +121,17 @@
                 <?php endif; ?>
 
                 <div class="rxn-toolbar-split mb-3">
-                    <form action="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" method="POST" id="formEliminarMasivo" class="d-inline">
-                        <button type="submit" class="btn btn-outline-danger btn-sm" data-rxn-confirm="¿Confirma eliminar todos los elementos seleccionados permanentemente?" data-confirm-type="danger">Eliminar Seleccionados</button>
-                    </form>
+                    <?php if (!$isPapelera): ?>
+                    <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Confirma enviar los elementos seleccionados a la papelera?">Eliminar Seleccionados</button>
+                    <?php else: ?>
+                    <div class="d-flex gap-2">
+                        <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar los elementos seleccionados?">Restaurar Seleccionados</button>
+                        <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: ¿Destruir definitivamente los elementos seleccionados?">Destruir Seleccionados</button>
+                    </div>
+                    <?php endif; ?>
 
                     <form action="<?= htmlspecialchars($basePath) ?>" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 860px; max-width: 100%;" data-search-form>
+                        <input type="hidden" name="status" value="<?= htmlspecialchars((string) $status) ?>">
                         <input type="hidden" name="search" value="<?= htmlspecialchars((string) $search) ?>" data-search-hidden>
                         <select name="limit" class="form-select form-select-sm border-info rxn-filter-compact" style="width: 80px;" onchange="this.form.submit()">
                             <option value="25" <?= $limit === 25 ? 'selected' : '' ?>>25</option>
@@ -137,7 +156,7 @@
                             </select>
                         <?php endif; ?>
                         <div class="rxn-search-input-wrap rxn-filter-grow">
-                            <input type="text" class="form-control form-control-sm border-info" placeholder="Buscar por codigo o descripcion..." value="<?= htmlspecialchars((string) $search) ?>" data-search-input data-suggestions-url="<?= htmlspecialchars($basePath) ?>/sugerencias" autocomplete="off">
+                            <input type="text" class="form-control form-control-sm border-info" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string) $search) ?>" data-search-input data-suggestions-url="<?= htmlspecialchars($basePath) ?>/sugerencias" autocomplete="off">
                             <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
                         </div>
                         <button type="submit" class="btn btn-info btn-sm text-white">Buscar</button>
@@ -145,7 +164,7 @@
                 </div>
                 <div class="form-text rxn-search-help text-md-end">Se sugieren coincidencias mientras escribis, pero el listado solo se filtra al buscar o presionar Enter.</div>
 
-                <form action="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" method="POST" id="hiddenFormDelete">
+                <form method="POST" id="hiddenFormBulk">
                     <div class="table-responsive rxn-table-responsive">
                         <table class="table table-hover align-middle table-sm rxn-crud-table" style="font-size: 0.9rem;">
                             <thead class="table-light">
@@ -168,7 +187,7 @@
                                     <th><?= $sortLink('stock_actual', 'Stock') ?></th>
                                     <th><?= $sortLink('activo', 'Estado') ?></th>
                                     <th><?= $sortLink('fecha_ultima_sync', 'Ultima Sincro') ?></th>
-                                    <th class="rxn-row-chevron-col"></th>
+                                    <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -183,7 +202,7 @@
                                 <?php else: ?>
                                     <?php foreach ($articulos as $art): ?>
                                         <tr data-row-link="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $art['id'] ?>">
-                                            <td><input type="checkbox" name="ids[]" form="formEliminarMasivo" value="<?= (int) $art['id'] ?>" class="form-check-input check-item" data-row-link-ignore></td>
+                                            <td><input type="checkbox" name="ids[]" form="hiddenFormBulk" value="<?= (int) $art['id'] ?>" class="form-check-input check-item" data-row-link-ignore></td>
                                             <td class="text-nowrap"><span class="badge bg-secondary text-start" style="white-space: pre; font-family: monospace; font-size: 0.85rem;"><?= htmlspecialchars((string) $art['codigo_externo']) ?></span></td>
                                             <td class="fw-bold text-dark text-wrap" style="max-width: 250px;"><?= htmlspecialchars((string) $art['nombre']) ?></td>
                                             <?php if ($showCategories): ?>
@@ -207,8 +226,30 @@
                                                 <?php endif; ?>
                                             </td>
                                             <td class="text-nowrap"><small class="text-secondary"><?= htmlspecialchars((string) $art['fecha_ultima_sync']) ?></small></td>
-                                            <td class="rxn-row-chevron-col">
-                                                <a href="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $art['id'] ?>" class="btn btn-sm btn-outline-secondary py-0 px-2 rxn-row-link-action rxn-row-chevron" title="Abrir articulo" aria-label="Abrir articulo" data-row-link-ignore>›</a>
+                                            <td class="text-end text-nowrap">
+                                                <div class="btn-group" data-row-link-ignore>
+                                                    <?php if (!$isPapelera): ?>
+                                                        <a href="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $art['id'] ?>" class="btn btn-sm btn-outline-info" title="Editar"><i class="bi bi-pencil"></i></a>
+                                                        
+                                                        <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $art['id'] ?>/eliminar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar artículo a la papelera?">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Eliminar (Papelera)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $art['id'] ?>/restore" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Confirma restaurar este artículo?">
+                                                            <button type="submit" class="btn btn-sm btn-outline-success border-end-0" title="Restaurar Artículo">
+                                                                <i class="bi bi-arrow-counterclockwise"></i> Restaurar
+                                                            </button>
+                                                        </form>
+
+                                                        <form action="<?= htmlspecialchars($basePath) ?>/force-delete?id=<?= (int) $art['id'] ?>" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Esta acción es irreversible. ¿Eliminar definitivamente?">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Destruir">
+                                                                <i class="bi bi-x-circle"></i> Destruir
+                                                            </button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -238,9 +279,17 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

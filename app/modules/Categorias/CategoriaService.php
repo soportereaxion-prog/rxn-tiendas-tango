@@ -29,8 +29,11 @@ class CategoriaService
         $sort = $this->normalizeSortField($filters['sort'] ?? 'orden_visual');
         $dir = $this->normalizeSortDirection($filters['dir'] ?? 'asc');
 
+        $status = $filters['status'] ?? 'activos';
+        $onlyDeleted = $status === 'papelera';
+
         $total = $this->repository->countAllByEmpresaId($empresaId);
-        $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field);
+        $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field, $onlyDeleted);
         $lastPage = max(1, (int) ceil($filteredTotal / self::PER_PAGE));
         $page = $this->normalizePage($filters['page'] ?? 1, $lastPage);
         $offset = ($page - 1) * self::PER_PAGE;
@@ -42,7 +45,8 @@ class CategoriaService
             $sort,
             $dir,
             self::PER_PAGE,
-            $offset
+            $offset,
+            $onlyDeleted
         );
 
         return [
@@ -53,6 +57,7 @@ class CategoriaService
                 'sort' => $sort,
                 'dir' => $dir,
                 'page' => $page,
+                'status' => $status,
             ],
             'total' => $total,
             'filteredTotal' => $filteredTotal,
@@ -98,9 +103,9 @@ class CategoriaService
         }, $rows);
     }
 
-    public function getByIdForContext(int $id): Categoria
+    public function getByIdForContext(int $id, bool $includeDeleted = false): Categoria
     {
-        $categoria = $this->repository->findByIdAndEmpresaId($id, $this->getContextId());
+        $categoria = $this->repository->findByIdAndEmpresaId($id, $this->getContextId(), $includeDeleted);
         if ($categoria === null) {
             throw new RuntimeException('La categoria solicitada no existe o no pertenece a tu empresa.');
         }
@@ -124,9 +129,24 @@ class CategoriaService
 
     public function update(int $id, array $data, array $files = []): void
     {
-        $categoria = $this->getByIdForContext($id);
+        $categoria = $this->getByIdForContext($id, true);
         $this->fillCategoria($categoria, $data, $files);
         $this->repository->save($categoria);
+    }
+
+    public function delete(array $ids): int
+    {
+        return $this->repository->deleteByIds($ids, $this->getContextId());
+    }
+
+    public function restore(array $ids): int
+    {
+        return $this->repository->restoreByIds($ids, $this->getContextId());
+    }
+
+    public function forceDelete(array $ids): int
+    {
+        return $this->repository->forceDeleteByIds($ids, $this->getContextId());
     }
 
     private function fillCategoria(Categoria $categoria, array $data, array $files): void

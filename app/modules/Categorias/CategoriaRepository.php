@@ -28,6 +28,16 @@ class CategoriaRepository
     public function __construct()
     {
         $this->db = Database::getConnection();
+        $this->ensureSoftDeleteSchema();
+    }
+
+    private function ensureSoftDeleteSchema(): void
+    {
+        try {
+            $this->db->exec('ALTER TABLE categorias ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL');
+        } catch (\PDOException $e) {
+            // Ignorar si la columna ya existe
+        }
     }
 
     public function countAllByEmpresaId(int $empresaId): int
@@ -38,9 +48,10 @@ class CategoriaRepository
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFilteredByEmpresaId(int $empresaId, string $search = '', string $field = 'all'): int
+    public function countFilteredByEmpresaId(int $empresaId, string $search = '', string $field = 'all', bool $onlyDeleted = false): int
     {
-        $sql = 'SELECT COUNT(*) FROM categorias c WHERE c.empresa_id = :empresa_id';
+        $delCond = $onlyDeleted ? 'c.deleted_at IS NOT NULL' : 'c.deleted_at IS NULL';
+        $sql = 'SELECT COUNT(*) FROM categorias c WHERE c.empresa_id = :empresa_id AND ' . $delCond;
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
 
@@ -57,8 +68,10 @@ class CategoriaRepository
         string $sort = 'orden_visual',
         string $dir = 'asc',
         int $limit = 10,
-        int $offset = 0
+        int $offset = 0,
+        bool $onlyDeleted = false
     ): array {
+        $delCond = $onlyDeleted ? 'c.deleted_at IS NOT NULL' : 'c.deleted_at IS NULL';
         $sql = 'SELECT c.*, COUNT(DISTINCT a.id) AS articulos_count
             FROM categorias c
             LEFT JOIN articulo_categoria_map acm
@@ -67,7 +80,8 @@ class CategoriaRepository
             LEFT JOIN articulos a
                 ON a.empresa_id = acm.empresa_id
                 AND ' . $this->buildSkuJoinCondition('a', 'acm') . '
-            WHERE c.empresa_id = :empresa_id';
+                AND a.deleted_at IS NULL
+            WHERE c.empresa_id = :empresa_id AND ' . $delCond;
         $params = [':empresa_id' => $empresaId];
 
         $this->applySearch($sql, $params, $search, $field, true);
@@ -96,7 +110,7 @@ class CategoriaRepository
             return [];
         }
 
-        $sql = 'SELECT c.id, c.nombre, c.slug, c.descripcion_corta FROM categorias c WHERE c.empresa_id = :empresa_id';
+        $sql = 'SELECT c.id, c.nombre, c.slug, c.descripcion_corta FROM categorias c WHERE c.empresa_id = :empresa_id AND c.deleted_at IS NULL';
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
         $sql .= ' ORDER BY c.nombre ASC LIMIT :limit';
@@ -111,7 +125,7 @@ class CategoriaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function findByIdAndEmpresaId(int $id, int $empresaId): ?Categoria
+    public function findByIdAndEmpresaId(int $id, int $empresaId, bool $includeDeleted = false): ?Categoria
     {
         $sql = 'SELECT c.*, COUNT(DISTINCT a.id) AS articulos_count
             FROM categorias c
@@ -121,9 +135,14 @@ class CategoriaRepository
             LEFT JOIN articulos a
                 ON a.empresa_id = acm.empresa_id
                 AND ' . $this->buildSkuJoinCondition('a', 'acm') . '
-            WHERE c.id = :id AND c.empresa_id = :empresa_id
-            GROUP BY c.id
-            LIMIT 1';
+                AND a.deleted_at IS NULL
+            WHERE c.id = :id AND c.empresa_id = :empresa_id';
+        
+        if (!$includeDeleted) {
+            $sql .= ' AND c.deleted_at IS NULL';
+        }
+
+        $sql .= ' GROUP BY c.id LIMIT 1';
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -136,9 +155,12 @@ class CategoriaRepository
         return $row ? $this->hydrateCategoria($row) : null;
     }
 
-    public function findBySlug(int $empresaId, string $slug, ?int $excludeId = null): ?Categoria
+    public function findBySlug(int $empresaId, string $slug, ?int $excludeId = null, bool $includeDeleted = false): ?Categoria
     {
         $sql = 'SELECT * FROM categorias WHERE empresa_id = :empresa_id AND slug = :slug';
+        if (!$includeDeleted) {
+            $sql .= ' AND deleted_at IS NULL';
+        }
         $params = [
             ':empresa_id' => $empresaId,
             ':slug' => $slug,
@@ -208,7 +230,7 @@ class CategoriaRepository
 
     public function findSelectableByEmpresaId(int $empresaId, bool $onlyActive = false): array
     {
-        $sql = 'SELECT * FROM categorias WHERE empresa_id = :empresa_id';
+        $sql = 'SELECT * FROM categorias WHERE empresa_id = :empresa_id AND deleted_at IS NULL';
         $params = [':empresa_id' => $empresaId];
 
         if ($onlyActive) {
@@ -234,9 +256,11 @@ class CategoriaRepository
                 ON a.empresa_id = acm.empresa_id
                 AND ' . $this->buildSkuJoinCondition('a', 'acm') . '
                 AND a.activo = 1
+                AND a.deleted_at IS NULL
             WHERE c.empresa_id = :empresa_id
                 AND c.activa = 1
                 AND c.visible_store = 1
+                AND c.deleted_at IS NULL
             GROUP BY c.id
             ORDER BY c.orden_visual ASC, c.nombre ASC';
 
@@ -288,6 +312,54 @@ class CategoriaRepository
         $categoria->updated_at = $row['updated_at'] ?? null;
 
         return $categoria;
+    }
+
+    public function deleteByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "UPDATE categorias SET deleted_at = NOW() WHERE empresa_id = ? AND id IN ($placeholders)";
+
+        $params = array_merge([$empresaId], $ids);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
+    public function restoreByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "UPDATE categorias SET deleted_at = NULL WHERE empresa_id = ? AND id IN ($placeholders)";
+
+        $params = array_merge([$empresaId], $ids);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
+    public function forceDeleteByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "DELETE FROM categorias WHERE empresa_id = ? AND id IN ($placeholders)";
+
+        $params = array_merge([$empresaId], $ids);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
     }
 
     private function buildSkuJoinCondition(string $articuloAlias, string $mapAlias): string

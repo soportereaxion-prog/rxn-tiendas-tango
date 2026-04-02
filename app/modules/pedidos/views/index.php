@@ -1,17 +1,10 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedidos Web - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $field = $field ?? 'all';
-    $buildQuery = function (array $overrides = []) use ($search, $field, $estado, $limit, $sort, $dir, $page) {
+    $buildQuery = function (array $overrides = []) use ($search, $field, $estado, $limit, $sort, $dir, $status, $page) {
         $params = [
             'search' => $search,
             'field' => $field,
@@ -19,6 +12,7 @@
             'limit' => $limit,
             'sort' => $sort,
             'dir' => $dir,
+            'status' => $status,
             'page' => $page,
         ];
 
@@ -63,24 +57,28 @@
             </div>
         <?php endif; ?>
 
+        <?php $isPapelera = ($status ?? 'activos') === 'papelera'; ?>
+        
+        <ul class="nav nav-tabs mb-4 rxn-crud-tabs">
+            <li class="nav-item">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars((string) ($ui['basePath'] ?? '/rxnTiendasIA/public/mi-empresa/pedidos')) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
+                    Activos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars((string) ($ui['basePath'] ?? '/rxnTiendasIA/public/mi-empresa/pedidos')) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
+                    <i class="bi bi-trash"></i> Papelera
+                </a>
+            </li>
+        </ul>
+
         <div class="card rxn-crud-card">
             <div class="card-body p-4">
-                <div class="rxn-toolbar-split mb-4">
-                    <span class="badge bg-dark text-light fs-6 py-2 px-3">📦 Total Pedidos: <?= $totalItems ?></span>
-                    <div class="d-flex flex-wrap gap-2">
-                        <form action="/rxnTiendasIA/public/mi-empresa/pedidos/reprocesar-pendientes" method="POST">
-                            <button type="submit" class="btn btn-outline-success btn-sm" data-rxn-confirm="¿Reenviar todos los pedidos pendientes a Tango?" data-confirm-type="warning">↻ Enviar Pendientes</button>
-                        </form>
-                        <form action="/rxnTiendasIA/public/mi-empresa/pedidos/reprocesar-seleccionados" method="POST" id="bulk-reprocess-form">
-                            <button type="submit" class="btn btn-success btn-sm" id="bulk-reprocess-button" data-rxn-confirm="¿Reenviar los pedidos seleccionados a Tango?" data-confirm-type="warning" disabled>↻ Enviar Seleccionados</button>
-                        </form>
-                    </div>
-                </div>
-                
                 <div class="rxn-toolbar-split mb-3">
-                    <div class="small text-muted">Marca uno o varios pedidos para reenviarlos en lote. También puedes enviar solo los pendientes.</div>
+                    <span class="badge bg-dark text-light fs-6 py-2 px-3">📦 Total Pedidos: <?= $totalItems ?></span>
                     <form action="/rxnTiendasIA/public/mi-empresa/pedidos" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 860px; max-width: 100%;" data-search-form>
                         <input type="hidden" name="search" value="<?= htmlspecialchars((string) $search) ?>" data-search-hidden>
+                        <input type="hidden" name="status" value="<?= htmlspecialchars((string) $status) ?>">
                         <select name="estado" class="form-select form-select-sm border-secondary rxn-filter-compact" style="width: 150px;" onchange="this.form.submit()">
                             <option value="">Todos los Estados</option>
                             <option value="pendiente_envio_tango" <?= $estado === 'pendiente_envio_tango' ? 'selected' : '' ?>>Pendientes</option>
@@ -100,7 +98,7 @@
                             <option value="estado" <?= $field === 'estado' ? 'selected' : '' ?>>Estado</option>
                         </select>
                         <div class="rxn-search-input-wrap rxn-filter-grow" style="width: 250px;">
-                            <input type="text" class="form-control form-control-sm border-secondary" placeholder="🔎 Buscar pedido, cliente, email..." value="<?= htmlspecialchars((string)$search) ?>" data-search-input data-suggestions-url="/rxnTiendasIA/public/mi-empresa/pedidos/sugerencias" autocomplete="off">
+                            <input type="text" class="form-control form-control-sm border-secondary" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string)$search) ?>" data-search-input data-suggestions-url="/rxnTiendasIA/public/mi-empresa/pedidos/sugerencias" autocomplete="off">
                             <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
                         </div>
                         <button type="submit" class="btn btn-secondary btn-sm text-white">Buscar</button>
@@ -109,7 +107,21 @@
                         <?php endif; ?>
                     </form>
                 </div>
-                <div class="form-text rxn-search-help text-md-end">Se sugieren coincidencias mientras escribis, pero el listado solo se filtra al buscar o presionar Enter.</div>
+                <div class="form-text rxn-search-help text-md-end mb-3">Se sugieren coincidencias mientras escribis, pero el listado solo se filtra al buscar o presionar Enter.</div>
+
+                <form id="hiddenFormBulk" method="POST">
+                <?php if (!$isPapelera): ?>
+                <div class="mb-3 d-flex gap-2">
+                    <button type="submit" formaction="/rxnTiendasIA/public/mi-empresa/pedidos/eliminar-masivo" class="btn btn-outline-danger btn-sm" data-rxn-confirm="¿Enviar los pedidos seleccionados a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionados</button>
+                    <button type="submit" formaction="/rxnTiendasIA/public/mi-empresa/pedidos/reprocesar-seleccionados" class="btn btn-success btn-sm" data-rxn-confirm="¿Reenviar los pedidos seleccionados a Tango?" data-confirm-type="warning" id="bulk-reprocess-button" disabled>↻ Enviar Seleccionados</button>
+                    <button type="submit" formaction="/rxnTiendasIA/public/mi-empresa/pedidos/reprocesar-pendientes" class="btn btn-outline-success btn-sm" data-rxn-confirm="¿Reenviar todos los pedidos pendientes a Tango?" data-confirm-type="warning">↻ Enviar Pendientes</button>
+                </div>
+                <?php else: ?>
+                <div class="mb-3 d-flex gap-2">
+                    <button type="submit" formaction="/rxnTiendasIA/public/mi-empresa/pedidos/restore-masivo" class="btn btn-outline-success btn-sm" data-rxn-confirm="¿Restaurar los pedidos seleccionados?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionados</button>
+                    <button type="submit" formaction="/rxnTiendasIA/public/mi-empresa/pedidos/force-delete-masivo" class="btn btn-outline-danger btn-sm" data-rxn-confirm="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente los pedidos seleccionados?"><i class="bi bi-x-circle"></i> Destruir Seleccionados</button>
+                </div>
+                <?php endif; ?>
 
                 <div class="table-responsive rxn-table-responsive">
                     <table class="table table-hover align-middle table-sm rxn-crud-table" style="font-size: 0.9rem;">
@@ -123,8 +135,8 @@
                             };
                             ?>
                             <tr>
-                                <th class="text-center" style="width: 42px;">
-                                    <input type="checkbox" class="form-check-input" id="check-all-pedidos" data-check-all>
+                                <th style="width: 40px;" class="text-center">
+                                    <input type="checkbox" class="form-check-input" id="bulk-select-all" aria-label="Seleccionar todos" onclick="document.querySelectorAll('.rxn-bulk-checkbox').forEach(e => { e.checked = this.checked; e.dispatchEvent(new Event('change')); });">
                                 </th>
                                 <th><?= $sortLink('p.id', '# Orden') ?></th>
                                 <th><?= $sortLink('p.created_at', 'Fecha') ?></th>
@@ -133,7 +145,7 @@
                                 <th>Cód. Tango Asignado</th>
                                 <th class="text-nowrap"><?= $sortLink('p.total', 'Total ($)') ?></th>
                                 <th>Estado Integración</th>
-                                <th class="rxn-row-chevron-col"></th>
+                                <th class="rxn-actions-col text-end">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -146,9 +158,9 @@
                                 </tr>
                             <?php else: ?>
                                 <?php foreach($pedidos as $p): ?>
-                                    <tr data-row-link="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $p['id'] ?>">
+                                    <tr data-row-link="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $p['id'] ?>" class="<?= $isPapelera ? 'rxn-row-deleted' : '' ?>">
                                         <td class="text-center" data-row-link-ignore>
-                                            <input type="checkbox" name="selected_ids[]" value="<?= (int)$p['id'] ?>" class="form-check-input pedido-checkbox" form="bulk-reprocess-form" data-row-link-ignore>
+                                            <input class="form-check-input rxn-bulk-checkbox pedido-checkbox" type="checkbox" name="ids[]" value="<?= $p['id'] ?>" form="hiddenFormBulk" aria-label="Seleccionar fila" data-row-link-ignore>
                                         </td>
                                         <td class="fw-bold text-dark">#<?= $p['id'] ?></td>
                                         <td class="text-nowrap"><small class="text-muted"><?= htmlspecialchars((string)$p['created_at']) ?></small></td>
@@ -176,8 +188,25 @@
                                                 </span>
                                             </div>
                                         </td>
-                                        <td class="rxn-row-chevron-col">
-                                            <a href="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $p['id'] ?>" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
+                                        <td class="rxn-actions-col text-end" data-row-link-ignore>
+                                            <div class="d-inline-flex gap-1 align-items-center">
+                                                <a href="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $p['id'] ?>" class="btn btn-sm btn-outline-primary" title="Abrir pedido">
+                                                    <i class="bi bi-box-arrow-up-right"></i>
+                                                </a>
+
+                                                <?php if (!$isPapelera): ?>
+                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $p['id'] ?>/eliminar" class="d-inline">
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Mover a Papelera" data-rxn-confirm="¿Mover a la papelera?"><i class="bi bi-trash"></i></button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $p['id'] ?>/restore" class="d-inline">
+                                                        <button type="button" class="btn btn-sm btn-outline-success" title="Restaurar" data-rxn-confirm="¿Restaurar este pedido?"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                                    </form>
+                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $p['id'] ?>/force-delete" class="d-inline">
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Destruir" data-rxn-confirm="¿Destruir definitivamente este pedido? Esta acción no se puede deshacer."><i class="bi bi-x-circle"></i></button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -185,6 +214,7 @@
                         </tbody>
                     </table>
                 </div>
+                </form>
 
                 <?php if ($totalPages > 1): ?>
                 <nav class="mt-4 rxn-pagination-wrap">
@@ -207,17 +237,21 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
     <script>
         (function () {
-            var checkAll = document.querySelector('[data-check-all]');
             var checks = Array.prototype.slice.call(document.querySelectorAll('.pedido-checkbox'));
             var bulkButton = document.getElementById('bulk-reprocess-button');
 
-            if (!checkAll || !checks.length) {
+            if (!checks.length) {
                 return;
             }
 
@@ -229,17 +263,7 @@
                 if (bulkButton) {
                     bulkButton.disabled = selectedCount === 0;
                 }
-
-                checkAll.checked = selectedCount > 0 && selectedCount === checks.length;
-                checkAll.indeterminate = selectedCount > 0 && selectedCount < checks.length;
             }
-
-            checkAll.addEventListener('change', function () {
-                checks.forEach(function (checkbox) {
-                    checkbox.checked = checkAll.checked;
-                });
-                syncBulkState();
-            });
 
             checks.forEach(function (checkbox) {
                 checkbox.addEventListener('change', syncBulkState);
@@ -248,5 +272,8 @@
             syncBulkState();
         }());
     </script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

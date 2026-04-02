@@ -89,9 +89,25 @@ class EmpresaConfigService
         $config->lista_precio_2 = !empty($data['lista_precio_2']) ? trim($data['lista_precio_2']) : null;
         $config->deposito_codigo = !empty($data['deposito_codigo']) ? mb_substr(trim($data['deposito_codigo']), 0, 2) : null;
         
+        $config->pds_numero_base = isset($data['pds_numero_base']) && $data['pds_numero_base'] !== '' ? (int)$data['pds_numero_base'] : 0;
+        $config->presupuesto_numero_base = isset($data['presupuesto_numero_base']) && $data['presupuesto_numero_base'] !== '' ? (int)$data['presupuesto_numero_base'] : 0;
+        $config->pds_email_pdf_canvas_id = isset($data['pds_email_pdf_canvas_id']) && $data['pds_email_pdf_canvas_id'] !== '' ? (int)$data['pds_email_pdf_canvas_id'] : null;
+        $config->presupuesto_email_pdf_canvas_id = isset($data['presupuesto_email_pdf_canvas_id']) && $data['presupuesto_email_pdf_canvas_id'] !== '' ? (int)$data['presupuesto_email_pdf_canvas_id'] : null;
+        $config->pds_email_body_canvas_id = isset($data['pds_email_body_canvas_id']) && $data['pds_email_body_canvas_id'] !== '' ? (int)$data['pds_email_body_canvas_id'] : null;
+        $config->presupuesto_email_body_canvas_id = isset($data['presupuesto_email_body_canvas_id']) && $data['presupuesto_email_body_canvas_id'] !== '' ? (int)$data['presupuesto_email_body_canvas_id'] : null;
+        $config->pds_email_asunto = isset($data['pds_email_asunto']) && $data['pds_email_asunto'] !== '' ? trim($data['pds_email_asunto']) : null;
+        $config->presupuesto_email_asunto = isset($data['presupuesto_email_asunto']) && $data['presupuesto_email_asunto'] !== '' ? trim($data['presupuesto_email_asunto']) : null;
+        $config->tango_pds_talonario_id = isset($data['tango_pds_talonario_id']) && $data['tango_pds_talonario_id'] !== '' ? (int)$data['tango_pds_talonario_id'] : null;
+        
         // Solo sobrescribimos token si viene en el post con info nueva para no purgar uno existente por descuido
         if (isset($data['tango_connect_token']) && $data['tango_connect_token'] !== '') {
             $config->tango_connect_token = trim($data['tango_connect_token']);
+        }
+        
+        // Guardado de perfiles en background (para uso de administración de usuarios)
+        if (isset($data['tango_perfil_snapshot_json']) && $data['tango_perfil_snapshot_json'] !== '') {
+            $config->tango_perfil_snapshot_json = trim($data['tango_perfil_snapshot_json']);
+            $config->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
         }
 
         // --- SMTP SETTINGS ---
@@ -128,6 +144,47 @@ class EmpresaConfigService
                     if ($this->clearStoreCache) {
                         \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
                     }
+                }
+            }
+        }
+
+        // --- IMAGENES DE IMPRESIÓN ---
+        if (isset($_FILES['impresion_header']) && $_FILES['impresion_header']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['impresion_header']['tmp_name'];
+            $name = $_FILES['impresion_header']['name'];
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment;
+                if (!is_dir($dirUploads)) {
+                    mkdir($dirUploads, 0777, true);
+                }
+                
+                $filename = 'header_' . time() . '.' . $ext;
+                $rutaAbsoluta = $dirUploads . '/' . $filename;
+                
+                if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
+                    $config->impresion_header_url = '/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment . '/' . $filename;
+                }
+            }
+        }
+
+        if (isset($_FILES['impresion_footer']) && $_FILES['impresion_footer']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['impresion_footer']['tmp_name'];
+            $name = $_FILES['impresion_footer']['name'];
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment;
+                if (!is_dir($dirUploads)) {
+                    mkdir($dirUploads, 0777, true);
+                }
+                
+                $filename = 'footer_' . time() . '.' . $ext;
+                $rutaAbsoluta = $dirUploads . '/' . $filename;
+                
+                if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
+                    $config->impresion_footer_url = '/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment . '/' . $filename;
                 }
             }
         }

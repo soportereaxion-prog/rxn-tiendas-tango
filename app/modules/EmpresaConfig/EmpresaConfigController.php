@@ -32,9 +32,17 @@ class EmpresaConfigController extends Controller
             $empresaId = Context::getEmpresaId();
             $empresa = $this->empresaRepo->findById((int)$empresaId);
             
+            $printForms = [];
+            if ($area === 'crm') {
+                require_once BASE_PATH . '/app/modules/PrintForms/PrintFormRepository.php';
+                $repoForms = new \App\Modules\PrintForms\PrintFormRepository();
+                $printForms = $repoForms->getDefinitionsByEmpresaId((int)$empresaId);
+            }
+            
             View::render('app/modules/EmpresaConfig/views/index.php', array_merge($viewContext, [
                 'config' => $config,
-                'empresa' => $empresa
+                'empresa' => $empresa,
+                'printForms' => $printForms
             ]));
         } catch (\Exception $e) {
             http_response_code(403);
@@ -116,50 +124,56 @@ class EmpresaConfigController extends Controller
     {
         AuthService::requireLogin();
         header('Content-Type: application/json');
-        $service = $this->resolveService($this->resolveArea());
-
-        $apiUrl = trim($_POST['tango_api_url'] ?? '');
-        $companyId = trim($_POST['tango_connect_company_id'] ?? '');
-        $clientKey = trim($_POST['tango_connect_key'] ?? '');
-        $token = trim($_POST['tango_connect_token'] ?? '');
-        $repoConf = $service->getConfig();
-
-        if (empty($token)) {
-            $token = $repoConf->tango_connect_token ?? '';
-        }
-
-        if (empty($clientKey)) {
-            $clientKey = trim((string) ($repoConf->tango_connect_key ?? ''));
-        }
-
-        if (empty($apiUrl)) {
-            $apiUrl = trim((string) ($repoConf->tango_api_url ?? ''));
-        }
-
-        if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
-            echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos. Debes informar Token y al menos una Llave o URL base.']);
-            exit;
-        }
 
         try {
-            $tangoKeyParsed = str_replace('/', '-', $clientKey);
-            $finalUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
-            
-            // Si no usan el esquema connect.axoft, fallback al literal
-            if (empty($clientKey) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+            $service = $this->resolveService($this->resolveArea());
+
+            $apiUrl = trim($_POST['tango_api_url'] ?? '');
+            $companyId = trim($_POST['tango_connect_company_id'] ?? '');
+            $clientKey = trim($_POST['tango_connect_key'] ?? '');
+            $token = trim($_POST['tango_connect_token'] ?? '');
+            $repoConf = $service->getConfig();
+
+            if (empty($token)) {
+                $token = $repoConf->tango_connect_token ?? '';
+            }
+
+            if (empty($clientKey)) {
+                $clientKey = trim((string) ($repoConf->tango_connect_key ?? ''));
+            }
+
+            if (empty($apiUrl)) {
+                $apiUrl = trim((string) ($repoConf->tango_api_url ?? ''));
+            }
+
+            if ($companyId === '') {
+                $companyId = (string) ($repoConf->tango_connect_company_id ?? '');
+            }
+
+            if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
+                echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos. Debes informar Token y al menos una Llave o URL base.']);
+                exit;
+            }
+
+            // Prioritize user-provided API URL, fallback to guessing from clientKey if empty
+            $finalUrl = '';
+            if (!empty($apiUrl) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
                 $finalUrl = rtrim($apiUrl, '/');
+            } elseif (!empty($clientKey)) {
+                $tangoKeyParsed = str_replace('/', '-', $clientKey);
+                $finalUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
             }
 
             $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey);
             $isValid = $client->testConnection();
 
             if ($isValid) {
-                echo json_encode(['success' => true, 'message' => 'Handshake completado exitosamente con Axoft.']);
+                echo json_encode(['success' => true, 'message' => 'Handshake completado exitosamente con Axoft.'], JSON_INVALID_UTF8_SUBSTITUTE);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Credenciales inválidas o servidor inalcanzable.']);
+                echo json_encode(['success' => false, 'message' => 'Credenciales inválidas o servidor inalcanzable.'], JSON_INVALID_UTF8_SUBSTITUTE);
             }
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
     }
@@ -171,123 +185,100 @@ class EmpresaConfigController extends Controller
     {
         AuthService::requireLogin();
         header('Content-Type: application/json');
-        $service = $this->resolveService($this->resolveArea());
-
-        $apiUrl = trim($_POST['tango_api_url'] ?? '');
-        $companyId = trim($_POST['tango_connect_company_id'] ?? '');
-        $clientKey = trim($_POST['tango_connect_key'] ?? '');
-        $token = trim($_POST['tango_connect_token'] ?? '');
-        $repoConf = $service->getConfig();
-
-        if (empty($token)) {
-            $token = $repoConf->tango_connect_token ?? '';
-        }
-
-        if (empty($clientKey)) {
-            $clientKey = trim((string) ($repoConf->tango_connect_key ?? ''));
-        }
-
-        if (empty($apiUrl)) {
-            $apiUrl = trim((string) ($repoConf->tango_api_url ?? ''));
-        }
-
-        if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
-            echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos. Debes informar Token y al menos una Llave o URL base.']);
-            exit;
-        }
 
         try {
-            $tangoKeyParsed = str_replace('/', '-', $clientKey);
-            $finalUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
-            if (empty($clientKey) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+            $service = $this->resolveService($this->resolveArea());
+
+            $apiUrl = trim($_POST['tango_api_url'] ?? '');
+            $companyId = trim($_POST['tango_connect_company_id'] ?? '');
+            $clientKey = trim($_POST['tango_connect_key'] ?? '');
+            $token = trim($_POST['tango_connect_token'] ?? '');
+            $repoConf = $service->getConfig();
+
+            if (empty($token)) {
+                $token = $repoConf->tango_connect_token ?? '';
+            }
+
+            if (empty($clientKey)) {
+                $clientKey = trim((string) ($repoConf->tango_connect_key ?? ''));
+            }
+
+            if (empty($apiUrl)) {
+                $apiUrl = trim((string) ($repoConf->tango_api_url ?? ''));
+            }
+
+            if ($companyId === '') {
+                $companyId = (string) ($repoConf->tango_connect_company_id ?? '');
+            }
+
+            if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
+                echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos. Debes informar Token y al menos una Llave o URL base.']);
+                exit;
+            }
+
+            // Prioritize user-provided API URL, fallback to guessing from clientKey if empty
+            $finalUrl = '';
+            if (!empty($apiUrl) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
                 $finalUrl = rtrim($apiUrl, '/');
+            } elseif (!empty($clientKey)) {
+                $tangoKeyParsed = str_replace('/', '-', $clientKey);
+                $finalUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
             }
 
             $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey);
             
             $empresasObj = $client->getMaestroEmpresas();
-            $depositosObj = $client->getMaestroDepositos();
-            $listasObj = $client->getMaestroListasPrecio();
+            $perfilesObj = $client->getPerfilesPedidos();
+            
+            $listasPreciosObj = count($empresasObj) > 0 ? $client->getMaestroListasPrecio() : [];
+            $depositosObj = count($empresasObj) > 0 ? $client->getMaestroDepositos() : [];
 
-            // === BLOQUE DEBUG TEMPORAL CONTROLADO ===
+            $debugDump = [
+                'FECHA' => date('Y-m-d H:i:s'),
+                'HTTP_REQUEST_TRACE' => $client->debugLastHttpRequest ?? 'Inaccesible',
+                'EMPRESAS_API_RAW' => $client->debugLastRawEmpresas ?? 'No capturado',
+                'EMPRESAS_NORMALIZADAS' => [],
+            ];
+
+            foreach ($empresasObj as $id => $desc) {
+                $debugDump['EMPRESAS_NORMALIZADAS'][] = [
+                    'id' => $id,
+                    'descripcion' => $desc
+                ];
+            }
+
             try {
                 $logDir = BASE_PATH . '/logs';
                 if (!is_dir($logDir)) { mkdir($logDir, 0777, true); }
-
-                $configDb = $service->getConfig();
-
-                $debugDump = [
-                    'FECHA' => date('Y-m-d H:i:s'),
-                    'HTTP_REQUEST_TRACE' => $client->debugLastHttpRequest ?? 'Inaccesible',
-                    'EMPRESAS_API_RAW' => $client->debugLastRawEmpresas ?? 'No capturado',
-                    'LISTAS_API_RAW' => $client->debugLastRawListas ?? 'No capturado',
-                    'DEPOSITOS_API_RAW' => $client->debugLastRawDepositos ?? 'No capturado',
-                    'EMPRESAS_NORMALIZADAS' => [],
-                    'LISTAS_NORMALIZADAS' => [],
-                    'DEPOSITOS_NORMALIZADOS' => [],
-                    'VALOR_DB' => [
-                        'tango_connect_company_id' => $configDb->tango_connect_company_id ?? '',
-                        'lista_default' => $configDb->lista_precio_1 ?? '',
-                        'lista_alternate' => $configDb->lista_precio_2 ?? '',
-                        'deposito_codigo' => $configDb->deposito_codigo ?? ''
-                    ]
-                ];
-
-                foreach ($empresasObj as $id => $desc) {
-                    $matchEmpresa = ((string)$id === (string)($configDb->tango_connect_company_id ?? ''));
-                    $debugDump['EMPRESAS_NORMALIZADAS'][] = [
-                        'id' => $id,
-                        'descripcion' => $desc,
-                        'MATCH_EMPRESA' => $matchEmpresa ? 'SI' : 'NO'
-                    ];
-                }
-                foreach ($listasObj as $id => $desc) {
-                    $matchL1 = ((string)$id === (string)($configDb->lista_precio_1 ?? ''));
-                    $matchL2 = ((string)$id === (string)($configDb->lista_precio_2 ?? ''));
-                    $debugDump['LISTAS_NORMALIZADAS'][] = [
-                        'id' => $id, 
-                        'descripcion' => $desc,
-                        'MATCH_L1' => $matchL1 ? 'SI' : 'NO',
-                        'MATCH_L2' => $matchL2 ? 'SI' : 'NO'
-                    ];
-                }
-                foreach ($depositosObj as $id => $desc) {
-                    $match = ((string)$id === (string)($configDb->deposito_codigo ?? ''));
-                    $debugDump['DEPOSITOS_NORMALIZADOS'][] = [
-                        'id' => $id, 
-                        'descripcion' => $desc,
-                        'MATCH_DEPOSITO' => $match ? 'SI' : 'NO'
-                    ];
-                }
-
                 file_put_contents($logDir . '/debug_selectores_connect.json', json_encode($debugDump, JSON_PRETTY_PRINT));
             } catch (\Exception $ed) { }
-            // ========================================
 
-            // Transform objects to Arrays for JS mapping
             $empresas = [];
             foreach($empresasObj as $id => $desc) {
                 $empresas[] = ['id' => $id, 'descripcion' => $desc];
             }
+            
+            $listasPrecios = [];
+            foreach($listasPreciosObj as $id => $desc) {
+                $listasPrecios[] = ['id' => $id, 'descripcion' => $desc];
+            }
+
             $depositos = [];
             foreach($depositosObj as $id => $desc) {
                 $depositos[] = ['id' => $id, 'descripcion' => $desc];
-            }
-            $listas = [];
-            foreach($listasObj as $id => $desc) {
-                $listas[] = ['id' => $id, 'descripcion' => $desc];
             }
 
             echo json_encode([
                 'success' => true,
                 'data' => [
                     'empresas' => $empresas,
-                    'depositos' => $depositos,
-                    'listas_precios' => $listas
+                    'perfiles_pedidos' => $perfilesObj,
+                    'listas_precios' => $listasPrecios,
+                    'depositos' => $depositos
                 ]
-            ]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
     }

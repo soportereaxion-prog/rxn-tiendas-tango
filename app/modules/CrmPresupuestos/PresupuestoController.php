@@ -227,8 +227,11 @@ class PresupuestoController
 
             unset($data['id'], $data['numero']);
 
-            $data['fecha'] = (new DateTimeImmutable())->format('Y-m-d\TH:i');
+            $data['fecha'] = (new \DateTimeImmutable())->format('Y-m-d\TH:i');
             $data['estado'] = 'borrador';
+
+            $data['usuario_id'] = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+            $data['usuario_nombre'] = $_SESSION['user_name'] ?? 'Usuario';
 
             $itemsOriginales = $this->repository->findItemsByPresupuestoId((int) $id, $empresaId);
             $itemsNuevos = [];
@@ -248,6 +251,102 @@ class PresupuestoController
             header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
             exit;
         }
+    }
+
+    public function eliminar(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+        
+        if ($idInt > 0) {
+            $this->repository->deleteByIds([$idInt], $empresaId);
+            Flash::set('success', 'Presupuesto enviado a la papelera.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+        exit;
+    }
+
+    public function eliminarMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $count = $this->repository->deleteByIds(array_map('intval', $ids), $empresaId);
+                Flash::set('success', "{$count} presupuestos enviados a la papelera.");
+            }
+        }
+        
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+        exit;
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+        
+        if ($idInt > 0) {
+            $this->repository->restoreByIds([$idInt], $empresaId);
+            Flash::set('success', 'Presupuesto restaurado.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        exit;
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $count = $this->repository->restoreByIds(array_map('intval', $ids), $empresaId);
+                Flash::set('success', "{$count} presupuestos restaurados.");
+            }
+        }
+        
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        exit;
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+        
+        if ($idInt > 0) {
+            $this->repository->forceDeleteByIds([$idInt], $empresaId);
+            Flash::set('success', 'Presupuesto eliminado definitivamente.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        exit;
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $count = $this->repository->forceDeleteByIds(array_map('intval', $ids), $empresaId);
+                Flash::set('success', "{$count} presupuestos eliminados definitivamente.");
+            }
+        }
+        
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        exit;
     }
 
     public function printPreview(string $id): void
@@ -270,7 +369,16 @@ class PresupuestoController
         $renderer = new \App\Modules\PrintForms\PrintFormRenderer();
 
         try {
-            $template = $printRepo->resolveTemplateForDocument($empresaId, 'crm_presupuesto');
+            $configRepo = \App\Modules\EmpresaConfig\EmpresaConfigRepository::forCrm();
+            $config = $configRepo->findByEmpresaId($empresaId);
+            $canvasId = $config->presupuesto_email_pdf_canvas_id ?? null;
+
+            if ($canvasId) {
+                $template = $printRepo->resolveTemplateByDefinitionId($empresaId, (int)$canvasId);
+            } else {
+                $template = $printRepo->resolveTemplateForDocument($empresaId, 'crm_presupuesto');
+            }
+
             $rendered = $renderer->buildDocument(
                 $template['page_config'] ?? [],
                 $template['objects'] ?? [],
@@ -278,15 +386,26 @@ class PresupuestoController
                 (string) ($template['background_url'] ?? '')
             );
 
-            \App\Core\View::render('app/modules/PrintForms/views/document_render.php', [
+            $html = \App\Core\View::renderToString('app/modules/PrintForms/views/document_render.php', [
                 'title' => 'Presupuesto CRM #' . $presupuesto['numero'],
                 'subtitle' => 'Cliente: ' . ($presupuesto['cliente_nombre_snapshot'] ?? 'Sin nombre'),
                 'page' => $rendered['page'],
                 'renderedObjects' => $rendered['objects'],
-                'backPath' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar',
-                'printPath' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/imprimir?auto=1',
-                'autoPrint' => isset($_GET['auto']) && $_GET['auto'] === '1',
+                'hideToolbar' => true,
             ]);
+
+            $options = new \Dompdf\Options();
+            $options->set('isRemoteEnabled', true);
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('defaultPaperSize', 'A4');
+            
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->render();
+            
+            $filename = 'Presupuesto_' . str_pad((string)$presupuesto['numero'], 6, '0', STR_PAD_LEFT) . '.pdf';
+            $dompdf->stream($filename, ["Attachment" => false]);
+            exit;
         } catch (\Throwable $e) {
             Flash::set('danger', 'No se pudo generar la impresion: ' . $e->getMessage());
             header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
@@ -746,6 +865,8 @@ class PresupuestoController
 
         return [
             'empresa_id' => $empresaId,
+            'usuario_id' => isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+            'usuario_nombre' => $_SESSION['user_name'] ?? 'Usuario',
             'fecha' => $fecha?->format('Y-m-d H:i:s'),
             'estado' => $estado,
             'cliente_id' => $clienteId,

@@ -13,6 +13,7 @@ class PresupuestoRepository
         'cliente' => 'p.cliente_nombre_snapshot',
         'estado' => 'p.estado',
         'fecha' => 'DATE_FORMAT(p.fecha, "%Y-%m-%d %H:%i:%s")',
+        'usuario' => 'p.usuario_nombre',
     ];
 
     private PDO $db;
@@ -25,10 +26,15 @@ class PresupuestoRepository
 
     public function previewNextNumero(int $empresaId): int
     {
-        $stmt = $this->db->prepare('SELECT COALESCE(MAX(numero), 0) + 1 FROM crm_presupuestos WHERE empresa_id = :empresa_id');
-        $stmt->execute([':empresa_id' => $empresaId]);
+        $configStmt = $this->db->prepare('SELECT presupuesto_numero_base FROM empresa_config_crm WHERE empresa_id = :empresa_id');
+        $configStmt->execute([':empresa_id' => $empresaId]);
+        $base = (int) $configStmt->fetchColumn();
 
-        return max(1, (int) $stmt->fetchColumn());
+        $stmt = $this->db->prepare('SELECT COALESCE(MAX(numero), 0) FROM crm_presupuestos WHERE empresa_id = :empresa_id');
+        $stmt->execute([':empresa_id' => $empresaId]);
+        $maxDb = (int) $stmt->fetchColumn();
+
+        return max(1, $base + 1, $maxDb + 1);
     }
 
     public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = ''): int
@@ -60,7 +66,14 @@ class PresupuestoRepository
             FROM crm_presupuestos p
             WHERE p.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
-        $this->applyEstadoFilter($sql, $params, $estado);
+        
+        if ($estado === 'papelera') {
+            $sql .= ' AND p.deleted_at IS NOT NULL';
+        } else {
+            $sql .= ' AND p.deleted_at IS NULL';
+            $this->applyEstadoFilter($sql, $params, $estado);
+        }
+        
         $this->applySearch($sql, $params, $search, $field, true);
 
         $allowedColumns = ['numero', 'fecha', 'cliente_nombre_snapshot', 'total', 'estado'];
@@ -98,7 +111,42 @@ class PresupuestoRepository
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
+        $stmt->execute();
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function deleteByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) return 0;
+        $inQuery = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "UPDATE crm_presupuestos SET deleted_at = NOW() WHERE id IN ($inQuery) AND empresa_id = ?";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge($ids, [$empresaId]);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    }
+
+    public function restoreByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) return 0;
+        $inQuery = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "UPDATE crm_presupuestos SET deleted_at = NULL WHERE id IN ($inQuery) AND empresa_id = ?";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge($ids, [$empresaId]);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    }
+
+    public function forceDeleteByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) return 0;
+        $inQuery = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "DELETE FROM crm_presupuestos WHERE id IN ($inQuery) AND empresa_id = ?";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge($ids, [$empresaId]);
+        $stmt->execute($params);
+        return $stmt->rowCount();
     }
 
     public function findById(int $id, int $empresaId): ?array
@@ -142,7 +190,7 @@ class PresupuestoRepository
                         transporte_codigo, transporte_nombre_snapshot, transporte_id_interno,
                         lista_codigo, lista_nombre_snapshot, lista_id_interno,
                         vendedor_codigo, vendedor_nombre_snapshot, vendedor_id_interno,
-                        subtotal, descuento_total, impuestos_total, total, estado, created_at, updated_at
+                        subtotal, descuento_total, impuestos_total, total, estado, usuario_id, usuario_nombre, created_at, updated_at
                     ) VALUES (
                         :empresa_id, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
                         :deposito_codigo, :deposito_nombre_snapshot,
@@ -150,7 +198,7 @@ class PresupuestoRepository
                         :transporte_codigo, :transporte_nombre_snapshot, :transporte_id_interno,
                         :lista_codigo, :lista_nombre_snapshot, :lista_id_interno,
                         :vendedor_codigo, :vendedor_nombre_snapshot, :vendedor_id_interno,
-                        :subtotal, :descuento_total, :impuestos_total, :total, :estado, NOW(), NOW()
+                        :subtotal, :descuento_total, :impuestos_total, :total, :estado, :usuario_id, :usuario_nombre, NOW(), NOW()
                     )');
                 $payload = $this->buildHeaderPayload($data);
                 $payload[':numero'] = $numero;
@@ -334,6 +382,8 @@ class PresupuestoRepository
             ':impuestos_total' => (float) ($data['impuestos_total'] ?? 0),
             ':total' => (float) ($data['total'] ?? 0),
             ':estado' => (string) ($data['estado'] ?? 'borrador'),
+            ':usuario_id' => $data['usuario_id'] ?? null,
+            ':usuario_nombre' => $data['usuario_nombre'] ?? null,
         ];
     }
 
@@ -402,13 +452,26 @@ class PresupuestoRepository
             impuestos_total DECIMAL(15,2) NOT NULL DEFAULT 0,
             total DECIMAL(15,2) NOT NULL DEFAULT 0,
             estado VARCHAR(30) NOT NULL DEFAULT "borrador",
+            usuario_id INT NULL,
+            usuario_nombre VARCHAR(180) NULL,
+            deleted_at TIMESTAMP NULL DEFAULT NULL,
             created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_crm_presupuestos_empresa_numero (empresa_id, numero),
             KEY idx_crm_presupuestos_empresa_fecha (empresa_id, fecha),
             KEY idx_crm_presupuestos_empresa_cliente (empresa_id, cliente_id),
-            KEY idx_crm_presupuestos_empresa_estado (empresa_id, estado)
+            KEY idx_crm_presupuestos_empresa_estado (empresa_id, estado),
+            KEY idx_crm_presupuestos_usuario (empresa_id, usuario_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+        try {
+            $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN usuario_id INT NULL AFTER estado, ADD COLUMN usuario_nombre VARCHAR(180) NULL AFTER usuario_id');
+        } catch (\Throwable $e) {}
+
+        try {
+            // Backfill temporal para setear el usuario 1 a los Presupuestos historicos sin asignar
+            $this->db->exec("UPDATE crm_presupuestos SET usuario_id = 1, usuario_nombre = 'Sergio Majeras' WHERE usuario_id IS NULL");
+        } catch (\Throwable $e) {}
 
         $this->db->exec('CREATE TABLE IF NOT EXISTS crm_presupuesto_items (
             id INT AUTO_INCREMENT PRIMARY KEY,

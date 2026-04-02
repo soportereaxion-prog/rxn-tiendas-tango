@@ -169,6 +169,12 @@ class UsuarioService
         $usuario->password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
+        
+        $anuraInterno = trim($data['anura_interno'] ?? '');
+        if ($anuraInterno !== '') {
+            $this->validateAnuraInterno($anuraInterno, $empresaId, null);
+        }
+        $usuario->anura_interno = $anuraInterno !== '' ? $anuraInterno : null;
 
         if (!empty($data['tango_perfil_pedido'])) {
             $parts = explode('|', $data['tango_perfil_pedido']);
@@ -219,6 +225,12 @@ class UsuarioService
         $usuario->email = filter_var(trim($data['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
+
+        $anuraInterno = trim($data['anura_interno'] ?? '');
+        if ($anuraInterno !== '') {
+            $this->validateAnuraInterno($anuraInterno, $usuario->empresa_id, $id);
+        }
+        $usuario->anura_interno = $anuraInterno !== '' ? $anuraInterno : null;
 
         $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
         if ($isGlobalAdmin && !empty($data['empresa_id'])) {
@@ -272,6 +284,12 @@ class UsuarioService
 
         $this->repository->save($usuario);
 
+        // Sincronizar nombre y extensión en la sesión actual si se editó el propio perfil
+        if ((int)$id === (int)($_SESSION['user_id'] ?? 0)) {
+            $_SESSION['user_name'] = $usuario->nombre;
+            $_SESSION['anura_interno'] = $usuario->anura_interno;
+        }
+
         // Espejo a empresa_config: el perfil Tango debe vivir a nivel empresa,
         // no atado a un usuario específico. El resolver lo lee desde config primero.
         if (isset($data['tango_perfil_pedido']) && $usuario->tango_perfil_pedido_id !== null) {
@@ -311,6 +329,14 @@ class UsuarioService
         }
     }
 
+    private function validateAnuraInterno(string $anuraInterno, int $empresaId, ?int $excludeId): void
+    {
+        $existente = $this->repository->findByAnuraInterno($anuraInterno, $empresaId, $excludeId);
+        if ($existente) {
+            throw new RuntimeException("El interno Anura '{$anuraInterno}' ya se encuentra mapeado al usuario '{$existente->nombre}' en esta sesión de empresa.");
+        }
+    }
+
     public function copy(int $id): void
     {
         $original = $this->getByIdForContext($id);
@@ -341,7 +367,7 @@ class UsuarioService
 
     public function delete(int $id): void
     {
-        $currentUserId = $_SESSION['usuario_id'] ?? null;
+        $currentUserId = $_SESSION['user_id'] ?? null;
         if ($id === (int)$currentUserId) {
             throw new RuntimeException('No te podes auto-eliminar de la sesión activa.');
         }
@@ -353,7 +379,7 @@ class UsuarioService
     public function bulkDelete(array $ids): int
     {
         $count = 0;
-        $currentUserId = $_SESSION['usuario_id'] ?? null;
+        $currentUserId = $_SESSION['user_id'] ?? null;
         $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
         $empresaId = $this->getContextId();
 
@@ -404,7 +430,7 @@ class UsuarioService
 
     public function forceDelete(int $id): void
     {
-        $currentUserId = $_SESSION['usuario_id'] ?? null;
+        $currentUserId = $_SESSION['user_id'] ?? null;
         if ($id === (int)$currentUserId) {
             throw new RuntimeException('No te podes eliminar a vos mismo definitivamente.');
         }

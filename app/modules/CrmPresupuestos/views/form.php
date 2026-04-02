@@ -1,225 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $formMode === 'edit' ? 'Editar Presupuesto CRM' : 'Nuevo Presupuesto CRM' ?> - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-    <style>
-        .crm-budget-shell {
-            max-width: 1480px;
-        }
-
-        .crm-budget-form .card-body {
-            padding: 0.85rem 1rem;
-        }
-
-        .crm-budget-form .form-label {
-            margin-bottom: 0.24rem !important;
-        }
-
-        .crm-budget-grid {
-            display: grid;
-            grid-template-columns: repeat(12, minmax(0, 1fr));
-            gap: 0.45rem 0.65rem;
-        }
-
-        .crm-budget-col-12 { grid-column: span 12; }
-        .crm-budget-col-8 { grid-column: span 8; }
-        .crm-budget-col-6 { grid-column: span 6; }
-        .crm-budget-col-4 { grid-column: span 4; }
-        .crm-budget-col-3 { grid-column: span 3; }
-        .crm-budget-col-2 { grid-column: span 2; }
-
-        .crm-budget-summary {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.55rem;
-        }
-
-        .crm-budget-chip {
-            border: 1px solid rgba(13, 110, 253, 0.1);
-            border-radius: 14px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,249,253,0.98));
-            padding: 0.6rem 0.75rem;
-        }
-
-        .crm-budget-chip-title {
-            font-size: 0.7rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: #6c757d;
-            margin-bottom: 0.25rem;
-            font-weight: 700;
-        }
-
-        .crm-budget-chip-value {
-            font-size: 1rem;
-            font-weight: 700;
-            line-height: 1.15;
-        }
-
-        .crm-picker-wrap {
-            position: relative;
-        }
-
-        .crm-picker-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        .crm-picker-meta {
-            min-height: 1.1rem;
-        }
-
-        .crm-picker-results {
-            position: absolute;
-            inset: calc(100% + 0.2rem) 0 auto 0;
-            z-index: 30;
-        }
-
-        .crm-budget-items-card {
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.96);
-        }
-
-        .crm-budget-items-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            align-items: end;
-            justify-content: space-between;
-        }
-
-        .crm-budget-items-toolbar .crm-budget-picker-col {
-            min-width: 320px;
-            flex: 1 1 420px;
-        }
-
-        .crm-budget-line-table td,
-        .crm-budget-line-table th {
-            vertical-align: middle;
-        }
-
-        .crm-budget-line-table input.form-control,
-        .crm-budget-line-table textarea.form-control {
-            min-width: 0;
-        }
-
-        .crm-budget-line-amount {
-            min-width: 110px;
-        }
-
-        .crm-budget-line-desc {
-            min-width: 240px;
-        }
-
-        .crm-budget-totals {
-            display: grid;
-            gap: 0.4rem;
-            min-width: 280px;
-        }
-
-        .crm-budget-total-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.45rem 0.65rem;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.04);
-        }
-
-        .crm-budget-total-row.is-grand {
-            background: rgba(25, 135, 84, 0.12);
-            font-weight: 700;
-        }
-
-        .crm-budget-total-value {
-            font-variant-numeric: tabular-nums;
-            font-weight: 700;
-        }
-
-        .crm-budget-empty-lines {
-            padding: 1.5rem 0.75rem;
-            text-align: center;
-            color: #6c757d;
-        }
-
-        .crm-budget-section-title {
-            font-size: 0.88rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #6c757d;
-            margin-bottom: 0.6rem;
-        }
-
-        .crm-budget-client-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            padding: 0.22rem 0.55rem;
-            border-radius: 999px;
-            border: 1px solid rgba(13, 110, 253, 0.15);
-            background: rgba(13, 110, 253, 0.06);
-            color: #0d6efd;
-            font-size: 0.76rem;
-            font-weight: 600;
-        }
-
-        @media (max-width: 1199.98px) {
-            .crm-budget-grid {
-                grid-template-columns: repeat(6, minmax(0, 1fr));
-            }
-
-            .crm-budget-col-12,
-            .crm-budget-col-8,
-            .crm-budget-col-6,
-            .crm-budget-col-4,
-            .crm-budget-col-3,
-            .crm-budget-col-2 {
-                grid-column: span 6;
-            }
-        }
-
-        @media (max-width: 767.98px) {
-            .crm-budget-summary,
-            .crm-budget-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .crm-budget-col-12,
-            .crm-budget-col-8,
-            .crm-budget-col-6,
-            .crm-budget-col-4,
-            .crm-budget-col-3,
-            .crm-budget-col-2 {
-                grid-column: auto;
-            }
-
-            .crm-budget-items-toolbar {
-                align-items: stretch;
-            }
-
-            .crm-budget-totals {
-                min-width: 100%;
-            }
-        }
-    </style>
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $renderOptions = static function (array $options, string $selected, string $placeholder = '-- Sin definir --'): string {
         $html = '<option value="">' . htmlspecialchars($placeholder, ENT_QUOTES, 'UTF-8') . '</option>';
         $found = false;
@@ -264,7 +47,10 @@
                 <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
                 <?php if ($formMode === 'edit'): ?>
                     <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/copiar" method="POST" class="d-inline-block m-0 p-0" >
-                        <button type="submit" class="btn btn-outline-secondary shadow-sm"><i class="bi bi-copy"></i> Copiar</button>
+                        <button type="submit" class="btn btn-outline-success shadow-sm" data-rxn-confirm="¿Confirma que desea duplicar este presupuesto?" data-confirm-type="info"><i class="bi bi-copy"></i> Copiar</button>
+                    </form>
+                    <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/eliminar" method="POST" class="d-inline-block m-0 p-0">
+                        <button type="submit" class="btn btn-outline-danger shadow-sm" data-rxn-confirm="¿Enviar presupuesto a la papelera?" data-confirm-type="danger"><i class="bi bi-trash"></i> Eliminar</button>
                     </form>
                     <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline-block m-0 p-0">
                         <button type="submit" class="btn btn-outline-primary shadow-sm" data-rxn-confirm="¿Enviar el presupuesto por correo electrónico al cliente?" data-confirm-type="info"><i class="bi bi-envelope-paper"></i> Enviar</button>
@@ -339,22 +125,27 @@
                     <div class="crm-budget-section-title">Cabecera comercial</div>
                     <div class="crm-budget-grid mb-2">
                         <div class="crm-budget-col-2">
+                            <label class="form-label">Numero interno</label>
+                            <input type="text" class="form-control bg-light text-muted" value="<?= htmlspecialchars((string) ($presupuesto['numero'] ?? 'NUEVO')) ?>" disabled readonly>
+                        </div>
+                        
+                        <div class="crm-budget-col-2">
                             <label for="presupuesto-fecha" class="form-label">Fecha</label>
                             <input type="datetime-local" class="form-control <?= isset($errors['fecha']) ? 'is-invalid' : '' ?>" id="presupuesto-fecha" name="fecha" value="<?= htmlspecialchars((string) ($presupuesto['fecha'] ?? '')) ?>" required>
                         </div>
 
-                        <div class="crm-budget-col-6">
+                        <div class="crm-budget-col-4">
                             <label class="form-label">Cliente</label>
                             <div class="crm-picker-wrap" data-client-picker data-picker-url="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/clientes/sugerencias" data-context-url="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/clientes/contexto">
                                 <input type="hidden" name="cliente_id" value="<?= htmlspecialchars((string) ($presupuesto['cliente_id'] ?? '')) ?>" class="crm-picker-hidden" data-picker-hidden>
-                                <input type="text" class="form-control <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>" name="cliente_nombre" value="<?= htmlspecialchars((string) ($presupuesto['cliente_nombre'] ?? '')) ?>" placeholder="Buscar cliente CRM por nombre, documento o codigo..." autocomplete="off" data-picker-input>
+                                <input type="text" class="form-control <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>" name="cliente_nombre" value="<?= htmlspecialchars((string) ($presupuesto['cliente_nombre'] ?? '')) ?>" placeholder="Buscar cliente CRM..." autocomplete="off" data-picker-input>
                                 <div class="rxn-search-suggestions crm-picker-results d-none" data-picker-results></div>
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
                                 <span class="crm-budget-client-pill" data-client-id-pill><?= (string) ($presupuesto['cliente_id'] ?? '') !== '' ? 'Cliente #' . htmlspecialchars((string) $presupuesto['cliente_id']) : 'Sin cliente' ?></span>
-                                <span class="small text-muted" data-client-documento><?= (string) ($presupuesto['cliente_documento'] ?? '') !== '' ? 'Doc: ' . htmlspecialchars((string) $presupuesto['cliente_documento']) : 'Sin documento cargado' ?></span>
+                                <span class="small text-muted text-truncate" data-client-documento><?= (string) ($presupuesto['cliente_documento'] ?? '') !== '' ? 'Doc: ' . htmlspecialchars((string) $presupuesto['cliente_documento']) : 'Sin doc' ?></span>
                             </div>
-                            <div class="form-text crm-picker-meta" data-picker-meta><?= (string) ($presupuesto['cliente_id'] ?? '') !== '' ? 'Defaults comerciales listos para autocompletar la cabecera.' : 'Selecciona un cliente para autocompletar condicion, lista, vendedor y transporte.' ?></div>
+                            <div class="form-text crm-picker-meta" data-picker-meta>Defaults comerciales listos.</div>
                             <input type="hidden" name="cliente_documento" value="<?= htmlspecialchars((string) ($presupuesto['cliente_documento'] ?? '')) ?>" data-cliente-documento-hidden>
                         </div>
 
@@ -503,10 +294,16 @@
         </form>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
     <script src="/rxnTiendasIA/public/js/crm-presupuestos-form.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
-</body>
-</html>
-
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

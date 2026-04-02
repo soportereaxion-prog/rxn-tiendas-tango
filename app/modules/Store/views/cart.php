@@ -8,7 +8,7 @@
     </div>
 
     <?php if (empty($items)): ?>
-        <div class="text-center py-5 bg-white rounded-4 border shadow-sm">
+        <div class="text-center py-5  rounded-4 border shadow-sm">
             <div class="display-1 text-muted opacity-25 mb-4">🛍️</div>
             <h3 class="text-dark fw-bold">Tu carrito está vacío</h3>
             <p class="text-secondary mb-4">¡Animate a sumar productos de nuestro catálogo!</p>
@@ -19,7 +19,7 @@
     <?php else: ?>
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="bg-white rounded-4 border shadow-sm overflow-hidden">
+                <div class=" rounded-4 border shadow-sm overflow-hidden">
                     <table class="table mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
@@ -68,7 +68,7 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="bg-white rounded-4 border shadow-sm p-4 sticky-top" style="top: 100px;">
+                <div class=" rounded-4 border shadow-sm p-4 sticky-top" style="top: 100px;">
                     <h5 class="fw-bold mb-4">Resumen de Compra</h5>
                     
                     <div class="d-flex justify-content-between mb-3 text-secondary">

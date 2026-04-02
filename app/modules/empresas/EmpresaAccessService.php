@@ -40,6 +40,13 @@ class EmpresaAccessService
             && (int) $empresa->modulo_tiendas === 1;
     }
 
+    public static function hasTiendasNotasAccess(): bool
+    {
+        $empresa = self::current();
+
+        return self::hasTiendasAccess() && (int) $empresa->tiendas_modulo_notas === 1;
+    }
+
     public static function hasCrmAccess(): bool
     {
         $empresa = self::current();
@@ -47,6 +54,13 @@ class EmpresaAccessService
         return $empresa !== null
             && (int) $empresa->activa === 1
             && (int) $empresa->modulo_crm === 1;
+    }
+
+    public static function hasCrmNotasAccess(): bool
+    {
+        $empresa = self::current();
+
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_notas === 1;
     }
 
     public static function hasAnyOperationalAccess(): bool
@@ -69,6 +83,24 @@ class EmpresaAccessService
 
         if (!self::hasCrmAccess()) {
             self::deny('Entorno Operativo de CRM');
+        }
+    }
+
+    public static function requireTiendasNotasAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasTiendasNotasAccess()) {
+            self::deny('Módulo de Notas en Tiendas');
+        }
+    }
+
+    public static function requireCrmNotasAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmNotasAccess()) {
+            self::deny('Módulo de Notas en CRM');
         }
     }
 

@@ -26,20 +26,24 @@ class EmpresaService
         $field = $this->normalizeSearchField($filters['field'] ?? 'all');
         $sort = $this->normalizeSortField($filters['sort'] ?? 'nombre');
         $dir = $this->normalizeSortDirection($filters['dir'] ?? 'asc');
-        $total = $this->repository->countAll();
-        $filteredTotal = $this->repository->countFiltered($search, $field);
+        $status = $filters['status'] ?? 'activos';
+        $onlyDeleted = $status === 'papelera';
+        
+        $total = $this->repository->countAll($onlyDeleted);
+        $filteredTotal = $this->repository->countFiltered($search, $field, $onlyDeleted);
         $lastPage = max(1, (int) ceil($filteredTotal / self::PER_PAGE));
         $page = $this->normalizePage($filters['page'] ?? 1, $lastPage);
         $offset = ($page - 1) * self::PER_PAGE;
 
         return [
-            'items' => $this->repository->findAll($search, $field, $sort, $dir, self::PER_PAGE, $offset),
+            'items' => $this->repository->findAll($search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted),
             'filters' => [
                 'search' => $search,
                 'field' => $field,
                 'sort' => $sort,
                 'dir' => $dir,
                 'page' => $page,
+                'status' => $status,
             ],
             'total' => $total,
             'filteredTotal' => $filteredTotal,
@@ -55,8 +59,24 @@ class EmpresaService
         ];
     }
 
-    public function findById(int $id): ?Empresa
+    public function findById(int $id, bool $includeDeleted = false): ?Empresa
     {
+        if ($includeDeleted) {
+            // Short raw query to not break repository methods if they aren't adapted
+            $db = \App\Core\Database::getConnection();
+            $stmt = $db->prepare("SELECT * FROM empresas WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$row) return null;
+            $empresa = new Empresa();
+            foreach ($row as $k => $v) {
+                if (property_exists($empresa, $k)) {
+                    $empresa->$k = $v;
+                }
+            }
+            return $empresa;
+        }
+
         return $this->repository->findById($id);
     }
 
@@ -119,9 +139,91 @@ class EmpresaService
         $empresa->slug = $this->generateUniqueSlug($empresa->nombre);
         $empresa->activa = isset($data['activa']) ? 1 : 0;
         $empresa->modulo_tiendas = ($empresa->activa === 1 && isset($data['modulo_tiendas'])) ? 1 : 0;
+        $empresa->tiendas_modulo_notas = ($empresa->modulo_tiendas === 1 && isset($data['tiendas_modulo_notas'])) ? 1 : 0;
         $empresa->modulo_crm = ($empresa->activa === 1 && isset($data['modulo_crm'])) ? 1 : 0;
+        $empresa->crm_modulo_notas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_notas'])) ? 1 : 0;
 
         $this->repository->save($empresa);
+    }
+
+    public function copy(int $id): void
+    {
+        $original = $this->repository->findById($id);
+        if (!$original) {
+            throw new InvalidArgumentException('Empresa no encontrada.');
+        }
+
+        $empresa = new Empresa();
+        $empresa->codigo = $original->codigo . '-COPIA';
+        $empresa->nombre = $original->nombre . ' (Copia)';
+        $empresa->razon_social = $original->razon_social;
+        $empresa->cuit = $original->cuit;
+        $empresa->slug = $this->generateUniqueSlug($empresa->nombre);
+        $empresa->activa = 0;
+        $empresa->modulo_tiendas = 0;
+        $empresa->tiendas_modulo_notas = 0;
+        $empresa->modulo_crm = 0;
+        $empresa->crm_modulo_notas = 0;
+
+        $this->repository->save($empresa);
+    }
+
+    public function bulkDelete(array $ids): int
+    {
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id <= 0) continue;
+            try {
+                $this->repository->deleteById($id);
+                $count++;
+            } catch (\Exception $e) {
+                // Ignore failure on single item
+            }
+        }
+        return $count;
+    }
+
+    public function restore(int $id): void
+    {
+        $this->repository->restoreById($id);
+    }
+
+    public function bulkRestore(array $ids): int
+    {
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id <= 0) continue;
+            try {
+                $this->repository->restoreById($id);
+                $count++;
+            } catch (\Exception $e) {}
+        }
+        return $count;
+    }
+
+    public function forceDelete(int $id): void
+    {
+        // Add safety check: cannot hard delete enterprise 1
+        if ($id === 1) {
+            throw new \RuntimeException('No se puede eliminar la empresa principal (ID 1).');
+        }
+        $this->repository->forceDeleteById($id);
+    }
+
+    public function bulkForceDelete(array $ids): int
+    {
+        $count = 0;
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id <= 0) continue;
+            try {
+                $this->forceDelete($id);
+                $count++;
+            } catch (\Exception $e) {}
+        }
+        return $count;
     }
 
     public function update(int $id, array $data): void
@@ -150,7 +252,9 @@ class EmpresaService
         $empresa->slug = $this->generateUniqueSlug($empresa->nombre, $empresa->id);
         $empresa->activa = isset($data['activa']) ? 1 : 0;
         $empresa->modulo_tiendas = ($empresa->activa === 1 && isset($data['modulo_tiendas'])) ? 1 : 0;
+        $empresa->tiendas_modulo_notas = ($empresa->modulo_tiendas === 1 && isset($data['tiendas_modulo_notas'])) ? 1 : 0;
         $empresa->modulo_crm = ($empresa->activa === 1 && isset($data['modulo_crm'])) ? 1 : 0;
+        $empresa->crm_modulo_notas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_notas'])) ? 1 : 0;
 
         $this->repository->update($empresa);
     }

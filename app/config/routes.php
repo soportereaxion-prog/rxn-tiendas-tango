@@ -13,6 +13,14 @@ return function (Router $router): void {
         \App\Modules\Empresas\EmpresaAccessService::requireCrmAccess();
     };
 
+    $requireTiendasNotas = static function (): void {
+        \App\Modules\Empresas\EmpresaAccessService::requireTiendasNotasAccess();
+    };
+
+    $requireCrmNotas = static function (): void {
+        \App\Modules\Empresas\EmpresaAccessService::requireCrmNotasAccess();
+    };
+
     $requireAnyOperational = static function (): void {
         \App\Modules\Empresas\EmpresaAccessService::requireAnyOperationalAccess();
     };
@@ -30,6 +38,10 @@ return function (Router $router): void {
 
     // Ruta raiz - Nivel 1 (Launcher Principal)
     $router->get('/', function () {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /rxnTiendasIA/public/login');
+            exit;
+        }
         View::render('app/modules/dashboard/views/home.php');
     });
 
@@ -52,15 +64,23 @@ return function (Router $router): void {
     // --- MI PERFIL (B2B) ---
     $router->get('/mi-perfil', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'index']);
     $router->post('/mi-perfil', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardar']);
+    $router->post('/mi-perfil/toggle-theme', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'toggleTheme']);
     $router->post('/mi-perfil/dashboard-order', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardarOrdenDashboard']);
 
     // --- MODULO EMPRESAS ---
     $router->get('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'index']);
     $router->get('/empresas/sugerencias', [\App\Modules\Empresas\EmpresaController::class, 'suggestions']);
+    $router->post('/empresas/eliminar-masivo', [\App\Modules\Empresas\EmpresaController::class, 'eliminarMasivo']);
+    $router->post('/empresas/restore-masivo', [\App\Modules\Empresas\EmpresaController::class, 'restoreMasivo']);
+    $router->post('/empresas/force-delete-masivo', [\App\Modules\Empresas\EmpresaController::class, 'forceDeleteMasivo']);
     $router->get('/empresas/crear', [\App\Modules\Empresas\EmpresaController::class, 'create']);
     $router->post('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'store']);
     $router->get('/empresas/{id}/editar', [\App\Modules\Empresas\EmpresaController::class, 'edit']);
     $router->post('/empresas/{id}', [\App\Modules\Empresas\EmpresaController::class, 'update']);
+    $router->post('/empresas/{id}/copiar', [\App\Modules\Empresas\EmpresaController::class, 'copy']);
+    $router->post('/empresas/{id}/eliminar', [\App\Modules\Empresas\EmpresaController::class, 'eliminar']);
+    $router->post('/empresas/{id}/restore', [\App\Modules\Empresas\EmpresaController::class, 'restore']);
+    $router->post('/empresas/{id}/force-delete', [\App\Modules\Empresas\EmpresaController::class, 'forceDelete']);
 
     // --- MODULO ADMIN GLOBAL ---
     $router->get('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'showSmtpGlobal']);
@@ -68,6 +88,7 @@ return function (Router $router): void {
     $router->post('/admin/smtp-global/test', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'testConnection']);
     $router->get('/admin/notas-modulos', [\App\Modules\Admin\Controllers\ModuleNotesController::class, 'index']);
     $router->post('/admin/notas-modulos', [\App\Modules\Admin\Controllers\ModuleNotesController::class, 'store']);
+    $router->get('/api/admin/bitacora/sync', [\App\Modules\Admin\Controllers\ModuleNotesController::class, 'syncExport']);
 
     // --- MODULO AUTH ---
     $router->get('/login', [\App\Modules\Auth\AuthController::class, 'showLogin']);
@@ -104,10 +125,18 @@ return function (Router $router): void {
     // --- MODULO USUARIOS OPERATIVOS ---
     $router->get('/mi-empresa/usuarios', $action(\App\Modules\Usuarios\UsuarioController::class, 'index', $requireAnyOperational));
     $router->get('/mi-empresa/usuarios/sugerencias', $action(\App\Modules\Usuarios\UsuarioController::class, 'suggestions', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/fetch-tango-profile', $action(\App\Modules\Usuarios\UsuarioController::class, 'fetchTangoProfile', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/eliminar-masivo', $action(\App\Modules\Usuarios\UsuarioController::class, 'eliminarMasivo', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/restore-masivo', $action(\App\Modules\Usuarios\UsuarioController::class, 'restoreMasivo', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/force-delete-masivo', $action(\App\Modules\Usuarios\UsuarioController::class, 'forceDeleteMasivo', $requireAnyOperational));
     $router->get('/mi-empresa/usuarios/crear', $action(\App\Modules\Usuarios\UsuarioController::class, 'create', $requireAnyOperational));
     $router->post('/mi-empresa/usuarios', $action(\App\Modules\Usuarios\UsuarioController::class, 'store', $requireAnyOperational));
     $router->get('/mi-empresa/usuarios/{id}/editar', $action(\App\Modules\Usuarios\UsuarioController::class, 'edit', $requireAnyOperational));
     $router->post('/mi-empresa/usuarios/{id}', $action(\App\Modules\Usuarios\UsuarioController::class, 'update', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/{id}/copiar', $action(\App\Modules\Usuarios\UsuarioController::class, 'copy', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/{id}/eliminar', $action(\App\Modules\Usuarios\UsuarioController::class, 'eliminar', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/{id}/restore', $action(\App\Modules\Usuarios\UsuarioController::class, 'restore', $requireAnyOperational));
+    $router->post('/mi-empresa/usuarios/{id}/force-delete', $action(\App\Modules\Usuarios\UsuarioController::class, 'forceDelete', $requireAnyOperational));
 
     // --- MODULO TANGO CONNECT ---
     $router->get('/mi-empresa/sync/todo', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncTodo', $requireTiendas));
@@ -126,6 +155,11 @@ return function (Router $router): void {
     $router->get('/mi-empresa/articulos/sugerencias', $action(\App\Modules\Articulos\ArticuloController::class, 'suggestions', $requireTiendas));
     $router->post('/mi-empresa/articulos/purgar', $action(\App\Modules\Articulos\ArticuloController::class, 'purgar', $requireTiendas));
     $router->post('/mi-empresa/articulos/eliminar-masivo', $action(\App\Modules\Articulos\ArticuloController::class, 'eliminarMasivo', $requireTiendas));
+    $router->post('/mi-empresa/articulos/restore-masivo', $action(\App\Modules\Articulos\ArticuloController::class, 'restoreMasivo', $requireTiendas));
+    $router->post('/mi-empresa/articulos/force-delete-masivo', $action(\App\Modules\Articulos\ArticuloController::class, 'forceDeleteMasivo', $requireTiendas));
+    $router->post('/mi-empresa/articulos/{id}/eliminar', $action(\App\Modules\Articulos\ArticuloController::class, 'eliminar', $requireTiendas));
+    $router->post('/mi-empresa/articulos/{id}/restore', $action(\App\Modules\Articulos\ArticuloController::class, 'restore', $requireTiendas));
+    $router->post('/mi-empresa/articulos/{id}/force-delete', $action(\App\Modules\Articulos\ArticuloController::class, 'forceDelete', $requireTiendas));
     $router->get('/mi-empresa/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'editar', $requireTiendas));
     $router->post('/mi-empresa/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'actualizar', $requireTiendas));
 
@@ -133,6 +167,11 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/articulos/sugerencias', $action(\App\Modules\Articulos\ArticuloController::class, 'suggestions', $requireCrm));
     $router->post('/mi-empresa/crm/articulos/purgar', $action(\App\Modules\Articulos\ArticuloController::class, 'purgar', $requireCrm));
     $router->post('/mi-empresa/crm/articulos/eliminar-masivo', $action(\App\Modules\Articulos\ArticuloController::class, 'eliminarMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/articulos/restore-masivo', $action(\App\Modules\Articulos\ArticuloController::class, 'restoreMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/articulos/force-delete-masivo', $action(\App\Modules\Articulos\ArticuloController::class, 'forceDeleteMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/articulos/{id}/eliminar', $action(\App\Modules\Articulos\ArticuloController::class, 'eliminar', $requireCrm));
+    $router->post('/mi-empresa/crm/articulos/{id}/restore', $action(\App\Modules\Articulos\ArticuloController::class, 'restore', $requireCrm));
+    $router->post('/mi-empresa/crm/articulos/{id}/force-delete', $action(\App\Modules\Articulos\ArticuloController::class, 'forceDelete', $requireCrm));
     $router->get('/mi-empresa/crm/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'editar', $requireCrm));
     $router->post('/mi-empresa/crm/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'actualizar', $requireCrm));
 
@@ -140,11 +179,23 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/clientes/sugerencias', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'suggestions', $requireCrm));
     $router->post('/mi-empresa/crm/clientes/purgar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'purgar', $requireCrm));
     $router->post('/mi-empresa/crm/clientes/eliminar-masivo', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'eliminarMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/restore-masivo', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'restoreMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/force-delete-masivo', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'forceDeleteMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/{id}/eliminar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'eliminar', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/{id}/restore', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'restore', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/{id}/force-delete', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'forceDelete', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/{id}/copiar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'copy', $requireCrm));
     $router->get('/mi-empresa/crm/clientes/editar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'editar', $requireCrm));
     $router->post('/mi-empresa/crm/clientes/editar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'actualizar', $requireCrm));
 
     // --- MODULO CRM PEDIDOS DE SERVICIO ---
     $router->get('/mi-empresa/crm/pedidos-servicio', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'index', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/eliminar-masivo', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'eliminarMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/restore-masivo', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'restoreMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/force-delete-masivo', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'forceDeleteMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/{id}/eliminar', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'eliminar', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/{id}/restore', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'restore', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/{id}/force-delete', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'forceDelete', $requireCrm));
     $router->get('/mi-empresa/crm/pedidos-servicio/sugerencias', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'suggestions', $requireCrm));
     $router->get('/mi-empresa/crm/pedidos-servicio/crear', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'create', $requireCrm));
     $router->post('/mi-empresa/crm/pedidos-servicio', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'store', $requireCrm));
@@ -153,23 +204,35 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/pedidos-servicio/clasificaciones/sugerencias', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'classificationSuggestions', $requireCrm));
     $router->get('/mi-empresa/crm/pedidos-servicio/{id}/editar', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'edit', $requireCrm));
     $router->post('/mi-empresa/crm/pedidos-servicio/{id}', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'update', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/{id}/copiar', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'copy', $requireCrm));
+    $router->get('/mi-empresa/crm/pedidos-servicio/{id}/imprimir', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'printPreview', $requireCrm));
+    $router->post('/mi-empresa/crm/pedidos-servicio/{id}/enviar-correo', $action(\App\Modules\CrmPedidosServicio\PedidoServicioController::class, 'sendEmail', $requireCrm));
 
     // --- MODULO CRM NOTAS ---
-    $router->get('/mi-empresa/crm/notas', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'index', $requireCrm));
-    $router->get('/mi-empresa/crm/notas/sugerencias-tags', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'tagsSuggestions', $requireCrm));
-    $router->get('/mi-empresa/crm/notas/sugerencias-clientes', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'clientSuggestions', $requireCrm));
-    $router->get('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'showImportForm', $requireCrm));
-    $router->post('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'processImport', $requireCrm));
-    $router->get('/mi-empresa/crm/notas/descargar-plantilla', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'downloadTemplate', $requireCrm));
-    $router->get('/mi-empresa/crm/notas/crear', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'create', $requireCrm));
-    $router->post('/mi-empresa/crm/notas', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'store', $requireCrm));
-    $router->get('/mi-empresa/crm/notas/ver/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'show', $requireCrm));
-    $router->get('/mi-empresa/crm/notas/editar/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'edit', $requireCrm));
-    $router->post('/mi-empresa/crm/notas/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'update', $requireCrm));
-    $router->post('/mi-empresa/crm/notas/{id}/copiar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'copy', $requireCrm));
-    $router->post('/mi-empresa/crm/notas/{id}/eliminar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'destroy', $requireCrm));
+    $router->get('/mi-empresa/crm/notas', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'index', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/eliminar-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'eliminarMasivo', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/restore-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'restoreMasivo', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/force-delete-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'forceDeleteMasivo', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/sugerencias-tags', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'tagsSuggestions', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/sugerencias-clientes', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'clientSuggestions', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'showImportForm', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'processImport', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/descargar-plantilla', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'downloadTemplate', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/crear', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'create', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/crear', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'store', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'show', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/{id}/editar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'edit', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/{id}/editar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'update', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/{id}/copiar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'copy', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/{id}/eliminar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'eliminar', $requireCrmNotas));
     // --- MODULO CRM PRESUPUESTOS ---
     $router->get('/mi-empresa/crm/presupuestos', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'index', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/eliminar-masivo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'eliminarMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/restore-masivo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'restoreMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/force-delete-masivo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'forceDeleteMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/eliminar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'eliminar', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/restore', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'restore', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/force-delete', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'forceDelete', $requireCrm));
     $router->get('/mi-empresa/crm/presupuestos/sugerencias', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'suggestions', $requireCrm));
     $router->get('/mi-empresa/crm/presupuestos/crear', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'create', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'store', $requireCrm));
@@ -182,17 +245,33 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/presupuestos/{id}', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'update', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/copiar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'copy', $requireCrm));
     $router->get('/mi-empresa/crm/presupuestos/{id}/imprimir', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'printPreview', $requireCrm));
-    $router->post('/mi-empresa/crm/presupuestos/{id}/enviar-email', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'sendEmail', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/enviar-correo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'sendEmail', $requireCrm));
 
-    // --- MODULO FORMULARIOS DE IMPRESIÓN ---
+    // --- MODULO CRM PRE-IMPRESION ---
     $router->get('/mi-empresa/crm/formularios-impresion', $action(\App\Modules\PrintForms\PrintFormController::class, 'index', $requireCrm));
     $router->get('/mi-empresa/crm/formularios-impresion/{documentKey}', $action(\App\Modules\PrintForms\PrintFormController::class, 'edit', $requireCrm));
     $router->post('/mi-empresa/crm/formularios-impresion/{documentKey}', $action(\App\Modules\PrintForms\PrintFormController::class, 'update', $requireCrm));
+
+    // --- MODULO CRM LLAMADAS ---
+    $router->get('/mi-empresa/crm/llamadas', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'index', $requireCrm));
+    $router->post('/mi-empresa/crm/llamadas/eliminar-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'eliminarMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/llamadas/restore-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'restoreMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/llamadas/force-delete-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'forceDeleteMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/llamadas/{id}/eliminar', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'eliminar', $requireCrm));
+    $router->post('/mi-empresa/crm/llamadas/{id}/restore', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'restore', $requireCrm));
+    $router->post('/mi-empresa/crm/llamadas/{id}/force-delete', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'forceDelete', $requireCrm));
 
     // --- MODULO CATEGORIAS ---
     $router->get('/mi-empresa/categorias', $action(\App\Modules\Categorias\CategoriaController::class, 'index', $requireTiendas));
     $router->get('/mi-empresa/categorias/sugerencias', $action(\App\Modules\Categorias\CategoriaController::class, 'suggestions', $requireTiendas));
     $router->get('/mi-empresa/categorias/crear', $action(\App\Modules\Categorias\CategoriaController::class, 'create', $requireTiendas));
+    $router->post('/mi-empresa/categorias/eliminar-masivo', $action(\App\Modules\Categorias\CategoriaController::class, 'eliminarMasivo', $requireTiendas));
+    $router->post('/mi-empresa/categorias/restore-masivo', $action(\App\Modules\Categorias\CategoriaController::class, 'restoreMasivo', $requireTiendas));
+    $router->post('/mi-empresa/categorias/force-delete-masivo', $action(\App\Modules\Categorias\CategoriaController::class, 'forceDeleteMasivo', $requireTiendas));
+    $router->post('/mi-empresa/categorias/{id}/copiar', $action(\App\Modules\Categorias\CategoriaController::class, 'copy', $requireTiendas));
+    $router->post('/mi-empresa/categorias/{id}/eliminar', $action(\App\Modules\Categorias\CategoriaController::class, 'eliminar', $requireTiendas));
+    $router->post('/mi-empresa/categorias/{id}/restore', $action(\App\Modules\Categorias\CategoriaController::class, 'restore', $requireTiendas));
+    $router->post('/mi-empresa/categorias/{id}/force-delete', $action(\App\Modules\Categorias\CategoriaController::class, 'forceDelete', $requireTiendas));
     $router->post('/mi-empresa/categorias', $action(\App\Modules\Categorias\CategoriaController::class, 'store', $requireTiendas));
     $router->get('/mi-empresa/categorias/{id}/editar', $action(\App\Modules\Categorias\CategoriaController::class, 'edit', $requireTiendas));
     $router->post('/mi-empresa/categorias/{id}', $action(\App\Modules\Categorias\CategoriaController::class, 'update', $requireTiendas));
@@ -200,6 +279,12 @@ return function (Router $router): void {
     // --- MODULO CLIENTES WEB ---
     $router->get('/mi-empresa/clientes', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'index', $requireTiendas));
     $router->get('/mi-empresa/clientes/sugerencias', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'suggestions', $requireTiendas));
+    $router->post('/mi-empresa/clientes/eliminar-masivo', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'eliminarMasivo', $requireTiendas));
+    $router->post('/mi-empresa/clientes/restore-masivo', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'restoreMasivo', $requireTiendas));
+    $router->post('/mi-empresa/clientes/force-delete-masivo', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'forceDeleteMasivo', $requireTiendas));
+    $router->post('/mi-empresa/clientes/{id}/eliminar', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'eliminar', $requireTiendas));
+    $router->post('/mi-empresa/clientes/{id}/restore', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'restore', $requireTiendas));
+    $router->post('/mi-empresa/clientes/{id}/force-delete', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'forceDelete', $requireTiendas));
     $router->get('/mi-empresa/clientes/buscar-tango', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'buscarTango', $requireTiendas));
     $router->get('/mi-empresa/clientes/metadata-tango', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'obtenerMetadataTango', $requireTiendas));
     $router->get('/mi-empresa/clientes/{id}/editar', $action(\App\Modules\ClientesWeb\Controllers\ClienteWebController::class, 'edit', $requireTiendas));
@@ -210,6 +295,12 @@ return function (Router $router): void {
     // --- MODULO PEDIDOS WEB ---
     $router->get('/mi-empresa/pedidos', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'index', $requireTiendas));
     $router->get('/mi-empresa/pedidos/sugerencias', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'suggestions', $requireTiendas));
+    $router->post('/mi-empresa/pedidos/eliminar-masivo', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'eliminarMasivo', $requireTiendas));
+    $router->post('/mi-empresa/pedidos/restore-masivo', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'restoreMasivo', $requireTiendas));
+    $router->post('/mi-empresa/pedidos/force-delete-masivo', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'forceDeleteMasivo', $requireTiendas));
+    $router->post('/mi-empresa/pedidos/{id}/eliminar', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'eliminar', $requireTiendas));
+    $router->post('/mi-empresa/pedidos/{id}/restore', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'restore', $requireTiendas));
+    $router->post('/mi-empresa/pedidos/{id}/force-delete', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'forceDelete', $requireTiendas));
     $router->get('/mi-empresa/pedidos/{id}', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'show', $requireTiendas));
     $router->post('/mi-empresa/pedidos/{id}/reprocesar', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'reprocesar', $requireTiendas));
     $router->post('/mi-empresa/pedidos/reprocesar-seleccionados', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'reprocesarSeleccionados', $requireTiendas));
@@ -261,4 +352,9 @@ return function (Router $router): void {
     $router->post('/{slug}/carrito/remove', [\App\Modules\Store\Controllers\CartController::class, 'remove']);
     $router->get('/{slug}/checkout', [\App\Modules\Store\Controllers\CheckoutController::class, 'index']);
     $router->post('/{slug}/checkout/confirmar', [\App\Modules\Store\Controllers\CheckoutController::class, 'confirm']);
+
+    // --- INTEGRACIONES (WEBHOOKS) ---
+    $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);
+    // Hook de prueba interno (emulación manual vía navegador)
+    $router->get('/api/webhooks/anura/{slug}/test', [\App\Modules\CrmLlamadas\WebhookController::class, 'testHook']);
 };

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -74,7 +74,8 @@
             width: <?= number_format((float) ($page['width_mm'] ?? 210), 2, '.', '') ?>mm;
             min-height: <?= number_format((float) ($page['height_mm'] ?? 297), 2, '.', '') ?>mm;
             margin: 0 auto;
-            background: #fff;
+            background-color: #ffffff !important;
+            color: #000000 !important;
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
             overflow: hidden;
         }
@@ -143,17 +144,33 @@
     <?php endif; ?>
 
     <div class="print-preview-shell" <?php if (!empty($hideToolbar)): ?>style="padding:0;"<?php endif; ?>>
+        <?php
+        $resolveUrl = static function(string $url): string {
+            $url = trim($url);
+            if ($url === '') return '';
+            if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+                return $url;
+            }
+            if (str_starts_with($url, '/')) {
+                $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                return $scheme . '://' . $host . $url;
+            }
+            return $url;
+        };
+        $bgUrl = $resolveUrl((string) ($page['background_url'] ?? ''));
+        ?>
         <div class="print-page">
-            <?php if (!empty($page['background_url'])): ?>
-                <div class="print-page__background" style="background-image:url('<?= htmlspecialchars((string) $page['background_url']) ?>'); opacity:<?= htmlspecialchars((string) ($page['background_opacity'] ?? 1)) ?>;"></div>
+            <?php if (!empty($bgUrl)): ?>
+                <div class="print-page__background" style="background-image:url('<?= htmlspecialchars($bgUrl) ?>'); opacity:<?= htmlspecialchars((string) ($page['background_opacity'] ?? 1)) ?>;"></div>
             <?php endif; ?>
 
             <?php foreach (($renderedObjects ?? []) as $object): ?>
                 <div class="print-object" style="<?= htmlspecialchars((string) ($object['position_style'] ?? '')) ?>">
                     <?php if (($object['type'] ?? '') === 'text'): ?>
-                        <div style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>"><?= nl2br(htmlspecialchars((string) ($object['content'] ?? ''))) ?></div>
+                        <div style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>"><div style="width: 100%;"><?= nl2br(\App\Shared\Helpers\HtmlSanitizer::allowSafeInlineHtml((string) ($object['content'] ?? ''))) ?></div></div>
                     <?php elseif (($object['type'] ?? '') === 'image'): ?>
-                        <img src="<?= htmlspecialchars((string) ($object['content'] ?? '')) ?>" style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>" alt="Canvas Image">
+                        <img src="<?= htmlspecialchars($resolveUrl((string) ($object['content'] ?? ''))) ?>" style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>" alt="Canvas Image">
                     <?php elseif (($object['type'] ?? '') === 'line' || ($object['type'] ?? '') === 'rect'): ?>
                         <div style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>"></div>
                     <?php elseif (($object['type'] ?? '') === 'table_repeater'): ?>
@@ -195,5 +212,6 @@
             });
         </script>
     <?php endif; ?>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
 </body>
 </html>

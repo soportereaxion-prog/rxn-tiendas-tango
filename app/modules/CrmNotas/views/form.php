@@ -3,18 +3,11 @@ use App\Core\Helpers\UIHelper;
 use App\Core\View;
 $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : [];
 ?>
-<!DOCTYPE html>
-<html lang="es" <?= UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $isEdit ? 'Editar' : 'Nueva' ?> Nota CRM | <?= htmlspecialchars($environmentLabel ?? 'App') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-3">
-    <?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
 
     <main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 900px; margin: 0 auto;">
         
@@ -23,10 +16,29 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
                 <h1 class="h3 fw-bold mb-1"><i class="bi <?= $isEdit ? 'bi-pencil-square' : 'bi-journal-plus' ?>"></i> <?= $isEdit ? 'Editar Nota #' . $nota->id : 'Nueva Nota' ?></h1>
                 <p class="text-muted mb-0">Añade o modifica una anotación en la bitácora.</p>
             </div>
-            <div>
-                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+            <div class="d-flex gap-2">
+                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a Notas</a>
+                <?php if ($isEdit && isset($nota->id)): ?>
+                    <form action="<?= htmlspecialchars($indexPath) ?>/<?= $nota->id ?>/copiar" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-outline-success" title="Duplicar">
+                            <i class="bi bi-copy"></i>
+                        </button>
+                    </form>
+                    <form action="<?= htmlspecialchars($indexPath) ?>/eliminar-masivo" method="POST" class="d-inline" onsubmit="return confirm('¿Enviar nota a la papelera?');">
+                        <input type="hidden" name="ids[]" value="<?= (int) $nota->id ?>">
+                        <button type="submit" class="btn btn-outline-danger" title="Enviar a papelera">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                <?php endif; ?>
             </div>
         </div>
+
+        <?php 
+        $moduleNotesKey = 'crm_notas';
+        $moduleNotesLabel = 'CRM - Notas';
+        require BASE_PATH . '/app/shared/views/components/module_notes_panel.php'; 
+        ?>
 
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
@@ -88,7 +100,12 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
             </div>
         </div>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const basePath = <?= json_encode($indexPath) ?>;
@@ -298,5 +315,8 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
     <style>
         .rxn-hover-bg:hover { background-color: rgba(255,255,255,0.1) !important; }
     </style>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

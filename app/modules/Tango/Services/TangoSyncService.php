@@ -67,6 +67,11 @@ class TangoSyncService
                 $crmClienteRepo = new \App\Modules\CrmClientes\CrmClienteRepository();
 
                 foreach ($items as $item) {
+                    if (!is_array($item)) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
                     $mapped = \App\Modules\Tango\Mappers\CrmClienteMapper::fromConnectJson($item);
                     if (!$mapped) {
                         $stats['omitidos']++;
@@ -131,6 +136,11 @@ class TangoSyncService
 
             // 3. Iterar, Mapear e Insertar robustamente
             foreach ($items as $item) {
+                if (!is_array($item)) {
+                    $stats['omitidos']++;
+                    continue;
+                }
+
                 $articulo = ArticuloMapper::fromConnectJson($item, (int)$empresaId);
                 
                 if (!$articulo) {
@@ -245,6 +255,11 @@ class TangoSyncService
             $stats['recibidos'] = count($items);
 
             foreach ($items as $item) {
+                if (!is_array($item)) {
+                    $stats['omitidos']++;
+                    continue;
+                }
+
                 // Parseo defensivo sin limpiar los espacios originales del SKU
                 $sku = (string)($item['COD_STA11'] ?? '');
                 $nroLista = (string)($item['NRO_DE_LIS'] ?? '');
@@ -318,6 +333,11 @@ class TangoSyncService
             $stats['recibidos'] = count($items);
 
             foreach ($items as $item) {
+                if (!is_array($item)) {
+                    $stats['omitidos']++;
+                    continue;
+                }
+
                 // Parseo defensivo
                 $sku = (string)($item['COD_ARTICULO'] ?? '');
                 $depositoId = (string)($item['ID_STA22'] ?? ''); // Payload Connect usa ID_STA22 como referencia

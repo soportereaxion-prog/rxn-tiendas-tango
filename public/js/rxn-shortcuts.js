@@ -2,9 +2,9 @@
  * rxn-shortcuts.js
  * Atajos de teclado recomendados para rxnTiendasIA (Enfoque ERP)
  * - F10 o Ctrl+Enter: Guardar (Realiza click en el boton de guardado principal del formulario)
- * - Escape: Cancelar o Volver al listado (click en flecha volver)
+ * - Escape: Cancelar o Volver al listado (click en flecha volver o menu anterior)
  * - Insert o Alt+N: Nuevo registro (click en botón crear/nuevo)
- * - / o Alt+B: Foco rápido en campo de búsqueda de grillas
+ * - F3, / o Alt+B: Foco rápido en campo de búsqueda de grillas
  */
 
 document.addEventListener('keydown', function(e) {
@@ -15,14 +15,15 @@ document.addEventListener('keydown', function(e) {
     const isF10 = e.key === 'F10';
     const isCtrlEnter = e.ctrlKey && e.key === 'Enter';
     const isInsert = e.key === 'Insert' || (e.altKey && e.key.toLowerCase() === 'n');
-    const isFocusSearch = (!isInput && e.key === '/') || (e.altKey && e.key.toLowerCase() === 'b');
+    const isFocusSearch = (!isInput && e.key === '/') || (e.altKey && e.key.toLowerCase() === 'b') || e.key === 'F3';
 
     // 1. F10 o Ctrl+Enter -> Guardar (Submit)
     if (isF10 || isCtrlEnter) {
         // Buscar el boton submit principal en el header de acciones, o un submit primario
         // Prioridad absoluta a botones que referencian al formulario principal via atributo `form`
-        const saveBtn = document.querySelector('button[type="submit"][form]') || 
-                        document.querySelector('.rxn-module-actions button[type="submit"]:not([formnovalidate])') || 
+        const saveBtn = document.querySelector('button[type="submit"][name="action"][value="save"]') ||
+                        document.querySelector('button[type="submit"][form]:not([name="action"][value="tango"])') || 
+                        document.querySelector('.rxn-module-actions button[type="submit"]:not([formnovalidate]):not([name="action"][value="tango"])') || 
                         document.querySelector('button[type="submit"].btn-primary');
                         
         if (saveBtn) {
@@ -34,7 +35,22 @@ document.addEventListener('keydown', function(e) {
 
     // 2. Escape -> Volver / Cancelar
     if (isEscape) {
-        // Buscar boton tipico de volver
+        // Si esta en un buscador u otro input, quita el foco activo y no hace back (para no irse por error)
+        if (isInput) {
+            activeEl.blur();
+            return;
+        }
+
+        // Return to previous page in history si es del mismo sistema, 
+        // para persistir estado, filtros, y recien si no hay referrer usa los botones de "Volver al Panel"
+        if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+            // Check si estamos en una URL de listado o formulario
+            e.preventDefault();
+            window.history.back();
+            return;
+        }
+
+        // Buscar boton tipico de volver como fallback
         const backBtn = document.querySelector('.rxn-module-actions a.btn-outline-secondary') || 
                         document.querySelector('a.btn-outline-secondary i.bi-arrow-left')?.closest('a') ||
                         document.querySelector('.rxn-module-actions a[href*="/mi-empresa"]');
@@ -42,12 +58,6 @@ document.addEventListener('keydown', function(e) {
         if (backBtn) {
             e.preventDefault();
             backBtn.click();
-            return;
-        }
-
-        // Si esta en un buscador, se quita el foco
-        if (isInput && activeEl.hasAttribute('data-search-input')) {
-            activeEl.blur();
             return;
         }
     }
@@ -64,7 +74,7 @@ document.addEventListener('keydown', function(e) {
         }
     }
 
-    // 4. Slash (/) o Alt+B -> Foco en Busqueda
+    // 4. Slash (/), F3 o Alt+B -> Foco en Busqueda
     if (isFocusSearch) {
         const searchInput = document.querySelector('input[data-search-input]');
         if (searchInput) {

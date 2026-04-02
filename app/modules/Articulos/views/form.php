@@ -1,15 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars((string) ($editTitle ?? 'Modificar Articulo')) ?> - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/articulos';
     $moduleNotesKey = $moduleNotesKey ?? 'articulos';
     $moduleNotesLabel = $moduleNotesLabel ?? 'Articulos';
@@ -18,7 +11,24 @@
     <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="rxn-module-header mb-4">
             <h2 class="mb-0"><?= htmlspecialchars((string) ($editTitle ?? 'Modificar Articulo')) ?></h2>
-            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> <?= htmlspecialchars((string) ($backLabel ?? 'Volver')) ?></a>
+            <div class="d-flex gap-2">
+                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> <?= htmlspecialchars((string) ($backLabel ?? 'Volver')) ?>
+                </a>
+                <?php if (isset($articulo->id)): ?>
+                    <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $articulo->id ?>/copiar" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-outline-success" title="Duplicar">
+                            <i class="bi bi-copy"></i>
+                        </button>
+                    </form>
+                    <form action="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" method="POST" class="d-inline" onsubmit="return confirm('¿Enviar artículo a la papelera?');">
+                        <input type="hidden" name="ids[]" value="<?= (int) $articulo->id ?>">
+                        <button type="submit" class="btn btn-outline-danger" title="Enviar a papelera">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php require BASE_PATH . '/app/shared/views/components/module_notes_panel.php'; ?>
@@ -35,7 +45,7 @@
                             <div class="row g-3 mb-3">
                                 <?php foreach (($imagenes ?? []) as $img): ?>
                                     <div class="col-6 col-md-4 col-lg-3">
-                                        <div class="position-relative border rounded p-1 text-center bg-white shadow-sm <?= $img['es_principal'] ? 'border-primary border-2' : '' ?>">
+                                        <div class="position-relative border rounded p-1 text-center  shadow-sm <?= $img['es_principal'] ? 'border-primary border-2' : '' ?>">
                                             <?php if ($img['es_principal']): ?>
                                                 <span class="position-absolute top-0 start-0 translate-middle p-1 bg-primary border border-light rounded-circle fw-bold text-white shadow" title="Portada Principal" style="font-size: 0.8rem; z-index: 10;">*</span>
                                             <?php endif; ?>
@@ -134,7 +144,7 @@
                         <div class="rxn-form-grid">
                             <div class="rxn-form-span-4">
                                 <label class="form-label text-warning fw-bold mb-1">Stock Actual</label>
-                                <input type="number" step="0.01" class="form-control fw-bold text-dark bg-white" id="stock_actual" name="stock_actual" value="<?= $articulo->stock_actual !== null ? htmlspecialchars((string) $articulo->stock_actual) : '0' ?>">
+                                <input type="number" step="0.01" class="form-control fw-bold text-dark " id="stock_actual" name="stock_actual" value="<?= $articulo->stock_actual !== null ? htmlspecialchars((string) $articulo->stock_actual) : '0' ?>">
                                 <div class="form-text text-muted mt-2"><small>Editable localmente. Si el circuito suma una integracion futura, este valor podra ser recalculado.</small></div>
                             </div>
 
@@ -158,7 +168,15 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

@@ -6,20 +6,34 @@
 :root {
     --bg-color: #ffffff;
     --text-color: #333333;
+    --text-muted: #6c757d;
     --surface-color: #f8f9fa;
     --surface-hover: #e9ecef;
     --border-color: #dee2e6;
     --input-bg: #ffffff;
+    --input-color: #333333;
+    --input-border: #ced4da;
+    --input-placeholder: #6c757d;
+    --card-bg: #ffffff;
+    --table-bg: transparent;
+    --table-head-bg: #f8f9fa;
     --rxn-shell-gutter: 1.5rem;
 }
 
 html[data-theme="dark"] {
     --bg-color: #1a1d20;
     --text-color: #e9ecef;
+    --text-muted: #adb5bd;
     --surface-color: #212529;
     --surface-hover: #2c3034;
     --border-color: #343a40;
     --input-bg: #2b3035;
+    --input-color: #e9ecef;
+    --input-border: #495057;
+    --input-placeholder: #adb5bd;
+    --card-bg: #212529;
+    --table-bg: transparent;
+    --table-head-bg: #2c3034;
 }
 
 html[data-theme="dark"] body {
@@ -27,42 +41,85 @@ html[data-theme="dark"] body {
     color: var(--text-color) !important;
 }
 
+/* Base Utility Classes Theme Mapping */
+.rxn-surface {
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+.rxn-bg-base { background-color: var(--bg-color); }
+.card, .rxn-crud-card, .rxn-form-card, .rxn-module-card {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="dark"] .rxn-user-menu,
 html[data-theme="dark"] .bg-light,
-html[data-theme="dark"] .bg-white,
-html[data-theme="dark"] .card {
+html[data-theme="dark"] .bg-white {
     background-color: var(--surface-color) !important;
     color: var(--text-color) !important;
     border-color: var(--border-color) !important;
 }
 
-html[data-theme="dark"] .text-dark {
+html[data-theme="dark"] .rxn-user-menu .text-secondary {
+    color: var(--text-color) !important;
+}
+
+html[data-theme="dark"] .text-dark,
+.rxn-text-primary {
     color: var(--text-color) !important;
 }
 
 html[data-theme="dark"] .text-muted, 
 html[data-theme="dark"] .text-secondary {
-    color: #adb5bd !important;
+    color: var(--text-muted) !important;
 }
 
-html[data-theme="dark"] .form-control {
+/* Inputs Unificados */
+.form-control, .form-select {
     background-color: var(--input-bg);
-    border-color: var(--border-color);
-    color: var(--text-color);
+    border-color: var(--input-border);
+    color: var(--input-color);
 }
-html[data-theme="dark"] .form-control:focus {
+.form-control:focus, .form-select:focus {
     background-color: var(--input-bg);
-    color: var(--text-color);
+    color: var(--input-color);
+}
+.form-control::placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+}
+.form-control:disabled, .form-control[readonly] {
+    background-color: var(--surface-color);
+    opacity: 1;
 }
 
-html[data-theme="dark"] .table {
-    --bs-table-bg: var(--bg-color);
+/* Tablas Unificadas */
+.table {
+    --bs-table-bg: var(--table-bg);
     --bs-table-color: var(--text-color);
     --bs-table-border-color: var(--border-color);
     --bs-table-hover-bg: var(--surface-hover);
     color: var(--text-color);
 }
+.table thead th {
+    background-color: var(--table-head-bg);
+    color: var(--text-color);
+    border-bottom-color: var(--border-color);
+}
 html[data-theme="dark"] .table-light {
-    --bs-table-bg: var(--surface-color);
+    --bs-table-bg: var(--table-head-bg);
+}
+
+/* Checkboxes y Radios */
+html[data-theme="dark"] .form-check-input {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+}
+html[data-theme="dark"] .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
 }
 
 /* User Preferences Matrix */
@@ -318,6 +375,30 @@ iframe {
 
 .rxn-launcher-shell {
     width: 100%;
+}
+
+.rxn-module-card {
+    background-color: transparent !important;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.rxn-module-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    border-color: var(--color-primary, #6c757d);
+}
+
+.rxn-module-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: inherit;
+    opacity: 0.9;
 }
 
 .rxn-form-shell {

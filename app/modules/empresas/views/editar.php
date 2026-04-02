@@ -1,25 +1,35 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Empresa - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
         <?php
         $activaActual = isset($old) ? isset($old['activa']) : (bool) $empresa->activa;
         $tiendasActual = $activaActual && (isset($old) ? isset($old['modulo_tiendas']) : (bool) ($empresa->modulo_tiendas ?? 0));
+        $tiendasNotasActual = $tiendasActual && (isset($old) ? isset($old['tiendas_modulo_notas']) : (bool) ($empresa->tiendas_modulo_notas ?? 0));
         $crmActual = $activaActual && (isset($old) ? isset($old['modulo_crm']) : (bool) ($empresa->modulo_crm ?? 0));
+        $crmNotasActual = $crmActual && (isset($old) ? isset($old['crm_modulo_notas']) : (bool) ($empresa->crm_modulo_notas ?? 0));
         ?>
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="mb-1">Editar Empresa</h2>
                 <p class="text-muted mb-0">Modificar el registro de <?= htmlspecialchars($empresa->nombre) ?>.</p>
             </div>
-            <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">Volver al listado</a>
+            <div class="d-flex gap-2">
+                <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Volver a Empresas
+                </a>
+                <form action="/rxnTiendasIA/public/empresas/<?= $empresa->id ?>/copiar" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-outline-success" title="Duplicar Empresa">
+                        <i class="bi bi-copy"></i>
+                    </button>
+                </form>
+                <form action="/rxnTiendasIA/public/empresas/<?= $empresa->id ?>/eliminar" method="POST" class="d-inline" onsubmit="return confirm('¿Enviar empresa a la papelera?');">
+                    <button type="submit" class="btn btn-outline-danger" title="Enviar a papelera">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </div>
         </div>
 
         <?php
@@ -47,20 +57,9 @@
                                 <label for="nombre" class="form-label">Nombre (Obligatorio)</label>
                                 <input type="text" class="form-control" id="nombre" name="nombre" required value="<?= htmlspecialchars($old['nombre'] ?? $empresa->nombre) ?>">
                             </div>
-
-                            <div class="rxn-form-span-6">
-                                <label for="razon_social" class="form-label">Razón Social</label>
-                                <input type="hidden" name="razon_social" value="<?= htmlspecialchars($old['razon_social'] ?? (string)$empresa->razon_social) ?>">
-                                <input type="text" class="form-control" id="razon_social" value="<?= htmlspecialchars($old['razon_social'] ?? (string)$empresa->razon_social) ?>" disabled>
-                                <div class="form-text">Reservado para una etapa futura del circuito administrativo.</div>
-                            </div>
-
-                            <div class="rxn-form-span-6">
-                                <label for="cuit" class="form-label">CUIT</label>
-                                <input type="hidden" name="cuit" value="<?= htmlspecialchars($old['cuit'] ?? (string)$empresa->cuit) ?>">
-                                <input type="text" class="form-control" id="cuit" value="<?= htmlspecialchars($old['cuit'] ?? (string)$empresa->cuit) ?>" disabled>
-                                <div class="form-text">Reservado para una etapa futura del circuito administrativo.</div>
-                            </div>
+                            <!-- Variables de estado latente ocultas -->
+                            <input type="hidden" name="razon_social" value="<?= htmlspecialchars($old['razon_social'] ?? (string)$empresa->razon_social) ?>">
+                            <input type="hidden" name="cuit" value="<?= htmlspecialchars($old['cuit'] ?? (string)$empresa->cuit) ?>">
                         </div>
                     </div>
 
@@ -77,17 +76,29 @@
 
                             <div class="rxn-form-switch-card">
                                 <div class="form-check form-switch m-0">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="modulo_tiendas" name="modulo_tiendas" <?= $tiendasActual ? 'checked' : '' ?> <?= $activaActual ? '' : 'disabled' ?> data-empresa-dependiente>
+                                    <input class="form-check-input" type="checkbox" role="switch" id="modulo_tiendas" name="modulo_tiendas" <?= $tiendasActual ? 'checked' : '' ?> <?= $activaActual ? '' : 'disabled' ?> data-empresa-dependiente="tiendas">
                                     <label class="form-check-label fw-semibold" for="modulo_tiendas">Tiendas</label>
                                     <div class="form-text mb-0">Habilita el circuito de tienda para esta empresa cuando el tenant esté activo.</div>
+                                </div>
+                                <div class="d-flex flex-wrap gap-3 mt-3 pt-3 border-top border-secondary border-opacity-25">
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="tiendas_modulo_notas" name="tiendas_modulo_notas" <?= $tiendasNotasActual ? 'checked' : '' ?> <?= $tiendasActual ? '' : 'disabled' ?> data-empresa-subdependiente="tiendas">
+                                        <label class="form-check-label" for="tiendas_modulo_notas">Módulo "Notas"</label>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="rxn-form-switch-card">
                                 <div class="form-check form-switch m-0">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="modulo_crm" name="modulo_crm" <?= $crmActual ? 'checked' : '' ?> <?= $activaActual ? '' : 'disabled' ?> data-empresa-dependiente>
+                                    <input class="form-check-input" type="checkbox" role="switch" id="modulo_crm" name="modulo_crm" <?= $crmActual ? 'checked' : '' ?> <?= $activaActual ? '' : 'disabled' ?> data-empresa-dependiente="crm">
                                     <label class="form-check-label fw-semibold" for="modulo_crm">CRM</label>
                                     <div class="form-text mb-0">Reserva el tenant para futuras funciones de CRM una vez que la empresa esté activa.</div>
+                                </div>
+                                <div class="d-flex flex-wrap gap-3 mt-3 pt-3 border-top border-secondary border-opacity-25">
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_notas" name="crm_modulo_notas" <?= $crmNotasActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_notas">Módulo "Notas"</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -102,28 +113,52 @@
             </div>
         </div>
     </div>
-    <script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script>
         (function () {
             var activa = document.querySelector('[data-empresa-activa-toggle]');
             var dependientes = Array.prototype.slice.call(document.querySelectorAll('[data-empresa-dependiente]'));
+            var subdependientes = Array.prototype.slice.call(document.querySelectorAll('[data-empresa-subdependiente]'));
 
-            if (!activa || !dependientes.length) {
-                return;
-            }
+            if (!activa) return;
 
-            function syncDependientes() {
-                var habilitada = activa.checked;
-                dependientes.forEach(function (checkbox) {
-                    checkbox.disabled = !habilitada;
-                    if (!habilitada) {
-                        checkbox.checked = false;
+            function syncAll() {
+                var empresaHabilitada = activa.checked;
+                
+                dependientes.forEach(function (checkMod) {
+                    checkMod.disabled = !empresaHabilitada;
+                    if (!empresaHabilitada) {
+                        checkMod.checked = false;
                     }
+
+                    var modName = checkMod.getAttribute('data-empresa-dependiente');
+                    var subchecks = subdependientes.filter(function(sub) { 
+                        return sub.getAttribute('data-empresa-subdependiente') === modName; 
+                    });
+
+                    var modHabilitado = empresaHabilitada && checkMod.checked;
+                    subchecks.forEach(function(subcheck) {
+                        subcheck.disabled = !modHabilitado;
+                        if (!modHabilitado) {
+                            subcheck.checked = false;
+                        }
+                    });
                 });
             }
 
-            activa.addEventListener('change', syncDependientes);
-            syncDependientes();
+            activa.addEventListener('change', syncAll);
+            dependientes.forEach(function (checkMod) {
+                checkMod.addEventListener('change', syncAll);
+            });
+            syncAll();
         }());
     </script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

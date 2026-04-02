@@ -2,6 +2,7 @@
     function setupPicker(root) {
         var input = root.querySelector('[data-picker-input]');
         var hidden = root.querySelector('[data-picker-hidden]');
+        var extraHidden = root.querySelector('[data-picker-extra-hidden]');
         var results = root.querySelector('[data-picker-results]');
         var meta = root.parentElement.querySelector('[data-picker-meta]');
         var allowManual = root.getAttribute('data-picker-allow-manual') === '1';
@@ -29,6 +30,9 @@
         function clearSelection() {
             if (!allowManual) {
                 hidden.value = '';
+                if (extraHidden) {
+                    extraHidden.value = '';
+                }
             }
             updateMeta(allowManual ? 'Valor manual habilitado.' : 'Selecciona un valor valido desde las sugerencias.');
         }
@@ -36,6 +40,9 @@
         function applyItem(item) {
             input.value = item.value || item.label || '';
             hidden.value = item.id || item.value || '';
+            if (extraHidden) {
+                extraHidden.value = item.extraId || '';
+            }
             updateMeta(item.caption || 'Seleccionado');
             closeResults();
         }
@@ -218,6 +225,7 @@
         var net = document.querySelector('[data-calc-net]');
         var discountPreview = document.querySelector('[data-calc-discount-preview]');
         var sideNet = document.querySelector('[data-calc-side-net]');
+        var decimalOut = document.querySelector('[data-calc-decimal]');
 
         if (!start || !end || !discount || !gross || !net || !discountPreview || !sideNet) {
             return;
@@ -243,6 +251,9 @@
             gross.textContent = formatDuration(grossSeconds);
             net.textContent = netSeconds >= 0 ? formatDuration(netSeconds) : '--:--:--';
             sideNet.textContent = net.textContent;
+            if (decimalOut) {
+                decimalOut.textContent = netSeconds >= 0 ? (netSeconds / 3600).toFixed(4) : '0.0000';
+            }
         }
 
         start.addEventListener('input', recalc);
@@ -251,8 +262,134 @@
         recalc();
     }
 
+    function setupCheckboxAhora() {
+        var checkbox = document.getElementById('btn-finalizado-ahora');
+        var endInput = document.getElementById('fecha_finalizado');
+        if (!checkbox || !endInput) return;
+
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                var now = new Date();
+                var tzOffset = now.getTimezoneOffset() * 60000;
+                var localIso = new Date(now - tzOffset).toISOString().slice(0, 19);
+                endInput.value = localIso;
+                endInput.dispatchEvent(new Event('input')); 
+            }
+        });
+        endInput.addEventListener('input', function() {
+            if (checkbox.checked) {
+                checkbox.checked = false;
+            }
+        });
+    }
+
+    function setupImagePaste() {
+        var textarea = document.getElementById('diagnostico');
+        var container = document.getElementById('diagnostico-capturas');
+        if (!textarea || !container) return;
+        
+        var adjuntosCounter = container.querySelectorAll('.diagnostico-adjunto').length;
+
+        function appendThumbnail(base64Data, extension, filenameLabel) {
+            var col = document.createElement('div');
+            col.className = 'diagnostico-adjunto position-relative border rounded p-1 bg-white shadow-sm';
+            col.style.width = '100px';
+            col.style.height = '100px';
+            
+            var img = document.createElement('img');
+            img.src = base64Data;
+            img.className = 'w-100 h-100 object-fit-cover rounded';
+            col.appendChild(img);
+            
+            var label = document.createElement('div');
+            label.className = 'position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white text-center rounded-bottom" style="font-size:0.6rem; padding: 0.1rem;';
+            label.textContent = filenameLabel;
+            col.appendChild(label);
+            
+            var hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'capturas_diagnostico_base64[]';
+            hidden.value = JSON.stringify({ data: base64Data, extension: extension, label: filenameLabel });
+            col.appendChild(hidden);
+
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 p-0 rounded-circle d-flex align-items-center justify-content-center';
+            removeBtn.style.width = '20px';
+            removeBtn.style.height = '20px';
+            removeBtn.style.transform = 'translate(50%, -50%)';
+            removeBtn.innerHTML = '<i class="bi bi-x" style="font-size:0.8rem;"></i>';
+            removeBtn.onclick = function() {
+                col.remove();
+            };
+            col.appendChild(removeBtn);
+            
+            container.appendChild(col);
+        }
+
+        textarea.addEventListener('paste', function(event) {
+            var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                if (item.type && item.type.indexOf('image/') === 0) {
+                    event.preventDefault();
+                    var file = item.getAsFile();
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        adjuntosCounter++;
+                        var ext = item.type.split('/')[1] || 'png';
+                        var label = '#imagen' + adjuntosCounter;
+                        
+                        var selStart = textarea.selectionStart;
+                        var selEnd = textarea.selectionEnd;
+                        var val = textarea.value;
+                        textarea.value = val.substring(0, selStart) + ' ' + label + ' ' + val.substring(selEnd);
+                        textarea.selectionStart = textarea.selectionEnd = selStart + label.length + 2;
+                        
+                        appendThumbnail(e.target.result, ext, label);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+    }
+
+    function setupDirtyCheckAndEmailControl() {
+        var mainForm = document.getElementById('crm-pedido-servicio-form');
+        var emailForms = document.querySelectorAll('form[action$="/enviar-correo"]');
+        
+        if (!mainForm || emailForms.length === 0) return;
+
+        var isDirty = false;
+        
+        // Registrar cualquier cambio en inputs, selects, textareas
+        mainForm.addEventListener('input', function() {
+            isDirty = true;
+        });
+        mainForm.addEventListener('change', function() {
+            isDirty = true;
+        });
+
+        // Interceptar el clic en el botón de enviar por correo ANTES de que se lance el confirm nativo
+        emailForms.forEach(function(form) {
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.addEventListener('click', function(e) {
+                    if (isDirty) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        alert('Has modificado datos en este pedido.\n\nPor favor, hacé clic en el botón azul "Guardar" antes de enviarlo por correo para asegurarte de que el cliente reciba la información actualizada.');
+                    }
+                }, true); // Capture phase para ganar prioridad
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-picker]').forEach(setupPicker);
         setupCalculator();
+        setupCheckboxAhora();
+        setupImagePaste();
+        setupDirtyCheckAndEmailControl();
     });
 }());

@@ -480,5 +480,37 @@
         recalculate();
     }
 
-    document.addEventListener('DOMContentLoaded', setupForm);
+    function setupDirtyCheckAndEmailControl() {
+        var mainForm = document.getElementById('crm-presupuesto-form');
+        var emailForms = document.querySelectorAll('form[action$="/enviar-correo"]');
+        
+        if (!mainForm || emailForms.length === 0) return;
+
+        var isDirty = false;
+        
+        mainForm.addEventListener('input', function() {
+            isDirty = true;
+        });
+        mainForm.addEventListener('change', function() {
+            isDirty = true;
+        });
+
+        emailForms.forEach(function(form) {
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.addEventListener('click', function(e) {
+                    if (isDirty) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        alert('Has modificado datos en este presupuesto.\n\nPor favor, hacé clic en el botón azul "Guardar" antes de enviarlo por correo para asegurarte de que el cliente reciba la información actualizada.');
+                    }
+                }, true); // Capture phase para ganar prioridad
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setupForm();
+        setupDirtyCheckAndEmailControl();
+    });
 })();

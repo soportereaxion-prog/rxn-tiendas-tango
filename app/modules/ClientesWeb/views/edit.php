@@ -26,18 +26,11 @@ $editTitle = $editTitle ?? 'Editar Cliente Web';
 $backLabel = $backLabel ?? 'Volver al Listado';
 $isCrm = $isCrm ?? false;
 ?>
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars((string) $pageTitle) ?> - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="rxn-module-header mb-4">
             <div>
                 <h2><?= htmlspecialchars((string) $editTitle) ?> #<?= $cliente['id'] ?></h2>
@@ -71,7 +64,7 @@ $isCrm = $isCrm ?? false;
             <div class="col-12 col-xl-8">
                 <!-- Formulario Principal -->
                 <div class="card rxn-crud-card mb-4">
-                    <div class="card-header bg-white py-3">
+                    <div class="card-header  py-3">
                         <h5 class="mb-0 text-primary">Datos del Cliente Web</h5>
                     </div>
                     <div class="card-body p-4 p-lg-5">
@@ -301,7 +294,12 @@ $isCrm = $isCrm ?? false;
             </div>
         </div>
     </div>
-    <script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
             const input = document.getElementById('codigo_tango');
             const hiddenId = document.getElementById('tango_selected_id_gva14');
@@ -641,5 +639,8 @@ $isCrm = $isCrm ?? false;
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

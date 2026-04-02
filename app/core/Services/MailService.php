@@ -93,7 +93,7 @@ class MailService
         return $mail;
     }
 
-    public function send(string $to, string $subject, string $body, int $empresaId): bool
+    public function send(string $to, string $subject, string $body, int $empresaId, array $attachments = []): bool
     {
         $config = $this->resolveMailerConfig($empresaId);
         
@@ -111,6 +111,23 @@ class MailService
             $mail->Subject = $subject;
             $mail->Body    = $body;
             $mail->AltBody = strip_tags($body);
+
+            foreach ($attachments as $att) {
+                if (is_string($att) && file_exists($att)) {
+                    $mail->addAttachment($att);
+                } elseif (is_array($att) && isset($att['path'])) {
+                    $name = $att['filename'] ?? $att['name'] ?? '';
+                    $mail->addAttachment($att['path'], $name);
+                } elseif (is_array($att) && isset($att['content'], $att['name'])) {
+                    $mail->addStringAttachment(
+                        $att['content'],
+                        $att['name'],
+                        $att['encoding'] ?? \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64,
+                        $att['type'] ?? '',
+                        $att['disposition'] ?? 'attachment'
+                    );
+                }
+            }
 
             $mail->send();
             return true;

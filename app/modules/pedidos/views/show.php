@@ -1,21 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle Orden #<?= $pedido['pedido_id'] ?> - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        body { background-color: #f8f9fa; }
-        .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; overflow: hidden; }
-        .data-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; color: #6c757d; }
-        pre.json-view { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; font-size: 0.85rem; max-height: 400px; overflow-y: auto; }
-    </style>
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5 mb-5">
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<div class="container mt-5 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2>
@@ -60,7 +47,7 @@
             <!-- Bloque Izquierdo: Datos del Cliente y Resumen -->
             <div class="col-lg-4">
                 <div class="card mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
+                    <div class="card-header  border-bottom py-3">
                         <h5 class="mb-0 fw-bold">👤 Datos del Comprador</h5>
                     </div>
                     <div class="card-body">
@@ -88,7 +75,7 @@
                 </div>
 
                 <div class="card mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
+                    <div class="card-header  border-bottom py-3">
                         <h5 class="mb-0 fw-bold">📍 Envío / Facturación</h5>
                     </div>
                     <div class="card-body">
@@ -197,7 +184,7 @@
                                     <button class="nav-link" id="response-tab" data-bs-toggle="tab" data-bs-target="#response" type="button" role="tab" aria-controls="response" aria-selected="false">Respuesta API</button>
                                 </li>
                             </ul>
-                            <div class="tab-content py-3 border border-top-0 rounded-bottom px-3 bg-white" id="logTabsContent">
+                            <div class="tab-content py-3 border border-top-0 rounded-bottom px-3 " id="logTabsContent">
                                 <div class="tab-pane fade show active" id="payload" role="tabpanel" aria-labelledby="payload-tab">
                                     <?php if($pedido['payload_enviado']): ?>
                                         <?php 
@@ -223,7 +210,7 @@
                             </div>
                         <?php else: ?>
                             <?php if($pedido['estado_tango'] !== 'pendiente_envio_tango'): ?>
-                                <div class="mt-4 p-3 border rounded shadow-sm bg-white">
+                                <div class="mt-4 p-3 border rounded shadow-sm ">
                                     <h6 class="fw-bold mb-2">Estado de Transacción Servidor Tango:</h6>
                                     <p class="mb-0 text-dark">
                                         <?php if ($pedido['estado_tango'] === 'enviado_tango'): ?>
@@ -241,7 +228,15 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

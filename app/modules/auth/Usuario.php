@@ -16,6 +16,8 @@ class Usuario
     public int $es_admin;
     public int $es_rxn_admin = 0;
     
+    public ?string $anura_interno = null;
+    
     // Nuvos flags de Auth Unificado B2B
     public int $email_verificado = 0;
     public ?string $email_verificado_at = null;

@@ -1,90 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ayuda Operativa - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-    <style>
-        .help-search-box {
-            position: sticky;
-            top: 1rem;
-            z-index: 5;
-            backdrop-filter: blur(10px);
-        }
-
-        .help-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0.75rem;
-            border-radius: 999px;
-            background: rgba(25, 75, 165, 0.08);
-            color: #194ba5;
-            font-size: 0.78rem;
-            font-weight: 700;
-        }
-
-        .help-card + .help-card {
-            margin-top: 1.25rem;
-        }
-
-        .help-anchor-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 0.85rem;
-        }
-
-        .help-anchor {
-            display: block;
-            padding: 0.95rem 1rem;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 14px;
-            text-decoration: none;
-            color: inherit;
-            background: rgba(248, 249, 250, 0.75);
-        }
-
-        .help-anchor:hover {
-            border-color: rgba(25, 75, 165, 0.25);
-            background: rgba(25, 75, 165, 0.06);
-        }
-
-        .help-list-tight li + li {
-            margin-top: 0.45rem;
-        }
-
-        .help-chip {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.2rem 0.55rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            background: rgba(108, 117, 125, 0.12);
-            color: #495057;
-        }
-
-        .help-highlight {
-            border-left: 4px solid rgba(25, 75, 165, 0.35);
-            background: rgba(25, 75, 165, 0.04);
-            border-radius: 12px;
-            padding: 1rem 1rem 1rem 1.1rem;
-        }
-
-        .help-empty {
-            display: none;
-        }
-
-        .help-empty.is-visible {
-            display: block;
-        }
-    </style>
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
     $environmentLabel = $environmentLabel ?? 'Entorno Operativo';
     $area = $area ?? 'tiendas';
@@ -345,7 +263,12 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         (function () {
             var input = document.getElementById('help-search');
@@ -385,5 +308,8 @@
             });
         }());
     </script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

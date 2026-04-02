@@ -17,7 +17,7 @@ class App
             session_set_cookie_params([
                 'lifetime' => 86400,
                 'path' => '/',
-                'domain' => $_SERVER['HTTP_HOST'] ?? '',
+                // 'domain' no se debe forzar sin parsear puertos, rompe localhost
                 'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
                 'httponly' => true,
                 'samesite' => 'Lax'

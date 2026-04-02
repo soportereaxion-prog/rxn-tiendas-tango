@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Categorias - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $filters = $filters ?? ['search' => '', 'field' => 'all', 'sort' => 'orden_visual', 'dir' => 'asc', 'page' => 1];
     $pagination = $pagination ?? ['page' => 1, 'totalPages' => 1, 'hasPrevious' => false, 'hasNext' => false, 'previousPage' => 1, 'nextPage' => 1];
     $search = $filters['search'] ?? '';
@@ -27,6 +21,7 @@
             'sort' => $sort,
             'dir' => $dir,
             'page' => $page,
+            'status' => $filters['status'] ?? 'activos',
         ];
 
         foreach ($overrides as $key => $value) {
@@ -82,9 +77,28 @@
             </div>
         <?php endif; ?>
 
+        <?php
+        $status = $filters['status'] ?? 'activos';
+        $isPapelera = $status === 'papelera';
+        ?>
+
+        <ul class="nav nav-tabs mb-4 border-secondary border-opacity-25" style="border-bottom-width: 2px;">
+            <li class="nav-item">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold bg-dark text-light border-secondary border-bottom-0' : 'text-muted border-0 hover-text-light' ?>" href="<?= htmlspecialchars($basePath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
+                    Activas
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold bg-dark border-secondary border-bottom-0' : 'border-0 hover-text-danger' ?>" href="<?= htmlspecialchars($basePath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
+                    <i class="bi bi-trash"></i> Papelera
+                </a>
+            </li>
+        </ul>
+
         <div class="card rxn-crud-card rxn-crud-toolbar mb-4">
             <div class="card-body">
                 <form method="GET" action="<?= htmlspecialchars($basePath) ?>" class="row g-3 align-items-end" data-search-form>
+                    <input type="hidden" name="status" value="<?= htmlspecialchars((string) $status) ?>">
                     <input type="hidden" name="sort" value="<?= htmlspecialchars((string) $sort) ?>">
                     <input type="hidden" name="dir" value="<?= htmlspecialchars((string) $dir) ?>">
                     <input type="hidden" name="search" value="<?= htmlspecialchars((string) $search) ?>" data-search-hidden>
@@ -104,7 +118,7 @@
                             class="form-control"
                             id="search"
                             value="<?= htmlspecialchars((string) $search) ?>"
-                            placeholder="Buscar por nombre o slug"
+                            placeholder='🔎 Presioná F3 o "/" para buscar'
                             autocomplete="off"
                             data-search-input
                             data-suggestions-url="/rxnTiendasIA/public/mi-empresa/categorias/sugerencias"
@@ -145,11 +159,26 @@
                         </div>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive rxn-table-responsive">
-                        <table class="table table-hover mb-0 align-middle rxn-crud-table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Vista</th>
+                    <div class="p-3 pb-0">
+                        <div class="mb-3 d-flex gap-2">
+                            <?php if (!$isPapelera): ?>
+                                <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar las categorías seleccionadas a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionadas</button>
+                            <?php else: ?>
+                                <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar las categorías seleccionadas?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionadas</button>
+                                <button type="submit" form="hiddenFormBulk" formaction="<?= htmlspecialchars($basePath) ?>/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente las categorías seleccionadas?"><i class="bi bi-x-circle"></i> Destruir Seleccionadas</button>
+                            <?php endif; ?>
+                        </div>
+
+                        <form id="hiddenFormBulk" method="POST"></form>
+
+                        <div class="table-responsive rxn-table-responsive">
+                            <table class="table table-hover mb-0 align-middle rxn-crud-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px;">
+                                            <input type="checkbox" id="checkAll" class="form-check-input" data-row-link-ignore onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);">
+                                        </th>
+                                        <th>Vista</th>
                                     <th><?= $sortLink('nombre', 'Nombre') ?></th>
                                     <th><?= $sortLink('slug', 'Slug') ?></th>
                                     <th>Descripcion</th>
@@ -157,12 +186,15 @@
                                     <th>Articulos</th>
                                     <th><?= $sortLink('visible_store', 'Store') ?></th>
                                     <th><?= $sortLink('activa', 'Estado') ?></th>
-                                    <th class="rxn-row-chevron-col"></th>
+                                    <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($categorias as $categoria): ?>
                                     <tr data-row-link="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/editar">
+                                        <td>
+                                            <input type="checkbox" name="ids[]" value="<?= (int) $categoria->id ?>" class="form-check-input check-item" form="hiddenFormBulk" data-row-link-ignore>
+                                        </td>
                                         <td>
                                             <div class="rounded-3 overflow-hidden border bg-light d-flex align-items-center justify-content-center" style="width: 72px; height: 56px;">
                                                 <?php if (!empty($categoria->imagen_portada)): ?>
@@ -191,17 +223,48 @@
                                                 <span class="badge bg-dark">Inactiva</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="rxn-row-chevron-col">
-                                            <a href="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/editar" class="btn btn-sm btn-outline-primary px-2 rxn-row-link-action rxn-row-chevron" title="Abrir categoria" aria-label="Abrir categoria" data-row-link-ignore>›</a>
+                                        <td class="text-end text-nowrap">
+                                            <div class="btn-group" data-row-link-ignore>
+                                                <?php if (!$isPapelera): ?>
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/copiar" method="POST" class="d-inline m-0 p-0" title="Copiar Categoría">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                                                            <i class="bi bi-copy"></i>
+                                                        </button>
+                                                    </form>
+
+                                                    <a href="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/editar" class="btn btn-sm btn-outline-info" style="border-radius: 0; margin-left: -1px;" title="Editar Categoría">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/eliminar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar categoría a la papelera?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: 0; margin-left: -1px;" title="Enviar a Papelera">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/restore" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Confirma restaurar esta categoría?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success border-end-0" title="Restaurar Categoría">
+                                                            <i class="bi bi-arrow-counterclockwise"></i> Restaurar
+                                                        </button>
+                                                    </form>
+
+                                                    <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/force-delete" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Esta acción es irreversible. ¿Eliminar definitivamente?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Destruir Permanente">
+                                                            <i class="bi bi-x-circle"></i> Destruir
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
+                </div>
 
-                    <?php if (($pagination['totalPages'] ?? 1) > 1): ?>
-                        <div class="card-footer bg-white border-0 pt-3 pb-3">
+                <?php if (($pagination['totalPages'] ?? 1) > 1): ?>
+                        <div class="card-footer  border-0 pt-3 pb-3">
                             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                                 <div class="rxn-crud-pagination-note">
                                     <?= $hasSearch ? 'La paginacion conserva filtros y orden actuales.' : 'La paginacion conserva el orden actual del listado.' ?>
@@ -228,8 +291,33 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-</body>
-</html>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkAll = document.getElementById('checkAll');
+        const checkItems = document.querySelectorAll('.check-item');
+        if (checkAll && checkItems.length > 0) {
+            checkAll.addEventListener('change', function() {
+                checkItems.forEach(item => item.checked = this.checked);
+            });
+            checkItems.forEach(item => item.addEventListener('change', () => {
+                const allChecked = Array.from(checkItems).every(i => i.checked);
+                const someChecked = Array.from(checkItems).some(i => i.checked);
+                checkAll.checked = allChecked;
+                checkAll.indeterminate = someChecked && !allChecked;
+            }));
+        }
+    });
+    </script>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

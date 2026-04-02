@@ -76,6 +76,7 @@ class PedidoServicioPrintContextBuilder
             'pedido' => [
                 'numero'            => $this->formatNumero($pedido['numero'] ?? null),
                 'solicito'          => trim((string) ($pedido['solicito'] ?? '')),
+                'usuario'           => trim((string) ($pedido['usuario_nombre'] ?? '--')),
                 'fecha_inicio'      => $this->formatDate($pedido['fecha_inicio'] ?? null),
                 'fecha_finalizado'  => $this->formatDate($pedido['fecha_finalizado'] ?? null),
                 'clasificacion'     => $this->formatClasificacion(
@@ -113,12 +114,12 @@ class PedidoServicioPrintContextBuilder
     private function formatDate(?string $date): string
     {
         if (!is_string($date) || trim($date) === '') {
-            return '';
+            return '--/--/---- --:--:--';
         }
 
         try {
             $dt = new \DateTimeImmutable($date);
-            return $dt->format('d/m/Y H:i');
+            return $dt->format('d/m/Y H:i:s');
         } catch (\Throwable) {
             return trim($date);
         }

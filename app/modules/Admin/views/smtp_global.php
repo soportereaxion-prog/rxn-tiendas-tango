@@ -1,25 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMTP Master RXN Global</title>
-    <!-- CSS Bootstrap 5 CDN para pruebas estructurales orgánicas -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #1a1e23; color: #f8f9fa; }
-        .card { background-color: #2c3138; border-color: #3e444b; color: white;}
-        .form-control, .form-select { background-color: #3b424b; border-color: #4f5761; color: #cdd4db; }
-        .form-control:focus, .form-select:focus { background-color: #3b424b; border-color: #e5a93d; color: white; box-shadow: 0 0 0 .25rem rgba(229,169,61,.25); }
-        .form-label.text-secondary { color: #8d97a5 !important; }
-        .btn-warning { background-color: #e5a93d; border-color: #e5a93d; }
-        .rxn-form-section-text { color: #8d97a5; }
-        .rxn-form-actions { border-top-color: #3e444b; }
-    </style>
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 900px;">
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 900px;">
         <div class="mb-4 rxn-module-header">
             <div>
                 <h2 class="text-warning mb-1">⚙️ SMTP Master RXN</h2>
@@ -110,7 +93,12 @@
     </div>
 
     <!-- JS Validator AJAX -->
-    <script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script>
         document.getElementById('btn-test-smtp').addEventListener('click', async (e) => {
             const btn = e.target;
             const originalText = btn.innerText;
@@ -138,5 +126,8 @@
             }
         });
     </script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

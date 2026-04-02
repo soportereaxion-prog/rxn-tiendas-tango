@@ -12,7 +12,7 @@
         <!-- Resumen del Pedido -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <div class="card-header  border-bottom-0 pt-4 pb-0 px-4">
                     <h4 class="fw-bolder">Artículos Solicitados</h4>
                 </div>
                 <div class="card-body p-4">

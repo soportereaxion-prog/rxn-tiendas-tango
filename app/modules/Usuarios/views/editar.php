@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Usuario - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $area = $area ?? 'tiendas';
     $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/usuarios';
     $indexPath = $basePath . '?' . http_build_query(['area' => $area]);
@@ -49,6 +43,11 @@
                             <div class="rxn-form-span-6">
                                 <label for="email" class="form-label">Correo Electrónico</label>
                                 <input type="email" class="form-control" id="email" name="email" required value="<?= htmlspecialchars($old['email'] ?? $usuario->email) ?>">
+                            </div>
+
+                            <div class="rxn-form-span-6">
+                                <label for="anura_interno" class="form-label">Interno Anura (Softphone)</label>
+                                <input type="text" class="form-control" id="anura_interno" name="anura_interno" value="<?= htmlspecialchars($old['anura_interno'] ?? ($usuario->anura_interno ?? '')) ?>" placeholder="Ej: 101">
                             </div>
 
                             <?php if (isset($isGlobalAdmin) && $isGlobalAdmin && !empty($empresas)): ?>
@@ -144,7 +143,12 @@
             </div>
         </div>
     </div>
-    <script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
             const elPerfil   = document.getElementById('tango_perfil_pedido');
             const snapInput  = document.getElementById('tango_perfil_snapshot_json');
@@ -246,5 +250,7 @@
             }
         });
     </script>
-</body>
-</html>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

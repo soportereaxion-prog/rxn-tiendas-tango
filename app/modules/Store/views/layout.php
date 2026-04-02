@@ -251,5 +251,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
 </body>
 </html>

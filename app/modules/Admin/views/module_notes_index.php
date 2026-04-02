@@ -1,21 +1,15 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitacora de Modulos - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 1120px;">
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 1120px;">
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="fw-bold mb-1">Bitacora de Modulos</h2>
                 <p class="text-muted mb-0">Centro interno para revisar las anotaciones levantadas desde cada modulo por administradores.</p>
             </div>
             <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/backoffice_user_banner.php'; ?>
+                
                 <span class="badge text-bg-dark px-3 py-2"><?= (int) ($totalNotes ?? 0) ?> notas</span>
                 <a href="/rxnTiendasIA/public/admin/dashboard" class="btn btn-outline-secondary">Volver al Backoffice</a>
             </div>
@@ -72,7 +66,7 @@
                                                     <?php $attachmentPath = (string) ($attachment['path'] ?? ''); ?>
                                                     <?php if ($attachmentPath === '') { continue; } ?>
                                                     <div class="col-12 col-md-6 col-lg-4">
-                                                        <div class="border rounded p-2 h-100 bg-white">
+                                                        <div class="border rounded p-2 h-100 ">
                                                             <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                                                                 <span class="badge text-bg-dark"><?= htmlspecialchars((string) ($attachment['label'] ?? '#imagen')) ?></span>
                                                                 <?php if (!empty($attachment['name'])): ?>
@@ -96,5 +90,13 @@
             </div>
         <?php endif; ?>
     </div>
-</body>
-</html>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

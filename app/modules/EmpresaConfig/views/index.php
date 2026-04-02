@@ -1,19 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars((string) ($pageTitle ?? 'Configuracion de Empresa')) ?> - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: var(--bg-color, #f8f9fa); }
-        .card { border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); }
-        .form-label { font-size: 0.9rem; font-weight: 600; color: #495057; }
-    </style>
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body>
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/configuracion';
     $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
     $helpPath = $helpPath ?? '/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas';
@@ -68,7 +57,7 @@
 
             <!-- 1. DATOS GENERALES -->
             <div class="card rxn-form-card shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <div class="card-header  border-bottom-0 pt-4 pb-0">
                     <h5 class="fw-bold text-primary mb-0"><?= htmlspecialchars((string) $generalSectionTitle) ?></h5>
                 </div>
                 <div class="card-body">
@@ -103,7 +92,7 @@
             <?php if ($showStoreBranding): ?>
                 <!-- 2. IDENTIDAD DE MARCA B2C -->
                 <div class="card rxn-form-card shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <div class="card-header  border-bottom-0 pt-4 pb-0">
                         <h5 class="fw-bold text-primary mb-0">2. Identidad de Marca B2C (Store Front)</h5>
                     </div>
                     <div class="card-body">
@@ -132,7 +121,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Color Primario</label>
                                 <div class="input-group">
-                                    <span class="input-group-text p-1 bg-white">
+                                    <span class="input-group-text p-1 ">
                                         <input type="color" class="form-control form-control-color border-0 p-0 m-0" name="color_primary" value="<?= htmlspecialchars((string)($empresa->color_primary ?? '#000000')) ?>" title="Elegir color principal" style="width: 30px; height: 30px;">
                                     </span>
                                     <input type="text" class="form-control" value="<?= htmlspecialchars((string)($empresa->color_primary ?? '#000000')) ?>" readonly disabled>
@@ -141,7 +130,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Color Secundario</label>
                                 <div class="input-group">
-                                    <span class="input-group-text p-1 bg-white">
+                                    <span class="input-group-text p-1 ">
                                         <input type="color" class="form-control form-control-color border-0 p-0 m-0" name="color_secondary" value="<?= htmlspecialchars((string)($empresa->color_secondary ?? '#6c757d')) ?>" title="Elegir color de acento" style="width: 30px; height: 30px;">
                                     </span>
                                     <input type="text" class="form-control" value="<?= htmlspecialchars((string)($empresa->color_secondary ?? '#6c757d')) ?>" readonly disabled>
@@ -176,7 +165,7 @@
 
             <!-- 3. IDENTIDAD VISUAL CORPORATIVA -->
             <div class="card rxn-form-card shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <div class="card-header  border-bottom-0 pt-4 pb-0">
                     <h5 class="fw-bold text-primary mb-0"><?= htmlspecialchars((string) $fallbackSectionTitle) ?></h5>
                 </div>
                 <div class="card-body">
@@ -199,9 +188,136 @@
                 </div>
             </div>
 
+            <?php if (isset($area) && $area === 'crm'): ?>
+            <!-- TARJETA NUMERACIÓN INTERNA CRM -->
+            <div class="card rxn-form-card shadow-sm mb-4">
+                <div class="card-header  border-bottom-0 pt-4 pb-0">
+                    <h5 class="fw-bold text-primary mb-0">Numeración y Talonarios Internos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row gx-4 gy-3">
+                        <div class="col-md-6">
+                            <label for="pds_numero_base" class="form-label">Número Base para Pedido de Servicio</label>
+                            <input type="number" class="form-control" id="pds_numero_base" name="pds_numero_base" min="0"
+                                   value="<?= htmlspecialchars((string)($old['pds_numero_base'] ?? ($config->pds_numero_base ?? '0'))) ?>">
+                            <div class="form-text"><small>El sistema sumará 1 a este número, controlando lógicamente que no exista ya.</small></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="presupuesto_numero_base" class="form-label">Número Base para Presupuesto</label>
+                            <input type="number" class="form-control" id="presupuesto_numero_base" name="presupuesto_numero_base" min="0"
+                                   value="<?= htmlspecialchars((string)($old['presupuesto_numero_base'] ?? ($config->presupuesto_numero_base ?? '0'))) ?>">
+                            <div class="form-text"><small>El sistema sumará 1 a este número, controlando lógicamente que no exista ya.</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- TARJETA ASIGNACIÓN DE FORMULARIOS IMPRESOS -->
+            <div class="card rxn-form-card shadow-sm mb-4">
+                <div class="card-header  border-bottom-0 pt-4 pb-0">
+                    <h5 class="fw-bold text-primary mb-0">Asignación de Formularios de Impresión</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row gx-4 gy-3">
+                        <div class="col-md-6">
+                            <label for="pds_email_pdf_canvas_id" class="form-label">Formulario PDF para Pedido de Servicio</label>
+                            <select class="form-select" id="pds_email_pdf_canvas_id" name="pds_email_pdf_canvas_id">
+                                <option value="">-- Sin formulario asignado --</option>
+                                <?php foreach ($printForms ?? [] as $form): ?>
+                                    <?php if ($form['document_key'] === 'crm_pds'): ?>
+                                        <option value="<?= $form['id'] ?>" <?= (isset($config->pds_email_pdf_canvas_id) && $config->pds_email_pdf_canvas_id == $form['id']) ? 'selected' : '' ?>><?= htmlspecialchars($form['nombre']) ?></option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text"><small>Seleccione el diseño a aplicar para la impresión o envío de PDS.</small></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="presupuesto_email_pdf_canvas_id" class="form-label">Formulario PDF para Presupuestos</label>
+                            <select class="form-select" id="presupuesto_email_pdf_canvas_id" name="presupuesto_email_pdf_canvas_id">
+                                <option value="">-- Sin formulario asignado --</option>
+                                <?php foreach ($printForms ?? [] as $form): ?>
+                                    <?php if ($form['document_key'] === 'crm_presupuesto'): ?>
+                                        <option value="<?= $form['id'] ?>" <?= (isset($config->presupuesto_email_pdf_canvas_id) && $config->presupuesto_email_pdf_canvas_id == $form['id']) ? 'selected' : '' ?>><?= htmlspecialchars($form['nombre']) ?></option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text"><small>Seleccione el diseño a aplicar para la impresión o envío de Presupuestos.</small></div>
+                        </div>
+                    </div>
+
+                    <div class="row gx-4 gy-3 mt-1">
+                        <div class="col-md-6">
+                            <label for="pds_email_body_canvas_id" class="form-label">Cuerpo de Email para Pedido de Servicio</label>
+                            <select class="form-select" id="pds_email_body_canvas_id" name="pds_email_body_canvas_id">
+                                <option value="">-- Sin plantilla asignada --</option>
+                                <?php foreach ($printForms ?? [] as $form): ?>
+                                    <?php if ($form['document_key'] === 'crm_pds_email'): ?>
+                                        <option value="<?= $form['id'] ?>" <?= (isset($config->pds_email_body_canvas_id) && $config->pds_email_body_canvas_id == $form['id']) ? 'selected' : '' ?>><?= htmlspecialchars($form['nombre']) ?></option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text"><small>Plantilla HTML a inyectar en el cuerpo del correo.</small></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="presupuesto_email_body_canvas_id" class="form-label">Cuerpo de Email para Presupuestos</label>
+                            <select class="form-select" id="presupuesto_email_body_canvas_id" name="presupuesto_email_body_canvas_id">
+                                <option value="">-- Sin plantilla asignada --</option>
+                                <?php foreach ($printForms ?? [] as $form): ?>
+                                    <?php if ($form['document_key'] === 'crm_presupuesto_email'): ?>
+                                        <option value="<?= $form['id'] ?>" <?= (isset($config->presupuesto_email_body_canvas_id) && $config->presupuesto_email_body_canvas_id == $form['id']) ? 'selected' : '' ?>><?= htmlspecialchars($form['nombre']) ?></option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text"><small>Plantilla HTML a inyectar en el cuerpo del correo.</small></div>
+                        </div>
+                    </div>
+
+                    <div class="row gx-4 gy-3 mt-1">
+                        <div class="col-md-6">
+                            <label for="pds_email_asunto" class="form-label">Asunto (Subjeto) Correo PDS</label>
+                            <input type="text" class="form-control" id="pds_email_asunto" name="pds_email_asunto" value="<?= htmlspecialchars($config->pds_email_asunto ?? '') ?>" placeholder="Ej: Tu Pedido de Servicio">
+                            <div class="form-text"><small>Texto predeterminado para el asunto del correo.</small></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="presupuesto_email_asunto" class="form-label">Asunto (Subjeto) Correo Presupuestos</label>
+                            <input type="text" class="form-control" id="presupuesto_email_asunto" name="presupuesto_email_asunto" value="<?= htmlspecialchars($config->presupuesto_email_asunto ?? '') ?>" placeholder="Ej: Tu Presupuesto Comercial">
+                            <div class="form-text"><small>Texto predeterminado para el asunto del correo.</small></div>
+                        </div>
+                    </div>
+
+                    <div class="row gx-4 gy-3 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label">Imagen de Encabezado (Documentos)</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div>
+                                    <input type="file" class="form-control" name="impresion_header" accept=".jpg,.jpeg,.png,.webp">
+                                    <div class="form-text"><small>Logo o imagen para la cabecera (se recomienda PNG sin fondo).</small></div>
+                                </div>
+                                <?php if(!empty($config->impresion_header_url)): ?>
+                                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$config->impresion_header_url) ?>" alt="Header" class="img-thumbnail rounded-2 shadow-sm" style="max-height: 50px;">
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Imagen de Pie / Footer (Documentos)</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div>
+                                    <input type="file" class="form-control" name="impresion_footer" accept=".jpg,.jpeg,.png,.webp">
+                                    <div class="form-text"><small>Imagen para el final de presupuestos o PDS.</small></div>
+                                </div>
+                                <?php if(!empty($config->impresion_footer_url)): ?>
+                                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$config->impresion_footer_url) ?>" alt="Footer" class="img-thumbnail rounded-2 shadow-sm" style="max-height: 50px;">
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <?php endif; ?>
+
             <!-- 4. INTEGRACIÓN TANGO CONNECT -->
             <div class="card rxn-form-card shadow-sm mb-4 border-warning border-opacity-50 border-start border-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <div class="card-header  border-bottom-0 pt-4 pb-0">
                     <h5 class="fw-bold text-primary mb-0"><?= htmlspecialchars((string) $tangoSectionTitle) ?></h5>
                 </div>
                 <div class="card-body">
@@ -230,27 +346,36 @@
                                    value="<?= htmlspecialchars((string)($old['cantidad_articulos_sync'] ?? ($config->cantidad_articulos_sync ?? 50))) ?>">
                         </div>
 
-                        <div class="col-md-4">
-                            <label for="lista_precio_1" class="form-label">Lista de Precio Default (1)</label>
-                            <?php $valLista1 = htmlspecialchars((string)($old['lista_precio_1'] ?? ($config->lista_precio_1 ?? ''))); ?>
-                            <select class="form-select tango-dynamic" id="lista_precio_1" name="lista_precio_1" data-original="<?= $valLista1 ?>">
-                                <?php if($valLista1): ?><option value="<?= $valLista1 ?>">Valor local guardado (<?= $valLista1 ?>)</option><?php else: ?><option value="">Validar conexión primero...</option><?php endif; ?>
+                        <div class="col-md-4 mt-3">
+                            <label for="lista_precio_1" class="form-label">Lista de Precios 1</label>
+                            <?php $valL1 = htmlspecialchars((string)($old['lista_precio_1'] ?? ($config->lista_precio_1 ?? ''))); ?>
+                            <select class="form-select" id="lista_precio_1" name="lista_precio_1" data-original="<?= $valL1 ?>">
+                                <?php if($valL1): ?><option value="<?= $valL1 ?>">Guardado (<?= $valL1 ?>)</option><?php else: ?><option value="">Validar conexión...</option><?php endif; ?>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="lista_precio_2" class="form-label">Lista de Precio Alternate (2)</label>
-                            <?php $valLista2 = htmlspecialchars((string)($old['lista_precio_2'] ?? ($config->lista_precio_2 ?? ''))); ?>
-                            <select class="form-select tango-dynamic" id="lista_precio_2" name="lista_precio_2" data-original="<?= $valLista2 ?>">
-                                <?php if($valLista2): ?><option value="<?= $valLista2 ?>">Valor local guardado (<?= $valLista2 ?>)</option><?php else: ?><option value="">Validar conexión primero...</option><?php endif; ?>
+                        <div class="col-md-4 mt-3">
+                            <label for="lista_precio_2" class="form-label">Lista de Precios 2</label>
+                            <?php $valL2 = htmlspecialchars((string)($old['lista_precio_2'] ?? ($config->lista_precio_2 ?? ''))); ?>
+                            <select class="form-select" id="lista_precio_2" name="lista_precio_2" data-original="<?= $valL2 ?>">
+                                <?php if($valL2): ?><option value="<?= $valL2 ?>">Guardado (<?= $valL2 ?>)</option><?php else: ?><option value="">Validar conexión...</option><?php endif; ?>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="deposito_codigo" class="form-label text-danger">Depósito Tango (Descarga)</label>
-                            <?php $valDepo = htmlspecialchars((string)($old['deposito_codigo'] ?? ($config->deposito_codigo ?? ''))); ?>
-                            <select class="form-select border-danger tango-dynamic" id="deposito_codigo" name="deposito_codigo" data-original="<?= $valDepo ?>">
-                                <?php if($valDepo): ?><option value="<?= $valDepo ?>">Valor local guardado (<?= $valDepo ?>)</option><?php else: ?><option value="">Validar conexión primero...</option><?php endif; ?>
+                        <div class="col-md-4 mt-3">
+                            <label for="deposito_codigo" class="form-label">Depósito de Stock</label>
+                            <?php $valDep = htmlspecialchars((string)($old['deposito_codigo'] ?? ($config->deposito_codigo ?? ''))); ?>
+                            <select class="form-select" id="deposito_codigo" name="deposito_codigo" data-original="<?= $valDep ?>">
+                                <?php if($valDep): ?><option value="<?= $valDep ?>">Guardado (<?= $valDep ?>)</option><?php else: ?><option value="">Validar conexión...</option><?php endif; ?>
                             </select>
-                            <div class="form-text text-danger" style="font-size: 0.75rem;">Representa el almacén base de la contabilidad web.</div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label for="clasificaciones_pds_raw" class="form-label">Catálogo Local de Clasificaciones PDS</label>
+                            <textarea class="form-control font-monospace" id="clasificaciones_pds_raw" name="clasificaciones_pds_raw" rows="3" style="font-size:0.8rem;" placeholder='[{"codigo":"ASETGO", "descripcion":"Asesoramiento Tango"}, ...]'><?= htmlspecialchars($old['clasificaciones_pds_raw'] ?? ($config->clasificaciones_pds_raw ?? '')) ?></textarea>
+                            <div class="form-text"><small>Alimenta el autocompletado del CRM sin demoras de la API externa (soporta JSON array).</small></div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <input type="hidden" id="tango_perfil_snapshot_json" name="tango_perfil_snapshot_json" value="<?= htmlspecialchars((string)($old['tango_perfil_snapshot_json'] ?? ($config->tango_perfil_snapshot_json ?? ''))) ?>">
                         </div>
 
                         <div class="col-12 mt-2">
@@ -277,7 +402,7 @@
 
             <!-- 5. SMTP / CORREO -->
             <div class="card rxn-form-card shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 rxn-module-header">
+                <div class="card-header  border-bottom-0 pt-4 pb-0 rxn-module-header">
                     <h5 class="fw-bold text-primary mb-0"><?= htmlspecialchars((string) $smtpSectionTitle) ?></h5>
                     <div class="form-check form-switch m-0 p-0 d-flex align-items-center">
                         <label class="form-check-label fw-bold me-5 pe-2" for="usa_smtp_propio" style="cursor: pointer;">Forzar Cuenta SMTP Propia</label>
@@ -350,7 +475,12 @@
         </form>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Password Visibility Toggle
@@ -464,13 +594,14 @@
                     }
                     return false;
                 } catch (error) {
+                    console.error("Local JS fetch error en API Connect Metadata:", error);
                     tangoBtn.innerHTML = '❌ Falla Local';
                     tangoBtn.classList.replace('btn-primary', 'btn-danger');
                     if (tangoHint) {
                         tangoHint.textContent = 'Hubo un problema local al intentar resolver metadata de Tango.';
                     }
                     if (validateFirst) {
-                        alert('Problema al contactar tu propia instancia de red (CORS/Timeout).');
+                        alert('Problema al contactar tu propia instancia de red (CORS/Timeout). Revise consola local.');
                     }
                     return false;
                 } finally {
@@ -490,6 +621,39 @@
                 }
             }
 
+            const sCompanyStatic = document.getElementById('tango_connect_company_id');
+            const sL1Static = document.getElementById('lista_precio_1');
+            const sL2Static = document.getElementById('lista_precio_2');
+            const sDepoStatic = document.getElementById('deposito_codigo');
+
+            // Habilitar buscadores por defecto al cargar pagina (con la opcion mock si hay)
+            if (sCompanyStatic) applyLocalSearchPattern(sCompanyStatic);
+            if (sL1Static) applyLocalSearchPattern(sL1Static);
+            if (sL2Static) applyLocalSearchPattern(sL2Static);
+            if (sDepoStatic) applyLocalSearchPattern(sDepoStatic);
+
+            if (sCompanyStatic) {
+                sCompanyStatic.addEventListener('change', async () => {
+                    // Si ya seleccionó una empresa válida, cargamos silenciosamente la metadata
+                    if (sCompanyStatic.value) {
+                        try {
+                            const originalBtnHtml = tangoBtn ? tangoBtn.innerHTML : null;
+                            if (tangoBtn) {
+                                tangoBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cargando perfiles...';
+                                tangoBtn.disabled = true;
+                            }
+                            await loadTangoMetadata({ validateFirst: false });
+                            if (tangoBtn && originalBtnHtml) {
+                                tangoBtn.innerHTML = originalBtnHtml;
+                                tangoBtn.disabled = false;
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                });
+            }
+
             if (tangoBtn) {
                 tangoBtn.addEventListener('click', async () => {
                     await loadTangoMetadata({ validateFirst: true });
@@ -498,14 +662,9 @@
 
             function populateTangoSelects(data) {
                 const sCompany = document.getElementById('tango_connect_company_id');
-                const sL1 = document.getElementById('lista_precio_1');
-                const sL2 = document.getElementById('lista_precio_2');
-                const sDepo = document.getElementById('deposito_codigo');
+                const inputSnapshot = document.getElementById('tango_perfil_snapshot_json');
 
-                const origCompany = sCompany.getAttribute('data-original');
-                const origL1 = sL1.getAttribute('data-original');
-                const origL2 = sL2.getAttribute('data-original');
-                const origDep = sDepo.getAttribute('data-original');
+                const origCompany = sCompany.value || sCompany.getAttribute('data-original');
 
                 let companyMatched = false;
                 let preHtmlCompany = '<option value="">-- Seleccioná una empresa --</option>';
@@ -523,48 +682,191 @@
                 sCompany.innerHTML = preHtmlCompany;
 
                 // Render Listas
-                let l1Matched = false;
-                let l2Matched = false;
-                let preHtmlL1 = '<option value="">-- Sin asignar --</option>';
-                let preHtmlL2 = '<option value="">-- Sin asignar --</option>';
+                const sL1 = document.getElementById('lista_precio_1');
+                const sL2 = document.getElementById('lista_precio_2');
+                const sDepo = document.getElementById('deposito_codigo');
 
-                data.listas_precios.forEach(l => {
-                    let sel1 = (origL1 == l.id) ? 'selected' : '';
-                    let sel2 = (origL2 == l.id) ? 'selected' : '';
-                    if (sel1) l1Matched = true;
-                    if (sel2) l2Matched = true;
-                    preHtmlL1 += `<option value="${l.id}" ${sel1}>${l.descripcion}</option>`;
-                    preHtmlL2 += `<option value="${l.id}" ${sel2}>${l.descripcion}</option>`;
-                });
+                if (sL1 && sL2 && sDepo) {
+                    const origL1 = sL1.getAttribute('data-original');
+                    const origL2 = sL2.getAttribute('data-original');
+                    const origDep = sDepo.getAttribute('data-original');
 
-                if (origL1 && !l1Matched) {
-                    preHtmlL1 += `<option value="${origL1}" selected>Valor guardado sin descripción (${origL1})</option>`;
+                    let preHtmlL1 = '<option value="">-- Sin asignar --</option>';
+                    let preHtmlL2 = '<option value="">-- Sin asignar --</option>';
+                    
+                    if (data.listas_precios) {
+                        data.listas_precios.forEach(l => {
+                            let sel1 = (origL1 == l.id) ? 'selected' : '';
+                            let sel2 = (origL2 == l.id) ? 'selected' : '';
+                            preHtmlL1 += `<option value="${l.id}" ${sel1}>${l.descripcion}</option>`;
+                            preHtmlL2 += `<option value="${l.id}" ${sel2}>${l.descripcion}</option>`;
+                        });
+                    }
+
+                    sL1.innerHTML = preHtmlL1;
+                    sL2.innerHTML = preHtmlL2;
+
+                    let preHtmlDep = '<option value="">-- Ignorar Stock / Sin asignar --</option>';
+                    
+                    if (data.depositos) {
+                        data.depositos.forEach(d => {
+                            let selD = (origDep == d.id) ? 'selected' : '';
+                            preHtmlDep += `<option value="${d.id}" ${selD}>${d.descripcion}</option>`;
+                        });
+                    }
+
+                    sDepo.innerHTML = preHtmlDep;
                 }
-                if (origL2 && !l2Matched) {
-                    preHtmlL2 += `<option value="${origL2}" selected>Valor guardado sin descripción (${origL2})</option>`;
+
+                // Guardar Perfiles Pedido en input oculto
+                if (data.perfiles_pedidos) {
+                    inputSnapshot.value = JSON.stringify(data.perfiles_pedidos);
                 }
 
-                sL1.innerHTML = preHtmlL1;
-                sL2.innerHTML = preHtmlL2;
+                // Aplicar / Resincronizar buscadores
+                if (sCompany) applyLocalSearchPattern(sCompany);
+                if (sL1) applyLocalSearchPattern(sL1);
+                if (sL2) applyLocalSearchPattern(sL2);
+                if (sDepo) applyLocalSearchPattern(sDepo);
+            }
 
-                // Render Depósitos
-                let depMatched = false;
-                let preHtmlDep = '<option value="">-- Ignorar Stock / Sin asignar --</option>';
+            function applyLocalSearchPattern(selectEl) {
+                if (!selectEl.dataset.searchified) {
+                    selectEl.dataset.searchified = "true";
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'position-relative w-100';
+                    wrapper.style.zIndex = '999'; 
+                    // Asegurar que el padre no corte
+                    if (selectEl.parentElement) {
+                        selectEl.parentElement.style.overflow = 'visible';
+                    }
+                    
+                    selectEl.parentNode.insertBefore(wrapper, selectEl);
+                    wrapper.appendChild(selectEl);
+                    
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = selectEl.className.replace('form-select', 'form-control');
+                    input.placeholder = 'Escriba para buscar...';
+                    input.autocomplete = 'off';
+                    
+                    const suggestions = document.createElement('div');
+                    suggestions.className = 'rxn-search-suggestions-container bg-body border rounded shadow-lg position-absolute w-100 d-none';
+                    suggestions.style.maxHeight = '300px';
+                    suggestions.style.overflowY = 'auto';
+                    suggestions.style.top = '100%';
+                    suggestions.style.left = '0';
+                    suggestions.style.zIndex = '1050';
+                    suggestions.style.marginTop = '2px';
+                    
+                    wrapper.appendChild(input);
+                    wrapper.appendChild(suggestions);
+                    
+                    selectEl.classList.add('d-none');
+
+                    selectEl._syncSearch = function() {
+                        if (selectEl.selectedIndex >= 0) {
+                            input.value = selectEl.options[selectEl.selectedIndex].text;
+                        } else {
+                            input.value = '';
+                        }
+                    };
+                    
+                    input.addEventListener('focus', () => renderSuggestions(''));
+                    input.addEventListener('input', (e) => renderSuggestions(e.target.value));
+
+                    let currentFocus = -1;
+
+                    input.addEventListener('keydown', function(e) {
+                        const items = suggestions.querySelectorAll('button.dropdown-item');
+                        if (items.length === 0) return;
+
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            currentFocus++;
+                            if (currentFocus >= items.length) currentFocus = 0;
+                            addActive(items);
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            currentFocus--;
+                            if (currentFocus < 0) currentFocus = items.length - 1;
+                            addActive(items);
+                        } else if (e.key === 'Enter') {
+                            if (currentFocus > -1) {
+                                e.preventDefault();
+                                items[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
+                            } else {
+                                // Evitar falso submit si apreta enter con el input vacio o escribiendo
+                                e.preventDefault();
+                            }
+                        }
+                    });
+
+                    function addActive(items) {
+                        items.forEach(item => item.classList.remove('active', 'bg-primary', 'text-white'));
+                        if (currentFocus >= 0 && currentFocus < items.length) {
+                            items[currentFocus].classList.add('active', 'bg-primary', 'text-white');
+                            items[currentFocus].scrollIntoView({ block: "nearest" });
+                        }
+                    }
+                    
+                    let isMousedown = false;
+                    suggestions.addEventListener('mousedown', () => isMousedown = true);
+                    input.addEventListener('blur', () => {
+                        if(!isMousedown) {
+                            setTimeout(() => {
+                                suggestions.classList.add('d-none');
+                                selectEl._syncSearch();
+                            }, 150);
+                        }
+                        isMousedown = false;
+                    });
+
+                    // Evento click extra para asegurar despliegue completo
+                    input.addEventListener('click', (e) => {
+                        renderSuggestions(e.target.value);
+                    });
+
+                    function renderSuggestions(term) {
+                        suggestions.innerHTML = '';
+                        currentFocus = -1;
+                        term = term.toLowerCase().trim();
+                        let count = 0;
+                        Array.from(selectEl.options).forEach((opt, idx) => {
+                            if (!opt.value && term) return;
+                            if (opt.text.toLowerCase().includes(term) || term === '') {
+                                count++;
+                                const item = document.createElement('button');
+                                item.type = 'button';
+                                item.className = 'dropdown-item p-2 border-bottom text-wrap';
+                                if (opt.selected) item.classList.add('bg-light', 'fw-bold', 'text-primary');
+                                item.textContent = opt.text;
+                                item.addEventListener('mousedown', (e) => {
+                                    e.preventDefault();
+                                    selectEl.selectedIndex = idx;
+                                    selectEl._syncSearch();
+                                    suggestions.classList.add('d-none');
+                                    selectEl.dispatchEvent(new Event('change'));
+                                });
+                                suggestions.appendChild(item);
+                            }
+                        });
+                        if (count > 0) suggestions.classList.remove('d-none');
+                        else suggestions.classList.add('d-none');
+                    }
+                }
                 
-                data.depositos.forEach(d => {
-                    let selD = (origDep == d.id) ? 'selected' : '';
-                    if (selD) depMatched = true;
-                    preHtmlDep += `<option value="${d.id}" ${selD}>${d.descripcion}</option>`;
-                });
-
-                if (origDep && !depMatched) {
-                    preHtmlDep += `<option value="${origDep}" selected>Valor guardado sin descripción (${origDep})</option>`;
+                // Si el selector ya estaba searchified, solo sincronizar el input
+                if (selectEl._syncSearch) {
+                    selectEl._syncSearch();
                 }
-
-                sDepo.innerHTML = preHtmlDep;
             }
 
         });
     </script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

@@ -48,7 +48,7 @@ class ApiClient
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $this->defaultHeaders,
-            CURLOPT_TIMEOUT => 30, // 30 segundos timeout
+            CURLOPT_TIMEOUT => 120, // 120 segundos timeout (para pedidos masivos)
             CURLOPT_SSL_VERIFYPEER => false // En prod cambiar a true si el config central lo requiere
         ];
 

@@ -54,6 +54,11 @@ class PedidoServicioTangoService
 
         if ($apiUrl === '' && $clientKey !== '') {
             $apiUrl = sprintf('https://%s.connect.axoft.com/Api', str_replace('/', '-', $clientKey));
+        } elseif ($apiUrl !== '') {
+            $apiUrl = rtrim($apiUrl, '/');
+            if (!str_ends_with(strtolower($apiUrl), '/api')) {
+                $apiUrl .= '/Api';
+            }
         }
 
         $payload = [];
@@ -94,7 +99,11 @@ class PedidoServicioTangoService
             ]];
 
             $headerResolver = new TangoOrderHeaderResolver('crm');
-            $resolvedHeaders = $headerResolver->resolveForCurrentContext($clientePayload);
+            // Resolver el usuario operativo del perfil Tango:
+            // resolveForCurrentContext() usa al admin logueado, que puede NO tener perfil Tango.
+            // Buscamos el primer usuario activo de la empresa con perfil Tango configurado.
+            $tangoUser = $this->resolveTangoUser($empresaId);
+            $resolvedHeaders = $headerResolver->resolveFromConfig($config, $clientePayload, $tangoUser);
 
             if (isset($pedido['clasificacion_id_tango']) && (int)$pedido['clasificacion_id_tango'] > 0) {
                 $resolvedHeaders['ID_GVA81'] = (int)$pedido['clasificacion_id_tango'];
@@ -267,5 +276,39 @@ class PedidoServicioTangoService
         }
 
         return 'HTTP Error ' . (string) ($response['status'] ?? 'desconocido');
+    }
+
+    /**
+     * Busca el primer usuario activo de la empresa que tenga un perfil Tango configurado.
+     * Esto permite que el resolver use el perfil del operador real, no el del admin logueado,
+     * que puede no tener perfil de Tango asignado.
+     *
+     * Prioridad:
+     * 1. Usuario logueado si tiene tango_perfil_pedido_id
+     * 2. Primer usuario activo de la empresa con tango_perfil_pedido_id configurado
+     * 3. null → el resolver cae al config global de la empresa
+     */
+    private function resolveTangoUser(int $empresaId): ?\App\Modules\Auth\Usuario
+    {
+        // Primero: el usuario logueado, si tiene perfil Tango propio.
+        $currentUser = \App\Modules\Auth\AuthService::getCurrentUser();
+        if ($currentUser !== null && !empty($currentUser->tango_perfil_pedido_id)) {
+            return $currentUser;
+        }
+
+        // Segundo: buscar un usuario activo de la empresa con perfil Tango.
+        try {
+            $userRepo = new \App\Modules\Auth\UsuarioRepository();
+            $users = $userRepo->findAllByEmpresaId($empresaId);
+            foreach ($users as $user) {
+                if (!empty($user->tango_perfil_pedido_id) && $user->activo == 1) {
+                    return $user;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silencioso — el resolver hará fallback al config global
+        }
+
+        return null;
     }
 }

@@ -40,6 +40,17 @@ class ArticuloRepository
         if (!empty($tables['bootstrap']) && is_array($tables['bootstrap'])) {
             $this->ensureSchema($tables['bootstrap']);
         }
+
+        $this->ensureSoftDeleteSchema();
+    }
+
+    private function ensureSoftDeleteSchema(): void
+    {
+        try {
+            $this->db->exec('ALTER TABLE ' . $this->quoteTable($this->articulosTable) . ' ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL');
+        } catch (\PDOException $e) {
+            // Ignorar si la columna ya existe
+        }
     }
 
     public static function forCrm(): self
@@ -88,8 +99,9 @@ class ArticuloRepository
         ];
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all', ?int $categoriaId = null): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', ?int $categoriaId = null, bool $onlyDeleted = false): int
     {
+        $delCond = $onlyDeleted ? 'a.deleted_at IS NOT NULL' : 'a.deleted_at IS NULL';
         $sql = 'SELECT COUNT(*)
             FROM ' . $this->quoteTable($this->articulosTable) . ' a
             LEFT JOIN ' . $this->quoteTable($this->categoriaMapTable) . ' acm
@@ -98,7 +110,7 @@ class ArticuloRepository
             LEFT JOIN categorias c
                 ON c.id = acm.categoria_id
                 AND c.empresa_id = a.empresa_id
-            WHERE a.empresa_id = :empresa_id';
+            WHERE a.empresa_id = :empresa_id AND ' . $delCond;
         $params = [':empresa_id' => $empresaId];
 
         $this->applyCategoriaFilter($sql, $params, $categoriaId);
@@ -118,8 +130,10 @@ class ArticuloRepository
         string $field = 'all',
         string $orderBy = 'nombre',
         string $orderDir = 'ASC',
-        ?int $categoriaId = null
+        ?int $categoriaId = null,
+        bool $onlyDeleted = false
     ): array {
+        $delCond = $onlyDeleted ? 'a.deleted_at IS NOT NULL' : 'a.deleted_at IS NULL';
         $offset = max(0, ($page - 1) * $limit);
         $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug' . $this->selectStoreFlagsColumns('asf') . ',
                 COALESCE(
@@ -135,7 +149,7 @@ class ArticuloRepository
             LEFT JOIN categorias c
                 ON c.id = acm.categoria_id
                 AND c.empresa_id = a.empresa_id' . $this->joinStoreFlags('a', 'asf') . '
-            WHERE a.empresa_id = :empresa_id';
+            WHERE a.empresa_id = :empresa_id AND ' . $delCond;
         $params = [':empresa_id' => $empresaId];
 
         $this->applyCategoriaFilter($sql, $params, $categoriaId);
@@ -319,6 +333,38 @@ class ArticuloRepository
         }
 
         $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = 'UPDATE ' . $this->quoteTable($this->articulosTable) . " SET deleted_at = NOW() WHERE empresa_id = ? AND id IN ($placeholders)";
+
+        $params = array_merge([$empresaId], $ids);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
+    public function restoreByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = 'UPDATE ' . $this->quoteTable($this->articulosTable) . " SET deleted_at = NULL WHERE empresa_id = ? AND id IN ($placeholders)";
+
+        $params = array_merge([$empresaId], $ids);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
+    public function forceDeleteByIds(array $ids, int $empresaId): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $placeholders = str_repeat('?,', count($ids) - 1) . '?';
         $sql = 'DELETE FROM ' . $this->quoteTable($this->articulosTable) . " WHERE empresa_id = ? AND id IN ($placeholders)";
 
         $params = array_merge([$empresaId], $ids);
@@ -328,7 +374,7 @@ class ArticuloRepository
         return $stmt->rowCount();
     }
 
-    public function findById(int $id, int $empresaId): ?Articulo
+    public function findById(int $id, int $empresaId, bool $includeDeleted = false): ?Articulo
     {
         $sql = 'SELECT a.*, c.id AS categoria_id, c.nombre AS categoria_nombre, c.slug AS categoria_slug' . $this->selectStoreFlagsColumns('asf') . ',
                 COALESCE(
@@ -345,6 +391,10 @@ class ArticuloRepository
                 ON c.id = acm.categoria_id
                 AND c.empresa_id = a.empresa_id' . $this->joinStoreFlags('a', 'asf') . '
             WHERE a.id = :id AND a.empresa_id = :empresa_id';
+        
+        if (!$includeDeleted) {
+            $sql .= ' AND a.deleted_at IS NULL';
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([

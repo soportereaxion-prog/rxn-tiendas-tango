@@ -211,4 +211,44 @@ class ModuleNotesController extends Controller
 
         return $returnTo;
     }
+
+    public function syncExport(): void
+    {
+        $expectedKey = $_ENV['SYNC_API_KEY'] ?? getenv('SYNC_API_KEY') ?? '';
+
+        if ($expectedKey === '') {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'API Key not configured on server']);
+            exit;
+        }
+
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        
+        if (trim($authHeader) === '') {
+            if (function_exists('apache_request_headers')) {
+                $headers = apache_request_headers();
+                $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+            }
+        }
+
+        if (!str_starts_with($authHeader, 'Bearer ') || substr($authHeader, 7) !== $expectedKey) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+
+        $storagePath = BASE_PATH . '/app/storage/module_notes.json';
+
+        header('Content-Type: application/json');
+        
+        if (!is_file($storagePath)) {
+            echo json_encode(['modules' => []]);
+            exit;
+        }
+
+        readfile($storagePath);
+        exit;
+    }
 }

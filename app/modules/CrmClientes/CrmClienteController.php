@@ -36,10 +36,13 @@ class CrmClienteController extends Controller
 
         $sort = (string) ($_GET['sort'] ?? 'razon_social');
         $dir = strtoupper((string) ($_GET['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
-        $totalItems = $this->repository->countAll($empresaId, $search, $field);
+        $status = (string) ($_GET['status'] ?? 'activos');
+        $onlyDeleted = $status === 'papelera';
+
+        $totalItems = $this->repository->countAll($empresaId, $search, $field, $onlyDeleted);
         $totalPages = max(1, (int) ceil($totalItems / $limit));
         $page = min($page, $totalPages);
-        $clientes = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir);
+        $clientes = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $onlyDeleted);
 
         View::render('app/modules/CrmClientes/views/index.php', array_merge($this->buildUiContext(), [
             'clientes' => $clientes,
@@ -51,6 +54,7 @@ class CrmClienteController extends Controller
             'totalItems' => $totalItems,
             'sort' => $sort,
             'dir' => $dir,
+            'status' => $status,
         ]));
     }
 
@@ -122,6 +126,102 @@ class CrmClienteController extends Controller
         }
 
         $this->redirectToIndex();
+    }
+
+    public function eliminar(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+        
+        if ($idInt > 0) {
+            $this->repository->deleteByIds([$idInt], (int) Context::getEmpresaId());
+            Flash::set('success', 'Cliente enviado a la papelera.');
+        }
+        $this->redirectToIndex();
+    }
+
+    public function copy(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+        $empresaId = (int) Context::getEmpresaId();
+
+        try {
+            if ($idInt > 0) {
+                $this->repository->copy($idInt, $empresaId);
+                Flash::set('success', 'Cliente duplicado exitosamente.');
+            }
+        } catch (\Exception $e) {
+            Flash::set('danger', $e->getMessage());
+        }
+
+        $this->redirectToIndex();
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+        
+        if ($idInt > 0) {
+            $this->repository->restoreByIds([$idInt], (int) Context::getEmpresaId());
+            Flash::set('success', 'Cliente restaurado.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        exit;
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireLogin();
+        $idInt = (int) $id;
+        
+        if ($idInt > 0) {
+            $this->repository->forceDeleteByIds([$idInt], (int) Context::getEmpresaId());
+            Flash::set('success', 'Cliente eliminado definitivamente.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        exit;
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $this->repository->restoreByIds(array_map('intval', $ids), (int) Context::getEmpresaId());
+            Flash::set('success', 'Se restauraron ' . count($ids) . ' clientes.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        exit;
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $this->repository->forceDeleteByIds(array_map('intval', $ids), (int) Context::getEmpresaId());
+            Flash::set('success', 'Se eliminaron definitivamente ' . count($ids) . ' clientes.');
+        }
+
+        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        exit;
     }
 
     public function editar(): void

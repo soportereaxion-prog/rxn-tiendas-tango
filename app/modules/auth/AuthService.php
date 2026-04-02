@@ -26,6 +26,7 @@ class AuthService
                 $_SESSION['user_id'] = $usuario->id;
                 $_SESSION['empresa_id'] = $usuario->empresa_id;
                 $_SESSION['user_name'] = $usuario->nombre;
+                $_SESSION['anura_interno'] = $usuario->anura_interno ?? null;
                 $_SESSION['es_rxn_admin'] = $usuario->es_rxn_admin ?? 0;
                 $_SESSION['pref_theme'] = $usuario->preferencia_tema ?? 'light';
                 $_SESSION['pref_font'] = $usuario->preferencia_fuente ?? 'md';
@@ -35,6 +36,15 @@ class AuthService
             }
         }
         return false;
+    }
+
+    public static function getCurrentUser(): ?Usuario
+    {
+        if (empty($_SESSION['user_id'])) {
+            return null;
+        }
+        $repo = new UsuarioRepository();
+        return $repo->findById((int) $_SESSION['user_id']);
     }
 
     public static function logout(): void

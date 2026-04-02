@@ -25,9 +25,10 @@ class CrmClienteRepository
         $this->ensureSchema();
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all'): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', bool $onlyDeleted = false): int
     {
-        $sql = 'SELECT COUNT(*) FROM crm_clientes WHERE empresa_id = :empresa_id';
+        $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
+        $sql = "SELECT COUNT(*) FROM crm_clientes WHERE empresa_id = :empresa_id AND $delCond";
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
 
@@ -44,7 +45,8 @@ class CrmClienteRepository
         string $search = '',
         string $field = 'all',
         string $sort = 'razon_social',
-        string $dir = 'ASC'
+        string $dir = 'ASC',
+        bool $onlyDeleted = false
     ): array {
         $offset = max(0, ($page - 1) * $limit);
         $allowedSorts = ['id', 'codigo_tango', 'razon_social', 'documento', 'email', 'telefono', 'activo', 'fecha_ultima_sync', 'updated_at'];
@@ -53,7 +55,8 @@ class CrmClienteRepository
         }
 
         $dir = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
-        $sql = 'SELECT * FROM crm_clientes WHERE empresa_id = :empresa_id';
+        $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
+        $sql = "SELECT * FROM crm_clientes WHERE empresa_id = :empresa_id AND $delCond";
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
         $sql .= ' ORDER BY ' . $sort . ' ' . $dir . ', razon_social ASC LIMIT :limit OFFSET :offset';
@@ -75,7 +78,7 @@ class CrmClienteRepository
             return [];
         }
 
-        $sql = 'SELECT id, codigo_tango, razon_social, documento, email, telefono, id_gva14_tango FROM crm_clientes WHERE empresa_id = :empresa_id';
+        $sql = 'SELECT id, codigo_tango, razon_social, documento, email, telefono, id_gva14_tango FROM crm_clientes WHERE empresa_id = :empresa_id AND deleted_at IS NULL';
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
         $sql .= ' ORDER BY
@@ -114,7 +117,7 @@ class CrmClienteRepository
 
     public function findByCodigoTango(string $codigoTango, int $empresaId): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM crm_clientes WHERE codigo_tango = :codigo_tango AND empresa_id = :empresa_id LIMIT 1');
+        $stmt = $this->db->prepare('SELECT * FROM crm_clientes WHERE codigo_tango = :codigo_tango AND empresa_id = :empresa_id AND deleted_at IS NULL LIMIT 1');
         $stmt->execute([
             ':codigo_tango' => $codigoTango,
             ':empresa_id' => $empresaId,
@@ -126,7 +129,7 @@ class CrmClienteRepository
 
     public function findById(int $id, int $empresaId): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM crm_clientes WHERE id = :id AND empresa_id = :empresa_id LIMIT 1');
+        $stmt = $this->db->prepare('SELECT * FROM crm_clientes WHERE id = :id AND empresa_id = :empresa_id AND deleted_at IS NULL LIMIT 1');
         $stmt->execute([
             ':id' => $id,
             ':empresa_id' => $empresaId,
@@ -162,11 +165,39 @@ class CrmClienteRepository
 
     public function truncate(int $empresaId): void
     {
-        $stmt = $this->db->prepare('DELETE FROM crm_clientes WHERE empresa_id = :empresa_id');
+        $stmt = $this->db->prepare('UPDATE crm_clientes SET deleted_at = NOW() WHERE empresa_id = :empresa_id');
         $stmt->execute([':empresa_id' => $empresaId]);
     }
 
     public function deleteByIds(array $ids, int $empresaId): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = 'UPDATE crm_clientes SET deleted_at = NOW() WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
+
+        return $stmt->rowCount();
+    }
+
+    public function restoreByIds(array $ids, int $empresaId): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = 'UPDATE crm_clientes SET deleted_at = NULL WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
+
+        return $stmt->rowCount();
+    }
+
+    public function forceDeleteByIds(array $ids, int $empresaId): int
     {
         if ($ids === []) {
             return 0;
@@ -178,6 +209,30 @@ class CrmClienteRepository
         $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
 
         return $stmt->rowCount();
+    }
+
+    public function copy(int $id, int $empresaId): void
+    {
+        $cliente = $this->findById($id, $empresaId);
+        if (!$cliente) {
+            throw new \RuntimeException('El cliente a copiar no existe o no pertenece a la empresa.');
+        }
+
+        $stmt = $this->db->prepare('INSERT INTO crm_clientes (
+            empresa_id, razon_social, documento, email, telefono, direccion, activo, created_at, updated_at
+        ) VALUES (
+            :empresa_id, :razon_social, :documento, :email, :telefono, :direccion, :activo, NOW(), NOW()
+        )');
+
+        $stmt->execute([
+            ':empresa_id' => $empresaId,
+            ':razon_social' => 'Copia de ' . ($cliente['razon_social'] ?? 'Cliente sin nombre'),
+            ':documento' => $this->nullableString($cliente['documento'] ?? null),
+            ':email' => $this->nullableString($cliente['email'] ?? null),
+            ':telefono' => $this->nullableString($cliente['telefono'] ?? null),
+            ':direccion' => $this->nullableString($cliente['direccion'] ?? null),
+            ':activo' => 1
+        ]);
     }
 
     public function upsertFromTango(int $empresaId, array $data): string

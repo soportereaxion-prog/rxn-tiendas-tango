@@ -78,62 +78,11 @@ foreach ($defaultCards as $cardId => $cardData) {
     $finalCards[$cardId] = $cardData;
 }
 ?>
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entorno Operativo de Tiendas - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-    <style>
-        body { background-color: var(--bg-color, #121212); color: var(--text-color, #f8f9fa); }
-        .hero-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; }
-        
-        .module-card {
-            background-color: var(--card-bg, #1e1e1e);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 250px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .module-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.25);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-        
-        .module-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.9;
-        }
-
-        .release-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
-        }
-
-        .release-list {
-            margin-bottom: 0;
-            padding-left: 1rem;
-            color: #c7c7c7;
-        }
-
-        .release-list li + li {
-            margin-top: 0.45rem;
-        }
-    </style>
-</head>
-<body class="d-flex flex-column min-vh-100 p-4 p-md-5 rxn-launcher-shell">
-
-    <div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">
         
         <div class="rxn-module-header mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
@@ -154,14 +103,17 @@ foreach ($defaultCards as $cardId => $cardData) {
         require BASE_PATH . '/app/shared/views/components/module_notes_panel.php';
         ?>
 
+        <!-- Buscador de Módulos (Estándar F3 / /) -->
+        <?php require BASE_PATH . '/app/shared/views/components/dashboard_search.php'; ?>
+
         <!-- El grid sortable -->
         <div id="dashboard-grid" class="row g-4">
             <?php foreach ($finalCards as $id => $data): ?>
                 <div class="col-sm-6 col-lg-4 rxn-sortable-col" data-id="<?= htmlspecialchars($id) ?>">
-                    <div class="card module-card text-center p-4 h-100 position-relative shadow-sm" style="cursor: grab;">
+                    <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm" style="cursor: grab;">
                         <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
-                            <div class="module-icon"><?= $data['icon'] ?></div>
-                            <h5 class="fw-bold mb-2 text-white"><?= htmlspecialchars($data['title']) ?></h5>
+                            <div class="rxn-module-icon text-primary"><?= $data['icon'] ?></div>
+                            <h5 class="fw-bold mb-2"><?= htmlspecialchars($data['title']) ?></h5>
                             <p class="text-muted small px-2"><?= htmlspecialchars($data['desc']) ?></p>
                             <a href="<?= htmlspecialchars($data['link']) ?>" class="stretched-link"></a>
                         </div>
@@ -199,14 +151,19 @@ foreach ($defaultCards as $cardId => $cardData) {
     </div>
 
     <!-- Script de Inyección Física D&D -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
     document.addEventListener("DOMContentLoaded", function() {
         const grid = document.getElementById('dashboard-grid');
         new Sortable(grid, {
             animation: 250,
             ghostClass: 'opacity-50',
-            handle: '.module-card',
+            handle: '.rxn-module-card',
             onEnd: function () {
                 let currentOrder = [];
                 document.querySelectorAll('.rxn-sortable-col').forEach(col => {
@@ -224,5 +181,8 @@ foreach ($defaultCards as $cardId => $cardData) {
         });
     });
     </script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

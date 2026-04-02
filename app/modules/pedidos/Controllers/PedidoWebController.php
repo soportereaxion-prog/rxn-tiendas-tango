@@ -32,10 +32,11 @@ class PedidoWebController extends Controller
         $estado = trim($_GET['estado'] ?? '');
         $sort   = trim($_GET['sort'] ?? 'p.created_at');
         $dir    = trim($_GET['dir'] ?? 'DESC');
+        $status = trim($_GET['status'] ?? 'activos');
 
-        $totalItems = $this->pedidoRepo->countAll($empresaId, $search, $field, $estado);
+        $totalItems = $this->pedidoRepo->countAll($empresaId, $search, $field, $estado, $status);
         $totalPages = (int)ceil($totalItems / $limit);
-        $pedidos = $this->pedidoRepo->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir);
+        $pedidos = $this->pedidoRepo->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir, $status);
 
         View::render('app/modules/Pedidos/views/index.php', [
             'pedidos'    => $pedidos,
@@ -46,6 +47,7 @@ class PedidoWebController extends Controller
             'estado'     => $estado,
             'sort'       => $sort,
             'dir'        => $dir,
+            'status'     => $status,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems
         ]);
@@ -164,7 +166,7 @@ class PedidoWebController extends Controller
     {
         AuthService::requireLogin();
         $empresaId = Context::getEmpresaId();
-        $ids = $_POST['selected_ids'] ?? [];
+        $ids = $_POST['ids'] ?? $_POST['selected_ids'] ?? [];
         $ids = is_array($ids) ? $ids : [];
         $ids = $this->pedidoRepo->findIdsByEmpresaAndList($empresaId, $ids);
 
@@ -220,6 +222,72 @@ class PedidoWebController extends Controller
         exit;
     }
 
+    public function eliminarMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = Context::getEmpresaId();
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $this->pedidoRepo->softDeleteBulk(array_map('intval', $ids), $empresaId);
+            \App\Core\Flash::set('Pedidos seleccionados movidos a la papelera.', 'success');
+        }
+        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos");
+        exit;
+    }
+
+    public function restoreMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = Context::getEmpresaId();
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $this->pedidoRepo->restoreBulk(array_map('intval', $ids), $empresaId);
+            \App\Core\Flash::set('Pedidos seleccionados restaurados.', 'success');
+        }
+        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        exit;
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = Context::getEmpresaId();
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $this->pedidoRepo->forceDeleteBulk(array_map('intval', $ids), $empresaId);
+            \App\Core\Flash::set('Pedidos seleccionados eliminados permanentemente.', 'success');
+        }
+        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        exit;
+    }
+
+    public function eliminar(string $id): void
+    {
+        AuthService::requireLogin();
+        $this->pedidoRepo->softDelete((int)$id, Context::getEmpresaId());
+        \App\Core\Flash::set('Pedido movido a la papelera.', 'success');
+        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos");
+        exit;
+    }
+
+    public function restore(string $id): void
+    {
+        AuthService::requireLogin();
+        $this->pedidoRepo->restore((int)$id, Context::getEmpresaId());
+        \App\Core\Flash::set('Pedido restaurado.', 'success');
+        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        exit;
+    }
+
+    public function forceDelete(string $id): void
+    {
+        AuthService::requireLogin();
+        $this->pedidoRepo->forceDelete((int)$id, Context::getEmpresaId());
+        \App\Core\Flash::set('Pedido eliminado permanentemente.', 'success');
+        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        exit;
+    }
+
     private function sendPedidoToTango(int $pedidoId, int $empresaId): array
     {
         $pedido = $this->pedidoRepo->findByIdWithDetails($pedidoId, $empresaId);
@@ -266,12 +334,24 @@ class PedidoWebController extends Controller
                 'direccion' => $pedido['direccion'],
             ];
 
+            $tangoPerfilPedidoId = null;
+            $activeUserId = $_SESSION['usuario_id'] ?? null;
+            if ($activeUserId) {
+                $stmtUsr = $pdo->prepare("SELECT tango_perfil_pedido_id FROM usuarios WHERE id = :uid");
+                $stmtUsr->execute(['uid' => $activeUserId]);
+                $usrP = $stmtUsr->fetchColumn();
+                if ($usrP) {
+                    $tangoPerfilPedidoId = (int) $usrP;
+                }
+            }
+
             $cabecera = [
                 'id' => $pedidoId,
                 'empresa_id' => $empresaId,
                 'created_at' => $pedido['pedido_fecha'],
                 'observaciones' => $pedido['pedido_observaciones'],
                 'total' => $pedido['total'],
+                'tango_perfil_pedido_id' => $tangoPerfilPedidoId,
             ];
 
             $renglonesMapped = [];

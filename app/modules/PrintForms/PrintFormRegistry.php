@@ -251,6 +251,7 @@ class PrintFormRegistry
                         'items' => [
                             ['source' => 'presupuesto.numero', 'label' => 'Presupuesto / Numero'],
                             ['source' => 'presupuesto.fecha', 'label' => 'Presupuesto / Fecha'],
+                            ['source' => 'presupuesto.usuario', 'label' => 'Presupuesto / Usuario (Creador)'],
                         ],
                     ],
                     [
@@ -890,6 +891,7 @@ class PrintFormRegistry
                         'items' => [
                             ['source' => 'pedido.numero',           'label' => 'Pedido / Número'],
                             ['source' => 'pedido.solicito',         'label' => 'Pedido / Solicitó'],
+                            ['source' => 'pedido.usuario',          'label' => 'Pedido / Usuario (Creador)'],
                             ['source' => 'pedido.fecha_inicio',     'label' => 'Pedido / Fecha inicio'],
                             ['source' => 'pedido.fecha_finalizado', 'label' => 'Pedido / Fecha finalizado'],
                             ['source' => 'pedido.clasificacion',    'label' => 'Pedido / Clasificación'],

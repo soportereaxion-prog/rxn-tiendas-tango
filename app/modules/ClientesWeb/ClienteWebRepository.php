@@ -180,15 +180,16 @@ class ClienteWebRepository
     /**
      * Obtiene todos los clientes paginados para el ABM.
      */
-    public function findAllPaginated(int $empresaId, int $page, int $limit, string $search, string $field, string $sort, string $dir): array
+    public function findAllPaginated(int $empresaId, int $page, int $limit, string $search, string $field, string $sort, string $dir, string $status = 'activos'): array
     {
         $offset = ($page - 1) * $limit;
         $orderDir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
         $allowedSorts = ['id', 'nombre', 'apellido', 'email', 'codigo_tango', 'id_gva14_tango', 'created_at'];
         $orderBy = in_array(strtolower($sort), $allowedSorts) ? $sort : 'created_at';
 
-        $sql = "SELECT * FROM {$this->clientesTable} WHERE empresa_id = :emp_id";
-        $params = ['emp_id' => $empresaId];
+        $activo = $status === 'papelera' ? 0 : 1;
+        $sql = "SELECT * FROM {$this->clientesTable} WHERE empresa_id = :emp_id AND activo = :activo";
+        $params = ['emp_id' => $empresaId, 'activo' => $activo];
 
         $this->applySearch($sql, $params, $search, $field, true);
 
@@ -208,10 +209,11 @@ class ClienteWebRepository
     /**
      * Cuenta clientes para paginación.
      */
-    public function countAll(int $empresaId, string $search, string $field): int
+    public function countAll(int $empresaId, string $search, string $field, string $status = 'activos'): int
     {
-        $sql = "SELECT COUNT(*) FROM {$this->clientesTable} WHERE empresa_id = :emp_id";
-        $params = ['emp_id' => $empresaId];
+        $activo = $status === 'papelera' ? 0 : 1;
+        $sql = "SELECT COUNT(*) FROM {$this->clientesTable} WHERE empresa_id = :emp_id AND activo = :activo";
+        $params = ['emp_id' => $empresaId, 'activo' => $activo];
         $this->applySearch($sql, $params, $search, $field, true);
 
         $stmt = $this->db->prepare($sql);
@@ -406,5 +408,56 @@ class ClienteWebRepository
         }
 
         return (int) $value;
+    }
+
+    public function softDelete(int $id, int $empresaId): void
+    {
+        $sql = "UPDATE {$this->clientesTable} SET activo = 0, updated_at = NOW() WHERE id = :id AND empresa_id = :emp_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id, 'emp_id' => $empresaId]);
+    }
+
+    public function restore(int $id, int $empresaId): void
+    {
+        $sql = "UPDATE {$this->clientesTable} SET activo = 1, updated_at = NOW() WHERE id = :id AND empresa_id = :emp_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id, 'emp_id' => $empresaId]);
+    }
+
+    public function forceDelete(int $id, int $empresaId): void
+    {
+        $sql = "DELETE FROM {$this->clientesTable} WHERE id = :id AND empresa_id = :emp_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id, 'emp_id' => $empresaId]);
+    }
+
+    public function softDeleteBulk(array $ids, int $empresaId): void
+    {
+        if (empty($ids)) return;
+        $in = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "UPDATE {$this->clientesTable} SET activo = 0, updated_at = NOW() WHERE empresa_id = ? AND id IN ($in)";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge([$empresaId], $ids);
+        $stmt->execute($params);
+    }
+
+    public function restoreBulk(array $ids, int $empresaId): void
+    {
+        if (empty($ids)) return;
+        $in = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "UPDATE {$this->clientesTable} SET activo = 1, updated_at = NOW() WHERE empresa_id = ? AND id IN ($in)";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge([$empresaId], $ids);
+        $stmt->execute($params);
+    }
+
+    public function forceDeleteBulk(array $ids, int $empresaId): void
+    {
+        if (empty($ids)) return;
+        $in = str_repeat('?,', count($ids) - 1) . '?';
+        $sql = "DELETE FROM {$this->clientesTable} WHERE empresa_id = ? AND id IN ($in)";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge([$empresaId], $ids);
+        $stmt->execute($params);
     }
 }

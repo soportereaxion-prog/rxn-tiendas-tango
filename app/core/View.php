@@ -27,4 +27,17 @@ class View
 
         require $file;
     }
+    /**
+     * Renderiza un archivo de vista PHP y devuelve su contenido como string (útil para emails/PDFs).
+     *
+     * @param string $path  Ruta relativa a BASE_PATH
+     * @param array  $data  Variables a pasar a la vista
+     * @return string
+     */
+    public static function renderToString(string $path, array $data = []): string
+    {
+        ob_start();
+        self::render($path, $data);
+        return (string) ob_get_clean();
+    }
 }

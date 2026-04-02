@@ -1,15 +1,8 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedidos de Servicio CRM - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
+<?php
+$pageTitle = 'RXN Tiendas IA';
+ob_start();
+?>
+<?php
     $buildQuery = function (array $overrides = []) use ($search, $field, $estado, $limit, $sort, $dir, $page) {
         $params = [
             'search' => $search,
@@ -69,6 +62,15 @@
                     <div class="small text-muted">El cliente se resuelve desde la base hoy disponible y el pedido guarda snapshot local de cliente/articulo.</div>
                 </div>
 
+                <ul class="nav nav-tabs mb-4 border-secondary border-opacity-25" style="border-bottom-width: 2px;">
+                    <li class="nav-item">
+                        <a class="nav-link <?= $estado !== 'papelera' ? 'active fw-bold border-bottom-0' : 'text-muted border-0' ?>" href="?estado=">Activos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $estado === 'papelera' ? 'active fw-bold border-bottom-0 text-danger' : 'text-danger border-0' ?>" href="?estado=papelera"><i class="bi bi-trash"></i> Papelera</a>
+                    </li>
+                </ul>
+
                 <div class="rxn-toolbar-split mb-3">
                     <div class="small text-muted">Buscador con sugerencias en vivo; el listado solo se filtra al confirmar.</div>
                     <form action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 980px; max-width: 100%;" data-search-form>
@@ -90,10 +92,11 @@
                             <option value="solicito" <?= $field === 'solicito' ? 'selected' : '' ?>>Solicito</option>
                             <option value="articulo" <?= $field === 'articulo' ? 'selected' : '' ?>>Articulo</option>
                             <option value="clasificacion" <?= $field === 'clasificacion' ? 'selected' : '' ?>>Clasificacion</option>
+                            <option value="usuario" <?= $field === 'usuario' ? 'selected' : '' ?>>Usuario</option>
                             <option value="estado" <?= $field === 'estado' ? 'selected' : '' ?>>Estado</option>
                         </select>
                         <div class="rxn-search-input-wrap rxn-filter-grow" style="width: 270px;">
-                            <input type="text" class="form-control form-control-sm border-secondary" placeholder="Buscar por numero, cliente, articulo..." value="<?= htmlspecialchars((string) $search) ?>" data-search-input data-suggestions-url="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/sugerencias" autocomplete="off">
+                            <input type="text" class="form-control form-control-sm border-secondary" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string) $search) ?>" data-search-input data-suggestions-url="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/sugerencias" autocomplete="off">
                             <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
                         </div>
                         <button type="submit" class="btn btn-secondary btn-sm text-white">Buscar</button>
@@ -105,6 +108,18 @@
 
                 <div class="form-text rxn-search-help text-md-end mb-3">El formulario calcula duracion bruta y neta usando segundos reales del rango horario.</div>
 
+                <?php if ($estado !== 'papelera'): ?>
+                <div class="mb-3">
+                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar los pedidos seleccionados a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionados</button>
+                </div>
+                <?php else: ?>
+                <div class="mb-3 d-flex gap-2">
+                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar los pedidos seleccionados?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente los pedidos seleccionados?"><i class="bi bi-x-circle"></i> Destruir Seleccionados</button>
+                </div>
+                <?php endif; ?>
+
+                <form method="POST" id="hiddenFormBulk"></form>
                 <div class="table-responsive rxn-table-responsive">
                     <table class="table table-hover align-middle table-sm rxn-crud-table" style="font-size: 0.92rem;">
                         <thead class="table-light">
@@ -117,6 +132,9 @@
                             };
                             ?>
                             <tr>
+                                <th style="width: 40px;" class="text-center">
+                                    <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="document.querySelectorAll('.row-checkbox').forEach(e => e.checked = this.checked);">
+                                </th>
                                 <th><?= $sortLink('numero', 'Numero') ?></th>
                                 <th><?= $sortLink('fecha_inicio', 'Inicio') ?></th>
                                 <th><?= $sortLink('fecha_finalizado', 'Finalizado') ?></th>
@@ -124,6 +142,7 @@
                                 <th>Solicito</th>
                                 <th><?= $sortLink('articulo_nombre', 'Articulo') ?></th>
                                 <th><?= $sortLink('clasificacion_codigo', 'Clasificacion') ?></th>
+                                <th>Usuario</th>
                                 <th><?= $sortLink('duracion_neta_segundos', 'Tiempo neto') ?></th>
                                 <th>Estado</th>
                                 <th class="rxn-row-chevron-col"></th>
@@ -132,7 +151,7 @@
                         <tbody>
                             <?php if ($pedidos === []): ?>
                                 <tr>
-                                    <td colspan="10" class="rxn-empty-state text-muted">
+                                    <td colspan="12" class="rxn-empty-state text-muted">
                                         <div class="mb-2 fs-3"><i class="bi bi-tools"></i></div>
                                         Todavia no hay pedidos de servicio cargados o no existen coincidencias con el filtro actual.
                                     </td>
@@ -140,6 +159,9 @@
                             <?php else: ?>
                                 <?php foreach ($pedidos as $pedido): ?>
                                     <tr data-row-link="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" class="rxn-row-link">
+                                        <td class="text-center" data-row-link-ignore>
+                                            <input type="checkbox" class="form-check-input row-checkbox" name="ids[]" value="<?= (int) $pedido['id'] ?>" form="hiddenFormBulk">
+                                        </td>
                                         <td class="fw-bold text-dark">#<?= (int) $pedido['numero'] ?></td>
                                         <td class="text-nowrap"><small><?= htmlspecialchars((string) $pedido['fecha_inicio']) ?></small></td>
                                         <td class="text-nowrap"><small><?= htmlspecialchars((string) ($pedido['fecha_finalizado'] ?? '--')) ?></small></td>
@@ -148,6 +170,9 @@
                                         <td class="text-wrap" style="max-width: 220px;"><?= htmlspecialchars((string) $pedido['articulo_nombre']) ?></td>
                                         <td>
                                             <span class="badge bg-light text-dark border"><?= htmlspecialchars((string) ($pedido['clasificacion_codigo'] ?: 'Sin clasificar')) ?></span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted"><i class="bi bi-person"></i> <?= htmlspecialchars((string) ($pedido['usuario_nombre'] ?? '--')) ?></small>
                                         </td>
                                         <td>
                                             <div class="fw-semibold text-success"><?= htmlspecialchars((string) sprintf('%02d:%02d:%02d', intdiv((int) ($pedido['duracion_neta_segundos'] ?? 0), 3600), intdiv(((int) ($pedido['duracion_neta_segundos'] ?? 0) % 3600), 60), ((int) ($pedido['duracion_neta_segundos'] ?? 0) % 60))) ?></div>
@@ -160,7 +185,22 @@
                                                 <span class="badge bg-success">Finalizado</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="rxn-row-chevron-col">
+                                        <td class="rxn-row-chevron-col text-end text-nowrap">
+                                            <?php if ($estado === 'papelera'): ?>
+                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/restore" class="d-inline" data-row-link-ignore>
+                                                    <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Restaurar este pedido?" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                                </form>
+                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/force-delete" class="d-inline" data-row-link-ignore>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Destruir definitivamente este pedido?" title="Destruir"><i class="bi bi-x-circle"></i></button>
+                                                </form>
+                                            <?php else: ?>
+                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/copiar" class="d-inline" data-row-link-ignore>
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-medium" title="Copiar pedido (Usa pedido como plantilla)"><i class="bi bi-copy"></i></button>
+                                                </form>
+                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/eliminar" class="d-inline" data-row-link-ignore>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Enviar este pedido a la papelera?" title="Eliminar"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                            <?php endif; ?>
                                             <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
                                         </td>
                                     </tr>
@@ -191,8 +231,17 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
+    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-</body>
-</html>
+    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

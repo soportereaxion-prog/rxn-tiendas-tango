@@ -10,7 +10,7 @@
     <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/checkout/confirmar" method="POST">
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+                <div class=" rounded-4 border shadow-sm p-4 mb-4">
                     <h5 class="fw-bold mb-4">Datos de Contacto</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -40,7 +40,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+                <div class=" rounded-4 border shadow-sm p-4 mb-4">
                     <h5 class="fw-bold mb-4">Datos de Envío</h5>
                     <div class="row g-3">
                         <div class="col-md-12">
@@ -63,7 +63,7 @@
                 </div>
 
                 <?php if (empty($cliente)): ?>
-                <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+                <div class=" rounded-4 border shadow-sm p-4 mb-4">
                     <h5 class="fw-bold mb-3">Opcional: Misma compra, Más Beneficios</h5>
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="checkCrearCuenta" onchange="document.getElementById('pwdField').style.display = this.checked ? 'block' : 'none'">
@@ -76,14 +76,14 @@
                 </div>
                 <?php endif; ?>
 
-                <div class="bg-white rounded-4 border shadow-sm p-4">
+                <div class=" rounded-4 border shadow-sm p-4">
                     <h5 class="fw-bold mb-4">Observaciones del Pedido</h5>
                     <textarea name="observaciones" class="form-control bg-light border-0" rows="3" placeholder="Ej: Entregar por la tarde, dejar en portería..."></textarea>
                 </div>
             </div>
 
             <div class="col-lg-4">
-                <div class="bg-white rounded-4 border shadow-sm p-4 sticky-top" style="top: 100px;">
+                <div class=" rounded-4 border shadow-sm p-4 sticky-top" style="top: 100px;">
                     <h5 class="fw-bold mb-4">Resumen</h5>
                     <div class="mb-4">
                         <?php foreach ($items as $item): ?>

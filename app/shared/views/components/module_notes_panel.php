@@ -4,6 +4,23 @@ if (!\App\Modules\Auth\AuthService::hasAdminPrivileges()) {
     return;
 }
 
+$currentUri = $_SERVER['REQUEST_URI'] ?? '';
+$empresa = \App\Modules\Empresas\EmpresaAccessService::current();
+
+if ($empresa) {
+    if (str_contains($currentUri, '/crm/') && empty($empresa->crm_modulo_notas)) {
+        return;
+    }
+    
+    // Si esta en mi-empresa pero no es CRM ni configuracion/backoffice general, asumimos tienda
+    if (str_contains($currentUri, '/mi-empresa/') && !str_contains($currentUri, '/crm/') && empty($empresa->tiendas_modulo_notas)) {
+        // Excepcion para configuracion que es compartida
+        if (!str_contains($currentUri, '/configuracion')) {
+            return;
+        }
+    }
+}
+
 $moduleNotesKey = isset($moduleNotesKey) ? (string) $moduleNotesKey : '';
 $moduleNotesLabel = isset($moduleNotesLabel) ? (string) $moduleNotesLabel : 'Modulo';
 
@@ -346,7 +363,7 @@ if (empty($GLOBALS['rxn_module_notes_assets_printed'])) {
         <?php else: ?>
             <div class="rxn-module-notes-history">
                 <?php foreach ($moduleNotes as $moduleNote): ?>
-                    <?php $attachments = is_array($moduleNote['attachments'] ?? null) ? $moduleNote['attachments'] : []; ?>
+                    <?php $noteAttachments = is_array($moduleNote['attachments'] ?? null) ? $moduleNote['attachments'] : []; ?>
                     <article class="rxn-module-notes-entry">
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-2">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -364,11 +381,11 @@ if (empty($GLOBALS['rxn_module_notes_assets_printed'])) {
                             <div class="small rxn-module-notes-entry-text mb-3"><?= htmlspecialchars((string) ($moduleNote['content'] ?? '')) ?></div>
                         <?php endif; ?>
 
-                        <?php if ($attachments !== []): ?>
+                        <?php if ($noteAttachments !== []): ?>
                             <div class="rxn-module-notes-attachments">
-                                <?php foreach ($attachments as $attachment): ?>
-                                    <?php $attachmentPath = (string) ($attachment['path'] ?? ''); ?>
-                                    <?php if ($attachmentPath === '') { continue; } ?>
+                                <?php foreach ($noteAttachments as $attachment): ?>
+                                    <?php $noteAttachmentPath = (string) ($attachment['path'] ?? ''); ?>
+                                    <?php if ($noteAttachmentPath === '') { continue; } ?>
                                     <div class="rxn-module-notes-attachment-card">
                                         <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
                                             <span class="badge text-bg-dark"><?= htmlspecialchars((string) ($attachment['label'] ?? '#imagen')) ?></span>
@@ -376,8 +393,8 @@ if (empty($GLOBALS['rxn_module_notes_assets_printed'])) {
                                                 <span class="small text-muted text-truncate"><?= htmlspecialchars((string) $attachment['name']) ?></span>
                                             <?php endif; ?>
                                         </div>
-                                        <a href="/rxnTiendasIA/public<?= htmlspecialchars($attachmentPath) ?>" target="_blank" rel="noopener noreferrer">
-                                            <img src="/rxnTiendasIA/public<?= htmlspecialchars($attachmentPath) ?>" alt="Captura adjunta de <?= htmlspecialchars($moduleNotesLabel) ?>">
+                                        <a href="/rxnTiendasIA/public<?= htmlspecialchars($noteAttachmentPath) ?>" target="_blank" rel="noopener noreferrer">
+                                            <img src="/rxnTiendasIA/public<?= htmlspecialchars($noteAttachmentPath) ?>" alt="Captura adjunta de <?= htmlspecialchars($moduleNotesLabel) ?>">
                                         </a>
                                     </div>
                                 <?php endforeach; ?>

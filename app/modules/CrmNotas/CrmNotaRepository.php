@@ -51,13 +51,14 @@ class CrmNotaRepository
         $this->db->exec($sqlTags);
     }
 
-    public function findAllWithClientName(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC'): array
+    public function findAllWithClientName(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false): array
     {
+        $delCond = $onlyDeleted ? 'n.deleted_at IS NOT NULL' : 'n.deleted_at IS NULL';
         $sql = "
             SELECT n.*, c.razon_social as cliente_nombre, c.codigo_tango as cliente_codigo
             FROM crm_notas n
             LEFT JOIN crm_clientes c ON n.cliente_id = c.id
-            WHERE n.empresa_id = :empresa_id
+            WHERE n.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
 
@@ -85,13 +86,14 @@ class CrmNotaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function countAll(int $empresaId, string $search = ''): int
+    public function countAll(int $empresaId, string $search = '', bool $onlyDeleted = false): int
     {
+        $delCond = $onlyDeleted ? 'n.deleted_at IS NOT NULL' : 'n.deleted_at IS NULL';
         $sql = "
             SELECT COUNT(*) 
             FROM crm_notas n
             LEFT JOIN crm_clientes c ON n.cliente_id = c.id
-            WHERE n.empresa_id = :empresa_id
+            WHERE n.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
 
@@ -105,13 +107,14 @@ class CrmNotaRepository
         return (int) $stmt->fetchColumn();
     }
 
-    public function findByIdAndEmpresa(int $id, int $empresaId): ?CrmNota
+    public function findByIdAndEmpresa(int $id, int $empresaId, bool $includeDeleted = false): ?CrmNota
     {
+        $delCond = $includeDeleted ? '1=1' : 'n.deleted_at IS NULL';
         $sql = "
             SELECT n.*, c.razon_social as cliente_nombre, c.codigo_tango as cliente_codigo
             FROM crm_notas n
             LEFT JOIN crm_clientes c ON n.cliente_id = c.id
-            WHERE n.id = :id AND n.empresa_id = :empresa_id
+            WHERE n.id = :id AND n.empresa_id = :empresa_id AND $delCond
             LIMIT 1
         ";
         $stmt = $this->db->prepare($sql);
@@ -198,6 +201,20 @@ class CrmNotaRepository
     }
 
     public function delete(int $id, int $empresaId): void
+    {
+        $sql = "UPDATE crm_notas SET deleted_at = NOW() WHERE id = :id AND empresa_id = :empresa_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+    }
+
+    public function restore(int $id, int $empresaId): void
+    {
+        $sql = "UPDATE crm_notas SET deleted_at = NULL WHERE id = :id AND empresa_id = :empresa_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+    }
+
+    public function forceDelete(int $id, int $empresaId): void
     {
         $sql = "DELETE FROM crm_notas WHERE id = :id AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);

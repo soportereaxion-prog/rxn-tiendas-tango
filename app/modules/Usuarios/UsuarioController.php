@@ -67,6 +67,91 @@ class UsuarioController extends Controller
         exit;
     }
 
+    public function fetchTangoProfile(): void
+    {
+        $this->requireAdmin();
+        header('Content-Type: application/json');
+
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $profileId = 0;
+            if (isset($input['tango_perfil_pedido'])) {
+                $parts = explode('|', $input['tango_perfil_pedido']);
+                if (count($parts) >= 1 && is_numeric($parts[0])) {
+                    $profileId = (int)$parts[0];
+                }
+            }
+            if ($profileId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Perfil inválido (debe seleccionar un perfil del listado).']);
+                return;
+            }
+
+            $empresaId = \App\Core\Context::getEmpresaId();
+            $configRepo = \App\Modules\EmpresaConfig\EmpresaConfigRepository::forCrm();
+            $config = $configRepo->findByEmpresaId($empresaId);
+
+            if (!$config || trim((string)($config->tango_connect_token ?? '')) === '') {
+                echo json_encode(['success' => false, 'message' => 'La empresa no tiene la conexión de Tango Connect configurada.']);
+                return;
+            }
+
+            // Sync Profile details
+            $snapshotService = new \App\Modules\Tango\Services\TangoProfileSnapshotService();
+            $perfilData = $snapshotService->fetch($config, $profileId);
+
+            // Sync Clasificaciones PDS (Process 326)
+            $items = [];
+            try {
+                // To fetch Clasificaciones safely without duplicating ApiClient parsing logic,
+                // we'll just instantiate TangoApiClient accurately via helper or replicate it nicely.
+                $token = trim((string) $config->tango_connect_token);
+                $companyId = trim((string) $config->tango_connect_company_id) !== '' ? trim((string) $config->tango_connect_company_id) : '-1';
+                $clientKey = trim((string) $config->tango_connect_key);
+                
+                $rawUrl = trim((string) $config->tango_api_url);
+                $apiUrl = $rawUrl;
+                if ($rawUrl !== '') {
+                    $normalized = rtrim($rawUrl, '/');
+                    if (!preg_match('/\/api$/i', $normalized)) {
+                        $normalized .= '/Api';
+                    }
+                    $apiUrl = $normalized;
+                } elseif ($clientKey !== '') {
+                    $apiUrl = sprintf('https://%s.connect.axoft.com/Api', str_replace('/', '-', $clientKey));
+                }
+
+                if ($token !== '' && $apiUrl !== '') {
+                    $client = new \App\Modules\Tango\TangoApiClient($apiUrl, $token, $companyId, $clientKey !== '' ? $clientKey : null);
+                    
+                    // Process 326 - Obtener Clasificaciones
+                    $data = $client->getRawClient()->get('Get', [
+                        'process' => 326,
+                        'pageSize' => 150,
+                        'pageIndex' => 0,
+                        'view' => ''
+                    ]);
+
+                    $items = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
+                    if (!empty($items)) {
+                        $config->clasificaciones_pds_raw = json_encode($items, JSON_UNESCAPED_UNICODE);
+                        $configRepo->save($config);
+                    }
+                }
+            } catch (\Throwable $err) {
+                // Ignore failure on clasificaciones to not break profile sync
+            }
+
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Perfil de Tango resuelto y base de Clasificaciones cachéada (' . count($items) . ' obtenidas).',
+                'data' => $perfilData
+            ]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
     public function create(): void
     {
         $this->requireAdmin();
@@ -78,32 +163,22 @@ class UsuarioController extends Controller
             $empresas = $empresaRepo->findAll();
         }
 
-        $empresaId = \App\Core\Context::getEmpresaId();
-        $tangoProfiles = [];
-        if ($empresaId) {
-            try {
-                $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
-                $config = $configRepo->findByEmpresaId($empresaId);
-                if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
-                    $apiUrl = rtrim($config->tango_api_url ?? '', '/');
-                    if (!preg_match('/\/api$/i', $apiUrl)) {
-                        $apiUrl .= '/Api';
-                    }
-                    $tangoClient = new \App\Modules\Tango\TangoApiClient(
-                        $apiUrl,
-                        $config->tango_connect_token,
-                        $config->tango_connect_company_id ?? '',
-                        $config->tango_connect_key ?? ''
-                    );
-                    $tangoProfiles = $tangoClient->getPerfilesPedidos();
-                }
-            } catch (\Exception $e) { }
+        $configServiceCrm = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('crm');
+        $configCrm = $configServiceCrm->getConfig();
+        $tangoProfilesJson = $configCrm->tango_perfil_snapshot_json ?? '';
+
+        if (empty($tangoProfilesJson)) {
+            $configServiceTiendas = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('tiendas');
+            $configTiendas = $configServiceTiendas->getConfig();
+            $tangoProfilesJson = $configTiendas->tango_perfil_snapshot_json ?? '';
         }
-        
+
+        $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
+
         View::render('app/modules/Usuarios/views/crear.php', array_merge($ui, [
             'isGlobalAdmin' => $isGlobalAdmin,
             'empresas' => $empresas,
-            'tangoProfiles' => $tangoProfiles,
+            'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
             'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
         ]));
     }
@@ -115,7 +190,10 @@ class UsuarioController extends Controller
         try {
             $this->service = new UsuarioService();
             $this->service->create($_POST);
-            header('Location: ' . $this->withSuccess($ui['indexPath'], 'Usuario registrado exitosamente'));
+            
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'success=' . urlencode('Usuario registrado exitosamente'));
             exit;
         } catch (\Exception $e) {
             $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
@@ -124,33 +202,25 @@ class UsuarioController extends Controller
                 $empresaRepo = new EmpresaRepository();
                 $empresas = $empresaRepo->findAll();
             }
-            $empresaId = \App\Core\Context::getEmpresaId();
-            $tangoProfiles = [];
-            if ($empresaId) {
-                try {
-                    $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
-                    $config = $configRepo->findByEmpresaId($empresaId);
-                    if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
-                        $apiUrl = rtrim($config->tango_api_url ?? '', '/');
-                        if (!preg_match('/\/api$/i', $apiUrl)) {
-                            $apiUrl .= '/Api';
-                        }
-                        $tangoClient = new \App\Modules\Tango\TangoApiClient(
-                            $apiUrl,
-                            $config->tango_connect_token,
-                            $config->tango_connect_company_id ?? '',
-                            $config->tango_connect_key ?? ''
-                        );
-                        $tangoProfiles = $tangoClient->getPerfilesPedidos();
-                    }
-                } catch (\Exception $ex) { }
+
+            $configServiceCrm = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('crm');
+            $configCrm = $configServiceCrm->getConfig();
+            $tangoProfilesJson = $configCrm->tango_perfil_snapshot_json ?? '';
+
+            if (empty($tangoProfilesJson)) {
+                $configServiceTiendas = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('tiendas');
+                $configTiendas = $configServiceTiendas->getConfig();
+                $tangoProfilesJson = $configTiendas->tango_perfil_snapshot_json ?? '';
             }
+
+            $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
+
             View::render('app/modules/Usuarios/views/crear.php', array_merge($ui, [
                 'error' => $e->getMessage(),
                 'old' => $_POST,
                 'isGlobalAdmin' => $isGlobalAdmin,
                 'empresas' => $empresas,
-                'tangoProfiles' => $tangoProfiles,
+                'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
                 'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
             ]));
         }
@@ -171,30 +241,23 @@ class UsuarioController extends Controller
                 $empresas = $empresaRepo->findAll();
             }
 
-            $tangoProfiles = [];
-            try {
-                $configRepo = new \App\Modules\EmpresaConfig\EmpresaConfigRepository();
-                $config = $configRepo->findByEmpresaId($usuario->empresa_id);
-                if ($config && trim((string)($config->tango_connect_token ?? '')) !== '') {
-                    $apiUrl = rtrim($config->tango_api_url ?? '', '/');
-                    if (!preg_match('/\/api$/i', $apiUrl)) {
-                        $apiUrl .= '/Api';
-                    }
-                    $tangoClient = new \App\Modules\Tango\TangoApiClient(
-                        $apiUrl,
-                        $config->tango_connect_token,
-                        $config->tango_connect_company_id ?? '',
-                        $config->tango_connect_key ?? ''
-                    );
-                    $tangoProfiles = $tangoClient->getPerfilesPedidos();
-                }
-            } catch (\Exception $e) { }
+            $configServiceCrm = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('crm');
+            $configCrm = $configServiceCrm->getConfig();
+            $tangoProfilesJson = $configCrm->tango_perfil_snapshot_json ?? '';
+
+            if (empty($tangoProfilesJson)) {
+                $configServiceTiendas = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('tiendas');
+                $configTiendas = $configServiceTiendas->getConfig();
+                $tangoProfilesJson = $configTiendas->tango_perfil_snapshot_json ?? '';
+            }
+
+            $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
 
             View::render('app/modules/Usuarios/views/editar.php', array_merge($ui, [
                 'usuario' => $usuario,
                 'isGlobalAdmin' => $isGlobalAdmin,
                 'empresas' => $empresas,
-                'tangoProfiles' => $tangoProfiles,
+                'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
                 'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
             ]));
         } catch (\Exception $e) {
@@ -210,31 +273,224 @@ class UsuarioController extends Controller
         
         try {
             $this->service->update((int) $id, $_POST);
-            header('Location: ' . $this->withSuccess($ui['indexPath'], 'Datos de usuario actualizados'));
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'success=' . urlencode('Datos de usuario actualizados'));
             exit;
         } catch (\Exception $e) {
-            try {
-                $usuario = $this->service->getByIdForContext((int) $id);
-                
-                $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
-                $empresas = [];
-                if ($isGlobalAdmin) {
-                    $empresaRepo = new EmpresaRepository();
-                    $empresas = $empresaRepo->findAll();
-                }
-
-                View::render('app/modules/Usuarios/views/editar.php', array_merge($ui, [
-                    'error' => $e->getMessage(),
-                    'usuario' => $usuario,
-                    'old' => $_POST,
-                    'isGlobalAdmin' => $isGlobalAdmin,
-                    'empresas' => $empresas,
-                    'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
-                ]));
-            } catch (\Exception $ex) {
-                // Manipulación interceptada por Contexto.
-                $this->renderDenegado($ex->getMessage(), $ui['indexPath']);
+            $usuario = $this->service->getByIdForContext((int) $id);
+            $isGlobalAdmin = (!empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1);
+            $empresas = [];
+            if ($isGlobalAdmin) {
+                $empresaRepo = new EmpresaRepository();
+                $empresas = $empresaRepo->findAll();
             }
+
+            $configServiceCrm = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('crm');
+            $configCrm = $configServiceCrm->getConfig();
+            $tangoProfilesJson = $configCrm->tango_perfil_snapshot_json ?? '';
+
+            if (empty($tangoProfilesJson)) {
+                $configServiceTiendas = \App\Modules\EmpresaConfig\EmpresaConfigService::forArea('tiendas');
+                $configTiendas = $configServiceTiendas->getConfig();
+                $tangoProfilesJson = $configTiendas->tango_perfil_snapshot_json ?? '';
+            }
+
+            $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
+
+            View::render('app/modules/Usuarios/views/editar.php', array_merge($ui, [
+                'error' => $e->getMessage(),
+                'old' => $_POST,
+                'usuario' => $usuario,
+                'isGlobalAdmin' => $isGlobalAdmin,
+                'empresas' => $empresas,
+                'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
+                'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
+            ]));
+        }
+    }
+
+    public function copy(string $id): void
+    {
+        $this->requireAdmin();
+        $ui = $this->buildUiContext();
+        try {
+            $this->service = new UsuarioService();
+            $this->service->copy((int) $id);
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'success=' . urlencode('Usuario copiado exitosamente'));
+            exit;
+        } catch (\InvalidArgumentException $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'error=' . urlencode($e->getMessage()));
+            exit;
+        } catch (\PDOException $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'error=' . urlencode('Error al copiar usuario. Posible colisión de Email genérico.'));
+            exit;
+        }
+    }
+
+    public function eliminarMasivo(): void
+    {
+        $this->requireAdmin();
+        $ui = $this->buildUiContext();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'error=' . urlencode('Método no permitido'));
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'error=' . urlencode('No se seleccionaron usuarios'));
+            exit;
+        }
+
+        try {
+            $this->service = new UsuarioService();
+            $count = $this->service->bulkDelete($ids);
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'success=' . urlencode("Se eliminaron {$count} usuarios correctamente."));
+            exit;
+        } catch (\Exception $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'error=' . urlencode("Error al eliminar: " . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function eliminar(string $id): void
+    {
+        $this->requireAdmin();
+        $ui = $this->buildUiContext();
+        try {
+            $this->service = new UsuarioService();
+            $this->service->delete((int) $id);
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'success=' . urlencode('Usuario enviado a la papelera'));
+            exit;
+        } catch (\Exception $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function restore(string $id): void
+    {
+        $this->requireAdmin();
+        $ui = $this->buildUiContext();
+        try {
+            $this->service = new UsuarioService();
+            $this->service->restore((int) $id);
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&success=' . urlencode('Usuario restaurado exitosamente'));
+            exit;
+        } catch (\Exception $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode('Error al restaurar: ' . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function restoreMasivo(): void
+    {
+        $this->requireAdmin();
+        $ui = $this->buildUiContext();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode('Método no permitido'));
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode('No se seleccionaron usuarios'));
+            exit;
+        }
+
+        try {
+            $this->service = new UsuarioService();
+            $count = $this->service->bulkRestore($ids);
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&success=' . urlencode("Se restauraron {$count} usuarios correctamente."));
+            exit;
+        } catch (\Exception $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode("Error al restaurar: " . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function forceDelete(string $id): void
+    {
+        $this->requireAdmin();
+        $ui = $this->buildUiContext();
+        try {
+            $this->service = new UsuarioService();
+            $this->service->forceDelete((int) $id);
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&success=' . urlencode('Usuario eliminado definitivamente'));
+            exit;
+        } catch (\Exception $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
+            exit;
+        }
+    }
+
+    public function forceDeleteMasivo(): void
+    {
+        $this->requireAdmin();
+        $ui = $this->buildUiContext();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode('Método no permitido'));
+            exit;
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (empty($ids) || !is_array($ids)) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode('No se seleccionaron usuarios'));
+            exit;
+        }
+
+        try {
+            $this->service = new UsuarioService();
+            $count = $this->service->bulkForceDelete($ids);
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&success=' . urlencode("Se destruyeron {$count} usuarios correctamente."));
+            exit;
+        } catch (\Exception $e) {
+            $url = $ui['indexPath'];
+            $sep = str_contains($url, '?') ? '&' : '?';
+            header('Location: ' . $url . $sep . 'status=papelera&error=' . urlencode("Error al destruir: " . $e->getMessage()));
+            exit;
         }
     }
 

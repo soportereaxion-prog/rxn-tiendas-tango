@@ -29,6 +29,20 @@ class EmpresaConfig
     public ?string $tango_perfil_pedido_nombre = null;
     public ?string $tango_perfil_snapshot_json = null;
     public ?string $tango_perfil_snapshot_date = null;
+    public ?string $clasificaciones_pds_raw = null;
+    // Configuracion de Numeracion
+    public ?int $pds_numero_base = null;
+    public ?int $presupuesto_numero_base = null;
+    
+    // Formularios Impresos y Correo
+    public ?int $pds_email_pdf_canvas_id = null;
+    public ?int $presupuesto_email_pdf_canvas_id = null;
+    public ?int $pds_email_body_canvas_id = null;
+    public ?int $presupuesto_email_body_canvas_id = null;
+    public ?string $pds_email_asunto = null;
+    public ?string $presupuesto_email_asunto = null;
+    public ?string $impresion_header_url = null;
+    public ?string $impresion_footer_url = null;
     
     // Configuracion SMTP
     public int $usa_smtp_propio = 0;
