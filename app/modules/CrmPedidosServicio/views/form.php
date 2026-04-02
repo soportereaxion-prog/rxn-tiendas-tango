@@ -1,5 +1,131 @@
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = $formMode === 'edit' ? 'Editar Pedido de Servicio - rxnTiendasIA' : 'Nuevo Pedido de Servicio - rxnTiendasIA';
+$usePageHeader = false; // Mantiene el layout header apagado explícitamente
+
+ob_start();
+?>
+    <style>
+        .crm-service-shell {
+            max-width: 1460px;
+        }
+
+        .crm-service-form .card-body {
+            padding: 1.25rem 1.35rem;
+        }
+
+        .crm-picker-wrap {
+            position: relative;
+        }
+
+        .crm-picker-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .crm-picker-meta {
+            min-height: 1.15rem;
+        }
+
+        .crm-sheet-grid {
+            display: grid;
+            grid-template-columns: repeat(16, minmax(0, 1fr));
+            gap: 0.9rem 1rem;
+        }
+
+        .crm-col-16 { grid-column: span 16; }
+        .crm-col-12 { grid-column: span 12; }
+        .crm-col-10 { grid-column: span 10; }
+        .crm-col-8 { grid-column: span 8; }
+        .crm-col-6 { grid-column: span 6; }
+        .crm-col-5 { grid-column: span 5; }
+        .crm-col-4 { grid-column: span 4; }
+        .crm-col-3 { grid-column: span 3; }
+        .crm-col-2 { grid-column: span 2; }
+
+        .crm-summary-strip {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+
+        .crm-summary-chip {
+            border: 1px solid var(--bs-border-color);
+            border-radius: 14px;
+            background-color: var(--bs-body-bg);
+            padding: 0.75rem 0.9rem;
+        }
+
+        .crm-summary-chip-title {
+            font-size: 0.74rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--bs-secondary);
+            margin-bottom: 0.3rem;
+            font-weight: 700;
+        }
+
+        .crm-summary-chip-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--bs-body-color);
+        }
+
+        .crm-compact-help {
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 1199.98px) {
+            .crm-sheet-grid {
+                grid-template-columns: repeat(12, minmax(0, 1fr));
+            }
+
+            .crm-col-16,
+            .crm-col-12,
+            .crm-col-10,
+            .crm-col-8,
+            .crm-col-6,
+            .crm-col-5,
+            .crm-col-4,
+            .crm-col-3,
+            .crm-col-2 {
+                grid-column: span 12;
+            }
+
+            .crm-summary-strip {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .crm-summary-strip,
+            .crm-sheet-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .crm-col-16,
+            .crm-col-12,
+            .crm-col-10,
+            .crm-col-8,
+            .crm-col-6,
+            .crm-col-5,
+            .crm-col-4,
+            .crm-col-3,
+            .crm-col-2 {
+                grid-column: auto;
+            }
+        }
+    </style>
+<?php
+$extraHead = ob_get_clean();
+
 ob_start();
 ?>
 <div class="container-fluid mt-3 mb-4 rxn-responsive-container crm-service-shell">

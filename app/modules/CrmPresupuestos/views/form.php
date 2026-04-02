@@ -1,5 +1,222 @@
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = $formMode === 'edit' ? 'Editar Presupuesto CRM - rxnTiendasIA' : 'Nuevo Presupuesto CRM - rxnTiendasIA';
+$usePageHeader = false;
+
+ob_start();
+?>
+    <style>
+        .crm-budget-shell {
+            max-width: 1480px;
+        }
+
+        .crm-budget-form .card-body {
+            padding: 0.85rem 1rem;
+        }
+
+        .crm-budget-form .form-label {
+            margin-bottom: 0.24rem !important;
+        }
+
+        .crm-budget-grid {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 0.45rem 0.65rem;
+        }
+
+        .crm-budget-col-12 { grid-column: span 12; }
+        .crm-budget-col-8 { grid-column: span 8; }
+        .crm-budget-col-6 { grid-column: span 6; }
+        .crm-budget-col-4 { grid-column: span 4; }
+        .crm-budget-col-3 { grid-column: span 3; }
+        .crm-budget-col-2 { grid-column: span 2; }
+
+        .crm-budget-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.55rem;
+        }
+
+        .crm-budget-chip {
+            border: 1px solid rgba(13, 110, 253, 0.1);
+            border-radius: 14px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,249,253,0.98));
+            padding: 0.6rem 0.75rem;
+        }
+
+        .crm-budget-chip-title {
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+            font-weight: 700;
+        }
+
+        .crm-budget-chip-value {
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+
+        .crm-picker-wrap {
+            position: relative;
+        }
+
+        .crm-picker-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .crm-picker-meta {
+            min-height: 1.1rem;
+        }
+
+        .crm-picker-results {
+            position: absolute;
+            inset: calc(100% + 0.2rem) 0 auto 0;
+            z-index: 30;
+        }
+
+        .crm-budget-items-card {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.96);
+        }
+
+        .crm-budget-items-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: end;
+            justify-content: space-between;
+        }
+
+        .crm-budget-items-toolbar .crm-budget-picker-col {
+            min-width: 320px;
+            flex: 1 1 420px;
+        }
+
+        .crm-budget-line-table td,
+        .crm-budget-line-table th {
+            vertical-align: middle;
+        }
+
+        .crm-budget-line-table input.form-control,
+        .crm-budget-line-table textarea.form-control {
+            min-width: 0;
+        }
+
+        .crm-budget-line-amount {
+            min-width: 110px;
+        }
+
+        .crm-budget-line-desc {
+            min-width: 240px;
+        }
+
+        .crm-budget-totals {
+            display: grid;
+            gap: 0.4rem;
+            min-width: 280px;
+        }
+
+        .crm-budget-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.45rem 0.65rem;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.04);
+        }
+
+        .crm-budget-total-row.is-grand {
+            background: rgba(25, 135, 84, 0.12);
+            font-weight: 700;
+        }
+
+        .crm-budget-total-value {
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+        }
+
+        .crm-budget-empty-lines {
+            padding: 1.5rem 0.75rem;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .crm-budget-section-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6c757d;
+            margin-bottom: 0.6rem;
+        }
+
+        .crm-budget-client-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.22rem 0.55rem;
+            border-radius: 999px;
+            border: 1px solid rgba(13, 110, 253, 0.15);
+            background: rgba(13, 110, 253, 0.06);
+            color: #0d6efd;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1199.98px) {
+            .crm-budget-grid {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+
+            .crm-budget-col-12,
+            .crm-budget-col-8,
+            .crm-budget-col-6,
+            .crm-budget-col-4,
+            .crm-budget-col-3,
+            .crm-budget-col-2 {
+                grid-column: span 6;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .crm-budget-summary,
+            .crm-budget-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .crm-budget-col-12,
+            .crm-budget-col-8,
+            .crm-budget-col-6,
+            .crm-budget-col-4,
+            .crm-budget-col-3,
+            .crm-budget-col-2 {
+                grid-column: auto;
+            }
+
+            .crm-budget-items-toolbar {
+                align-items: stretch;
+            }
+
+            .crm-budget-totals {
+                min-width: 100%;
+            }
+        }
+    </style>
+<?php
+$extraHead = ob_get_clean();
+
 ob_start();
 ?>
 <?php
