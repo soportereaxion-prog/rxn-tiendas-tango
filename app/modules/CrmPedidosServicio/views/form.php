@@ -138,7 +138,7 @@ ob_start();
 
                 
                 <div class="d-flex align-items-center gap-1 border-end border-secondary pe-2">
-                    <?php if (empty($pedido['tango_sync_payload'])): ?>
+                    <?php if (($pedido['tango_sync_status'] ?? '') !== 'success'): ?>
                         <button type="submit" form="crm-pedido-servicio-form" name="action" value="tango" class="btn btn-success btn-sm" data-rxn-confirm="¿Confirma que desea enviar este pedido de servicio a Tango?" data-confirm-type="warning"><i class="bi bi-send"></i> Enviar a Tango</button>
                     <?php else: ?>
                         <button type="button" class="btn btn-success btn-sm" disabled><i class="bi bi-check-all"></i> Enviado a Tango</button>
@@ -160,7 +160,7 @@ ob_start();
                             <button type="submit" class="btn btn-outline-primary btn-sm" data-rxn-confirm="¿Confirma enviar el pedido de servicio por correo al cliente?" data-confirm-type="primary" title="Enviar por mail"><i class="bi bi-envelope"></i></button>
                         </form>
                         <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/imprimir" class="btn btn-outline-light btn-sm text-body border-secondary shadow-sm" target="_blank" title="Imprimir"><i class="bi bi-printer"></i></a>
-                        <?php if (empty($pedido['tango_sync_payload'])): ?>
+                        <?php if (($pedido['tango_sync_status'] ?? '') !== 'success'): ?>
                         <form action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/eliminar" method="POST" class="d-inline">
                             <button type="submit" class="btn btn-outline-danger btn-sm" data-rxn-confirm="¿Confirma enviar este pedido a la papelera?" data-confirm-type="danger" title="Eliminar"><i class="bi bi-trash"></i></button>
                         </form>
@@ -176,7 +176,7 @@ ob_start();
                     <a href="/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion" class="btn btn-outline-light btn-sm text-body border-secondary shadow-sm" title="Formulario Impresión"><i class="bi bi-pc-display"></i> Form.</a>
                     <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i></a>
                     <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Volver</a>
-                    <?php if (empty($pedido['tango_sync_payload'])): ?>
+                    <?php if (($pedido['tango_sync_status'] ?? '') !== 'success'): ?>
                     <button type="submit" form="crm-pedido-servicio-form" name="action" value="save" class="btn btn-primary shadow px-4"><i class="bi bi-check2-circle"></i> Guardar</button>
                     <?php endif; ?>
                 </div>
@@ -206,7 +206,7 @@ ob_start();
         <div class="card rxn-form-card crm-service-form">
             <div class="card-body">
                 <form id="crm-pedido-servicio-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate>
-                    <fieldset <?= !empty($pedido['tango_sync_payload']) ? 'disabled' : '' ?> class="border-0 p-0 m-0">
+                    <fieldset <?= ($pedido['tango_sync_status'] ?? '') === 'success' ? 'disabled' : '' ?> class="border-0 p-0 m-0">
                     <div class="rxn-form-section mb-2">
                         <div class="rxn-form-section-title">Encabezado operativo</div>
                         <div class="crm-sheet-grid">
@@ -335,8 +335,11 @@ ob_start();
                                         <span class="badge bg-success p-2 mb-2">Finalizado</span>
                                     <?php else: ?>
                                         <span class="badge bg-warning text-dark p-2 mb-2">Abierto</span>
-                                        <br>
-                                        <span class="badge bg-secondary text-light p-2 mb-2">Pendiente Tango</span>
+                                    <?php endif; ?>
+                                    <?php if (($pedido['tango_sync_status'] ?? '') === 'error'): ?>
+                                        <br><span class="badge bg-danger text-light p-2 mb-2">Error en Tango</span>
+                                    <?php elseif (($pedido['tango_sync_status'] ?? '') !== 'success' && $pedido['estado_ui'] !== 'finalizado'): ?>
+                                        <br><span class="badge bg-secondary text-light p-2 mb-2">Pendiente Tango</span>
                                     <?php endif; ?>
                                     <input type="text" id="nro_pedido" name="nro_pedido" class="form-control form-control-sm border-secondary shadow-sm text-center w-100" value="<?= htmlspecialchars((string) $pedido['nro_pedido']) ?>" placeholder="Pedido Tango" title="Nro de Pedido en Tango">
                                 </div>

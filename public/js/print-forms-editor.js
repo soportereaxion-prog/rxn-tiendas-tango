@@ -101,6 +101,78 @@
             uploadedBackgroundUrl: ''
         };
 
+        var zoomState = {
+            level: 100
+        };
+
+        function applyZoom() {
+            var label = document.getElementById('print-zoom-label');
+            if (label) {
+                label.textContent = zoomState.level + '%';
+            }
+            if (sheet && sheet.parentElement) {
+                var scale = zoomState.level / 100;
+                
+                // Chrome/Edge/Safari support `zoom`, which perfectly adjusts layout and scrollbars
+                // Firefox >= 126 supports `zoom` as well.
+                sheet.style.zoom = scale;
+                
+                // Fallback for old Firefox: transform
+                if (typeof sheet.style.zoom === 'undefined' || navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
+                    sheet.style.transform = 'scale(' + scale + ')';
+                    sheet.style.transformOrigin = 'top center';
+                    // We need to adjust parent height to avoid massive whitespace
+                    var baseHeight = 820 * 1.414285;
+                    var orientation = (state.pageConfig.page && state.pageConfig.page.orientation) || 'portrait';
+                    if (orientation === 'landscape') {
+                        baseHeight = 820 * 0.70707;
+                    }
+                    sheet.parentElement.style.height = ((baseHeight * scale) + 60) + 'px';
+                } else {
+                    sheet.parentElement.style.height = 'auto'; 
+                    sheet.style.transform = '';
+                }
+            }
+        }
+
+        var zoomOutBtn = document.querySelector('[data-zoom="out"]');
+        var zoomInBtn = document.querySelector('[data-zoom="in"]');
+        var zoomFitBtn = document.querySelector('[data-zoom="fit"]');
+
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', function() {
+                zoomState.level = Math.max(25, zoomState.level - 10);
+                applyZoom();
+            });
+        }
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', function() {
+                zoomState.level = Math.min(200, zoomState.level + 10);
+                applyZoom();
+            });
+        }
+        if (zoomFitBtn) {
+            zoomFitBtn.addEventListener('click', function() {
+                if (sheet && sheet.parentElement) {
+                    var availableWidth = sheet.parentElement.clientWidth;
+                    var padding = 60; // 30px each side
+                    var targetWidth = availableWidth - padding;
+                    if (targetWidth < 820) {
+                        zoomState.level = Math.floor((targetWidth / 820) * 100);
+                    } else {
+                        zoomState.level = 100;
+                    }
+                    applyZoom();
+                }
+            });
+        }
+
+        // Auto-fit on initial load if screen is too small
+        setTimeout(function() {
+            if (zoomFitBtn) zoomFitBtn.click();
+            else applyZoom();
+        }, 50);
+
         function pageBox() {
             var page = state.pageConfig.page || {};
             var orientation = page.orientation || 'portrait';
