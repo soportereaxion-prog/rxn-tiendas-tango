@@ -1,28 +1,213 @@
 <?php
-$editorConfig = [
-    'documentKey' => (string) ($document['document_key'] ?? ''),
-    'pageConfig' => $pageConfig,
-    'objects' => $objects,
-    'fonts' => $fonts,
-    'variables' => $variables,
-    'availableFonts' => $availableFonts,
-    'sampleContext' => $sampleContext,
-    'backgroundUrl' => $backgroundUrl,
-];
-$editorConfigJson = json_encode($editorConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-?>
-<?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = $document['label'] ?? 'Canvas de impresion';
 ob_start();
 ?>
-<div class="container-fluid mt-4 mb-4 rxn-responsive-container print-editor-shell">
+<style>
+.print-editor-shell {
+            max-width: 1680px;
+        }
+
+        .print-editor-layout {
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr) 320px;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .print-editor-panel {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        }
+
+        .print-editor-panel .card-body {
+            padding: 1rem;
+        }
+
+        .print-editor-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 0.75rem;
+        }
+
+        .print-editor-sheet-card {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 20px;
+            background: linear-gradient(180deg, rgba(248,250,252,1), rgba(241,245,249,0.96));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 16px 36px rgba(15, 23, 42, 0.08);
+        }
+
+        .print-editor-sheet-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1rem 0;
+        }
+
+        .print-sheet-wrap {
+            padding: 1rem;
+            overflow: auto;
+        }
+
+        .print-sheet {
+            position: relative;
+            width: 820px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
+        }
+
+        .print-sheet::before {
+            content: '';
+            display: block;
+            width: 100%;
+            padding-top: 141.4285%;
+        }
+
+        .print-sheet.is-landscape::before {
+            padding-top: 70.707%;
+        }
+
+        .print-sheet__stage {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .print-sheet__stage.has-grid {
+            background-image:
+                linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+                var(--print-sheet-background-image, none);
+            background-size: var(--print-grid-size, 7.8px) var(--print-grid-size, 7.8px), var(--print-grid-size, 7.8px) var(--print-grid-size, 7.8px), cover;
+            background-position: 0 0, 0 0, center;
+        }
+
+        .print-sheet__stage:not(.has-grid) {
+            background-image: var(--print-sheet-background-image, none);
+        }
+
+        .print-object {
+            position: absolute;
+            user-select: none;
+            cursor: move;
+            transition: box-shadow 0.15s ease, outline-color 0.15s ease;
+        }
+
+        .print-object.is-selected {
+            outline: 2px dashed rgba(13, 110, 253, 0.9);
+            outline-offset: 1px;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.12);
+        }
+
+        .print-object.is-line {
+            cursor: move;
+        }
+
+        .print-object__inner {
+            width: 100%;
+            height: 100%;
+        }
+
+        .print-object-list {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .print-object-list button {
+            text-align: left;
+        }
+
+        .print-variable-group + .print-variable-group {
+            margin-top: 0.9rem;
+        }
+
+        .print-variable-chip {
+            display: inline-flex;
+            width: 100%;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 0.45rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 12px;
+            background: rgba(248,250,252,0.9);
+            padding: 0.45rem 0.55rem;
+            font-size: 0.85rem;
+        }
+
+        .print-background-preview {
+            display: block;
+            width: 100%;
+            max-height: 180px;
+            object-fit: contain;
+            border-radius: 14px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: #fff;
+        }
+
+        .print-editor-version-list {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .print-editor-version-item {
+            padding: 0.55rem 0.7rem;
+            border-radius: 12px;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            background: rgba(248,250,252,0.92);
+        }
+
+        .print-editor-sticky-save {
+            position: sticky;
+            top: 1rem;
+            z-index: 8;
+        }
+
+        @media (max-width: 1399.98px) {
+            .print-editor-layout {
+                grid-template-columns: 280px minmax(0, 1fr);
+            }
+
+            .print-editor-layout > :last-child {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .print-editor-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .print-sheet {
+                width: min(100%, 760px);
+            }
+        }
+</style>
+<?php
+$extraHead = ob_get_clean();
+
+ob_start();
+?>
+
+    <div class="container-fluid mt-4 mb-4 rxn-responsive-container print-editor-shell">
         <div class="rxn-module-header mb-3">
             <div>
                 <h2 class="mb-1">Canvas de impresion - <?= htmlspecialchars((string) ($document['label'] ?? 'Formulario')) ?></h2>
-                
+                <p class="text-muted mb-0">Hoja A4 editable con fondo, fuentes, variables y objetos posicionados para unificar la mecanica documental de la plataforma.</p>
             </div>
             <div class="rxn-module-actions">
-
+                
                 <button type="submit" form="print-form-editor-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar version</button>
                 <a href="/rxnTiendasIA/public/mi-empresa/crm/presupuestos" class="btn btn-outline-secondary">Ir a Presupuestos</a>
                 <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a Formularios</a>
@@ -238,12 +423,14 @@ ob_start();
         </form>
     </div>
 
-    
+
+
 <?php
 $content = ob_get_clean();
+
 ob_start();
 ?>
-<script>
+    <script>
         window.printFormsEditorConfig = <?= $editorConfigJson ?: '{}' ?>;
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

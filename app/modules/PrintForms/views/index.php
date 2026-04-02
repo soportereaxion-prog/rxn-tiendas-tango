@@ -1,15 +1,15 @@
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'Formularios de Impresion - rxnTiendasIA';
 ob_start();
 ?>
-<div class="container mt-5 rxn-responsive-container">
+    <div class="container mt-5 rxn-responsive-container">
         <div class="rxn-module-header mb-4">
             <div>
                 <h2>CRM - Formularios de Impresion</h2>
-                
+                <p class="text-muted mb-0">Canvas versionables para disenar salidas impresas de la plataforma sin depender de motores externos tipo Crystal.</p>
             </div>
             <div class="rxn-module-actions">
-
+                
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al CRM</a>
             </div>
@@ -38,7 +38,7 @@ ob_start();
                                 <div>
                                     <div class="small text-uppercase text-muted fw-bold mb-2">Documento</div>
                                     <h4 class="mb-2"><?= htmlspecialchars((string) ($document['label'] ?? 'Formulario')) ?></h4>
-                                    
+                                    <p class="text-muted mb-0"><?= htmlspecialchars((string) ($document['description'] ?? '')) ?></p>
                                 </div>
                                 <span class="badge rounded-pill text-bg-dark"><?= $activeVersion ? 'Version activa' : 'Sin definir' ?></span>
                             </div>
@@ -75,9 +75,9 @@ ob_start();
         </div>
     </div>
 
-    
-<?php
+    <?php
 $content = ob_get_clean();
+
 ob_start();
 ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -86,3 +86,4 @@ ob_start();
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';
 ?>
+
