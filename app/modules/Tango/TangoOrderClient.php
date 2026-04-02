@@ -61,4 +61,13 @@ class TangoOrderClient
             throw new \RuntimeException("Error resolviendo ID_STA11 para {$codigoArticulo}: " . $e->getMessage());
         }
     }
+
+    /**
+     * Obtiene los datos del pedido ya creado process=19845
+     */
+    public function getOrderById(int $id): array
+    {
+        $endpoint = "GetById?process=19845&id=" . $id;
+        return $this->client->get($endpoint);
+    }
 }

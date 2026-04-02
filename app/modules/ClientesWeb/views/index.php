@@ -109,7 +109,7 @@ ob_start();
                 </div>
                 <?php endif; ?>
 
-                <form id="hiddenFormBulk" method="POST">
+                <form id="hiddenFormBulk" method="POST"></form>
 
                     <div class="table-responsive rxn-table-responsive">
                         <table class="table table-hover align-middle table-sm rxn-crud-table" style="font-size: 0.9rem;">
@@ -175,20 +175,20 @@ ob_start();
                                         <td class="text-nowrap"><small class="text-secondary"><?= date('d/m/Y H:i', strtotime($cli['created_at'])) ?></small></td>
                                         <td class="rxn-actions-col text-end" data-row-link-ignore>
                                             <div class="d-inline-flex gap-1 align-items-center">
-                                                <a href="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/editar" class="btn btn-sm btn-outline-primary" title="Editar">
-                                                    <img src="/rxnTiendasIA/public/icons/pencil-square.svg" alt="Editar" width="14" height="14">
+                                                <a href="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium" title="Editar">
+                                                    <i class="bi bi-pencil-square"></i>
                                                 </a>
 
                                                 <?php if (!$isPapelera): ?>
-                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/eliminar" class="d-inline rxn-confirm-form">
-                                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Mover a Papelera"><img src="/rxnTiendasIA/public/icons/trash.svg" alt="Eliminar" width="14" height="14"></button>
+                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/eliminar" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar este cliente a la papelera?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium" title="Mover a Papelera"><i class="bi bi-trash"></i></button>
                                                     </form>
                                                 <?php else: ?>
-                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/restore" class="d-inline rxn-confirm-form" data-confirm-msg="¿Restaurar este cliente web?">
-                                                        <button type="button" class="btn btn-sm btn-outline-success" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/restore" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Restaurar este cliente web?">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 fw-medium" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i></button>
                                                     </form>
-                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/force-delete" class="d-inline rxn-confirm-form" data-confirm-msg="¿Destruir definitivamente este cliente web? Esta acción no se puede deshacer.">
-                                                        <button type="button" class="btn btn-sm btn-danger" title="Destruir"><i class="bi bi-x-circle"></i></button>
+                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/force-delete" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Destruir definitivamente este cliente web? Esta acción no se puede deshacer.">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium" title="Destruir"><i class="bi bi-x-circle"></i></button>
                                                     </form>
                                                 <?php endif; ?>
                                             </div>
@@ -199,7 +199,6 @@ ob_start();
                         </tbody>
                     </table>
                 </div>
-                </form>
 
                 <?php if ($totalPages > 1): ?>
                 <nav class="mt-4 rxn-pagination-wrap">

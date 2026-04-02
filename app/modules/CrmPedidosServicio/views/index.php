@@ -162,7 +162,12 @@ ob_start();
                                         <td class="text-center" data-row-link-ignore>
                                             <input type="checkbox" class="form-check-input row-checkbox" name="ids[]" value="<?= (int) $pedido['id'] ?>" form="hiddenFormBulk">
                                         </td>
-                                        <td class="fw-bold text-dark">#<?= (int) $pedido['numero'] ?></td>
+                                        <td class="fw-bold text-dark">
+                                            #<?= (int) $pedido['numero'] ?>
+                                            <?php if (!empty($pedido['nro_pedido'])): ?>
+                                                <br><span class="badge bg-success fw-normal mt-1" title="Pedido Tango" style="font-size: 0.75rem;"><i class="bi bi-box-seam"></i> <?= htmlspecialchars((string)$pedido['nro_pedido']) ?></span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="text-nowrap"><small><?= htmlspecialchars((string) $pedido['fecha_inicio']) ?></small></td>
                                         <td class="text-nowrap"><small><?= htmlspecialchars((string) ($pedido['fecha_finalizado'] ?? '--')) ?></small></td>
                                         <td class="text-wrap" style="max-width: 210px;"><?= htmlspecialchars((string) $pedido['cliente_nombre']) ?></td>

@@ -92,5 +92,32 @@ document.addEventListener('DOMContentLoaded', function() {
             searchInput.focus();
         }
     });
+
+    // Añadir clase manual para forzar la animación idéntica a hover cuando se navega con el teclado
+    document.addEventListener('focusin', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('stretched-link')) {
+            const card = e.target.closest('.rxn-module-card');
+            if (card) {
+                card.classList.add('rxn-module-card-focus');
+            }
+        }
+    });
+
+    document.addEventListener('focusout', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('stretched-link')) {
+            const card = e.target.closest('.rxn-module-card');
+            if (card) {
+                card.classList.remove('rxn-module-card-focus');
+            }
+        }
+    });
+
+    // Auto-enfocar la primera tarjeta visible al cargar la vista
+    setTimeout(() => {
+        const primaryFocusCard = document.querySelector('.rxn-module-card .stretched-link');
+        if (primaryFocusCard && !document.activeElement.classList.contains('form-control')) {
+            primaryFocusCard.focus();
+        }
+    }, 50);
 });
 </script>

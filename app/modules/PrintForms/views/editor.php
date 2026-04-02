@@ -16,7 +16,7 @@ ob_start();
 ?>
 <style>
 .print-editor-shell {
-            max-width: 1680px;
+            width: 100%;
         }
 
         .print-editor-layout {
@@ -283,8 +283,10 @@ ob_start();
                             <span class="badge text-bg-light border">A4</span>
                             <span class="badge text-bg-light border">Version activa: <?= $activeVersion ? '#' . (int) ($activeVersion['version'] ?? 0) : 'sin guardar' ?></span>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-zoom="out" title="Alejar"><i class="bi bi-zoom-out"></i></button>
+                                                  <div class="d-flex align-items-center gap-2">
+                              <button type="button" class="btn btn-sm btn-outline-secondary" data-action="undo" title="Deshacer (Ctrl+Z)" disabled><i class="bi bi-arrow-counterclockwise"></i></button>
+                              <div class="vr mx-1"></div>
+                              <button type="button" class="btn btn-sm btn-outline-secondary" data-zoom="out" title="Alejar"><i class="bi bi-zoom-out"></i></button>
                             <span class="small fw-bold" id="print-zoom-label" style="min-width: 3rem; text-align: center;">100%</span>
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-zoom="in" title="Acercar"><i class="bi bi-zoom-in"></i></button>
                             <button type="button" class="btn btn-sm btn-outline-primary" data-zoom="fit" title="Ajustar al ancho"><i class="bi bi-arrows-angle-contract"></i> Ajustar</button>
@@ -422,11 +424,23 @@ ob_start();
                             <?php if ($versions === []): ?>
                                 <div class="print-editor-version-item small text-muted">Todavia no hay versiones guardadas para este formulario.</div>
                             <?php else: ?>
-                                <?php foreach ($versions as $version): ?>
+                                                                <?php foreach ($versions as $version): ?>
+                                    <?php
+                                        $versionData = [
+                                            'objects' => json_decode($version['objects_json'] ?? '[]', true),
+                                            'pageConfig' => json_decode($version['page_config_json'] ?? '{}', true),
+                                            'backgroundUrl' => $version['background_url'] ?? ''
+                                        ];
+                                    ?>
                                     <div class="print-editor-version-item small">
-                                        <div class="fw-bold">Version #<?= (int) ($version['version'] ?? 0) ?></div>
-                                        <div class="text-muted"><?= htmlspecialchars((string) ($version['created_at'] ?? '--')) ?></div>
-                                        <?php if (!empty($version['notes'])): ?><div class="mt-1"><?= htmlspecialchars((string) $version['notes']) ?></div><?php endif; ?>
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <div class="fw-bold">Version #<?= (int) ($version['version'] ?? 0) ?></div>
+                                                <div class="text-muted"><?= htmlspecialchars((string) ($version['created_at'] ?? '--')) ?></div>
+                                                <?php if (!empty($version['notes'])): ?><div class="mt-1"><?= htmlspecialchars((string) $version['notes']) ?></div><?php endif; ?>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" data-restore-version="<?= htmlspecialchars(json_encode($versionData)) ?>" title="Restaurar canvas al estado exacto de esta version">Restaurar</button>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -457,6 +471,8 @@ ob_start();
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';
 ?>
+
+
 
 
 

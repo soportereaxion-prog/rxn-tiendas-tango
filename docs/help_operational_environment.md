@@ -95,6 +95,23 @@ Cada modulo nuevo debe quedar explicado de manera que un usuario no tecnico pued
 - `inactivo`: la cuenta existe pero queda frenada;
 - `administrador`: tiene mas permisos dentro del tenant.
 
+### Notas Internas (Bitácora)
+- Funciona como un cuaderno de operador para la empresa, transversal al sistema.
+- Sirve para dejar registros en texto plano, novedades, seguimientos o aclaraciones comerciales de CRM.
+- Cuenta con buscador propio y sincronización.
+
+#### Dudas comunes
+- Útil cuando tenés que registrar que un cliente "llamó y pidió que lo contactemos más tarde". 
+- Todo lo anotado es interno, tu cliente no lo va a ver.
+
+### Telefónica Anura (Llamadas)
+- Registro directo y automático de todas las llamadas entrantes que llegan a los internos de tu empresa vía central Anura.
+- No hace falta cargar nada a mano: las llamadas caen solas y se dividen automáticamente para la empresa correcta (Multi-Tenant).
+
+#### Dudas comunes
+- **Si no ves una llamada:** puede que la llamada no haya ingresado al interno correcto, o que falte configurar el Webhook en tu portal de Anura.
+- **Utilidad:** ideal para buscar quién nos llamó a una hora específica si no llegamos a atender.
+
 ### Configuracion
 - Centraliza slug publico, branding, SMTP y Tango Connect.
 - Es el punto de ajuste de identidad e integraciones de la empresa.
@@ -109,13 +126,32 @@ Cada modulo nuevo debe quedar explicado de manera que un usuario no tecnico pued
 - Ajusta preferencias personales de visualizacion del panel.
 - No modifica la operacion comercial general de la empresa.
 
-## Regla de busqueda en listados
+## Regla de busqueda en listados y atajos nuevos
 
+### Buscador rápido y Atajos
 - el usuario escribe primero;
 - el sistema puede sugerir hasta tres coincidencias;
 - elegir sugerencia completa el texto pero no filtra aun;
 - el filtro real se aplica con `Enter` o `Buscar` / `Aplicar`;
 - `Limpiar filtros` vuelve al listado general.
+- **Atajo global F3 o Barra ( / ):** En cualquier listado, presionar `F3` o `/` salta directo al buscador sin usar el mouse.
+- **Navegar con teclado:** En el panel de control (Dashboard), al buscar un módulo, podés usar las **flechas del teclado** para moverte entre las tarjetas y apretar `Enter` para ingresar.
+
+## Novedades Operativas Recientes (¡Para aprovechar!)
+
+### 1. Operación Multi-Empresa rápida
+Si administras más de una empresa, en tu panel principal ahora vas a ver el botón **"Ingresar"** en cada tarjeta de empresa. Si le haces clic, el sistema "se pone el sombrero" de esa empresa: todo lo que hagas a partir de ahí (pedidos, configuración, clientes) será de esa empresa, sin tener que salir y volver a iniciar sesión.
+
+### 2. Pedidos de Servicio más seguros
+- **Nuevo atajo `ALT + P`:** Sirve para enviar rápidamente el pedido a Tango.
+- **Bloqueo de seguridad:** Cuando el pedido llega bien a Tango (y obtiene su número oficial), se bloquea. **Ya no se puede modificar** para evitar diferencias entre el sistema web y el comercial.
+- **Error API:** Si Tango rechaza el pedido, verás el estado `ERROR API` y vas a tener a mano el botón para intentar reenviarlo luego de arreglar el problema.
+
+### 3. Seguridad de Sesión (Importante)
+Todo el sistema tiene nuevas reglas de seguridad. Si dejaste la pantalla abierta mucho tiempo, fuiste a comer y al volver querés guardar algo, puede que te de un error (tipo "Token expirado" o "Seguridad vencida"). Esto es normal y protege tus datos. **Solución:** Apretá `F5` para recargar la página y continuá tu trabajo.
+
+### 4. Zoom en Formularios de Impresión
+Para quienes arman los PDFs o reportes en el módulo de impresiones (PrintForms), el diseñador visual ahora tiene botones de **Zoom**, igual que un mapa: Acercar, Alejar y Ajustar Pantalla. Ya no hay que pelear más con barras de desplazamiento para ver cómo queda la hoja A4 completa.
 
 ## Regla de tono para ayudas futuras
 

@@ -263,23 +263,16 @@
     }
 
     function setupCheckboxAhora() {
-        var checkbox = document.getElementById('btn-finalizado-ahora');
+        var btn = document.getElementById('btn-finalizado-ahora');
         var endInput = document.getElementById('fecha_finalizado');
-        if (!checkbox || !endInput) return;
+        if (!btn || !endInput) return;
 
-        checkbox.addEventListener('change', function() {
-            if (this.checked) {
-                var now = new Date();
-                var tzOffset = now.getTimezoneOffset() * 60000;
-                var localIso = new Date(now - tzOffset).toISOString().slice(0, 19);
-                endInput.value = localIso;
-                endInput.dispatchEvent(new Event('input')); 
-            }
-        });
-        endInput.addEventListener('input', function() {
-            if (checkbox.checked) {
-                checkbox.checked = false;
-            }
+        btn.addEventListener('click', function() {
+            var now = new Date();
+            var tzOffset = now.getTimezoneOffset() * 60000;
+            var localIso = new Date(now - tzOffset).toISOString().slice(0, 19);
+            endInput.value = localIso;
+            endInput.dispatchEvent(new Event('input')); 
         });
     }
 

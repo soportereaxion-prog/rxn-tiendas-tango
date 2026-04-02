@@ -110,6 +110,68 @@
             if (label) {
                 label.textContent = zoomState.level + '%';
             }
+
+        var undoStack = [];
+        var maxUndo = 20;
+
+        function saveUndoState() {
+            var currentState = JSON.stringify(state.objects);
+            if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== currentState) {
+                undoStack.push(currentState);
+                if (undoStack.length > maxUndo) {
+                    undoStack.shift();
+                }
+                updateUndoButton();
+            }
+        }
+
+        function performUndo() {
+            if (undoStack.length > 0) {
+                var lastState = undoStack.pop();
+                try {
+                    state.objects = JSON.parse(lastState);
+                    state.selectedId = null;
+                    renderCanvas();
+                    updatePropertiesPanel();
+                    updateUndoButton();
+                } catch (e) { }
+            }
+        }
+
+        function updateUndoButton() {
+            var btn = document.querySelector('[data-action="undo"]');
+            if (btn) {
+                btn.disabled = undoStack.length === 0;
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            var activeTag = document.activeElement ? document.activeElement.tagName.toUpperCase() : '';
+            var isInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+
+            // Delete object
+            if ((event.key === 'Delete' || event.key === 'Backspace') && !isInput) {
+                if (state.selectedId) {
+                    event.preventDefault();
+                    if (deleteButton) {
+                        deleteButton.click();
+                    }
+                }
+            }
+
+            // Ctrl+Z
+            if (event.key.toLowerCase() === 'z' && (event.ctrlKey || event.metaKey) && !isInput) {
+                event.preventDefault();
+                performUndo();
+            }
+        });
+
+        var undoBtnEl = document.querySelector('[data-action="undo"]');
+        if (undoBtnEl) {
+            undoBtnEl.addEventListener('click', function() {
+                performUndo();
+            });
+        }
             if (sheet && sheet.parentElement) {
                 var scale = zoomState.level / 100;
                 
@@ -720,6 +782,8 @@
                 return;
             }
 
+            field.addEventListener('focus', function() { saveUndoState(); });
+
             field.addEventListener('input', function () {
                 updateSelected(function (object) {
                     if (key === 'content' || key === 'source') {
@@ -846,6 +910,35 @@
             });
         }
 
+        
+        form.querySelectorAll('[data-restore-version]').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                var dataStr = button.getAttribute('data-restore-version');
+                if (!dataStr) return;
+                
+                if (!confirm("¿Estas seguro de que queres pisar el canvas actual con esta version del historial? Este cambio es temporal hasta que decidas guardar.")) {
+                    return;
+                }
+                
+                saveUndoState();
+                
+                try {
+                    var data = JSON.parse(dataStr);
+                    if (data.objects) state.objects = clone(data.objects);
+                    if (data.pageConfig) state.pageConfig = clone(data.pageConfig);
+                    state.backgroundUrl = data.backgroundUrl || '';
+                    state.selectedId = null;
+                    
+                    renderCanvas();
+                    updatePropertiesPanel();
+                } catch (err) {
+                    console.error("Error al restaurar version:", err);
+                    alert("No se pudo leer la informacion de la version.");
+                }
+            });
+        });
+
         stage.addEventListener('click', function (event) {
             var objectNode = event.target.closest('.print-object');
             if (!objectNode) {
@@ -860,9 +953,8 @@
 
         stage.addEventListener('pointerdown', function (event) {
             var objectNode = event.target.closest('.print-object');
-            if (!objectNode) {
-                return;
-            }
+            if (!objectNode) { return; }
+            saveUndoState();
 
             event.preventDefault();
             var object = state.objects.find(function (candidate) {
@@ -948,5 +1040,9 @@
 
     document.addEventListener('DOMContentLoaded', setupEditor);
 })();
+
+
+
+
 
 

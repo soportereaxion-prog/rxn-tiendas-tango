@@ -120,16 +120,41 @@ class PedidoServicioTangoService
             }
 
             if ($this->isSuccessfulResponse($response)) {
-                $pedidoNumero = $this->extractOrderNumber($response['data'] ?? []);
+                $pedidoNumeroInt = $this->extractOrderNumber($response['data'] ?? []);
+                
+                $nroPedido = $pedidoNumeroInt; // fallback por si acaso
+                if (is_numeric($pedidoNumeroInt) && (int)$pedidoNumeroInt > 0) {
+                    try {
+                        $orderData = $tangoClient->getOrderById((int)$pedidoNumeroInt);
+                        // Buscar NRO_PEDIDO en resultData->list->row o properties etc.
+                        $list = $orderData['resultData']['list'] ?? $orderData['data']['resultData']['list'] ?? $orderData['data']['list'] ?? [];
+                        if (isset($list[0]['NRO_PEDIDO'])) {
+                            $nroPedido = trim((string)$list[0]['NRO_PEDIDO']);
+                        } elseif (isset($orderData['data']['Properties']['NRO_PEDIDO'])) {
+                            $nroPedido = trim((string)$orderData['data']['Properties']['NRO_PEDIDO']);
+                        } elseif (isset($orderData['resultData']['Properties']['NRO_PEDIDO'])) {
+                            $nroPedido = trim((string)$orderData['resultData']['Properties']['NRO_PEDIDO']);
+                        } else {
+                            // Extract recursivo usando el metodo existente sobre response del get
+                            $extractedGet = $this->extractOrderNumber($orderData);
+                            if ($extractedGet !== 'N/A') {
+                                $nroPedido = $extractedGet;
+                            }
+                        }
+                    } catch (\Exception $e) {
+                         // si falla getById, nos quedamos con el id interno como fallback
+                    }
+                }
+
                 $this->repository->markAsSentToTango(
                     $pedidoId,
                     $empresaId,
-                    $pedidoNumero,
+                    $nroPedido,
                     json_encode($payload, JSON_UNESCAPED_UNICODE),
                     json_encode($response, JSON_UNESCAPED_UNICODE)
                 );
 
-                return ['ok' => true, 'type' => 'success', 'message' => 'PDS enviado a Tango correctamente. Pedido externo: #' . $pedidoNumero . '.'];
+                return ['ok' => true, 'type' => 'success', 'message' => 'PDS enviado a Tango correctamente. Pedido externo: #' . $nroPedido . '.'];
             }
 
             $errorText = $this->extractErrorText($response);

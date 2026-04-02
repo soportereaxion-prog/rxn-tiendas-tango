@@ -63,8 +63,11 @@ class CrmNotaRepository
         $params = [':empresa_id' => $empresaId];
 
         if ($search !== '') {
-            $sql .= " AND (n.titulo LIKE :search OR n.contenido LIKE :search OR c.razon_social LIKE :search)";
-            $params[':search'] = '%' . $search . '%';
+            $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3)";
+            $searchTerm = '%' . $search . '%';
+            $params[':search1'] = $searchTerm;
+            $params[':search2'] = $searchTerm;
+            $params[':search3'] = $searchTerm;
         }
 
         $validColumns = ['id', 'created_at', 'titulo', 'cliente_nombre'];
@@ -98,8 +101,11 @@ class CrmNotaRepository
         $params = [':empresa_id' => $empresaId];
 
         if ($search !== '') {
-            $sql .= " AND (n.titulo LIKE :search OR n.contenido LIKE :search OR c.razon_social LIKE :search)";
-            $params[':search'] = '%' . $search . '%';
+            $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3)";
+            $searchTerm = '%' . $search . '%';
+            $params[':search1'] = $searchTerm;
+            $params[':search2'] = $searchTerm;
+            $params[':search3'] = $searchTerm;
         }
 
         $stmt = $this->db->prepare($sql);

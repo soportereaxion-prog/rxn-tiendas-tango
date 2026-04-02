@@ -229,10 +229,9 @@ ob_start();
                                 <?php if (isset($errors['fecha_finalizado'])): ?><div class="invalid-feedback"><?= htmlspecialchars((string) $errors['fecha_finalizado']) ?></div><?php endif; ?>
                             </div>
 
-                            <div class="crm-col-1 d-flex align-items-center mt-3 pt-2">
-                                <div class="form-check mb-0" title="Ahora" data-bs-toggle="tooltip">
-                                    <input class="form-check-input border-secondary" type="checkbox" id="btn-finalizado-ahora" style="cursor: pointer; width: 1.25em; height: 1.25em;">
-                                </div>
+                            <div class="crm-col-1">
+                                <label class="form-label mb-1 d-block">&nbsp;</label>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-finalizado-ahora" title="Ajustar fecha finalizado a la fecha y hora actual"><i class="bi bi-clock-history"></i></button>
                             </div>
 
                             <div class="crm-col-2">
@@ -338,12 +337,19 @@ ob_start();
                                     <?php else: ?>
                                         <span class="badge bg-warning text-dark p-2 mb-2">Abierto</span>
                                     <?php endif; ?>
-                                    <?php if (($pedido['tango_sync_status'] ?? '') === 'error'): ?>
-                                        <br><span class="badge bg-danger text-light p-2 mb-2">Error en Tango</span>
-                                    <?php elseif (($pedido['tango_sync_status'] ?? '') !== 'success' && $pedido['estado_ui'] !== 'finalizado'): ?>
-                                        <br><span class="badge bg-secondary text-light p-2 mb-2">Pendiente Tango</span>
+                                    <?php if (!empty($pedido['nro_pedido'])): ?>
+                                        <div class="badge bg-success border text-white mt-1 w-100 py-2">
+                                            <i class="bi bi-cloud-check"></i> <?= htmlspecialchars((string) $pedido['nro_pedido']) ?>
+                                        </div>
+                                    <?php elseif (($pedido['tango_sync_status'] ?? '') === 'error'): ?>
+                                        <div class="badge bg-danger border text-white mt-1 w-100 py-2">
+                                            <i class="bi bi-exclamation-octagon"></i> ERROR API
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="badge bg-dark border text-muted mt-1 w-100 py-2">
+                                            Pedido Tango
+                                        </div>
                                     <?php endif; ?>
-                                    <input type="text" id="nro_pedido" name="nro_pedido" class="form-control form-control-sm border-secondary shadow-sm text-center w-100" value="<?= htmlspecialchars((string) $pedido['nro_pedido']) ?>" placeholder="Pedido Tango" title="Nro de Pedido en Tango">
                                 </div>
                             </div>
                             <div class="d-none" data-calc-side-net><?= htmlspecialchars((string) $pedido['duracion_neta_hhmmss']) ?></div>
@@ -401,7 +407,7 @@ ob_start();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/crm-pedidos-servicio-form.js"></script>
+    <script src="/rxnTiendasIA/public/js/crm-pedidos-servicio-form.js?v=<?= time() ?>"></script>
     <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
     <?php if ($formMode === 'create'): ?>
     <script>
@@ -425,6 +431,19 @@ ob_start();
         })();
     </script>
     <?php endif; ?>
+    <script>
+        (function() {
+            document.addEventListener('keydown', function(event) {
+                if (event.altKey && event.key.toLowerCase() === 'p') {
+                    event.preventDefault();
+                    const btnTango = document.querySelector('button[name="action"][value="tango"]');
+                    if (btnTango && !btnTango.disabled) {
+                        btnTango.click();
+                    }
+                }
+            });
+        })();
+    </script>
 
 <?php
 $content = ob_get_clean();

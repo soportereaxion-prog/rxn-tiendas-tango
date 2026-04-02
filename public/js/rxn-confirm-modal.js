@@ -77,8 +77,22 @@
         modalInstance.show();
     }
 
-    function findConfirmTarget(target) {
-        return target && target.closest('[data-rxn-confirm]');
+    function findConfirmTarget(eventTarget) {
+        if (!eventTarget) return null;
+        
+        var explicit = eventTarget.closest('[data-rxn-confirm]');
+        if (explicit) return explicit;
+        
+        var btn = eventTarget.closest('button.rxn-confirm-form, input[type="submit"].rxn-confirm-form, a.rxn-confirm-form');
+        if (btn) return btn;
+        
+        var submitBtn = eventTarget.closest('button[type="submit"], input[type="submit"]');
+        if (submitBtn) {
+            var form = submitBtn.closest('form.rxn-confirm-form');
+            if (form) return submitBtn;
+        }
+        
+        return null;
     }
 
     document.addEventListener('click', function (event) {
@@ -88,7 +102,17 @@
         }
 
         var href = target.getAttribute('href');
-        var message = target.getAttribute('data-rxn-confirm') || target.getAttribute('data-confirm-message') || '¿Confirmar esta acción?';
+        var message = target.getAttribute('data-rxn-confirm') || target.getAttribute('data-msg') || target.getAttribute('data-confirm-message');
+        
+        if (!message) {
+            var parentForm = target.closest('form');
+            if (parentForm) {
+                message = parentForm.getAttribute('data-msg') || parentForm.getAttribute('data-rxn-confirm') || '¿Confirmar esta acción?';
+            } else {
+                message = '¿Confirmar esta acción?';
+            }
+        }
+
         var type = target.getAttribute('data-confirm-type') || 'warning';
         var okText = target.getAttribute('data-confirm-ok-text') || target.textContent.trim() || 'Aceptar';
         var okClass = target.getAttribute('data-confirm-ok-class') || 'btn-primary';
@@ -108,6 +132,10 @@
         }
 
         var form = target.closest('form');
+        if (!form && target.hasAttribute('form')) {
+            form = document.getElementById(target.getAttribute('form'));
+        }
+
         if (form) {
             event.preventDefault();
             openConfirm({
@@ -116,7 +144,7 @@
                 okText: okText,
                 okClass: okClass,
                 onConfirm: function () {
-                    if (target.getAttribute('type') === 'submit') {
+                    if (target.getAttribute('type') === 'submit' || target.tagName === 'BUTTON') {
                         if (typeof form.requestSubmit === 'function') {
                             form.requestSubmit(target);
                         } else {

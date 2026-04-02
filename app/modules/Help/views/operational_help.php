@@ -81,10 +81,25 @@ ob_start();
                         <a href="#modulo-pedidos" class="help-anchor"><strong>Pedidos Web</strong><br><small class="text-muted">Seguimiento, estados y reproceso.</small></a>
                     <?php endif; ?>
                     <a href="#modulo-usuarios" class="help-anchor"><strong>Administrar Cuentas</strong><br><small class="text-muted">Altas, permisos y accesos internos.</small></a>
+                    <a href="#modulo-notas" class="help-anchor"><strong>Notas (Bitácora)</strong><br><small class="text-muted">Cuaderno operativo de seguimiento interno.</small></a>
+                    <a href="#modulo-anura" class="help-anchor"><strong>Telefonía (Anura)</strong><br><small class="text-muted">Historial y llamadas entrantes automáticas.</small></a>
                     <a href="#modulo-configuracion" class="help-anchor"><strong>Configuracion</strong><br><small class="text-muted"><?= $isCrm ? 'Parametros operativos propios de CRM, SMTP y Tango.' : 'Slug, branding, SMTP y Tango.' ?></small></a>
                     <a href="#modulo-orden-tarjetas" class="help-anchor"><strong>Orden de Tarjetas</strong><br><small class="text-muted">Como acomodar el menu sin afectar otros entornos.</small></a>
-                    <a href="#modulo-buscadores" class="help-anchor"><strong>Buscadores</strong><br><small class="text-muted">Como buscar bien sin perder tiempo.</small></a>
+                    <a href="#modulo-buscadores" class="help-anchor"><strong>Buscadores y Atajos</strong><br><small class="text-muted">Como buscar bien sin perder tiempo usando el teclado.</small></a>
+                    <a href="#novedades" class="help-anchor"><strong>Novedades</strong><br><small class="text-muted">Multi-empresa, seguridad, zoom e impresión.</small></a>
                 </div>
+            </div>
+        </div>
+
+        <div class="card rxn-form-card help-card" id="novedades" data-help-item data-help-text="lo nuevo novedades actualizacion mejoras atajo teclado multiempresa multi-empresa zoom printforms csrf token expirado seguridad ingresar">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Novedades (¡Lo último!)</h2>
+                <p class="text-muted">Un resumen súper fácil de las nuevas funcionalidades agregadas para ahorrarte clics y protegerte mejor.</p>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Operación Multi-Empresa rápida:</strong> Si administras más de una, en tu listado de empresas ahora hay un botón "Ingresar". Al hacerlo, el sistema se pone el sombrero de esa compañía para que operes todo directamente ahí sin tener que desloguearte.</li>
+                    <li><strong>Zoom en impresión:</strong> Para los que sufren diseñando formularios (PrintForms), agregamos controles de Zoom (acercar, alejar, ajustar ventana). Ya no hay que pelear para ver la hoja A4 completa.</li>
+                    <li><strong>Seguridad vigilando (Token Expirado):</strong> Hay nuevos guardias ciegos cuidando tu sesión. Si vas a buscarte un café, volves a la hora e intentas modificar un pedido y te sale "Token Expirado", es normal, ¡no rompiste nada! Sólo apretá `F5` para recargar la página e intentar de nuevo.</li>
+                </ul>
             </div>
         </div>
 
@@ -116,9 +131,10 @@ ob_start();
                     <ul class="help-list-tight mb-4">
                         <li><strong>Inicio y Finalizado:</strong> marcan el rango horario real del trabajo.</li>
                         <li><strong>Descuento:</strong> es tiempo que no debe computarse. Se escribe en formato <code>HH:MM:SS</code>.</li>
-                        <li><strong>Tiempo bruto:</strong> fin menos inicio.</li>
-                        <li><strong>Tiempo neto:</strong> bruto menos descuento.</li>
-                        <li><strong>Diagnostico y Motivo Descuento:</strong> son los textos principales del trabajo y conviene completarlos con lenguaje claro.</li>
+                        <li><strong>Tiempo bruto / neto:</strong> el sistema los calcula automáticamente.</li>
+                        <li><strong>Diagnostico y Motivo:</strong> escribí con claridad técnica acá.</li>
+                        <li><strong>Atajo rápido:</strong> Apretá <code>ALT + P</code> mientras estés editando para enviarlo directamente a Tango.</li>
+                        <li><strong>Seguridad de enviado:</strong> Cuando se envía a Tango exitosamente, asume el Número Oficial y se <strong>bloquea</strong> (ya nadie lo puede modificar, para cuidar la consistencia). Si hay rechazo dirá <code>ERROR API</code> y sí te dejará reintentar.</li>
                     </ul>
                     <div class="help-highlight">
                         <strong>Dato importante:</strong> el pedido guarda snapshot de cliente y articulo. Eso significa que el historico sigue legible aunque mas adelante cambie el origen de datos.
@@ -183,6 +199,30 @@ ob_start();
             </div>
         </div>
 
+        <div class="card rxn-form-card help-card" id="modulo-notas" data-help-item data-help-text="notas bitacora anotador interno conversacion seguimiento registro interno comercial crm">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Notas Internas (Bitácora)</h2>
+                <p class="text-muted">Es un cuaderno digital interno para la empresa. Útil para dejar constancia de seguimientos o temas administrativos rápidos.</p>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Para qué sirve:</strong> Para registrar un "llamó el cliente consultando", "hay que revisar el stock", etc.</li>
+                    <li><strong>Privacidad:</strong> Todo lo que escribís en las Notas es puramente <strong>interno</strong>. El cliente nunca verá esto en la parte pública.</li>
+                    <li><strong>Búsqueda combinada:</strong> Cuenta con un buscador súper rápido para no perder de vista ninguna anotación histórica importante.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card rxn-form-card help-card" id="modulo-anura" data-help-item data-help-text="anura telefono llamadas entrantes registro historial atencion central telefonica call webhook">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Llamadas (Central Anura)</h2>
+                <p class="text-muted">Muestra de forma automática el historial de las llamadas que llegan a tus internos telefónicos.</p>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Todo es automático:</strong> No tenés que cargar nada a mano. Si entra una llamada en tu central Anura, se impacta sola.</li>
+                    <li><strong>Multi-Empresa:</strong> Si gestionás varias empresas, las llamadas se dividen solas según cómo apuntaste el enlace de sistema en la central.</li>
+                    <li><strong>¿Por qué puede no aparecer una llamada?:</strong> Si alguien llamó pero no figura en tu listado, lo más lógico es que falte configurar o activar el "Webhook" en el portal propio del Anura.</li>
+                </ul>
+            </div>
+        </div>
+
         <div class="card rxn-form-card help-card" id="modulo-configuracion" data-help-item data-help-text="configuracion empresa slug branding smtp tango connect mail tienda url publica identidad logo colores">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Configuracion de la Empresa</h2>
@@ -216,6 +256,11 @@ ob_start();
                     <li><strong>Elegir sugerencia no aplica el filtro.</strong> Solo completa el texto del input.</li>
                     <li><strong>Para filtrar de verdad:</strong> Enter o boton Buscar / Aplicar.</li>
                     <li><strong>Limpiar filtros:</strong> vuelve al listado general.</li>
+                </ul>
+                <h3 class="h6 fw-bold mb-2">Atajos de Teclado (¡Chau Mouse!)</h3>
+                <ul class="help-list-tight mb-4">
+                    <li><strong>Buscar rápido:</strong> En cualquier pantalla, tocá la tecla `F3` o la barra `/` y vas directo a la caja de búsqueda.</li>
+                    <li><strong>Moverse en el Dashboard:</strong> Cuando buscás un módulo en las tarjetas de inicio, usa las <strong>flechas para arriba/abajo o los lados</strong> para saltar entre las opciones coloreadas y tocá `Enter` para entrar directo al que elegiste.</li>
                 </ul>
                 <h3 class="h6 fw-bold mb-2">Que significa “Buscar por”</h3>
                 <p class="mb-0">Te deja decirle al sistema donde queres buscar: por ejemplo por ID, nombre, email, SKU, documento o todos los campos disponibles segun el modulo.</p>

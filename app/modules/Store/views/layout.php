@@ -17,7 +17,7 @@ $footerSocials = $empresaObj->footer_socials ?? '';
         <link rel="icon" href="/rxnTiendasIA/public<?= htmlspecialchars($faviconUrl) ?>">
     <?php endif; ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
+    <link href="/rxnTiendasIA/public/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">
     <?= \App\Core\Helpers\UIHelper::getTenantStyles($empresaId) ?>
     <style>
         body {
