@@ -86,7 +86,7 @@
             z-index: 0;
             background-position: center;
             background-repeat: no-repeat;
-            background-size: cover;
+            background-size: 100% 100%;
         }
 
         .print-object {
@@ -215,3 +215,4 @@
     <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
 </body>
 </html>
+

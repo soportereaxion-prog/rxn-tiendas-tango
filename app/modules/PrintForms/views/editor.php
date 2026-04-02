@@ -92,7 +92,7 @@ ob_start();
         .print-sheet__stage {
             position: absolute;
             inset: 0;
-            background-size: cover;
+            background-size: 100% 100%;
             background-position: center;
             background-repeat: no-repeat;
         }
@@ -102,7 +102,7 @@ ob_start();
                 linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
                 var(--print-sheet-background-image, none);
-            background-size: var(--print-grid-size, 7.8px) var(--print-grid-size, 7.8px), var(--print-grid-size, 7.8px) var(--print-grid-size, 7.8px), cover;
+            background-size: var(--print-grid-size, 7.8px) var(--print-grid-size, 7.8px), var(--print-grid-size, 7.8px) var(--print-grid-size, 7.8px), 100% 100%;
             background-position: 0 0, 0 0, center;
         }
 
@@ -452,4 +452,5 @@ ob_start();
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';
 ?>
+
 
