@@ -10,7 +10,7 @@ $miInterno = $activeUser && $activeUser->anura_interno !== null ? (string)$activ
 $pageTitle = 'RXN Tiendas IA';
 ob_start();
 ?>
-<?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
+
 
     <main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1400px;">
         <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25">

@@ -7,7 +7,7 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
 $pageTitle = 'RXN Tiendas IA';
 ob_start();
 ?>
-<?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
+
 
     <main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 900px; margin: 0 auto;">
         
