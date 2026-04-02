@@ -1,26 +1,21 @@
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuevo Usuario - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-</head>
-<body class="rxn-page-shell">
-    <?php
-    $area = $area ?? 'tiendas';
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/usuarios';
-    $indexPath = $basePath . '?' . http_build_query(['area' => $area]);
-    ?>
+<?php
+$area = $area ?? 'tiendas';
+$basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/usuarios';
+$indexPath = $basePath . '?' . http_build_query(['area' => $area]);
+
+$pageTitle = 'Nuevo Usuario - rxnTiendasIA';
+
+ob_start();
+?>
     <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
-        <div class="rxn-module-header mb-4">
-            <div>
-                <h2 class="fw-bold mb-1">Alta de Usuario</h2>
-                <p class="text-muted mb-0">Crear un nuevo acceso para el entorno operativo.</p>
-            </div>
-            <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary">Volver al listado</a>
-        </div>
+        <?php
+        \App\Core\View::render('app/shared/views/partials/page_header.php', [
+            'title' => 'Alta de Usuario',
+            'subtitle' => 'Crear un nuevo acceso para el entorno operativo.',
+            'backUrl' => $indexPath,
+            'backLabel' => 'Volver al listado'
+        ]);
+        ?>
 
         <?php
         $moduleNotesKey = 'usuarios';
@@ -130,5 +125,8 @@
             </div>
         </div>
     </div>
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

@@ -45,6 +45,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-tools"></i>',
         'link' => '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio',
     ],
+    'presupuestos' => [
+        'title' => 'Presupuestos CRM',
+        'desc' => 'Gestión de presupuestos comerciales referenciados a clientes, con valorización y envio de PDF.',
+        'icon' => '<i class="bi bi-file-earmark-spreadsheet"></i>',
+        'link' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos',
+    ],
     'notas' => [
         'title' => 'Notas CRM',
         'desc' => 'Historial de interacciones y trazabilidad de contactos con clientes. Base de conocimiento.',
@@ -56,6 +62,12 @@ $defaultCards = [
         'desc' => 'Configuración de tipografías y datos fiscales para documentos generados en PDF.',
         'icon' => '<i class="bi bi-file-earmark-richtext"></i>',
         'link' => '/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion',
+    ],
+    'llamadas' => [
+        'title' => 'Llamadas CRM',
+        'desc' => 'Historial de llamadas de la central telefónica con reproducción de audios.',
+        'icon' => '<i class="bi bi-telephone-fill"></i>',
+        'link' => '/rxnTiendasIA/public/mi-empresa/crm/llamadas',
     ],
     'usuarios' => [
         'title' => 'Administrar Cuentas',
@@ -71,6 +83,10 @@ $defaultCards = [
     ],
 ];
 
+if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmNotasAccess()) {
+    unset($defaultCards['notas']);
+}
+
 $finalCards = [];
 foreach ($orderArray as $cardId) {
     if (isset($defaultCards[$cardId])) {
@@ -81,92 +97,70 @@ foreach ($orderArray as $cardId) {
 foreach ($defaultCards as $cardId => $cardData) {
     $finalCards[$cardId] = $cardData;
 }
+$environmentLabel = 'Entorno Operativo';
+$dashboardPath = '/rxnTiendasIA/public/';
+$pageTitle = 'Entorno Operativo de CRM - rxnTiendasIA';
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="es" <?= \App\Core\Helpers\UIHelper::getHtmlAttributes() ?>>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entorno Operativo de CRM - rxnTiendasIA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
-    <style>
-        body { background-color: var(--bg-color, #121212); color: var(--text-color, #f8f9fa); }
-        .hero-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; }
+<style>
+    body { background-color: var(--bg-color, #121212); color: var(--text-color, #f8f9fa); }
+    .hero-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; }
 
-        .module-card {
-            background-color: var(--card-bg, #1e1e1e);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 250px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
+    .release-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+    }
 
-        .module-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.25);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
+    .release-list {
+        margin-bottom: 0;
+        padding-left: 1rem;
+        color: #c7c7c7;
+    }
 
-        .module-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.9;
-        }
+    .release-list li + li {
+        margin-top: 0.45rem;
+    }
+</style>
+<?php
+$extraHead = ob_get_clean();
 
-        .release-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
-        }
+ob_start();
+?>
+<?php
+ob_start();
+?>
+<a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=crm" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
+<?php
+$actionsHtml = ob_get_clean();
 
-        .release-list {
-            margin-bottom: 0;
-            padding-left: 1rem;
-            color: #c7c7c7;
-        }
+\App\Core\View::render('app/shared/views/partials/page_header.php', [
+    'title' => 'Entorno Operativo de CRM',
+    'subtitle' => 'Base inicial del circuito CRM <span class="badge bg-secondary ms-1">Empresa #' . ($_SESSION['empresa_id'] ?? '') . '</span>',
+    'iconClass' => 'bi bi-diagram-3',
+    'actionsHtml' => $actionsHtml,
+    'backUrl' => '/rxnTiendasIA/public/',
+    'backLabel' => 'Volver al Launcher'
+]);
+?>
 
-        .release-list li + li {
-            margin-top: 0.45rem;
-        }
-    </style>
-</head>
-<body class="d-flex flex-column min-vh-100 p-4 p-md-5 rxn-launcher-shell">
-    <div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">
-        <div class="rxn-module-header mb-5 pb-2 border-bottom border-secondary border-opacity-25">
-            <div>
-                <h1 class="hero-title mb-1"><i class="bi bi-diagram-3"></i> Entorno Operativo de CRM</h1>
-                <p class="text-muted mb-0">Base inicial del circuito CRM <span class="badge bg-secondary ms-1">Empresa #<?= $_SESSION['empresa_id'] ?? '' ?></span></p>
-            </div>
-            <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
-                
-                <a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=crm" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
-            </div>
-        </div>
-
-        <?php
+<?php
         $moduleNotesKey = 'entorno_operativo_crm';
         $moduleNotesLabel = 'Entorno Operativo de CRM';
         require BASE_PATH . '/app/shared/views/components/module_notes_panel.php';
         ?>
 
-        <div class="alert alert-secondary border-0 rounded-4 shadow-sm mb-4">
-            CRM arranca con una base corta pero propia: configuracion separada, clientes y articulos CRM, pedidos de servicio y accesos compartidos de perfil/cuentas para no cortar la navegacion del tenant.
-        </div>
+        <!-- Buscador de Módulos (Estándar F3 / /) -->
+        <?php require BASE_PATH . '/app/shared/views/components/dashboard_search.php'; ?>
 
         <div id="dashboard-grid-crm" class="row g-4">
             <?php foreach ($finalCards as $id => $card): ?>
                 <div class="col-sm-6 col-lg-4 rxn-sortable-col" data-id="<?= htmlspecialchars((string) $id) ?>">
-                    <div class="card module-card text-center p-4 h-100 position-relative shadow-sm">
+                    <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
                         <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
-                            <div class="module-icon"><?= $card['icon'] ?></div>
-                            <h5 class="fw-bold mb-2 text-white"><?= htmlspecialchars($card['title']) ?></h5>
+                            <div class="rxn-module-icon text-primary"><?= $card['icon'] ?></div>
+                            <h5 class="fw-bold mb-2"><?= htmlspecialchars($card['title']) ?></h5>
                             <p class="text-muted small px-2 mb-0"><?= htmlspecialchars($card['desc']) ?></p>
                             <a href="<?= htmlspecialchars($card['link']) ?>" class="stretched-link"></a>
                         </div>
@@ -201,6 +195,11 @@ foreach ($defaultCards as $cardId => $cardData) {
             </div>
         <?php endif; ?>
     </div>
+<?php
+$content = ob_get_clean();
+
+ob_start();
+?>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -212,7 +211,7 @@ foreach ($defaultCards as $cardId => $cardData) {
         new Sortable(grid, {
             animation: 250,
             ghostClass: 'opacity-50',
-            handle: '.module-card',
+            handle: '.rxn-module-card',
             onEnd: function () {
                 var currentOrder = [];
                 document.querySelectorAll('#dashboard-grid-crm .rxn-sortable-col').forEach(function (col) {
@@ -230,5 +229,8 @@ foreach ($defaultCards as $cardId => $cardData) {
         });
     });
     </script>
-</body>
-</html>
+<?php
+$extraScripts = ob_get_clean();
+
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>
