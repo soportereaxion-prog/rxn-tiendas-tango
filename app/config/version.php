@@ -1,9 +1,20 @@
 <?php
 
 return [
-    'current_version' => '1.1.40',
-    'current_build' => '20260401.2',
+    'current_version' => '1.1.41',
+    'current_build' => '20260402.1',
     'history' => [
+        [
+            'version' => '1.1.41',
+            'build' => '20260402.1',
+            'released_at' => '2026-04-02',
+            'title' => 'Gestión de Empresas con Switch de Contexto Operativo',
+            'summary' => 'Se implementó la separación entre la edición de metadatos globales (ABM empresa) y la navegación operativa profunda dentro de otros Tenants.',
+            'items' => [
+                'La visualización de Gestión de Empresas permite ahora saltar e "Ingresar" directamente en la sesión operativa de otra empresa manteniéndose como admin.',
+                'Se resolvieron fallos de UX por retención de sesión de Tenant 1 ("suite reaxion") al intentar ver el panel interno de terceros sin cambiar explícitamente el ancla operativa (`empresa_id`).',
+            ],
+        ],
         [
             'version' => '1.1.40',
             'build' => '20260401.2',

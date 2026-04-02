@@ -133,6 +133,20 @@ class EmpresaController extends Controller
         }
     }
 
+    public function ingresar(string $id): void
+    {
+        AuthService::requireBackofficeAdmin();
+        $empresa = $this->service->findById((int) $id);
+        if (!$empresa) {
+            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode('Empresa no encontrada.'));
+            exit;
+        }
+        
+        $_SESSION['empresa_id'] = $empresa->id;
+        header('Location: /rxnTiendasIA/public/');
+        exit;
+    }
+
     public function eliminarMasivo(): void
     {
         AuthService::requireBackofficeAdmin();

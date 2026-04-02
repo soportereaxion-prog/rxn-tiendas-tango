@@ -81,6 +81,7 @@ return function (Router $router): void {
     $router->post('/empresas/{id}/eliminar', [\App\Modules\Empresas\EmpresaController::class, 'eliminar']);
     $router->post('/empresas/{id}/restore', [\App\Modules\Empresas\EmpresaController::class, 'restore']);
     $router->post('/empresas/{id}/force-delete', [\App\Modules\Empresas\EmpresaController::class, 'forceDelete']);
+    $router->post('/empresas/{id}/ingresar', [\App\Modules\Empresas\EmpresaController::class, 'ingresar']);
 
     // --- MODULO ADMIN GLOBAL ---
     $router->get('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'showSmtpGlobal']);

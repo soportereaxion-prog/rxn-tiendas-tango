@@ -226,7 +226,13 @@ ob_start();
                                     <td class="text-end text-nowrap">
                                         <div class="btn-group" data-row-link-ignore>
                                             <?php if (!$isPapelera): ?>
-                                                <a href="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/editar" class="btn btn-sm btn-outline-info" title="Editar"><i class="bi bi-pencil"></i></a>
+                                                <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/ingresar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Ingresar al entorno operativo de esta empresa?">
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" title="Ingresar">
+                                                        <i class="bi bi-box-arrow-in-right"></i>
+                                                    </button>
+                                                </form>
+
+                                                <a href="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/editar" class="btn btn-sm btn-outline-info" style="border-radius: 0; margin-left: -1px;" title="Editar"><i class="bi bi-pencil"></i></a>
                                                 
                                                 <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/copiar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Copiar empresa (duplicar registro)?">
                                                     <button type="submit" class="btn btn-sm btn-outline-success" style="border-radius: 0;" title="Copiar">
