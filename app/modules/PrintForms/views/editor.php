@@ -1,4 +1,16 @@
 <?php
+$editorConfig = [
+    'documentKey' => (string) ($document['document_key'] ?? ''),
+    'pageConfig' => $pageConfig,
+    'objects' => $objects,
+    'fonts' => $fonts,
+    'variables' => $variables,
+    'availableFonts' => $availableFonts,
+    'sampleContext' => $sampleContext,
+    'backgroundUrl' => $backgroundUrl,
+];
+$editorConfigJson = json_encode($editorConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
 $pageTitle = $document['label'] ?? 'Canvas de impresion';
 ob_start();
 ?>
@@ -440,3 +452,4 @@ ob_start();
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';
 ?>
+
