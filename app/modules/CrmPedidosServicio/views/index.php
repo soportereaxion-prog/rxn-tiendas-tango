@@ -197,9 +197,13 @@ ob_start();
                                                 <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/copiar" class="d-inline" data-row-link-ignore>
                                                     <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-medium" title="Copiar pedido (Usa pedido como plantilla)"><i class="bi bi-copy"></i></button>
                                                 </form>
+                                                <?php if (empty($pedido['nro_pedido'])): ?>
                                                 <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/eliminar" class="d-inline" data-row-link-ignore>
                                                     <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Enviar este pedido a la papelera?" title="Eliminar"><i class="bi bi-trash"></i></button>
                                                 </form>
+                                                <?php else: ?>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-medium" onclick="alert('El PDS fue enviado a Tango no se puede eliminar.'); event.stopPropagation();" title="No se puede eliminar"><i class="bi bi-trash"></i></button>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                             <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
                                         </td>

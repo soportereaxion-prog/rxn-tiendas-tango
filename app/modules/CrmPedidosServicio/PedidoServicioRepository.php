@@ -283,7 +283,7 @@ class PedidoServicioRepository
         }
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql = 'UPDATE crm_pedidos_servicio SET deleted_at = NOW() WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
+        $sql = 'UPDATE crm_pedidos_servicio SET deleted_at = NOW() WHERE empresa_id = ? AND nro_pedido IS NULL AND id IN (' . $placeholders . ')';
         $stmt = $this->db->prepare($sql);
         $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
 

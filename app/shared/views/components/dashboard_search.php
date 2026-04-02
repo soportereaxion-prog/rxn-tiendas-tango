@@ -28,7 +28,60 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Keyboard shortcuts: '/' or 'F3'
     document.addEventListener('keydown', function(e) {
-        // Avoid intercepting if user is already typing in an input
+        const isSearchFocused = document.activeElement === searchInput;
+        const isCardFocused = document.activeElement && document.activeElement.classList.contains('stretched-link');
+        
+        // Navigation logic for modules
+        if (isSearchFocused || isCardFocused) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                
+                // Prevent scrolling
+                if (['ArrowDown', 'ArrowUp'].includes(e.key)) {
+                    e.preventDefault();
+                }
+
+                // Get all visible links
+                const cards = document.querySelectorAll('.rxn-module-card');
+                const visibleLinks = [];
+                cards.forEach(card => {
+                    const wrapper = card.closest('[class*="col-"]') || card.parentElement;
+                    if (wrapper.style.display !== 'none') {
+                        const link = card.querySelector('.stretched-link');
+                        if (link) visibleLinks.push(link);
+                    }
+                });
+                
+                if (visibleLinks.length === 0) return;
+
+                if (isSearchFocused && (e.key === 'ArrowDown' || e.key === 'ArrowRight')) {
+                    e.preventDefault(); // prevent moving caret
+                    visibleLinks[0].focus();
+                } else if (isCardFocused) {
+                    e.preventDefault();
+                    const currentIndex = visibleLinks.indexOf(document.activeElement);
+                    if (currentIndex === -1) return;
+
+                    let nextIndex = currentIndex;
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                        nextIndex = currentIndex + 1;
+                    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                        nextIndex = currentIndex - 1;
+                    }
+
+                    if (nextIndex < 0) {
+                        // Vuelve al buscador
+                        searchInput.focus();
+                        // Put cursor at end of text
+                        const len = searchInput.value.length;
+                        searchInput.setSelectionRange(len, len);
+                    } else if (nextIndex < visibleLinks.length) {
+                        visibleLinks[nextIndex].focus();
+                    }
+                }
+            }
+        }
+
+        // Avoid intercepting F3/'/' if user is already typing in an input (except search navigation)
         const tag = e.target.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
             return;

@@ -394,6 +394,21 @@ iframe {
     border-color: var(--color-primary, #6c757d);
 }
 
+.rxn-module-card:focus-within {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 0 0 3px rgba(13, 110, 253, 0.35);
+    border-color: var(--color-primary, #6c757d);
+}
+
+.rxn-module-card .stretched-link:focus,
+.rxn-module-card .stretched-link:focus-visible {
+    outline: none;
+}
+
+html[data-theme="dark"] .rxn-module-card:focus-within {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 0 0 3px rgba(13, 202, 240, 0.4);
+}
+
 .rxn-module-icon {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
