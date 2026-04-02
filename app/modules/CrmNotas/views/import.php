@@ -14,7 +14,7 @@ ob_start();
         <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25">
             <div>
                 <h1 class="h3 fw-bold mb-1"><i class="bi bi-file-earmark-excel"></i> Importar Masivamente</h1>
-                <p class="text-muted mb-0">Carga de bitácoras en lote desde Excel (.xlsx) o CSV.</p>
+                
             </div>
             <div>
                 <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>

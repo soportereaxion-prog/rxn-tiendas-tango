@@ -15,7 +15,7 @@ ob_start();
                         <span class="badge bg-warning text-dark align-middle ms-2 fs-6 pb-2">⏳ Pendiente</span>
                     <?php endif; ?>
                 </h2>
-                <p class="text-muted mb-0">Fecha de Alta: <?= htmlspecialchars((string)$pedido['pedido_fecha']) ?></p>
+                
                 <div class="d-flex flex-wrap gap-2 mt-2">
                     <span class="badge <?= $pedido['estado_tango'] === 'enviado_tango' ? 'bg-success' : ($pedido['estado_tango'] === 'error_envio_tango' ? 'bg-danger' : 'bg-warning text-dark') ?>">
                         <?= $pedido['estado_tango'] === 'enviado_tango' ? 'Enviado a Tango' : ($pedido['estado_tango'] === 'error_envio_tango' ? 'Error de integración' : 'Pendiente') ?>
@@ -193,7 +193,7 @@ ob_start();
                                         ?>
                                         <pre class="json-view mb-0"><code><?= $prettyPayload ?></code></pre>
                                     <?php else: ?>
-                                        <p class="text-muted mb-0">No se registró payload.</p>
+                                        
                                     <?php endif; ?>
                                 </div>
                                 <div class="tab-pane fade" id="response" role="tabpanel" aria-labelledby="response-tab">
@@ -204,7 +204,7 @@ ob_start();
                                         ?>
                                         <pre class="json-view mb-0"><code><?= $prettyResponse ?></code></pre>
                                     <?php else: ?>
-                                        <p class="text-muted mb-0">Sin respuesta registrada (posible timeout/error de red).</p>
+                                        
                                     <?php endif; ?>
                                 </div>
                             </div>

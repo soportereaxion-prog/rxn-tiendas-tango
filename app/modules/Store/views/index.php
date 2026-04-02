@@ -113,7 +113,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
                 <div>
                     <h2 class="h4 fw-bold mb-1">Comprar por categorias</h2>
-                    <p class="text-secondary mb-0">Entradas rapidas para recorrer el catalogo sin perder el contexto de la tienda.</p>
+                    
                 </div>
                 <?php if ($selectedCategory !== null || !empty($search)): ?>
                     <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-outline-dark btn-sm rounded-pill px-3">Ver todo</a>

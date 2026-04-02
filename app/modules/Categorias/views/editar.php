@@ -7,7 +7,7 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="fw-bold mb-1">Editar Categoria</h2>
-                <p class="text-muted mb-0">Ajusta la visibilidad publica y la portada usada en la tienda.</p>
+                
             </div>
             <div class="d-flex gap-2">
                 <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">

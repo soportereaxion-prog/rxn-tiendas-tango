@@ -8,7 +8,7 @@ $backofficeStoreLabel = (string) ($backofficeUserSummary['storeLabel'] ?? '');
 $currentTheme = $_SESSION['pref_theme'] ?? 'light';
 $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
 ?>
-<div class="d-flex flex-column align-items-start align-items-lg-end gap-2">
+<div class="container-fluid px-4 d-flex justify-content-end align-items-center gap-2 mb-1" style="max-width: 1400px;">
     <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 shadow-sm rxn-user-menu text-secondary">
         <button class="btn btn-sm btn-link p-0 text-decoration-none" id="backendThemeToggleBtn" title="Cambiar Tema" style="line-height:1; font-size:1.1rem; filter: grayscale(0.5);">
             <?= $oppositeThemeBtn ?>
@@ -26,13 +26,12 @@ $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
             <i class="bi bi-box-arrow-right fs-6"></i>
         </a>
     </div>
-    <div class="px-2">
+    <div>
         <?php if (is_string($backofficeStoreUrl) && $backofficeStoreUrl !== ''): ?>
             <a href="<?= htmlspecialchars($backofficeStoreUrl) ?>" class="btn btn-sm btn-outline-info rounded-pill px-3" target="_blank" rel="noopener noreferrer">
                 <i class="bi bi-box-arrow-up-right"></i> Abrir tienda
             </a>
-        <?php else: ?>
-            <span class="small text-muted"><?= htmlspecialchars($backofficeStoreLabel) ?></span>
+            <span class="small text-muted mb-0"><?= htmlspecialchars($backofficeStoreLabel) ?></span>
         <?php endif; ?>
     </div>
 </div>

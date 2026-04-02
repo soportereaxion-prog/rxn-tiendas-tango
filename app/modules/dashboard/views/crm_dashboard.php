@@ -175,7 +175,7 @@ $pageHeaderActions = ob_get_clean();
                         <div>
                             <span class="badge rounded-pill text-bg-light text-dark mb-3">Novedades</span>
                             <h2 class="h4 fw-bold text-white mb-2"><?= htmlspecialchars((string) ($release['title'] ?? 'Release actual')) ?></h2>
-                            <p class="text-muted mb-0"><?= htmlspecialchars((string) ($release['summary'] ?? '')) ?></p>
+                            
                         </div>
                         <div class="text-md-end small text-muted">
                             <div class="fw-bold text-white"><?= htmlspecialchars($releaseLabel) ?></div>

@@ -7,7 +7,7 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="fw-bold mb-1">Nueva Categoria</h2>
-                <p class="text-muted mb-0">Agrupa articulos del catalogo y habilita navegacion por categorias en la tienda.</p>
+                
             </div>
             <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">Volver al listado</a>
         </div>

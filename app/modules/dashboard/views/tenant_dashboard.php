@@ -87,10 +87,10 @@ ob_start();
         <div class="rxn-module-header mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
                 <h1 class="hero-title mb-1"><i class="bi bi-shop-window"></i> Entorno Operativo de Tiendas</h1>
-                <p class="text-muted mb-0">Circuito comercial web del tenant <span class="badge bg-secondary ms-1">Empresa #<?= $_SESSION['empresa_id'] ?? '' ?></span></p>
+                
             </div>
             <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+
                 
                 <a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
@@ -129,7 +129,7 @@ ob_start();
                         <div>
                             <span class="badge rounded-pill text-bg-light text-dark mb-3">Novedades</span>
                             <h2 class="h4 fw-bold text-white mb-2"><?= htmlspecialchars((string) ($release['title'] ?? 'Release actual')) ?></h2>
-                            <p class="text-muted mb-0"><?= htmlspecialchars((string) ($release['summary'] ?? '')) ?></p>
+                            
                         </div>
                         <div class="text-md-end small text-muted">
                             <div class="fw-bold text-white"><?= htmlspecialchars($releaseLabel) ?></div>

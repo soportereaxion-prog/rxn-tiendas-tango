@@ -67,7 +67,7 @@ ob_start();
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
             <div>
                 <h2 class="fw-bold mb-1">Gestión de Usuarios</h2>
-                <p class="text-muted mb-0"><?= htmlspecialchars($contextLabel) ?></p>
+                
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer">Ayuda</a>

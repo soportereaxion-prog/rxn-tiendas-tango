@@ -6,10 +6,10 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <div>
                 <h2>CRM - Formularios de Impresion</h2>
-                <p class="text-muted mb-0">Canvas versionables para disenar salidas impresas de la plataforma sin depender de motores externos tipo Crystal.</p>
+                
             </div>
             <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al CRM</a>
             </div>
@@ -38,7 +38,7 @@ ob_start();
                                 <div>
                                     <div class="small text-uppercase text-muted fw-bold mb-2">Documento</div>
                                     <h4 class="mb-2"><?= htmlspecialchars((string) ($document['label'] ?? 'Formulario')) ?></h4>
-                                    <p class="text-muted mb-0"><?= htmlspecialchars((string) ($document['description'] ?? '')) ?></p>
+                                    
                                 </div>
                                 <span class="badge rounded-pill text-bg-dark"><?= $activeVersion ? 'Version activa' : 'Sin definir' ?></span>
                             </div>

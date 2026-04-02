@@ -6,7 +6,7 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="mb-1">Alta de Empresa</h2>
-                <p class="text-muted mb-0">Crear un nuevo registro empresarial.</p>
+                
             </div>
             <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">Volver al listado</a>
         </div>

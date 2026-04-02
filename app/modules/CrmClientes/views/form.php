@@ -7,7 +7,7 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="fw-bold mb-1"><?= htmlspecialchars((string) ($editTitle ?? 'Modificar Cliente CRM')) ?></h2>
-                <p class="text-muted mb-0">Ajustando ficha de <strong><?= htmlspecialchars((string) ($cliente['razon_social'] ?? 'Nuevo Cliente')) ?></strong> (#<?= (int) ($cliente['id'] ?? 0) ?>)</p>
+                
             </div>
             <div class="d-flex gap-2">
                 <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">

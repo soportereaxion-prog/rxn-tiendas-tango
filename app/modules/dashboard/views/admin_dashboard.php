@@ -18,7 +18,7 @@ ob_start();
         <div class="rxn-module-header mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
                 <h1 class="hero-title mb-1"><i class="bi bi-buildings"></i> RXN Backoffice</h1>
-                <p class="text-muted mb-0">Gestión global de licenciatarios y configuración maestra.</p>
+                
             </div>
             <div class="rxn-module-actions">
                 
@@ -68,7 +68,7 @@ ob_start();
                         <div>
                             <span class="badge rounded-pill text-bg-light text-dark mb-3">Novedades</span>
                             <h2 class="h4 fw-bold text-white mb-2"><?= htmlspecialchars((string) ($release['title'] ?? 'Release actual')) ?></h2>
-                            <p class="text-muted mb-0"><?= htmlspecialchars((string) ($release['summary'] ?? '')) ?></p>
+                            
                         </div>
                         <div class="text-md-end small text-muted">
                             <div class="fw-bold text-white"><?= htmlspecialchars($releaseLabel) ?></div>

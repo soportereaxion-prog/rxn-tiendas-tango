@@ -19,10 +19,10 @@ ob_start();
         <div class="rxn-module-header mb-3">
             <div>
                 <h2 class="mb-1">Canvas de impresion - <?= htmlspecialchars((string) ($document['label'] ?? 'Formulario')) ?></h2>
-                <p class="text-muted mb-0">Hoja A4 editable con fondo, fuentes, variables y objetos posicionados para unificar la mecanica documental de la plataforma.</p>
+                
             </div>
             <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+
                 <button type="submit" form="print-form-editor-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar version</button>
                 <a href="/rxnTiendasIA/public/mi-empresa/crm/presupuestos" class="btn btn-outline-secondary">Ir a Presupuestos</a>
                 <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a Formularios</a>

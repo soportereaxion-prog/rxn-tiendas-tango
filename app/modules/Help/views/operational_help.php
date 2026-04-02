@@ -13,10 +13,10 @@ ob_start();
             <div>
                 <span class="help-kicker mb-3"><i class="bi bi-life-preserver"></i> Ayuda para humanos</span>
                 <h1 class="fw-bold mb-1">Centro de Ayuda del Entorno Operativo</h1>
-                <p class="text-muted mb-0">Explicaciones largas, simples y directas para que cualquier administrador entienda que hace cada parte del sistema. Contexto actual: <?= htmlspecialchars((string) $environmentLabel) ?>.</p>
+                
             </div>
             <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+
                 <span class="text-muted small">Hola, <?= htmlspecialchars((string) $userName) ?></span>
                 <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Entorno</a>
             </div>
@@ -202,7 +202,7 @@ ob_start();
         <div class="card rxn-form-card help-card" data-help-item data-help-text="perfil preferencias visuales tema fuente panel personal usuario apariencia entorno">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Mi Perfil</h2>
-                <p class="text-muted mb-0">Es tu espacio personal. No cambia la tienda ni la empresa: solo ajusta como ves vos el panel, por ejemplo tema o tamaño visual.</p>
+                
             </div>
         </div>
 

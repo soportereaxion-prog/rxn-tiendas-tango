@@ -6,7 +6,7 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="fw-bold mb-1">Bitacora de Modulos</h2>
-                <p class="text-muted mb-0">Centro interno para revisar las anotaciones levantadas desde cada modulo por administradores.</p>
+                
             </div>
             <div class="rxn-module-actions">
                 
@@ -25,7 +25,7 @@ ob_start();
             <div class="card rxn-form-card border-0 shadow-sm">
                 <div class="card-body p-4 p-lg-5">
                     <h3 class="h5 fw-bold mb-2">Todavia no hay anotaciones</h3>
-                    <p class="text-muted mb-0">Empieza a cargar notas desde los modulos y despues revisalas aca para auditar mejoras con mas contexto.</p>
+                    
                 </div>
             </div>
         <?php else: ?>

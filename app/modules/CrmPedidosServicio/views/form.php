@@ -131,11 +131,11 @@ ob_start();
 <div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-service-shell">
         <div class="rxn-module-header mb-2 d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>
-                <h2 class="mb-1 text-light fw-bold"><?= $formMode === 'edit' ? 'PDS #' . (int) $pedido['numero'] : 'Nuevo PDS' ?></h2>
-                <p class="text-secondary mb-0">CRM operativo con control horario, tiempo decimal y envío posterior a Tango.</p>
+                
+                
             </div>
             <div class="rxn-module-actions d-flex flex-wrap gap-2 align-items-center justify-content-end">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+
                 
                 <div class="d-flex align-items-center gap-1 border-end border-secondary pe-2">
                     <?php if (empty($pedido['tango_sync_payload'])): ?>

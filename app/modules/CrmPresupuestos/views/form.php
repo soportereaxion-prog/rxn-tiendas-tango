@@ -257,11 +257,11 @@ ob_start();
     <div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-budget-shell">
         <div class="rxn-module-header mb-2">
             <div>
-                <h2 class="mb-1"><?= $formMode === 'edit' ? 'Presupuesto #' . (int) $presupuesto['numero'] : 'Nuevo Presupuesto CRM' ?></h2>
-                <p class="text-muted mb-0">Pantalla operativa de cabecera comercial y renglones acumulables para preparar el circuito documental del CRM.</p>
+                
+                
             </div>
             <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+
                 <?php if ($formMode === 'edit'): ?>
                     <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/copiar" method="POST" class="d-inline-block m-0 p-0" >
                         <button type="submit" class="btn btn-outline-success shadow-sm" data-rxn-confirm="¿Confirma que desea duplicar este presupuesto?" data-confirm-type="info"><i class="bi bi-copy"></i> Copiar</button>

@@ -25,14 +25,14 @@ ob_start();
         return http_build_query($params);
     };
     ?>
-    <div class="container mt-5 rxn-responsive-container">
+    <div class="container-fluid mt-2 rxn-responsive-container">
         <div class="rxn-module-header mb-4">
             <div>
                 <h2>CRM - Presupuestos</h2>
-                <p class="text-muted mb-0">Cabecera comercial, renglones acumulables y snapshots locales para preparar el circuito documental sin depender del browser contra Connect.</p>
+                
             </div>
             <div class="rxn-module-actions">
-                <?php require BASE_PATH . '/app/shared/views/components/user_action_menu.php'; ?>
+
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
                 <a href="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" class="btn btn-outline-warning" data-rxn-confirm="¿Sincronizar catalogos comerciales CRM para depositos, condiciones, listas, vendedores y transportes?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Sync Catalogos</a>

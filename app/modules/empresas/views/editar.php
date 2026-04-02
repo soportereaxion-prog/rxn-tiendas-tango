@@ -13,7 +13,7 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <div>
                 <h2 class="mb-1">Editar Empresa</h2>
-                <p class="text-muted mb-0">Modificar el registro de <?= htmlspecialchars($empresa->nombre) ?>.</p>
+                
             </div>
             <div class="d-flex gap-2">
                 <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">

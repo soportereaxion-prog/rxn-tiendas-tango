@@ -6,7 +6,7 @@ ob_start();
         <div class="mb-4 rxn-module-header">
             <div>
                 <h2 class="text-warning mb-1">⚙️ SMTP Master RXN</h2>
-                <p class="text-muted mb-0">Esta conexión asume las responsabilidades transaccionales cada vez que sub-empresas carezcan de configuraciones propias.</p>
+                
             </div>
             <a href="/rxnTiendasIA/public/admin/dashboard" class="btn btn-outline-light">Volver al Backoffice</a>
         </div>
