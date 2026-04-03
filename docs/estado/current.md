@@ -64,9 +64,10 @@
 * **Tango API Order Number Extracción:** Dado que la API de Tango Connect (proceso 19845) NO retorna el número de pedido formateado, se agregó la captura mandatoria del valor `savedId` desde el payload de éxito, permitiendo que el sistema guarde y referencie internamente la confirmación de Tango en el campo `nro_pedido`.
 * **Usuarios por Tenant:** El modulo `Administrar Cuentas` queda disponible para usuarios autenticados del tenant, manteniendo el aislamiento por empresa en consulta y persistencia.
 * **Escalado de Privilegios Controlado:** Los operadores del tenant pueden administrar usuarios de su propia empresa, pero no ven ni pueden otorgar el flag `es_admin` salvo que ya tengan capacidad para gestionar privilegios.
-* **Visual de Slug en EmpresaConfig:** El slug visible del tenant se muestra sin prefijo duro `/rxnTiendasIA/public/`, evitando ruido visual y manteniendo el alcance en solo lectura.
+* **Visual de Slug en EmpresaConfig:** El slug visible del tenant se muestra sin prefijo duro `/rxn_suite/public/`, evitando ruido visual y manteniendo el alcance en solo lectura.
 * **Versionado Interno Curado:** La release activa se declara en `app/config/version.php` y se consume via `VersionService`, permitiendo exponer las novedades solo a perfiles administradores del entorno interno y dejando la tienda publica sin ese bloque.
-* **Disciplina de Release:** Toda iteracion relevante debe dejar sincronizados `docs/logs`, `docs/estado/current.md` y `app/config/version.php`; la release visible actual queda publicada como `v1.1.32` build `20260329.10`.
+* **Disciplina de Release Reforzada:** Toda iteración operativa o funcional relevante *tiene* que dejar sincronizados `docs/logs`, `docs/estado/current.md` y obligatoriamente `app/config/version.php`. Cada vuelta que le peguemos a algo importante tiene que aparecer allí; es una regla inquebrantable del flujo de trabajo. La release visible actual queda publicada como `v1.1.43` build `20260403.1`.
+* **Estrategia de Deploy B (Oficial):** El subdominio `suite.reaxionsoluciones.com.ar` apunta con Document Root a `rxn_suite/public/`. Las URLs son absolutas desde `/` sin subfijo de proyecto. El `.htaccess` de `public/` usa `RewriteBase /`. `tools/deploy_prep.php` incluye post-proceso de limpieza de referencias legacy y verificación de htaccess. Ver log `2026-04-02_1945_correccion_deploy_produccion_plesk.md`.
 * **Jerarquía Operativa Actualizada:** OpenCode opera como `Gemi`, que es la interfaz principal, interpreta y valida; y `Clau` ejecuta todo el código sin excepción como ejecutora Senior.
 * **Bitácora Interna por Módulo:** Se agrega una mecánica admin-only para cargar anotaciones rápidas desde cada módulo, persistidas en JSON local (`app/storage/module_notes.json`), visibles en un widget flotante con arrastre/redimensión manual, minimización tipo dock compacta abajo a la derecha y auditables desde `/admin/notas-modulos` con soporte para varias capturas pegadas o adjuntas, referenciadas en texto como `#imagenN`.
 * **Categorias Local-First:** Se incorpora un módulo tenant de categorías y una asignación por `empresa_id + codigo_externo` en `articulo_categoria_map`, evitando depender de `articulos.id` para que la clasificación sobreviva a purgas o resincronizaciones del catálogo.
@@ -100,7 +101,7 @@
 
 ## riesgos
 
-* El iterador generador inyectó rutas `<link>` en cabeceras dependientes del contexto `/rxnTiendasIA/public/`. Si el servidor cambia de ruta base a la raíz de dominio completa, es crítico ajustar `rxn-theming.css` URI y variables de upload.
+* **[RESUELTO 2026-04-02]** ~~El iterador generador inyectó rutas en cabeceras dependientes del contexto `/rxn_suite/public/`.~~ La Estrategia B (Document Root en `public/`) fue implementada como única estrategia oficial. Ver log `2026-04-02_1945_correccion_deploy_produccion_plesk.md`.
 * Si el Tenant sube logos `.svg` rotos, el Store frontend podría crashear su ratio visual temporalmente en cabeceras. (Validados por MIME superficial).
 * La paginación del CRUD de empresas renderiza todos los números de página. Si el volumen crece mucho, convendrá compactar la navegación sin alterar la estrategia server-rendered.
 * Las categorías requieren ejecutar la nueva migración (`database_migrations_categorias.php`) para crear `categorias` y `articulo_categoria_map` antes de operar el módulo.
@@ -113,7 +114,9 @@
 
 ## próximo paso
 
-* Testeo global en servidor DonWeb para asegurar compatibilidad con PHP 8.2 estricto alojado remotamente.
+* **[DEPLOY INMEDIATO]** Ejecutar `php tools/deploy_prep.php`, verificar que el post-proceso reporta `[OK]`, subir `/build` a Plesk con Document Root en `public/`, ejecutar `composer dump-autoload -o` en servidor.
+* Verificar funcionamiento en `https://suite.reaxionsoluciones.com.ar/login` sin loops.
+* Testeo global en servidor Linux para asegurar compatibilidad con PHP 8.2 estricto alojado remotamente.
 * Avanzar en siguientes características propuestas en la iteración del proyecto (Por ej: refinamientos de flujo transaccional Tango Connect si las hubiere).
 * Evaluar un futuro mapeo de rubros desde Tango solo si el origen remoto demuestra estabilidad y no rompe el criterio local-first.
 * Si CRM suma integraciones reales con correo o sync, desacoplar consumidores restantes para que también lean `empresa_config_crm` donde corresponda.
