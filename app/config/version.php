@@ -1,9 +1,33 @@
 <?php
 
 return [
-    'current_version' => '1.1.41',
-    'current_build' => '20260402.1',
+    'current_version' => '1.1.43',
+    'current_build' => '20260403.1',
     'history' => [
+        [
+            'version' => '1.1.43',
+            'build' => '20260403.1',
+            'released_at' => '2026-04-03',
+            'title' => 'Instalación Unificada OTA (Código + BD)',
+            'summary' => 'Se unificó el actualizador del sistema permitiendo subir un ZIP que aplica tanto archivos del núcleo como migraciones de Base de Datos en un solo paso.',
+            'items' => [
+                'El módulo de Mantenimiento permite ahora resolver las Releases con un solo clic procesando archivos y consultas SQL.',
+                'Switch visual para activar o desactivar la auto-aplicación de migraciones incluidas en el ZIP.',
+                'El empaquetador del sistema (ReleaseBuilder) ahora incluye correctamente el esquema estructural de Base de Datos.',
+            ],
+        ],
+        [
+            'version' => '1.1.42',
+            'build' => '20260402.2',
+            'released_at' => '2026-04-02',
+            'title' => 'Exportación a Excel en Notas CRM',
+            'summary' => 'Se incorporó una nueva herramienta para descargar el listado completo de notas operativas actuales al formato Excel (.xlsx) respetando los filtros visuales.',
+            'items' => [
+                'Botón dedicado "Exportar a Excel" en la vista principal del CRM Notas.',
+                'El exportador refleja el tablero actual: aplica los mismos filtros de búsqueda, estado y orden visualizado al momento de la descarga.',
+                'Generación instantánea empleando OpenSpout sin afectar el rendimiento del servidor.',
+            ],
+        ],
         [
             'version' => '1.1.41',
             'build' => '20260402.1',
