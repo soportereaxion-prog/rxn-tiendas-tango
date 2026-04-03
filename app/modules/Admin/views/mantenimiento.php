@@ -70,7 +70,7 @@ ob_start();
 
     <!-- MIGRACIONES -->
     <div class="col-12 col-xl-8">
-        <div class="card rxn-form-card shadow-sm h-100 border-0">
+        <div class="card rxn-form-card shadow-sm border-0">
             <div class="card-header border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
                 <h5 class="card-title fw-bold text-dark mb-0">
                     <i class="bi bi-server text-primary me-2"></i>Actualizaciones de BD (Migraciones)
