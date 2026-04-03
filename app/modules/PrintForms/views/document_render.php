@@ -161,9 +161,15 @@
         $bgUrl = $resolveUrl((string) ($page['background_url'] ?? ''));
         $isTransparent = !empty($page['transparent_bg']);
         $bgColor = $isTransparent ? 'transparent' : htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
-        $bgStyle = !empty($bgUrl) ? "background-image: url('" . htmlspecialchars($bgUrl) . "'); background-position: center; background-repeat: no-repeat; background-size: 100% 100%;" : '';
+        $bgStyle = !empty($bgUrl) ? "background-image: url('" . htmlspecialchars($bgUrl) . "'); background-position: center; background-repeat: no-repeat; background-size: cover;" : '';
+        $isEmail = !empty($isEmailContext);
         ?>
-        <div class="print-page" style="background-color: <?= $bgColor ?>; <?= $bgStyle ?>">
+        <?php if ($isEmail): ?>
+        <table width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: <?= $bgColor ?>; margin:0; padding:0; height: 100%; width: 100%; border-collapse: collapse;" <?= !empty($bgUrl) ? 'background="' . htmlspecialchars($bgUrl) . '"' : '' ?>>
+            <tr><td valign="top" style="height: 100%; width: 100%; background-position: center; background-repeat: no-repeat; background-size: cover;">
+        <?php endif; ?>
+
+        <div class="print-page" style="background-color: <?= $bgColor ?>; <?= !$isEmail ? $bgStyle : '' ?>; position: relative; width: 100%; min-height: <?= number_format((float) ($page['height_mm'] ?? 297), 2, '.', '') ?>mm;">
 
             <?php foreach (($renderedObjects ?? []) as $object): ?>
                 <div class="print-object" style="<?= htmlspecialchars((string) ($object['position_style'] ?? '')) ?>">
@@ -203,6 +209,11 @@
                 </div>
             <?php endforeach; ?>
         </div>
+        
+        <?php if ($isEmail): ?>
+            </td></tr>
+        </table>
+        <?php endif; ?>
     </div>
 
     <?php if (!empty($autoPrint)): ?>

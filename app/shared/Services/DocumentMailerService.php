@@ -146,7 +146,8 @@ class DocumentMailerService
             'autoPrint' => false,
             'printPath' => null,
             'backPath' => null,
-            'hideToolbar' => true // opcional CSS a ocultar, lo maneja mPDF/DomPDF igual
+            'hideToolbar' => true,
+            'isEmailContext' => true
         ]);
     }
 }
