@@ -88,6 +88,8 @@ return function (Router $router): void {
     $router->post('/admin/mantenimiento/migrar', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runMigrations']);
     $router->post('/admin/mantenimiento/baseline', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'baseline']);
     $router->post('/admin/mantenimiento/upload-update', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'uploadUpdate']);
+    $router->post('/admin/mantenimiento/build-release', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'buildRelease']);
+    $router->get('/admin/mantenimiento/download-release', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'downloadRelease']);
     $router->post('/admin/mantenimiento/backup-db', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runDbBackup']);
     $router->post('/admin/mantenimiento/backup-files', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runFilesBackup']);
     $router->get('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'showSmtpGlobal']);

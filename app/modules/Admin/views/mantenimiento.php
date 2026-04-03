@@ -262,6 +262,47 @@ ob_start();
 </div>
 <?php endif; ?>
 
+
+<?php if (in_array(getenv('APP_ENV'), ['local', 'dev', 'development'])): ?>
+<div class="row g-4 mt-4">
+    <!-- FACTORY OTA -->
+    <div class="col-12">
+        <div class="card rxn-form-card shadow-sm border-success border-opacity-50" style="background-color: #f6fcf8;">
+            <div class="card-header border-bottom-0 pt-4 pb-0 bg-transparent text-dark d-flex align-items-center">
+                <h5 class="card-title fw-bold mb-0">
+                    <i class="bi bi-box-seam text-success me-2"></i>Fábrica de Empaquetados OTA (Local)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <p class="text-muted small mb-2"><strong>Entorno de Desarrollo:</strong> Esta herramienta empaquetará el código actual omitiendo vendors e imágenes, generando el `.zip` de actualización listo para subir a producción.</p>
+                        <?php if (isset($_SESSION['last_ota_release'])): ?>
+                            <div class="mt-3 p-3 bg-success bg-opacity-10 rounded border border-success border-opacity-25 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="fw-bold text-success mb-1">Última Compilación Exitosa</h6>
+                                    <small class="text-muted"><?= htmlspecialchars($_SESSION['last_ota_release']) ?></small>
+                                </div>
+                                <a href="/admin/mantenimiento/download-release?file=<?= urlencode($_SESSION['last_ota_release']) ?>" class="btn btn-success fw-bold shadow-sm">
+                                    <i class="bi bi-download me-1"></i> Bajar ZIP
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-md-5 mt-3 mt-md-0 text-md-end">
+                        <form action="/admin/mantenimiento/build-release" method="POST" onsubmit="return confirm('¿Construir un nuevo paquete OTA? Se ignorará temporalmente cualquier compilación anterior.');">
+                            <button type="submit" class="btn btn-outline-success fw-bold p-3 w-100 rounded-3 shadow-sm">
+                                <i class="bi bi-cpu-fill fs-4 d-block mb-1"></i> Generar Paquete (.zip) Ahora
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 </div>
 
 <?php

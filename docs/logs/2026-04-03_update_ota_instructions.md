@@ -1,44 +1,60 @@
-# Manual Operativo: Actualizaciones Automáticas "Over The Air" (OTA)
+# Manual Operativo: Despliegues OTA (Over The Air) y Release Builder
 
-Hemos incorporado funcionalidad para que los RXN Admin puedan cargar empaquetados de nuevas mejoras directamente desde la pantalla de Mantenimiento, resolviendo la extracción sin depender de un administrador de sistemas que conecte al FTP en cada release.
-
----
-
-## 🛠️ Para el Desarrollador: Cómo generar una Actualización (Entorno Local)
-
-Cuando requiera compilar todos sus avances y generar un "Release Zip" para subirlo a Producción, **no arme el zip comprimiendo la carpeta manualmente**. Esto sube basura accidental (como la carpeta entera de imágenes `.uploads` perdiendo horas y megas, o tapando los archivos de Producción).
-
-1. Abra su consola / terminal local apuntando a la raíz del repositorio (`rxn_suite/`).
-2. Digite y ejecute el comando:
-   `php tools/build_update_zip.php`
-3. AG procesará sus archivos, filtrará estrictamente con los filtros de seguridad, y dejará su paquete limpio dentro de la nueva carpeta local `build_ota/rxn_update_xxx.zip`.
-4. Envíe o pase ese archivo exacto de `build_ota/` al administrador que ejecutará en Producción.
+Este documento engloba las políticas definitivas sobre la nueva era de actualizaciones del sistema RXN Suite, eliminando los despliegues manuales mediante intervención humana directa sobre las carpetas del servidor.
 
 ---
 
-## 🚀 Para el RXN Admin: Cómo aplicar la Actualización (Producción)
+## 1. El Dilema del Primer Despliegue (Cómo bootstappear OTA por primera vez)
 
-Usted acaba de recibir el archivo `.zip` de un desarrollador (o de AG) conteniendo nuevas funciones, soluciones de bugs o migraciones.
+Dado que la plataforma acaba de adquirir la habilidad de instalarse a sí misma, existe un dilema lógico: Producción no puede recibir paquetes ZIP todavía porque aún no tiene instalado el actualizador.
 
-**Paso a paso:**
+Por lo tanto, la **Primera Vez** que llevemos esto a Producción, debe hacerse por mecanismos tradicionales (FTP o Pipeline), en un "Deploy Híbrido" mínimo:
+- Subir la nueva clase `app/core/SystemUpdater.php`.
+- Actualizar `app/modules/Admin/Controllers/MantenimientoController.php`.
+- Actualizar el ruteo en `app/config/routes.php`.
+- Actualizar la interfaz en `app/modules/Admin/views/mantenimiento.php`.
 
-1. **Ingreso:** Navegue en su BackOffice de Producción hacia la pestaña de **"Mantenimiento y Actualizaciones"**.
-2. **Carga:** En la tarjeta superior "Actualización del Sistema (OTA)", pulse sobre *Examinar/Seleccionar archivo* y elija su archivo `.zip`.
-3. **Instalación:** Haga clic sobre el botón azul **Instalar**. 
-4. **Respaldos Previos Automáticos:** Aguarde pacientemente mientras cargue el sistema. Durante este lapso, el módulo pausará su instalación y forzará dos cosas:
-   - Exportará la Base de Datos tal cual está, por seguridad.
-   - Creará una foto (Backup ZIP) del código fuente actual.
-5. Si superó las barreras de protección de los directorios vitales, su pantalla recargará con un aviso verde de Éxito.
-6. **Ejecutar Migraciones:** Observe debajo la tarjeta naranja de "Actualizaciones de BD (Migraciones)". Si la actualización inyectó nuevas mejoras de datos, notará que hay **Migraciones Pendientes**. Presione "Ejecutar Pendientes" para terminar el trabajo.
-7. **Validar Sistema:** Compruebe navegando su Backoffice que la nueva funcionalidad esté viva.
+A partir del instante en que esos pocos archivos pisen Producción, **RXN Suite cobra vida** y nunca más será necesario el FTP.
 
---- 
+---
 
-### Exclusiones y Protecciones (No debe temer)
-El motor de despliegue jamás sobreescribirá:
-- `.env` (Credenciales y variables únicas del Servidor)
-- `storage/` (Archivos Json cacheados que varían cada minuto o listado de backups previos)
-- `public/uploads/` (Memoria física de lo que los inquilinos suben, como logos o imágenes)
-- `.htaccess` (Rutas del webserver Apache)
+## 2. Generar el ZIP de Actualización (Construcción del Release)
 
-> Si su paquete demora demasiado o arroja error por *Upload Size*, deberá pedir a su hosting provider elevar el límite técnico de PHP en `upload_max_filesize` a al menos 100MB contemplando las carpetas Vendor.
+Para facilitar el envío del paquete `.zip`, el sistema está dotado del motor *ReleaseBuilder*, el cual filtra, limpia y compila un ZIP ignorando de forma nativa los archivos indeseables (`.git`, basuras temporales de `.uploads`, `.env`, étc). 
+
+Esta herramienta dispone de dos vías exclusivas para el desarrollador:
+
+### Vía Interfaz Gráfica (UI)
+Desde su servidor Local/Desarrollo, entre a *Mantenimiento*. Al fondo de la página visualizará la tarjeta verde **Fábrica de Empaquetados OTA (Local)**.
+1. Presione *Generar Paquete (.zip) Ahora*.
+2. El sistema lo fabricará y guardará.
+3. Pulse *Bajar ZIP* descargándolo cómodamente a las descargas de su PC.
+
+*Mecanismo de seguridad*: Esta tarjeta solo está disponible si su entorno global marca `APP_ENV = local`, `dev` o `development`. Jamás será visible ni activable desde el entorno productivo vivo, eliminando riesgos de agotamiento de recursos.
+
+### Vía Consola (CLI)
+Para los programadores clásicos o procesos automatizados:
+1. Navegue a la raíz del proyecto.
+2. Ejecute: `php tools/build_update_zip.php`
+3. AG compilará el archivo depositándolo bajo la carpeta `/build_ota/`.
+
+---
+
+## 3. Despliegue Directo sobre Producción (OTA)
+
+Usted es RXN Admin y ya tiene en sus manos el ZIP provisto por cualquiera de las dos vías anteriores. 
+
+1. **Ingreso:** Navegue en su BackOffice de Producción hacia **Mantenimiento y Actualizaciones**.
+2. **Carga:** En la tarjeta superior "Actualización del Sistema (OTA Release)", elija su archivo `.zip` en el selector nativo.
+3. **Instalación:** Pulse **Instalar** y no cierre la pestaña.
+4. **Validación Automática:** Durante los breves segundos de demora, RXN Suite estará forzando un guardado paralelo de Base de Datos y de Código Vivo para permitir rápida restauración por si se corta la luz.
+5. Si superó las cortapisas (bloqueos seguros a la modificación de `.env`, `storage` y `uploads`), la pantalla anunciará éxito rotundo en color verde.
+6. **Migraciones Diferidas:** Fíjese si el ZIP entrante liberó nuevas migraciones (Tarjeta Migraciones). Si hay pendientes, oprima "Ejecutar" sobre esa tarjeta separada para finalizar el deploy.
+
+---
+
+## Buenas Prácticas Requeridas
+
+*   **Plesk File Uploads:** Validar que su servidor posea un valor acorde en PHP.ini (`upload_max_filesize` a >100M) para no rebotar zips generosos, o en su defecto fabricar siempre entregables delgados omitiendo vendors enteros.
+*   **Archivable temporal:** Cada OTA inyectada en `/storage/backups/updates` queda viva en disco. Periódicamente depurar esto vía mantenimiento para no inundar cuotas de disco en hostings pequeños.
+*   **Downtime Cero Teórico:** Salvo reconstrucciones titánicas, los archivos se escriben sin bajar el servicio. Actúe previendo micro-cortes si un inquilino cliquea exacto en la fracción de escritura.

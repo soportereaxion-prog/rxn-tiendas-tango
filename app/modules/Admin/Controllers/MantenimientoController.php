@@ -10,6 +10,7 @@ use App\Modules\Auth\AuthService;
 use App\Core\MigrationRunner;
 use App\Core\BackupManager;
 use App\Core\SystemUpdater;
+use App\Core\ReleaseBuilder;
 
 class MantenimientoController extends Controller
 {
@@ -163,6 +164,60 @@ class MantenimientoController extends Controller
         } else {
             header('Location: /admin/mantenimiento?error=' . urlencode($result['message']));
         }
+        exit;
+    }
+
+    /**
+     * Construye dinámicamente el paquete ZIP (Factory OTA) si está en entorno de desarrollo
+     */
+    public function buildRelease(): void
+    {
+        AuthService::requireRxnAdmin();
+
+        $env = getenv('APP_ENV') ?: 'production';
+        if (!in_array($env, ['local', 'dev', 'development'])) {
+            header('Location: /admin/mantenimiento?error=Operación+restringida+solo+a+entornos+de+desarrollo.');
+            exit;
+        }
+
+        try {
+            $builder = new ReleaseBuilder();
+            $result = $builder->compile();
+
+            if ($result['status'] === 'success') {
+                $_SESSION['last_ota_release'] = $result['filename'];
+                header('Location: /admin/mantenimiento?success=' . urlencode($result['message']));
+            } else {
+                header('Location: /admin/mantenimiento?error=' . urlencode($result['message']));
+            }
+        } catch (\Exception $e) {
+            header('Location: /admin/mantenimiento?error=' . urlencode('Fallo crítico al compilar release: ' . $e->getMessage()));
+        }
+        exit;
+    }
+
+    /**
+     * Descarga el último paquete OTA generado (Factory)
+     */
+    public function downloadRelease(): void
+    {
+        AuthService::requireRxnAdmin();
+
+        if (empty($_GET['file'])) {
+            die("Archivo no especificado.");
+        }
+
+        $filename = basename($_GET['file']);
+        $filepath = BASE_PATH . '/build_ota/' . $filename;
+
+        if (!file_exists($filepath)) {
+            die("El paquete solicitado ya no existe en el disco.");
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($filepath));
+        readfile($filepath);
         exit;
     }
 }
