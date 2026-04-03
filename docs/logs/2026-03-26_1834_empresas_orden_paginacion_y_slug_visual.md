@@ -5,7 +5,7 @@
 - Se agrego paginacion server-rendered de 10 registros por pagina con parametro `page`, manteniendo la busqueda existente por `search` y `field`.
 - Se ajusto el contador del listado para distinguir `total` general y `filteredTotal` real, sin depender de la cantidad de items de la pagina actual.
 - Se actualizo la vista `app/modules/empresas/views/index.php` para conservar filtros y orden en headers clickeables, paginacion y autosubmit del buscador, reseteando pagina al escribir o cambiar el campo.
-- Se simplifico la visual del slug en `app/modules/EmpresaConfig/views/index.php` removiendo el prefijo duro `/rxnTiendasIA/public/` y dejando solo el valor del slug alineado a la izquierda.
+- Se simplifico la visual del slug en `app/modules/EmpresaConfig/views/index.php` removiendo el prefijo duro `/rxn_suite/public/` y dejando solo el valor del slug alineado a la izquierda.
 - Se registro el entorno local de referencia en `docs/estado/current.md`: Wampserver 3.3.7 x64, Apache 2.4.62.1, PHP 8.3.14, MySQL 9.1.0, MariaDB 11.5.2, DBMS default `mysql`.
 
 ## Por que

@@ -1,4 +1,4 @@
-# rxnTiendasIA — Checkout, Pedido Local y Envío a Tango
+# rxn_suite — Checkout, Pedido Local y Envío a Tango
 
 ## Fecha
 2026-03-24 10:10

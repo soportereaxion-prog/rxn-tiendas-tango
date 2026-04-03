@@ -8,7 +8,7 @@
                     <?php if (!empty($error)): ?>
                         <div class="alert alert-danger rounded-3"><?= htmlspecialchars($error) ?></div>
                     <?php endif; ?>
-                    <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/registro" method="POST">
+                    <form action="/<?= htmlspecialchars($empresa_slug) ?>/registro" method="POST">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-medium text-secondary">Nombre <span class="text-danger">*</span></label>
@@ -35,7 +35,7 @@
                         <button type="submit" class="btn btn-dark w-100 py-3 rounded-3 fw-bold mb-3">Crear Cuenta</button>
                         <div class="text-center">
                             <span class="text-muted">¿Ya tienes cuenta?</span>
-                            <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/login" class="text-dark fw-bold text-decoration-none">Inicia sesión</a>
+                            <a href="/<?= htmlspecialchars($empresa_slug) ?>/login" class="text-dark fw-bold text-decoration-none">Inicia sesión</a>
                         </div>
                     </form>
                 </div>

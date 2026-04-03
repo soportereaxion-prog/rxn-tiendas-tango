@@ -3,9 +3,9 @@ $pageTitle = 'RXN Tiendas IA';
 ob_start();
 ?>
 <?php
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/configuracion';
-    $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
-    $helpPath = $helpPath ?? '/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas';
+    $basePath = $basePath ?? '/mi-empresa/configuracion';
+    $dashboardPath = $dashboardPath ?? '/mi-empresa/dashboard';
+    $helpPath = $helpPath ?? '/mi-empresa/ayuda?area=tiendas';
     $showStoreSlug = $showStoreSlug ?? true;
     $showStoreBranding = $showStoreBranding ?? true;
     $moduleNotesKey = $moduleNotesKey ?? 'empresa_configuracion';
@@ -102,7 +102,7 @@ ob_start();
                                 <input type="file" class="form-control" name="logo" accept=".jpg,.jpeg,.png,.svg,.webp">
                                 <?php if(!empty($empresa->logo_url)): ?>
                                     <div class="mt-2 p-2 bg-light border rounded text-center" style="max-width: 200px;">
-                                        <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$empresa->logo_url) ?>" style="max-height: 40px; object-fit: contain;">
+                                        <img src="<?= htmlspecialchars((string)$empresa->logo_url) ?>" style="max-height: 40px; object-fit: contain;">
                                     </div>
                                 <?php endif; ?>
                                 <div class="form-text"><small>Se recomienda formato PNG transparente o SVG.</small></div>
@@ -112,7 +112,7 @@ ob_start();
                                 <input type="file" class="form-control" name="favicon" accept=".ico,.png,.svg">
                                 <?php if(!empty($empresa->favicon_url)): ?>
                                     <div class="mt-2 p-2 bg-light border rounded d-inline-block text-center">
-                                        <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$empresa->favicon_url) ?>" height="24">
+                                        <img src="<?= htmlspecialchars((string)$empresa->favicon_url) ?>" height="24">
                                     </div>
                                 <?php endif; ?>
                                 <div class="form-text"><small>Aparecerá en la pestaña del navegador web.</small></div>
@@ -177,7 +177,7 @@ ob_start();
                         </div>
                         <div class="col-md-3 col-lg-2 order-1 order-md-2 text-center mb-3 mb-md-0">
                             <?php if(!empty($config->imagen_default_producto)): ?>
-                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$config->imagen_default_producto) ?>" alt="Fallback Empresa" class="img-thumbnail rounded-3 shadow-sm" style="max-height: 100px; object-fit: cover;">
+                                <img src="<?= htmlspecialchars((string)$config->imagen_default_producto) ?>" alt="Fallback Empresa" class="img-thumbnail rounded-3 shadow-sm" style="max-height: 100px; object-fit: cover;">
                             <?php else: ?>
                                 <div class="bg-light border rounded-3 d-flex align-items-center justify-content-center mx-auto shadow-sm" style="height: 100px; width: 100px; border-style: dashed !important;">
                                     <span class="text-muted small">Sin Img</span>
@@ -293,7 +293,7 @@ ob_start();
                                     <div class="form-text"><small>Logo o imagen para la cabecera (se recomienda PNG sin fondo).</small></div>
                                 </div>
                                 <?php if(!empty($config->impresion_header_url)): ?>
-                                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$config->impresion_header_url) ?>" alt="Header" class="img-thumbnail rounded-2 shadow-sm" style="max-height: 50px;">
+                                    <img src="<?= htmlspecialchars((string)$config->impresion_header_url) ?>" alt="Header" class="img-thumbnail rounded-2 shadow-sm" style="max-height: 50px;">
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -305,7 +305,7 @@ ob_start();
                                     <div class="form-text"><small>Imagen para el final de presupuestos o PDS.</small></div>
                                 </div>
                                 <?php if(!empty($config->impresion_footer_url)): ?>
-                                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string)$config->impresion_footer_url) ?>" alt="Footer" class="img-thumbnail rounded-2 shadow-sm" style="max-height: 50px;">
+                                    <img src="<?= htmlspecialchars((string)$config->impresion_footer_url) ?>" alt="Footer" class="img-thumbnail rounded-2 shadow-sm" style="max-height: 50px;">
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -466,7 +466,6 @@ ob_start();
                     </div>
                 </div>
             </div>
-
             <div class="rxn-form-actions mt-4 mb-5 pb-2">
                 <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-light">Cancelar</a>
                 <button type="submit" class="btn btn-success px-5 fw-bold shadow-sm">💾 Guardar Cambios Reales</button>
@@ -480,8 +479,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
             // Password Visibility Toggle
             const toggleEye = document.getElementById('toggleTokenEye');
@@ -865,7 +863,7 @@ ob_start();
 
         });
     </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

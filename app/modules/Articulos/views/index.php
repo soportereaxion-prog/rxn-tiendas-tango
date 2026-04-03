@@ -5,17 +5,17 @@ ob_start();
 <?php
     $field = $field ?? 'all';
     $categoriaId = $categoriaId ?? null;
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/articulos';
-    $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
-    $helpPath = $helpPath ?? '/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas';
+    $basePath = $basePath ?? '/mi-empresa/articulos';
+    $dashboardPath = $dashboardPath ?? '/mi-empresa/dashboard';
+    $helpPath = $helpPath ?? '/mi-empresa/ayuda?area=tiendas';
     $moduleNotesKey = $moduleNotesKey ?? 'articulos';
     $moduleNotesLabel = $moduleNotesLabel ?? 'Articulos';
     $showCategories = $showCategories ?? true;
     $showSyncActions = $showSyncActions ?? true;
-    $syncTodoPath = $syncTodoPath ?? '/rxnTiendasIA/public/mi-empresa/sync/todo';
-    $syncStockPath = $syncStockPath ?? '/rxnTiendasIA/public/mi-empresa/sync/stock';
-    $syncPreciosPath = $syncPreciosPath ?? '/rxnTiendasIA/public/mi-empresa/sync/precios';
-    $syncArticulosPath = $syncArticulosPath ?? '/rxnTiendasIA/public/mi-empresa/sync/articulos';
+    $syncTodoPath = $syncTodoPath ?? '/mi-empresa/sync/todo';
+    $syncStockPath = $syncStockPath ?? '/mi-empresa/sync/stock';
+    $syncPreciosPath = $syncPreciosPath ?? '/mi-empresa/sync/precios';
+    $syncArticulosPath = $syncArticulosPath ?? '/mi-empresa/sync/articulos';
     $totalBadgeLabel = $totalBadgeLabel ?? 'Total en BD Local';
     $emptyStateTitle = $emptyStateTitle ?? 'No hay articulos cargados.';
     $emptyStateHint = $emptyStateHint ?? '';
@@ -284,11 +284,10 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

@@ -17,8 +17,8 @@ class PrintFormRenderer
 
         $renderedObjects = [];
         foreach ($objects as $object) {
-            $renderedObjects[] = match ((string) ($object['type'] ?? '')) {
-                'text' => $this->renderTextLike($object, $context, $page, $defaults, false),
+            $renderedObjects[] = match (strtolower(trim((string) ($object['type'] ?? '')))) {
+                'text', 'text_multiline' => $this->renderTextLike($object, $context, $page, $defaults, false),
                 'variable' => $this->renderTextLike($object, $context, $page, $defaults, true),
                 'image' => $this->renderImage($object, $context, $page, $defaults),
                 'line' => $this->renderLine($object, $page),
@@ -56,16 +56,14 @@ class PrintFormRenderer
             'type' => 'text',
             'position_style' => $this->buildPositionStyle($object, $page),
             'inner_style' => implode('; ', [
-                'display:flex',
-                'align-items:center',
-                'justify-content:' . $this->justifyFromAlign((string) ($style['align'] ?? 'left')),
+                'display:block',
                 'font-family:' . ($style['font_family'] ?? $defaults['font_family'] ?? 'Arial, Helvetica, sans-serif'),
                 'font-size:' . (float) ($style['font_size_pt'] ?? $defaults['font_size_pt'] ?? 10) . 'pt',
                 'font-weight:' . (int) ($style['font_weight'] ?? 400),
                 'color:' . ($style['color'] ?? $defaults['color'] ?? '#111111'),
                 'text-align:' . ($style['align'] ?? 'left'),
                 'white-space:pre-wrap',
-                'padding:0 0.3mm',
+                'padding: 0.5mm',
                 'overflow:hidden',
             ]),
             'content' => $content,

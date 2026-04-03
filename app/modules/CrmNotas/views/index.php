@@ -4,13 +4,14 @@ $usePageHeader = true;
 $pageHeaderTitle = 'Gestión de Notas';
 $pageHeaderSubtitle = 'Anotaciones, seguimientos e historial de clientes.';
 $pageHeaderIcon = 'bi bi-journal-text';
-$pageHeaderBackUrl = $dashboardPath ?? '/rxnTiendasIA/public/';
+$pageHeaderBackUrl = $dashboardPath ?? '/';
 $pageHeaderBackLabel = 'Volver';
 
 ob_start();
 ?>
 <a href="<?= htmlspecialchars($indexPath) ?>/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nueva Nota</a>
 <a href="<?= htmlspecialchars($indexPath) ?>/importar" class="btn btn-outline-info"><i class="bi bi-upload"></i> Importar CSV/Excel</a>
+<a href="<?= htmlspecialchars($indexPath) ?>/exportar<?= !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '' ?>" class="btn btn-outline-success"><i class="bi bi-download"></i> Exportar a Excel</a>
 <?php
 $pageHeaderActions = ob_get_clean();
 
@@ -38,7 +39,7 @@ ob_start();
 
         <div class="card shadow-sm border-0 bg-dark text-light mb-4 rxn-card-hover">
             <div class="card-body">
-                <form action="<?= htmlspecialchars($indexPath) ?>" method="GET" class="row g-3 align-items-end">
+                <form action="<?= htmlspecialchars($indexPath) ?>" method="GET" class="row g-3 align-items-end" data-search-form>
                     <input type="hidden" name="status" value="<?= htmlspecialchars($status ?? 'activos') ?>">
                     <div class="col-md-6">
                         <label class="form-label text-muted small mb-1">Buscar Notas</label>
@@ -109,8 +110,8 @@ ob_start();
                             <tr><td colspan="6" class="text-center p-4 text-muted">No existen notas registradas.</td></tr>
                         <?php else: ?>
                             <?php foreach ($notas as $item): ?>
-                                <tr style="cursor: pointer;" onclick="if(event.target.closest('.btn-group, .form-check-input') === null) { window.location.href = '<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>'; }" class="rxn-hover-bg">
-                                    <td><input type="checkbox" name="ids[]" value="<?= (int) $item['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk"></td>
+                                <tr data-row-link="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>">
+                                    <td data-row-link-ignore><input type="checkbox" name="ids[]" value="<?= (int) $item['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk"></td>
                                     <td class="text-muted small">#<?= $item['id'] ?></td>
                                     <td>
                                         <a href="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>" class="text-info text-decoration-none fw-bold"><?= htmlspecialchars($item['titulo']) ?></a>
@@ -135,7 +136,7 @@ ob_start();
                                     </td>
                                     <td class="small"><?= date('d/m/Y', strtotime($item['created_at'])) ?></td>
                                     <td class="text-end">
-                                        <div class="btn-group">
+                                        <div class="btn-group" data-row-link-ignore>
                                             <?php if (!$isPapelera): ?>
                                                 <a href="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>" class="btn btn-sm btn-outline-primary" title="Ver Nota"><i class="bi bi-eye"></i></a>
                                                 <a href="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>/editar" class="btn btn-sm btn-outline-info" title="Editar"><i class="bi bi-pencil"></i></a>
@@ -180,24 +181,7 @@ ob_start();
 
     </main>
 
-    <!-- Modal de Confirmación Universal rxnTiendasIA -->
-    <div class="modal fade" id="rxnConfirmModal" tabindex="-1" aria-labelledby="rxnConfirmModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark border-secondary text-light shadow-lg">
-                <div class="modal-header border-secondary border-opacity-25 pb-2">
-                    <h5 class="modal-title fs-5" id="rxnConfirmModalLabel"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Confirmación</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body py-4 fs-5 text-center" id="rxnConfirmMsg">
-                    ¿Estás seguro/a?
-                </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
-                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary px-4 fw-bold" id="rxnConfirmBtn">Aceptar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
 <?php
 $content = ob_get_clean();
@@ -205,46 +189,11 @@ $content = ob_get_clean();
 ob_start();
 ?>
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const confirmForms = document.querySelectorAll('.rxn-confirm-form');
-        const confirmModalEl = document.getElementById('rxnConfirmModal');
-        if (!confirmModalEl) return;
-        
-        const confirmModal = new bootstrap.Modal(confirmModalEl);
-        const confirmMsg = document.getElementById('rxnConfirmMsg');
-        const confirmBtn = document.getElementById('rxnConfirmBtn');
-        let pendingForm = null;
-
-        confirmForms.forEach(form => {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                pendingForm = form;
-                const msg = form.getAttribute('data-msg') || '¿Estás seguro/a?';
-                
-                // Si la accion es eliminar, poner boton en rojo, sino azul primario
-                if (form.getAttribute('action').includes('eliminar')) {
-                    confirmBtn.className = 'btn btn-danger px-4 fw-bold';
-                } else {
-                    confirmBtn.className = 'btn btn-primary px-4 fw-bold';
-                }
-                
-                confirmMsg.textContent = msg;
-                confirmModal.show();
-            });
-        });
-
-        // Asegurar que al presionar Enter en el modal se acepte
-        confirmModalEl.addEventListener('shown.bs.modal', () => {
-            confirmBtn.focus();
-        });
-
-        confirmBtn.addEventListener('click', () => {
-            if (pendingForm) {
-                pendingForm.submit();
-            }
-        });
-    });
+        // Universal rxn-confirm-modal.js is loaded in the layout and handles rxn-confirm-form submissions.
     </script>
+    <script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 

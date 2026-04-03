@@ -5,9 +5,9 @@ $hasStock = ((float)$articulo->stock_actual) > 0;
 <div class="container py-4">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="text-decoration-none text-muted">Catálogo</a></li>
+            <li class="breadcrumb-item"><a href="/<?= htmlspecialchars($empresa_slug) ?>" class="text-decoration-none text-muted">Catálogo</a></li>
             <?php if (!empty($articulo->categoria_nombre) && !empty($articulo->categoria_slug)): ?>
-                <li class="breadcrumb-item"><a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>?categoria=<?= urlencode((string) $articulo->categoria_slug) ?>" class="text-decoration-none text-muted"><?= htmlspecialchars((string) $articulo->categoria_nombre) ?></a></li>
+                <li class="breadcrumb-item"><a href="/<?= htmlspecialchars($empresa_slug) ?>?categoria=<?= urlencode((string) $articulo->categoria_slug) ?>" class="text-decoration-none text-muted"><?= htmlspecialchars((string) $articulo->categoria_nombre) ?></a></li>
             <?php endif; ?>
             <li class="breadcrumb-item active text-dark fw-medium" aria-current="page"><?= htmlspecialchars((string)$articulo->nombre) ?></li>
         </ol>
@@ -18,14 +18,14 @@ $hasStock = ((float)$articulo->stock_actual) > 0;
 $jsImages = [];
 if (!empty($imagenes) && count($imagenes) > 0) {
     foreach ($imagenes as $img) {
-        $jsImages[] = "/rxnTiendasIA/public" . htmlspecialchars((string)$img['ruta']);
+        $jsImages[] = "" . htmlspecialchars((string)$img['ruta']);
     }
 } else {
     // Escalar 1:1 fallback
     if (!empty($articulo->imagen_principal)) {
-         $jsImages[] = "/rxnTiendasIA/public" . htmlspecialchars((string)$articulo->imagen_principal);
+         $jsImages[] = "" . htmlspecialchars((string)$articulo->imagen_principal);
     } else {
-         $jsImages[] = "/rxnTiendasIA/public/assets/img/producto-default.png";
+         $jsImages[] = "/assets/img/producto-default.png";
     }
 }
 $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
@@ -91,7 +91,7 @@ $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
             <span class="badge bg-secondary mb-3 fs-6 px-3 py-2 fw-normal opacity-75">SKU: <?= htmlspecialchars((string)$articulo->codigo_externo) ?></span>
             <?php if (!empty($articulo->categoria_nombre) && !empty($articulo->categoria_slug)): ?>
                 <div class="mb-3">
-                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>?categoria=<?= urlencode((string) $articulo->categoria_slug) ?>" class="badge rounded-pill text-bg-light border text-decoration-none px-3 py-2">
+                    <a href="/<?= htmlspecialchars($empresa_slug) ?>?categoria=<?= urlencode((string) $articulo->categoria_slug) ?>" class="badge rounded-pill text-bg-light border text-decoration-none px-3 py-2">
                         <?= htmlspecialchars((string) $articulo->categoria_nombre) ?>
                     </a>
                 </div>
@@ -123,7 +123,7 @@ $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
                 <?= htmlspecialchars((string)($articulo->descripcion ?: 'Este producto no cuenta con descripción adicional.')) ?>
             </p>
 
-            <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="p-4  border rounded-4 shadow-sm">
+            <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="p-4  border rounded-4 shadow-sm">
                 <input type="hidden" name="articulo_id" value="<?= $articulo->id ?>">
                 <div class="row g-3 align-items-center">
                     <div class="col-auto">

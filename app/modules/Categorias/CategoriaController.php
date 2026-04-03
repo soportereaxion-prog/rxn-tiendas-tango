@@ -243,7 +243,7 @@ class CategoriaController extends Controller
         echo "<div style='font-family:sans-serif; text-align:center; margin-top:50px;'>";
         echo '<h2>Operacion interrumpida</h2>';
         echo '<p>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>';
-        echo "<a href='/rxnTiendasIA/public/mi-empresa/categorias'>Volver al listado</a>";
+        echo "<a href='/mi-empresa/categorias'>Volver al listado</a>";
         echo '</div>';
         exit;
     }
@@ -262,7 +262,7 @@ class CategoriaController extends Controller
     private function buildUiContext(): array
     {
         return [
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/categorias',
+            'basePath' => '/mi-empresa/categorias',
             'dashboardPath' => OperationalAreaService::dashboardPath(OperationalAreaService::AREA_TIENDAS),
             'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_TIENDAS),
         ];

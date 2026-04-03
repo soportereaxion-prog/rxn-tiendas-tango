@@ -1,5 +1,5 @@
 <?php
-$pageTitle = $formMode === 'edit' ? 'Editar Presupuesto CRM - rxnTiendasIA' : 'Nuevo Presupuesto CRM - rxnTiendasIA';
+$pageTitle = $formMode === 'edit' ? 'Editar Presupuesto CRM - rxn_suite' : 'Nuevo Presupuesto CRM - rxn_suite';
 $usePageHeader = false;
 
 ob_start();
@@ -263,18 +263,18 @@ ob_start();
             <div class="rxn-module-actions">
 
                 <?php if ($formMode === 'edit'): ?>
-                    <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/copiar" method="POST" class="d-inline-block m-0 p-0" >
+                    <form action="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/copiar" method="POST" class="d-inline-block m-0 p-0" >
                         <button type="submit" class="btn btn-outline-success shadow-sm" data-rxn-confirm="¿Confirma que desea duplicar este presupuesto?" data-confirm-type="info"><i class="bi bi-copy"></i> Copiar</button>
                     </form>
-                    <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/eliminar" method="POST" class="d-inline-block m-0 p-0">
+                    <form action="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/eliminar" method="POST" class="d-inline-block m-0 p-0">
                         <button type="submit" class="btn btn-outline-danger shadow-sm" data-rxn-confirm="¿Enviar presupuesto a la papelera?" data-confirm-type="danger"><i class="bi bi-trash"></i> Eliminar</button>
                     </form>
-                    <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline-block m-0 p-0">
+                    <form action="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline-block m-0 p-0">
                         <button type="submit" class="btn btn-outline-primary shadow-sm" data-rxn-confirm="¿Enviar el presupuesto por correo electrónico al cliente?" data-confirm-type="info"><i class="bi bi-envelope-paper"></i> Enviar</button>
                     </form>
-                    <a href="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/imprimir" class="btn btn-outline-dark shadow-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-printer"></i> Imprimir</a>
+                    <a href="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/imprimir" class="btn btn-outline-dark shadow-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-printer"></i> Imprimir</a>
                 <?php endif; ?>
-                <a href="/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
+                <a href="/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
                 <a href="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" class="btn btn-outline-warning" data-rxn-confirm="¿Sincronizar catalogos comerciales CRM antes de seguir trabajando?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Sync Catalogos</a>
                 <?php if (($presupuesto['estado'] ?? '') !== 'emitido'): ?>
                     <button type="submit" form="crm-presupuesto-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar</button>
@@ -353,7 +353,7 @@ ob_start();
 
                         <div class="crm-budget-col-4">
                             <label class="form-label">Cliente</label>
-                            <div class="crm-picker-wrap" data-client-picker data-picker-url="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/clientes/sugerencias" data-context-url="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/clientes/contexto">
+                            <div class="crm-picker-wrap" data-client-picker data-picker-url="/mi-empresa/crm/presupuestos/clientes/sugerencias" data-context-url="/mi-empresa/crm/presupuestos/clientes/contexto">
                                 <input type="hidden" name="cliente_id" value="<?= htmlspecialchars((string) ($presupuesto['cliente_id'] ?? '')) ?>" class="crm-picker-hidden" data-picker-hidden>
                                 <input type="text" class="form-control <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>" name="cliente_nombre" value="<?= htmlspecialchars((string) ($presupuesto['cliente_nombre'] ?? '')) ?>" placeholder="Buscar cliente CRM..." autocomplete="off" data-picker-input>
                                 <div class="rxn-search-suggestions crm-picker-results d-none" data-picker-results></div>
@@ -420,7 +420,7 @@ ob_start();
                     <div class="crm-budget-items-toolbar mb-3">
                         <div class="crm-budget-picker-col">
                             <label class="form-label">Buscar articulo para agregar renglon</label>
-                            <div class="crm-picker-wrap" data-article-picker data-picker-url="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/articulos/sugerencias" data-context-url="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/articulos/contexto">
+                            <div class="crm-picker-wrap" data-article-picker data-picker-url="/mi-empresa/crm/presupuestos/articulos/sugerencias" data-context-url="/mi-empresa/crm/presupuestos/articulos/contexto">
                                 <input type="hidden" value="" class="crm-picker-hidden" data-picker-hidden>
                                 <input type="text" class="form-control" value="" placeholder="Buscar por codigo o descripcion en Articulos CRM..." autocomplete="off" data-picker-input>
                                 <div class="rxn-search-suggestions crm-picker-results d-none" data-picker-results></div>
@@ -516,10 +516,9 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/crm-presupuestos-form.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/crm-presupuestos-form.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

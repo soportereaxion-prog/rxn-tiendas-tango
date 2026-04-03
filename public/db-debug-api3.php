@@ -5,7 +5,7 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 $crm = $pdo->query("SELECT * FROM empresa_config_crm WHERE empresa_id = 1;")->fetch(PDO::FETCH_ASSOC);
 
-$ch = curl_init('http://localhost:9021/rxnTiendasIA/public/mi-empresa/configuracion/tango-metadata');
+$ch = curl_init('http://localhost:9021/mi-empresa/configuracion/tango-metadata');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, [

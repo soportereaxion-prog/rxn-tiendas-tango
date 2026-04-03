@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restablecer Contraseña</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-ui.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
+    <link href="/css/rxn-ui.css" rel="stylesheet">
+    <link href="/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body class="rxn-page-shell rxn-auth-screen">
     <div class="container rxn-responsive-container rxn-form-shell-sm rxn-auth-shell">
     <div class="card rxn-form-card rxn-auth-card shadow-sm p-4 p-lg-5 w-100">
         <div class="text-center mb-4">
-            <img src="/rxnTiendasIA/public/uploads/empresas/1/branding/logo_1774467026.png" alt="Reaxion Soluciones Inteligentes" class="rxn-auth-logo mb-3">
+            <img src="/uploads/empresas/1/branding/logo_1774467026.png" alt="Reaxion Soluciones Inteligentes" class="rxn-auth-logo mb-3">
             <p class="rxn-auth-eyebrow mb-3">Suite RXN</p>
             <h4 class="rxn-auth-title fw-bold">Nueva Contraseña</h4>
             <p class="text-secondary small rxn-auth-subtitle">Elegí una clave segura para tu cuenta y volvamos a dejar todo operativo.</p>
@@ -22,7 +22,7 @@
             <div class="alert alert-danger py-2 small"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
-        <form action="/rxnTiendasIA/public/auth/reset" method="POST">
+        <form action="/auth/reset" method="POST">
             <input type="hidden" name="token" value="<?= htmlspecialchars($token ?? '') ?>">
             
             <div class="mb-3">
@@ -44,6 +44,6 @@
         </div>
     </div>
     </div>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 </body>
 </html>

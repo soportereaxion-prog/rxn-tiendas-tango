@@ -1,23 +1,23 @@
-Ôªø# Restauraci√≥n Controlada: M√≥dulo Canvas de Impresi√≥n
+# RestauraciÛn Controlada: MÛdulo Canvas de ImpresiÛn
 
 **Fecha:** 2026-04-02
-**Diagn√≥stico:** 
-Durante la refactorizaci√≥n sistem√°tica de la UI y la introducci√≥n del dmin_layout.php, los archivos que gestionan los Canvas (PrintForms) sufrieron la amputaci√≥n accidental de sus bloques <style> y estructura propietaria en la cabecera HTML (en particular en editor.php). Esto rompi√≥ completamente la grilla de edici√≥n del canvas y el renderizado en pantalla de las posiciones absolutas. Adem√°s, en index.php se hab√≠an borrado p√°rrafos descriptivos valiosos de las tarjetas iterables de los canvas disponibles (Presupuestos, PDS, etc.).
+**DiagnÛstico:** 
+Durante la refactorizaciÛn sistem·tica de la UI y la introducciÛn del dmin_layout.php, los archivos que gestionan los Canvas (PrintForms) sufrieron la amputaciÛn accidental de sus bloques <style> y estructura propietaria en la cabecera HTML (en particular en editor.php). Esto rompiÛ completamente la grilla de ediciÛn del canvas y el renderizado en pantalla de las posiciones absolutas. Adem·s, en index.php se habÌan borrado p·rrafos descriptivos valiosos de las tarjetas iterables de los canvas disponibles (Presupuestos, PDS, etc.).
 
 **Archivos afectados y restaurados:**
 - pp/modules/PrintForms/views/editor.php
 - pp/modules/PrintForms/views/index.php
-*(Nota: document_render.php no fue afectado por el bug anterior y conserv√≥ su integridad para la impresi√≥n o inyecci√≥n en email).*
+*(Nota: document_render.php no fue afectado por el bug anterior y conservÛ su integridad para la impresiÛn o inyecciÛn en email).*
 
-**Criterio de restauraci√≥n e integraci√≥n:**
-1. Se recuperaron los archivos exactos desde el backup ubicado en D:\RXNAPP\3.3\www\rxnTiendasIAbck\20260402.
-2. Se inyect√≥ limpiamente la extensa regla de CSS (<style>) al b√∫fer din√°mico $extraHead que soporta el nuevo dmin_layout.php.
-3. Se integraron con la nueva UI maestra cerrando limpiamente el b√∫fer principal ($content) y el de scripts ($extraScripts).
-4. Se eliminaron expl√≠citamente del backup los intentos legacy de incluir el topbar de sesi√≥n repetido (user_action_menu.php), asegurando compatibilidad con el ecosistema actual (donde la cabecera principal inyecta la sesi√≥n).
+**Criterio de restauraciÛn e integraciÛn:**
+1. Se recuperaron los archivos exactos desde el backup ubicado en D:\RXNAPP\3.3\www\rxn_suitebck\20260402.
+2. Se inyectÛ limpiamente la extensa regla de CSS (<style>) al b˙fer din·mico $extraHead que soporta el nuevo dmin_layout.php.
+3. Se integraron con la nueva UI maestra cerrando limpiamente el b˙fer principal ($content) y el de scripts ($extraScripts).
+4. Se eliminaron explÌcitamente del backup los intentos legacy de incluir el topbar de sesiÛn repetido (user_action_menu.php), asegurando compatibilidad con el ecosistema actual (donde la cabecera principal inyecta la sesiÛn).
 5. Se restauraron las descripciones en texto (<p>) que explican el rol de cada canvas en el index.php.
 
 **Validaciones realizadas:**
-- El listado maestro en /formularios-impresion renderiza de forma consistente con el layout actual, manteniendo el estilo original de presentaci√≥n estructurada.
-- El canvas interactivo de "Presupuesto", "PDS" y "Cuerpo Mails" retienen su WYSIWYG al 100%, con sus herramientas flotantes y √°rea en formato A4 sin solapamiento de DOM global provocado por el layout nuevo, reponiendo su grid especial. 
+- El listado maestro en /formularios-impresion renderiza de forma consistente con el layout actual, manteniendo el estilo original de presentaciÛn estructurada.
+- El canvas interactivo de "Presupuesto", "PDS" y "Cuerpo Mails" retienen su WYSIWYG al 100%, con sus herramientas flotantes y ·rea en formato A4 sin solapamiento de DOM global provocado por el layout nuevo, reponiendo su grid especial. 
 
-Todo el sistema PrintForms vuelve a operar como fue dise√±ado, pero insertado silenciosamente en el layout nuevo sin "hacks".
+Todo el sistema PrintForms vuelve a operar como fue diseÒado, pero insertado silenciosamente en el layout nuevo sin "hacks".

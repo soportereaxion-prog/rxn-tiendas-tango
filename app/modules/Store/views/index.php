@@ -96,7 +96,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
             </p>
         </div>
         <div class="col-lg-6">
-            <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" method="GET" class="d-flex justify-content-lg-end">
+            <form action="/<?= htmlspecialchars($empresa_slug) ?>" method="GET" class="d-flex justify-content-lg-end">
                 <?php if (!empty($categoriaSlug)): ?>
                     <input type="hidden" name="categoria" value="<?= htmlspecialchars((string) $categoriaSlug) ?>">
                 <?php endif; ?>
@@ -116,14 +116,14 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
                     
                 </div>
                 <?php if ($selectedCategory !== null || !empty($search)): ?>
-                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-outline-dark btn-sm rounded-pill px-3">Ver todo</a>
+                    <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-outline-dark btn-sm rounded-pill px-3">Ver todo</a>
                 <?php endif; ?>
             </div>
 
             <div class="d-flex flex-wrap gap-2 mb-4">
-                <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?><?= $search !== '' ? '?' . htmlspecialchars(http_build_query(['search' => $search])) : '' ?>" class="store-filter-chip <?= $selectedCategory === null ? 'active' : '' ?>">Todas</a>
+                <a href="/<?= htmlspecialchars($empresa_slug) ?><?= $search !== '' ? '?' . htmlspecialchars(http_build_query(['search' => $search])) : '' ?>" class="store-filter-chip <?= $selectedCategory === null ? 'active' : '' ?>">Todas</a>
                 <?php foreach ($categorias as $categoria): ?>
-                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>?<?= htmlspecialchars(http_build_query(['categoria' => $categoria->slug, 'search' => $search !== '' ? $search : null])) ?>" class="store-filter-chip <?= $selectedCategory !== null && $selectedCategory->slug === $categoria->slug ? 'active' : '' ?>">
+                    <a href="/<?= htmlspecialchars($empresa_slug) ?>?<?= htmlspecialchars(http_build_query(['categoria' => $categoria->slug, 'search' => $search !== '' ? $search : null])) ?>" class="store-filter-chip <?= $selectedCategory !== null && $selectedCategory->slug === $categoria->slug ? 'active' : '' ?>">
                         <?= htmlspecialchars((string) $categoria->nombre) ?>
                     </a>
                 <?php endforeach; ?>
@@ -132,11 +132,11 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
             <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
                 <?php foreach ($categorias as $categoria): ?>
                     <div class="col">
-                        <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>?<?= htmlspecialchars(http_build_query(['categoria' => $categoria->slug])) ?>" class="text-decoration-none text-reset d-block h-100">
+                        <a href="/<?= htmlspecialchars($empresa_slug) ?>?<?= htmlspecialchars(http_build_query(['categoria' => $categoria->slug])) ?>" class="text-decoration-none text-reset d-block h-100">
                             <article class="store-category-card <?= $selectedCategory !== null && $selectedCategory->slug === $categoria->slug ? 'is-active' : '' ?>">
                                 <div class="store-category-media">
                                     <?php if (!empty($categoria->imagen_portada)): ?>
-                                        <img src="/rxnTiendasIA/public<?= htmlspecialchars((string) $categoria->imagen_portada) ?>" alt="<?= htmlspecialchars((string) $categoria->nombre) ?>">
+                                        <img src="<?= htmlspecialchars((string) $categoria->imagen_portada) ?>" alt="<?= htmlspecialchars((string) $categoria->nombre) ?>">
                                     <?php else: ?>
                                         <div class="store-category-fallback">#</div>
                                     <?php endif; ?>
@@ -162,7 +162,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
             <?php if (!empty($search)): ?>
                 <span class="badge rounded-pill text-bg-light border px-3 py-2">Busqueda: <?= htmlspecialchars((string) $search) ?></span>
             <?php endif; ?>
-            <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-link btn-sm text-decoration-none px-0">Limpiar filtros</a>
+            <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-link btn-sm text-decoration-none px-0">Limpiar filtros</a>
         </div>
     <?php endif; ?>
 
@@ -171,7 +171,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
             <div class="fs-1 mb-3">[]</div>
             <h3 class="text-muted">No se encontraron productos</h3>
             <p>Prueba con otra busqueda o cambia la categoria seleccionada.</p>
-            <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-outline-dark mt-2">Ver todo el catalogo</a>
+            <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-outline-dark mt-2">Ver todo el catalogo</a>
         </div>
     <?php else: ?>
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-5">
@@ -184,9 +184,9 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
                     <div class="card product-card">
                         <div class="bg-light w-100 d-flex align-items-center justify-content-center overflow-hidden" style="height: 200px; border-radius: 12px 12px 0 0;">
                             <?php if (!empty($art['imagen_principal'])): ?>
-                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string) $art['imagen_principal']) ?>" alt="<?= htmlspecialchars((string) $art['nombre']) ?>" class="w-100 h-100" style="object-fit: cover;">
+                                <img src="<?= htmlspecialchars((string) $art['imagen_principal']) ?>" alt="<?= htmlspecialchars((string) $art['nombre']) ?>" class="w-100 h-100" style="object-fit: cover;">
                             <?php else: ?>
-                                <img src="/rxnTiendasIA/public/assets/img/producto-default.png" alt="Sin imagen" class="w-100 h-100" style="object-fit: contain; padding: 20px; opacity: 0.5;">
+                                <img src="/assets/img/producto-default.png" alt="Sin imagen" class="w-100 h-100" style="object-fit: contain; padding: 20px; opacity: 0.5;">
                             <?php endif; ?>
                         </div>
                         <div class="card-body p-4">
@@ -195,7 +195,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
                             <?php endif; ?>
                             <span class="badge bg-secondary opacity-50 mb-2 fw-normal" style="font-size: 0.70em;"><?= htmlspecialchars((string) $art['codigo_externo']) ?></span>
                             <h5 class="card-title fs-6 fw-bold mb-1 text-truncate" title="<?= htmlspecialchars((string) $art['nombre']) ?>">
-                                <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/producto/<?= (int) $art['id'] ?>" class="text-dark text-decoration-none stretched-link">
+                                <a href="/<?= htmlspecialchars($empresa_slug) ?>/producto/<?= (int) $art['id'] ?>" class="text-dark text-decoration-none stretched-link">
                                     <?= htmlspecialchars((string) $art['nombre']) ?>
                                 </a>
                             </h5>
@@ -215,7 +215,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
                                 <?php endif; ?>
                             </div>
 
-                            <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="mt-auto position-relative" style="z-index: 2;">
+                            <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="mt-auto position-relative" style="z-index: 2;">
                                 <input type="hidden" name="articulo_id" value="<?= (int) $art['id'] ?>">
                                 <input type="hidden" name="cantidad" value="1">
                                 <?php if ($price !== null && $hasStock): ?>

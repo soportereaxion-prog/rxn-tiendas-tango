@@ -12,7 +12,7 @@
             <div class="display-1 text-muted opacity-25 mb-4">🛍️</div>
             <h3 class="text-dark fw-bold">Tu carrito está vacío</h3>
             <p class="text-secondary mb-4">¡Animate a sumar productos de nuestro catálogo!</p>
-            <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-dark px-4 py-2 rounded-pill fw-medium">
+            <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-dark px-4 py-2 rounded-pill fw-medium">
                 Volver a la tienda
             </a>
         </div>
@@ -44,7 +44,7 @@
                                     </div>
                                 </td>
                                 <td class="py-4 text-center">
-                                    <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito/update" method="POST" class="d-flex justify-content-center">
+                                    <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/update" method="POST" class="d-flex justify-content-center">
                                         <input type="hidden" name="articulo_id" value="<?= $item['articulo_id'] ?>">
                                         <div class="input-group input-group-sm rounded-3 shadow-none border" style="width: 100px;">
                                             <input type="number" name="cantidad" value="<?= $item['cantidad'] ?>" class="form-control text-center border-0 fw-bold bg-transparent" min="1" max="99" onchange="this.form.submit()">
@@ -55,7 +55,7 @@
                                     $<?= number_format(((float)$item['precio_unitario'] * (int)$item['cantidad']), 2, ',', '.') ?>
                                 </td>
                                 <td class="pe-4 py-4 text-end">
-                                    <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito/remove" method="POST" class="d-inline">
+                                    <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/remove" method="POST" class="d-inline">
                                         <input type="hidden" name="articulo_id" value="<?= $item['articulo_id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Eliminar">🗑️</button>
                                     </form>
@@ -85,11 +85,11 @@
                         <span class="fw-bold fs-4 text-dark">$<?= number_format((float)$total, 2, ',', '.') ?></span>
                     </div>
 
-                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/checkout" class="btn btn-dark w-100 py-3 rounded-pill fw-bold d-block text-center text-decoration-none shadow-sm">
+                    <a href="/<?= htmlspecialchars($empresa_slug) ?>/checkout" class="btn btn-dark w-100 py-3 rounded-pill fw-bold d-block text-center text-decoration-none shadow-sm">
                         Iniciar Pago 💳
                     </a>
                     <div class="mt-3 text-center">
-                        <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="text-decoration-none text-muted small fw-medium">
+                        <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="text-decoration-none text-muted small fw-medium">
                             ← Seguir comprando
                         </a>
                     </div>

@@ -28,7 +28,7 @@ class StoreController extends Controller
     private function requireValidStore(string $slug): void
     {
         if (!StoreResolver::resolveEmpresaPublica($slug)) {
-            header("Location: /rxnTiendasIA/public/public-error");
+            header("Location: /public-error");
             exit;
         }
     }
@@ -109,7 +109,7 @@ class StoreController extends Controller
         $articulo = $this->articuloRepo->findById($id, $empresaId);
 
         if (!$articulo || !$articulo->activo) {
-            header("Location: /rxnTiendasIA/public/{$slug}");
+            header("Location: /{$slug}");
             exit;
         }
 

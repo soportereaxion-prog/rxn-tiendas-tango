@@ -3,7 +3,7 @@ $pageTitle = 'RXN Tiendas IA';
 ob_start();
 ?>
 <?php
-    $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
+    $dashboardPath = $dashboardPath ?? '/mi-empresa/dashboard';
     $environmentLabel = $environmentLabel ?? 'Entorno Operativo';
     $area = $area ?? 'tiendas';
     $isCrm = $area === 'crm';
@@ -313,8 +313,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script>
         (function () {
             var input = document.getElementById('help-search');
             var clearButton = document.getElementById('help-clear');
@@ -353,7 +352,7 @@ ob_start();
             });
         }());
     </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

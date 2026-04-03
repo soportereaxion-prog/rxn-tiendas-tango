@@ -23,13 +23,13 @@ class MisPedidosController extends Controller
     private function requireAuthStore(string $slug): void
     {
         if (!StoreResolver::resolveEmpresaPublica($slug)) {
-            header("Location: /rxnTiendasIA/public/public-error");
+            header("Location: /public-error");
             exit;
         }
 
         $empresaId = PublicStoreContext::getEmpresaId();
         if (!ClienteWebContext::isLoggedIn($empresaId)) {
-            header("Location: /rxnTiendasIA/public/{$slug}/login");
+            header("Location: /{$slug}/login");
             exit;
         }
     }
@@ -63,7 +63,7 @@ class MisPedidosController extends Controller
         $pedido = $this->pedidoRepo->findByIdWithDetails($id, $empresaId);
 
         if (!$pedido || (int)$pedido['cliente_web_id'] !== $clienteId) {
-            header("Location: /rxnTiendasIA/public/{$slug}/mis-pedidos");
+            header("Location: /{$slug}/mis-pedidos");
             exit;
         }
 

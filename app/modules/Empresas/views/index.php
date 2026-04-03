@@ -37,7 +37,7 @@ ob_start();
     $sortUrl = static function (string $column) use ($buildQuery, $sort, $dir): string {
         $nextDir = ($sort === $column && $dir === 'asc') ? 'desc' : 'asc';
 
-        return '/rxnTiendasIA/public/empresas?' . $buildQuery([
+        return '/empresas?' . $buildQuery([
             'sort' => $column,
             'dir' => $nextDir,
         ]);
@@ -60,8 +60,8 @@ ob_start();
                 
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary">Volver al Inicio</a>
-                <a href="/rxnTiendasIA/public/empresas/crear" class="btn btn-primary fw-bold shadow-sm">+ Nueva Empresa</a>
+                <a href="/" class="btn btn-outline-secondary">Volver al Inicio</a>
+                <a href="/empresas/crear" class="btn btn-primary fw-bold shadow-sm">+ Nueva Empresa</a>
             </div>
         </div>
 
@@ -86,7 +86,7 @@ ob_start();
 
         <div class="card rxn-crud-card rxn-crud-toolbar mb-4">
             <div class="card-body">
-                <form method="GET" action="/rxnTiendasIA/public/empresas" class="row g-3 align-items-end" data-search-form>
+                <form method="GET" action="/empresas" class="row g-3 align-items-end" data-search-form>
                     <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
                     <input type="hidden" name="dir" value="<?= htmlspecialchars($dir) ?>">
                     <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
@@ -113,14 +113,14 @@ ob_start();
                             placeholder='🔎 Presioná F3 o "/" para buscar'
                             autocomplete="off"
                             data-search-input
-                            data-suggestions-url="/rxnTiendasIA/public/empresas/sugerencias"
+                            data-suggestions-url="/empresas/sugerencias"
                         >
                         <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
                     </div>
                     <div class="col-12 col-lg-3 d-flex flex-wrap gap-2 align-self-end">
                         <button type="submit" class="btn btn-primary">Aplicar</button>
                         <?php if ($hasSearch): ?>
-                            <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">Limpiar filtros</a>
+                            <a href="/empresas" class="btn btn-outline-secondary">Limpiar filtros</a>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -140,12 +140,12 @@ ob_start();
 
         <ul class="nav nav-tabs mb-4 rxn-crud-tabs">
             <li class="nav-item">
-                <a class="nav-link <?= !$isPapelera ? 'active fw-bold' : '' ?>" href="/rxnTiendasIA/public/empresas?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold' : '' ?>" href="/empresas?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
                     Activos
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold' : '' ?>" href="/rxnTiendasIA/public/empresas?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold' : '' ?>" href="/empresas?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
                     <i class="bi bi-trash"></i> Papelera
                 </a>
             </li>
@@ -153,12 +153,12 @@ ob_start();
 
         <?php if (!$isPapelera): ?>
         <div class="mb-3">
-            <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/empresas/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar las empresas seleccionadas a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionadas</button>
+            <button type="submit" form="hiddenFormBulk" formaction="/empresas/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar las empresas seleccionadas a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionadas</button>
         </div>
         <?php else: ?>
         <div class="mb-3 d-flex gap-2">
-            <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/empresas/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar las empresas seleccionadas?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionadas</button>
-            <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/empresas/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente las empresas seleccionadas?"><i class="bi bi-x-circle"></i> Destruir Seleccionadas</button>
+            <button type="submit" form="hiddenFormBulk" formaction="/empresas/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar las empresas seleccionadas?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionadas</button>
+            <button type="submit" form="hiddenFormBulk" formaction="/empresas/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente las empresas seleccionadas?"><i class="bi bi-x-circle"></i> Destruir Seleccionadas</button>
         </div>
         <?php endif; ?>
 
@@ -173,9 +173,9 @@ ob_start();
                         <p class="text-muted mb-3"><?= $hasSearch ? 'Proba con otro campo o ajusta el termino de busqueda.' : 'Crea la primera empresa para empezar a operar el entorno multiempresa.' ?></p>
                         <div class="d-flex justify-content-center gap-2 flex-wrap">
                             <?php if ($hasSearch): ?>
-                                <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">Limpiar filtros</a>
+                                <a href="/empresas" class="btn btn-outline-secondary">Limpiar filtros</a>
                             <?php endif; ?>
-                            <a href="/rxnTiendasIA/public/empresas/crear" class="btn btn-primary">Nueva Empresa</a>
+                            <a href="/empresas/crear" class="btn btn-primary">Nueva Empresa</a>
                         </div>
                     </div>
                 <?php else: ?>
@@ -198,7 +198,7 @@ ob_start();
                             </thead>
                             <tbody>
                                 <?php foreach ($empresas as $empresa): ?>
-                                <tr data-row-link="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/editar">
+                                <tr data-row-link="/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/editar">
                                     <td>
                                         <input type="checkbox" name="ids[]" class="form-check-input ms-2 check-item" value="<?= htmlspecialchars((string)$empresa->id) ?>" form="hiddenFormBulk" data-row-link-ignore>
                                     </td>
@@ -226,33 +226,33 @@ ob_start();
                                     <td class="text-end text-nowrap">
                                         <div class="btn-group" data-row-link-ignore>
                                             <?php if (!$isPapelera): ?>
-                                                <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/ingresar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Ingresar al entorno operativo de esta empresa?">
+                                                <form action="/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/ingresar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Ingresar al entorno operativo de esta empresa?">
                                                     <button type="submit" class="btn btn-sm btn-outline-primary" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" title="Ingresar">
                                                         <i class="bi bi-box-arrow-in-right"></i>
                                                     </button>
                                                 </form>
 
-                                                <a href="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/editar" class="btn btn-sm btn-outline-info" style="border-radius: 0; margin-left: -1px;" title="Editar"><i class="bi bi-pencil"></i></a>
+                                                <a href="/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/editar" class="btn btn-sm btn-outline-info" style="border-radius: 0; margin-left: -1px;" title="Editar"><i class="bi bi-pencil"></i></a>
                                                 
-                                                <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/copiar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Copiar empresa (duplicar registro)?">
+                                                <form action="/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/copiar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Copiar empresa (duplicar registro)?">
                                                     <button type="submit" class="btn btn-sm btn-outline-success" style="border-radius: 0;" title="Copiar">
                                                         <i class="bi bi-files"></i>
                                                     </button>
                                                 </form>
                                                 
-                                                <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/eliminar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar empresa a la papelera?">
+                                                <form action="/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/eliminar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar empresa a la papelera?">
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Eliminar (Papelera)">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
                                             <?php else: ?>
-                                                <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/restore" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Confirma restaurar esta empresa?">
+                                                <form action="/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/restore" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Confirma restaurar esta empresa?">
                                                     <button type="submit" class="btn btn-sm btn-outline-success border-end-0" title="Restaurar Empresa">
                                                         <i class="bi bi-arrow-counterclockwise"></i> Restaurar
                                                     </button>
                                                 </form>
 
-                                                <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/force-delete" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Esta acción es irreversible. ¿Eliminar definitivamente?">
+                                                <form action="/empresas/<?= htmlspecialchars((string) $empresa->id) ?>/force-delete" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Esta acción es irreversible. ¿Eliminar definitivamente?">
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Eliminar Definitivamente">
                                                         <i class="bi bi-x-circle"></i> Destruir
                                                     </button>
@@ -274,15 +274,15 @@ ob_start();
                                 <nav aria-label="Paginacion de empresas" class="rxn-pagination-wrap">
                                     <ul class="pagination pagination-sm mb-0">
                                         <li class="page-item <?= $pagination['hasPrevious'] ? '' : 'disabled' ?>">
-                                            <a class="page-link" href="<?= $pagination['hasPrevious'] ? htmlspecialchars('/rxnTiendasIA/public/empresas?' . $buildQuery(['page' => $pagination['previousPage']])) : '#' ?>">Anterior</a>
+                                            <a class="page-link" href="<?= $pagination['hasPrevious'] ? htmlspecialchars('/empresas?' . $buildQuery(['page' => $pagination['previousPage']])) : '#' ?>">Anterior</a>
                                         </li>
                                         <?php for ($currentPage = 1; $currentPage <= $pagination['totalPages']; $currentPage++): ?>
                                             <li class="page-item <?= $currentPage === $pagination['page'] ? 'active' : '' ?>">
-                                                <a class="page-link" href="<?= htmlspecialchars('/rxnTiendasIA/public/empresas?' . $buildQuery(['page' => $currentPage])) ?>"><?= htmlspecialchars((string) $currentPage) ?></a>
+                                                <a class="page-link" href="<?= htmlspecialchars('/empresas?' . $buildQuery(['page' => $currentPage])) ?>"><?= htmlspecialchars((string) $currentPage) ?></a>
                                             </li>
                                         <?php endfor; ?>
                                         <li class="page-item <?= $pagination['hasNext'] ? '' : 'disabled' ?>">
-                                            <a class="page-link" href="<?= $pagination['hasNext'] ? htmlspecialchars('/rxnTiendasIA/public/empresas?' . $buildQuery(['page' => $pagination['nextPage']])) : '#' ?>">Siguiente</a>
+                                            <a class="page-link" href="<?= $pagination['hasNext'] ? htmlspecialchars('/empresas?' . $buildQuery(['page' => $pagination['nextPage']])) : '#' ?>">Siguiente</a>
                                         </li>
                                     </ul>
                                 </nav>
@@ -298,11 +298,10 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

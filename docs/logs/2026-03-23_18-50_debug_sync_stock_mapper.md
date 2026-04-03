@@ -41,7 +41,7 @@ La API de Axoft NO EXTERNALIZA el parámetro alfanumérico `'00'` (su `COD_SUCUR
 `EmpresaConfig/views/index.php` -> Fue modificado de raíz el `label` a `ID Depósito (Connect)`, pintado en rojo y adjuntado a un Note de Advertencia Técnica: `⚠️ Usá el ID numérico de Tango (ID_STA22), NO el código alfanumérico (00). Ej: 1 para Depo Central.`.
 
 ## Resultado Final
-Confiamos robustamente que cambiando este setup en `/rxnTiendasIA/public/mi-empresa/configuracion` a Valor `'1'` y disparando la Sync, el CRUD absorberá íntegramente los inventarios. La persistencia Idempotente ya está estabilizada.
+Confiamos robustamente que cambiando este setup en `/rxn_suite/public/mi-empresa/configuracion` a Valor `'1'` y disparando la Sync, el CRUD absorberá íntegramente los inventarios. La persistencia Idempotente ya está estabilizada.
 
 ## Riesgos Pendientes
 N/A. La infraestructura Backend había sido bien proyectada. Recomendación para el Orquestador: Ir y Actualizar en el panel de UI Local el campo al Int 1.

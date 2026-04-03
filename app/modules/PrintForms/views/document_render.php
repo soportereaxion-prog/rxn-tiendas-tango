@@ -168,7 +168,7 @@
             <?php foreach (($renderedObjects ?? []) as $object): ?>
                 <div class="print-object" style="<?= htmlspecialchars((string) ($object['position_style'] ?? '')) ?>">
                     <?php if (($object['type'] ?? '') === 'text'): ?>
-                        <div style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>"><div style="width: 100%;"><?= nl2br(\App\Shared\Helpers\HtmlSanitizer::allowSafeInlineHtml((string) ($object['content'] ?? ''))) ?></div></div>
+                        <div style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>"><?= nl2br(\App\Shared\Helpers\HtmlSanitizer::allowSafeInlineHtml((string) ($object['content'] ?? ''))) ?></div>
                     <?php elseif (($object['type'] ?? '') === 'image'): ?>
                         <img src="<?= htmlspecialchars($resolveUrl((string) ($object['content'] ?? ''))) ?>" style="<?= htmlspecialchars((string) ($object['inner_style'] ?? '')) ?>" alt="Canvas Image">
                     <?php elseif (($object['type'] ?? '') === 'line' || ($object['type'] ?? '') === 'rect'): ?>

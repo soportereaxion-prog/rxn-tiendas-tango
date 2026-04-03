@@ -26,43 +26,43 @@ $defaultCards = [
         'title' => 'Catálogo de Artículos', 
         'desc' => 'Gestión de tu catálogo, imágenes y precios online.', 
         'icon' => '<i class="bi bi-box-seam"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-empresa/articulos'
+        'link' => '/mi-empresa/articulos'
     ],
     'categorias' => [
         'title' => 'Categorías',
         'desc' => 'Ordena el catálogo y publica accesos directos por rubro.',
         'icon' => '<i class="bi bi-grid-3x3-gap"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/categorias'
+        'link' => '/mi-empresa/categorias'
     ],
     'clientes' => [
         'title' => 'Clientes Web', 
         'desc' => 'Aprobación y listado de clientes de la tienda.', 
         'icon' => '<i class="bi bi-people"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-empresa/clientes'
+        'link' => '/mi-empresa/clientes'
     ],
     'pedidos' => [
         'title' => 'Pedidos Web', 
         'desc' => 'Visualización, rechazo y reproceso de pedidos entrantes.', 
         'icon' => '<i class="bi bi-cart3"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-empresa/pedidos'
+        'link' => '/mi-empresa/pedidos'
     ],
     'perfil' => [
         'title' => 'Mi Perfil', 
         'desc' => 'Ajustes de credenciales y apariencia de tu entorno.', 
         'icon' => '<i class="bi bi-person-badge"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-perfil?area=tiendas'
+        'link' => '/mi-perfil?area=tiendas'
     ],
     'usuarios' => [
         'title' => 'Administrar Cuentas', 
         'desc' => 'Alta, baja y modificación de accesos corporativos.', 
         'icon' => '<i class="bi bi-shield-lock"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-empresa/usuarios?area=tiendas'
+        'link' => '/mi-empresa/usuarios?area=tiendas'
     ],
     'configuracion' => [
         'title' => 'Configuración', 
         'desc' => 'Branding público, envíos SMTP y Tango Connect.', 
         'icon' => '<i class="bi bi-sliders"></i>', 
-        'link' => '/rxnTiendasIA/public/mi-empresa/configuracion'
+        'link' => '/mi-empresa/configuracion'
     ]
 ];
 
@@ -92,8 +92,8 @@ ob_start();
             <div class="rxn-module-actions">
 
                 
-                <a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
+                <a href="/mi-empresa/ayuda?area=tiendas" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
             </div>
         </div>
 
@@ -170,7 +170,7 @@ ob_start();
                     currentOrder.push(col.getAttribute('data-id'));
                 });
 
-                fetch('/rxnTiendasIA/public/mi-perfil/dashboard-order', {
+                fetch('/mi-perfil/dashboard-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ area: 'tiendas', order: currentOrder })
@@ -181,7 +181,7 @@ ob_start();
         });
     });
     </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

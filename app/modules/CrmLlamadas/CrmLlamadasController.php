@@ -23,7 +23,7 @@ class CrmLlamadasController extends Controller
     {
         $empresaId = Context::getEmpresaId();
         if ($empresaId === null || $empresaId <= 0) {
-            $this->renderDenegado("No hay un contexto de empresa válido activo.", "/rxnTiendasIA/public/");
+            $this->renderDenegado("No hay un contexto de empresa válido activo.", "/");
         }
         return (int) $empresaId;
     }
@@ -201,8 +201,8 @@ class CrmLlamadasController extends Controller
 
         return [
             'area' => $area,
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/llamadas',
-            'indexPath' => '/rxnTiendasIA/public/mi-empresa/crm/llamadas',
+            'basePath' => '/mi-empresa/crm/llamadas',
+            'indexPath' => '/mi-empresa/crm/llamadas',
             'dashboardPath' => OperationalAreaService::dashboardPath($area),
             'environmentLabel' => OperationalAreaService::environmentLabel($area),
         ];

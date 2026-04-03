@@ -481,7 +481,7 @@ class ClienteWebController
 
         // Redirigir al reprocesar del primer pedido encontrado. 
         // Así reaprovechamos todo el pipeline de validaciones, mappers y UI de Pedidos.
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos/{$pedidoId}/reprocesar");
+        header("Location: /mi-empresa/pedidos/{$pedidoId}/reprocesar");
         exit;
     }
 
@@ -508,9 +508,9 @@ class ClienteWebController
                 'pageTitle' => 'Clientes CRM',
                 'headerTitle' => 'Clientes CRM',
                 'headerDescription' => 'Directorio de Clientes CRM y vinculacion comercial.',
-                'dashboardPath' => '/rxnTiendasIA/public/mi-empresa/crm/dashboard',
-                'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/clientes',
-                'helpPath' => '/rxnTiendasIA/public/mi-empresa/crm/ayuda',
+                'dashboardPath' => '/mi-empresa/crm/dashboard',
+                'basePath' => '/mi-empresa/crm/clientes',
+                'helpPath' => '/mi-empresa/crm/ayuda',
                 'moduleNotesKey' => 'crm_clientes',
                 'moduleNotesLabel' => 'Clientes CRM',
                 'emptyStateTitle' => 'No hay clientes registrados en CRM.',
@@ -525,9 +525,9 @@ class ClienteWebController
             'pageTitle' => 'Clientes Web',
             'headerTitle' => 'Clientes Web',
             'headerDescription' => 'Gestión de Clientes y Vínculo Comercial Tango.',
-            'dashboardPath' => '/rxnTiendasIA/public/mi-empresa/dashboard',
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/clientes',
-            'helpPath' => '/rxnTiendasIA/public/mi-empresa/ayuda',
+            'dashboardPath' => '/mi-empresa/dashboard',
+            'basePath' => '/mi-empresa/clientes',
+            'helpPath' => '/mi-empresa/ayuda',
             'moduleNotesKey' => 'clientes_web',
             'moduleNotesLabel' => 'Clientes Web',
             'emptyStateTitle' => 'No hay clientes web registrados.',

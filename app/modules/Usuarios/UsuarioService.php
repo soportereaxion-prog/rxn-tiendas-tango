@@ -170,6 +170,10 @@ class UsuarioService
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
         
+        if (\App\Modules\Auth\AuthService::isRxnAdmin()) {
+            $usuario->es_rxn_admin = isset($data['es_rxn_admin']) && $data['es_rxn_admin'] === 'on' ? 1 : 0;
+        }
+        
         $anuraInterno = trim($data['anura_interno'] ?? '');
         if ($anuraInterno !== '') {
             $this->validateAnuraInterno($anuraInterno, $empresaId, null);
@@ -225,6 +229,10 @@ class UsuarioService
         $usuario->email = filter_var(trim($data['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
+
+        if (\App\Modules\Auth\AuthService::isRxnAdmin()) {
+            $usuario->es_rxn_admin = isset($data['es_rxn_admin']) && $data['es_rxn_admin'] === 'on' ? 1 : 0;
+        }
 
         $anuraInterno = trim($data['anura_interno'] ?? '');
         if ($anuraInterno !== '') {

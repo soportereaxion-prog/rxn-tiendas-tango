@@ -11,9 +11,9 @@ ob_start();
     $dir = $filters['dir'] ?? 'asc';
     $page = (int) ($filters['page'] ?? 1);
     $hasSearch = $search !== '';
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/categorias';
-    $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
-    $helpPath = $helpPath ?? '/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas';
+    $basePath = $basePath ?? '/mi-empresa/categorias';
+    $dashboardPath = $dashboardPath ?? '/mi-empresa/dashboard';
+    $helpPath = $helpPath ?? '/mi-empresa/ayuda?area=tiendas';
     $buildQuery = static function (array $overrides = []) use ($search, $field, $sort, $dir, $page): string {
         $params = [
             'search' => $search,
@@ -121,7 +121,7 @@ ob_start();
                             placeholder='🔎 Presioná F3 o "/" para buscar'
                             autocomplete="off"
                             data-search-input
-                            data-suggestions-url="/rxnTiendasIA/public/mi-empresa/categorias/sugerencias"
+                            data-suggestions-url="/mi-empresa/categorias/sugerencias"
                         >
                         <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
                     </div>
@@ -198,7 +198,7 @@ ob_start();
                                         <td>
                                             <div class="rounded-3 overflow-hidden border bg-light d-flex align-items-center justify-content-center" style="width: 72px; height: 56px;">
                                                 <?php if (!empty($categoria->imagen_portada)): ?>
-                                                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string) $categoria->imagen_portada) ?>" alt="<?= htmlspecialchars((string) $categoria->nombre) ?>" class="w-100 h-100" style="object-fit: cover;">
+                                                    <img src="<?= htmlspecialchars((string) $categoria->imagen_portada) ?>" alt="<?= htmlspecialchars((string) $categoria->nombre) ?>" class="w-100 h-100" style="object-fit: cover;">
                                                 <?php else: ?>
                                                     <span class="small text-muted">Sin imagen</span>
                                                 <?php endif; ?>
@@ -296,9 +296,8 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
+<script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const checkAll = document.getElementById('checkAll');
@@ -316,7 +315,7 @@ ob_start();
         }
     });
     </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

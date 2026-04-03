@@ -2,13 +2,13 @@
 <div class="container py-4">
     <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
         <h2 class="fw-bolder m-0">Mis Pedidos</h2>
-        <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-outline-dark rounded-pill px-4">Volver al Catálogo</a>
+        <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-outline-dark rounded-pill px-4">Volver al Catálogo</a>
     </div>
 
     <?php if (empty($pedidos)): ?>
         <div class="text-center py-5">
             <h4 class="text-muted fw-normal">Aún no tienes pedidos registrados.</h4>
-            <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-dark mt-3 px-4 py-2 rounded-3">Descubrir Productos</a>
+            <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-dark mt-3 px-4 py-2 rounded-3">Descubrir Productos</a>
         </div>
     <?php else: ?>
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
@@ -25,7 +25,7 @@
                     </thead>
                     <tbody>
                         <?php foreach ($pedidos as $p): ?>
-                            <tr data-row-link="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos/ver/<?= $p['id'] ?>">
+                            <tr data-row-link="/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos/ver/<?= $p['id'] ?>">
                                 <td class="px-4 fw-medium text-dark border-bottom-0">
                                     <span class="text-secondary small">ID:</span> <?= $p['id'] ?>
                                 </td>
@@ -45,7 +45,7 @@
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-4 text-end border-bottom-0 rxn-row-chevron-col">
-                                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos/ver/<?= $p['id'] ?>" class="btn btn-sm btn-light fw-medium border rounded-3 px-2 rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
+                                    <a href="/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos/ver/<?= $p['id'] ?>" class="btn btn-sm btn-light fw-medium border rounded-3 px-2 rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

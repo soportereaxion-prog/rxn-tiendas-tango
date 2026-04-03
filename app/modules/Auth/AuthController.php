@@ -9,7 +9,7 @@ class AuthController extends Controller
     public function showLogin(): void
     {
         if (!empty($_SESSION['user_id'])) {
-            header('Location: /rxnTiendasIA/public/');
+            header('Location: /');
             exit;
         }
         View::render('app/modules/Auth/views/login.php', []);
@@ -25,7 +25,7 @@ class AuthController extends Controller
         
         try {
             if ($auth->attempt($email, $password)) {
-                header('Location: /rxnTiendasIA/public/');
+                header('Location: /');
                 exit;
             }
         } catch (\Exception $e) {
@@ -41,7 +41,7 @@ class AuthController extends Controller
     public function logout(): void
     {
         AuthService::logout();
-        header('Location: /rxnTiendasIA/public/');
+        header('Location: /');
         exit;
     }
 }

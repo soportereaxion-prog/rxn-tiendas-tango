@@ -29,7 +29,7 @@ El control y visualización de empresas está unificado. El usuario visualiza `A
 Piedra fundacional del CRUD lograda con la mínima inyección requerida. Preparada para replicarse a Usuarios, Permisos u otras tablas estáticas en el futuro sin reinventar rueda.
 
 ## Riesgos
-* Las URI en los action de `form` y re-ubicadores de `header(...)` apuntan duramente al prefijo `/rxnTiendasIA/public`. Esto funcionará mientras dicho prefijo represente el Root Project del entorno.
+* Las URI en los action de `form` y re-ubicadores de `header(...)` apuntan duramente al prefijo `/rxn_suite/public`. Esto funcionará mientras dicho prefijo represente el Root Project del entorno.
 * Posibles edge-cases inyectando carácteres especiales aún no evaluados al no tener un _Sanitizer Service_.
 
 ## Validación

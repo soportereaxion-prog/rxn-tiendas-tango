@@ -13,7 +13,7 @@ class UsuarioPerfilController
     public function index(): void
     {
         if (empty($_SESSION['user_id'])) {
-            header('Location: /rxnTiendasIA/public/login');
+            header('Location: /login');
             exit;
         }
 
@@ -36,7 +36,7 @@ class UsuarioPerfilController
     public function guardar(): void
     {
         if (empty($_SESSION['user_id'])) {
-            header('Location: /rxnTiendasIA/public/login');
+            header('Location: /login');
             exit;
         }
 

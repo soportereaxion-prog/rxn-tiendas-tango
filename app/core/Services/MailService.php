@@ -161,7 +161,7 @@ class MailService
     public function sendVerificationEmail(string $to, string $nombre, string $token, int $empresaId): bool
     {
         // Enlaza a un endpoint universal sin depender del slug del tenant.
-        $link = (isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : 'http') . '://' . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "/rxnTiendasIA/public/auth/verify?token=" . urlencode($token);
+        $link = (isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : 'http') . '://' . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "/auth/verify?token=" . urlencode($token);
 
         $subject = "Verificá tu correo electrónico";
         $body = "
@@ -182,7 +182,7 @@ class MailService
     
     public function sendPasswordReset(string $to, string $nombre, string $token, int $empresaId): bool
     {
-        $link = (isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : 'http') . '://' . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "/rxnTiendasIA/public/auth/reset?token=" . urlencode($token);
+        $link = (isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : 'http') . '://' . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "/auth/reset?token=" . urlencode($token);
 
         $subject = "Recuperación de Contraseña solicitada";
         $body = "

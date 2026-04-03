@@ -8,7 +8,7 @@ ob_start();
                 <h2 class="mb-1">Alta de Empresa</h2>
                 
             </div>
-            <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">Volver al listado</a>
+            <a href="/empresas" class="btn btn-outline-secondary">Volver al listado</a>
         </div>
 
         <?php
@@ -23,7 +23,7 @@ ob_start();
 
         <div class="card rxn-form-card">
             <div class="card-body p-4 p-lg-5">
-                <form action="/rxnTiendasIA/public/empresas" method="POST">
+                <form action="/empresas" method="POST">
                     <div class="rxn-form-section">
                         <div class="rxn-form-section-title">Identidad de la empresa</div>
                         <div class="rxn-form-section-text">Carga los datos base del tenant manteniendo una estructura clara tipo sabana.</div>
@@ -57,7 +57,7 @@ ob_start();
                     </div>
 
                     <div class="rxn-form-actions">
-                        <a href="/rxnTiendasIA/public/empresas" class="btn btn-light">Cancelar</a>
+                        <a href="/empresas" class="btn btn-light">Cancelar</a>
                         <button type="submit" class="btn btn-primary px-4">Guardar Empresa</button>
                     </div>
 
@@ -70,7 +70,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

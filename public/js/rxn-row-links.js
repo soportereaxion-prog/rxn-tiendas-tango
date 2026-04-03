@@ -36,6 +36,31 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         row.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                var allRows = Array.from(document.querySelectorAll(rowSelector));
+                var currentIndex = allRows.indexOf(row);
+                var nextIndex = currentIndex + 1;
+                if (nextIndex < allRows.length) {
+                    allRows[nextIndex].focus();
+                }
+                return;
+            }
+
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                var allRows = Array.from(document.querySelectorAll(rowSelector));
+                var currentIndex = allRows.indexOf(row);
+                var prevIndex = currentIndex - 1;
+                if (prevIndex >= 0) {
+                    allRows[prevIndex].focus();
+                } else {
+                    var searchInput = document.querySelector('[data-search-input]');
+                    if (searchInput) searchInput.focus();
+                }
+                return;
+            }
+
             if (event.key !== 'Enter' && event.key !== ' ') {
                 return;
             }
@@ -48,4 +73,14 @@ document.addEventListener('DOMContentLoaded', function () {
             navigateRow(row);
         });
     });
+
+    if (sessionStorage.getItem('rxn_focus_first_row') === '1') {
+        sessionStorage.removeItem('rxn_focus_first_row');
+        setTimeout(function() {
+            var firstRow = document.querySelector(rowSelector);
+            if (firstRow) {
+                firstRow.focus();
+            }
+        }, 50);
+    }
 });

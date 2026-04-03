@@ -48,7 +48,7 @@ $visibleStoreChecked = $old !== []
         <div class="col-lg-4">
             <div class="border rounded-3  p-2 h-100">
                 <?php if (!empty($imagenActual)): ?>
-                    <img src="/rxnTiendasIA/public<?= htmlspecialchars((string) $imagenActual) ?>" alt="Portada categoria" class="img-fluid rounded-3 w-100" style="max-height: 220px; object-fit: cover;">
+                    <img src="<?= htmlspecialchars((string) $imagenActual) ?>" alt="Portada categoria" class="img-fluid rounded-3 w-100" style="max-height: 220px; object-fit: cover;">
                 <?php else: ?>
                     <div class="d-flex align-items-center justify-content-center text-muted rounded-3" style="min-height: 180px; background: rgba(0, 0, 0, 0.04);">Sin imagen cargada</div>
                 <?php endif; ?>

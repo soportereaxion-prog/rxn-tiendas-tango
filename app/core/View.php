@@ -9,7 +9,7 @@ class View
     /**
      * Renderiza un archivo de vista PHP.
      *
-     * @param string $path  Ruta relativa a BASE_PATH, ej: 'app/modules/dashboard/views/index.php'
+     * @param string $path  Ruta relativa a BASE_PATH, ej: 'app/modules/Dashboard/views/index.php'
      * @param array  $data  Variables a pasar a la vista
      */
     public static function render(string $path, array $data = []): void

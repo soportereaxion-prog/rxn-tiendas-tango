@@ -17,7 +17,7 @@ class ModuleNotesController extends Controller
 
     public function index(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
 
         $moduleNotesFlash = $_SESSION['module_notes_flash'] ?? null;
         unset($_SESSION['module_notes_flash']);
@@ -31,7 +31,7 @@ class ModuleNotesController extends Controller
 
     public function store(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
 
         $returnTo = $this->sanitizeReturnTo($_POST['return_to'] ?? null);
 
@@ -200,13 +200,13 @@ class ModuleNotesController extends Controller
     private function sanitizeReturnTo(mixed $returnTo): string
     {
         if (!is_string($returnTo)) {
-            return '/rxnTiendasIA/public/admin/notas-modulos';
+            return '/admin/notas-modulos';
         }
 
         $returnTo = trim($returnTo);
 
-        if ($returnTo === '' || !str_starts_with($returnTo, '/rxnTiendasIA/public/')) {
-            return '/rxnTiendasIA/public/admin/notas-modulos';
+        if ($returnTo === '' || !str_starts_with($returnTo, '/')) {
+            return '/admin/notas-modulos';
         }
 
         return $returnTo;

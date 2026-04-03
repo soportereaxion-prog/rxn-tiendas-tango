@@ -17,7 +17,8 @@ class TangoOrderHeaderResolver
     private const MONEDA_LOCAL_ID = 1;
     private const MONEDA_EXTRANJERA_ID = 0;
     private const MONEDA_LOCAL_OVERRIDE_BY_COMPANY = [
-        '351' => 2,
+        '351' => 2, // Sandbox
+        '7'   => 2, // Producción ASETGO
     ];
 
     private EmpresaConfigService $configService;

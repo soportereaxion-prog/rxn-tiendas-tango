@@ -27,13 +27,13 @@ ob_start();
             </div>
             <div class="d-flex gap-2">
                 <?php if(empty($pedido['id_gva14_tango'])): ?>
-                    <a href="/rxnTiendasIA/public/mi-empresa/clientes/<?= $pedido['cliente_web_id'] ?>/editar" class="btn btn-danger text-white border-0 shadow-sm" title="Falta resolución comercial del cliente">⚠️ Vincular Cliente en Tango Módulo</a>
+                    <a href="/mi-empresa/clientes/<?= $pedido['cliente_web_id'] ?>/editar" class="btn btn-danger text-white border-0 shadow-sm" title="Falta resolución comercial del cliente">⚠️ Vincular Cliente en Tango Módulo</a>
                 <?php else: ?>
-                    <form action="/rxnTiendasIA/public/mi-empresa/pedidos/<?= $pedido['pedido_id'] ?>/reprocesar" method="POST">
+                    <form action="/mi-empresa/pedidos/<?= $pedido['pedido_id'] ?>/reprocesar" method="POST">
                         <button type="submit" class="btn <?= $pedido['estado_tango'] === 'error_envio_tango' ? 'btn-warning' : ($pedido['estado_tango'] === 'enviado_tango' ? 'btn-outline-success shadow-sm' : 'btn-success shadow-sm') ?> text-dark " data-rxn-confirm="¿Reintentar envío a Tango con los datos comerciales resueltos?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Enviar a Tango</button>
                     </form>
                 <?php endif; ?>
-                <a href="/rxnTiendasIA/public/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
+                <a href="/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
             </div>
         </div>
 
@@ -191,7 +191,7 @@ ob_start();
                                             $decodedPayload = json_decode((string)$pedido['payload_enviado'], true);
                                             $prettyPayload = $decodedPayload ? json_encode($decodedPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['payload_enviado']);
                                         ?>
-                                        <pre class="json-view mb-0"><code><?= $prettyPayload ?></code></pre>
+                                        <pre class="json-view mb-0"><code><?= htmlspecialchars((string)$prettyPayload, ENT_QUOTES, 'UTF-8') ?></code></pre>
                                     <?php else: ?>
                                         
                                     <?php endif; ?>
@@ -202,7 +202,7 @@ ob_start();
                                             $decodedResponse = json_decode((string)$pedido['respuesta_tango'], true);
                                             $prettyResponse = $decodedResponse ? json_encode($decodedResponse, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : htmlspecialchars((string)$pedido['respuesta_tango']);
                                         ?>
-                                        <pre class="json-view mb-0"><code><?= $prettyResponse ?></code></pre>
+                                        <pre class="json-view mb-0"><code><?= htmlspecialchars((string)$prettyResponse, ENT_QUOTES, 'UTF-8') ?></code></pre>
                                     <?php else: ?>
                                         
                                     <?php endif; ?>
@@ -233,9 +233,8 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

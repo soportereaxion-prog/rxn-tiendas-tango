@@ -34,9 +34,9 @@ ob_start();
             <div class="rxn-module-actions">
 
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
+                <a href="/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
                 <a href="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" class="btn btn-outline-warning" data-rxn-confirm="¿Sincronizar catalogos comerciales CRM para depositos, condiciones, listas, vendedores y transportes?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Sync Catalogos</a>
-                <a href="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/crear" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nuevo presupuesto</a>
+                <a href="/mi-empresa/crm/presupuestos/crear" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nuevo presupuesto</a>
                 <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al CRM</a>
             </div>
         </div>
@@ -80,7 +80,7 @@ ob_start();
 
                 <div class="rxn-toolbar-split mb-3">
                     <div class="small text-muted">Buscador con sugerencias en vivo; el listado solo se filtra al confirmar.</div>
-                    <form action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 980px; max-width: 100%;" data-search-form>
+                    <form action="/mi-empresa/crm/presupuestos" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 980px; max-width: 100%;" data-search-form>
                         <input type="hidden" name="search" value="<?= htmlspecialchars((string) $search) ?>" data-search-hidden>
                         <select name="estado" class="form-select form-select-sm border-secondary rxn-filter-compact" style="width: 145px;" onchange="this.form.submit()">
                             <option value="">Todos</option>
@@ -102,12 +102,12 @@ ob_start();
                             <option value="fecha" <?= $field === 'fecha' ? 'selected' : '' ?>>Fecha</option>
                         </select>
                         <div class="rxn-search-input-wrap rxn-filter-grow" style="width: 270px;">
-                            <input type="text" class="form-control form-control-sm border-secondary" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string) $search) ?>" data-search-input data-suggestions-url="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/sugerencias" autocomplete="off">
+                            <input type="text" class="form-control form-control-sm border-secondary" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string) $search) ?>" data-search-input data-suggestions-url="/mi-empresa/crm/presupuestos/sugerencias" autocomplete="off">
                             <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
                         </div>
                         <button type="submit" class="btn btn-secondary btn-sm text-white">Buscar</button>
                         <?php if ($search !== '' || $estado !== ''): ?>
-                            <a href="/rxnTiendasIA/public/mi-empresa/crm/presupuestos" class="btn btn-light btn-sm border">Limpiar</a>
+                            <a href="/mi-empresa/crm/presupuestos" class="btn btn-light btn-sm border">Limpiar</a>
                         <?php endif; ?>
                     </form>
                 </div>
@@ -116,12 +116,12 @@ ob_start();
 
                 <?php if ($estado !== 'papelera'): ?>
                 <div class="mb-3">
-                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar los presupuestos seleccionados a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="/mi-empresa/crm/presupuestos/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar los presupuestos seleccionados a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionados</button>
                 </div>
                 <?php else: ?>
                 <div class="mb-3 d-flex gap-2">
-                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar los presupuestos seleccionados?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionados</button>
-                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente los presupuestos seleccionados?"><i class="bi bi-x-circle"></i> Destruir Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="/mi-empresa/crm/presupuestos/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar los presupuestos seleccionados?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="/mi-empresa/crm/presupuestos/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente los presupuestos seleccionados?"><i class="bi bi-x-circle"></i> Destruir Seleccionados</button>
                 </div>
                 <?php endif; ?>
 
@@ -159,7 +159,7 @@ ob_start();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($presupuestos as $presupuesto): ?>
-                                    <tr data-row-link="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" class="rxn-row-link" onclick="if(event.target.closest('.btn-group, .form-check-input') === null) { window.location.href = this.dataset.rowLink; }">
+                                    <tr data-row-link="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" class="rxn-row-link" onclick="if(event.target.closest('.btn-group, .form-check-input') === null) { window.location.href = this.dataset.rowLink; }">
                                         <td><input type="checkbox" name="ids[]" value="<?= (int) $presupuesto['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk" data-row-link-ignore></td>
                                         <td class="fw-bold text-dark">#<?= (int) $presupuesto['numero'] ?></td>
                                         <td class="text-nowrap"><small><?= htmlspecialchars((string) $presupuesto['fecha']) ?></small></td>
@@ -179,21 +179,21 @@ ob_start();
                                         </td>
                                         <td class="rxn-row-chevron-col text-end text-nowrap">
                                             <?php if ($estado === 'papelera'): ?>
-                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/restore" class="d-inline" data-row-link-ignore>
+                                                <form method="POST" action="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/restore" class="d-inline" data-row-link-ignore>
                                                     <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Restaurar este presupuesto?" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i></button>
                                                 </form>
-                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/force-delete" class="d-inline" data-row-link-ignore>
+                                                <form method="POST" action="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/force-delete" class="d-inline" data-row-link-ignore>
                                                     <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Destruir definitivamente este presupuesto?" title="Destruir"><i class="bi bi-x-circle"></i></button>
                                                 </form>
                                             <?php else: ?>
-                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/copiar" class="d-inline" data-row-link-ignore>
+                                                <form method="POST" action="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/copiar" class="d-inline" data-row-link-ignore>
                                                     <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-medium" title="Copiar presupuesto (Usa presupuesto como plantilla)"><i class="bi bi-copy"></i></button>
                                                 </form>
-                                                <form method="POST" action="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/eliminar" class="d-inline" data-row-link-ignore>
+                                                <form method="POST" action="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/eliminar" class="d-inline" data-row-link-ignore>
                                                     <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Enviar este presupuesto a la papelera?" title="Eliminar"><i class="bi bi-trash"></i></button>
                                                 </form>
                                             <?php endif; ?>
-                                            <a href="/rxnTiendasIA/public/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium rxn-row-link-action rxn-row-chevron" title="Abrir presupuesto" aria-label="Abrir presupuesto" data-row-link-ignore>›</a>
+                                            <a href="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium rxn-row-link-action rxn-row-chevron" title="Abrir presupuesto" aria-label="Abrir presupuesto" data-row-link-ignore>›</a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -228,11 +228,10 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

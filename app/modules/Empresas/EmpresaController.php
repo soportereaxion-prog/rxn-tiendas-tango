@@ -20,9 +20,9 @@ class EmpresaController extends Controller
 
     public function index(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         $result = $this->service->findAll($_GET);
-        View::render('app/modules/empresas/views/index.php', [
+        View::render('app/modules/Empresas/views/index.php', [
             'empresas' => $result['items'],
             'filters' => $result['filters'],
             'totalEmpresas' => $result['total'],
@@ -33,13 +33,13 @@ class EmpresaController extends Controller
 
     public function create(): void
     {
-        AuthService::requireBackofficeAdmin();
-        View::render('app/modules/empresas/views/crear.php');
+        AuthService::requireRxnAdmin();
+        View::render('app/modules/Empresas/views/crear.php');
     }
 
     public function suggestions(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         header('Content-Type: application/json');
 
         try {
@@ -59,20 +59,20 @@ class EmpresaController extends Controller
 
     public function store(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         try {
             $this->service->create($_POST);
             // Redirigir al listado con feedback
-            header('Location: /rxnTiendasIA/public/empresas?success=creada');
+            header('Location: /empresas?success=creada');
             exit;
         } catch (InvalidArgumentException $e) {
-            View::render('app/modules/empresas/views/crear.php', [
+            View::render('app/modules/Empresas/views/crear.php', [
                 'error' => $e->getMessage(),
                 'old' => $_POST
             ]);
         } catch (\PDOException $e) {
             $error = 'Error de base de datos. Es posible que el código ya exista.';
-            View::render('app/modules/empresas/views/crear.php', [
+            View::render('app/modules/Empresas/views/crear.php', [
                 'error' => $error,
                 'old' => $_POST
             ]);
@@ -81,35 +81,35 @@ class EmpresaController extends Controller
 
     public function edit(string $id): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         $empresa = $this->service->findById((int) $id);
         if (!$empresa) {
-            header('Location: /rxnTiendasIA/public/empresas?error=No+encontrada');
+            header('Location: /empresas?error=No+encontrada');
             exit;
         }
 
-        View::render('app/modules/empresas/views/editar.php', [
+        View::render('app/modules/Empresas/views/editar.php', [
             'empresa' => $empresa
         ]);
     }
 
     public function update(string $id): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         try {
             $this->service->update((int) $id, $_POST);
-            header('Location: /rxnTiendasIA/public/empresas?success=actualizada');
+            header('Location: /empresas?success=actualizada');
             exit;
         } catch (InvalidArgumentException $e) {
             $empresa = $this->service->findById((int) $id);
-            View::render('app/modules/empresas/views/editar.php', [
+            View::render('app/modules/Empresas/views/editar.php', [
                 'error' => $e->getMessage(),
                 'empresa' => $empresa,
                 'old' => $_POST
             ]);
         } catch (\PDOException $e) {
             $empresa = $this->service->findById((int) $id);
-            View::render('app/modules/empresas/views/editar.php', [
+            View::render('app/modules/Empresas/views/editar.php', [
                 'error' => 'Error de base de datos.',
                 'empresa' => $empresa,
                 'old' => $_POST
@@ -119,141 +119,141 @@ class EmpresaController extends Controller
 
     public function copy(string $id): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         try {
             $this->service->copy((int) $id);
-            header('Location: /rxnTiendasIA/public/empresas?success=Empresa+copiada');
+            header('Location: /empresas?success=Empresa+copiada');
             exit;
         } catch (InvalidArgumentException $e) {
-            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode($e->getMessage()));
+            header('Location: /empresas?error=' . urlencode($e->getMessage()));
             exit;
         } catch (\PDOException $e) {
-            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode('Error en clonación. Verifique código original.'));
+            header('Location: /empresas?error=' . urlencode('Error en clonación. Verifique código original.'));
             exit;
         }
     }
 
     public function ingresar(string $id): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         $empresa = $this->service->findById((int) $id);
         if (!$empresa) {
-            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode('Empresa no encontrada.'));
+            header('Location: /empresas?error=' . urlencode('Empresa no encontrada.'));
             exit;
         }
         
         $_SESSION['empresa_id'] = $empresa->id;
-        header('Location: /rxnTiendasIA/public/');
+        header('Location: /');
         exit;
     }
 
     public function eliminarMasivo(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /rxnTiendasIA/public/empresas');
+            header('Location: /empresas');
             exit;
         }
 
         $ids = $_POST['ids'] ?? [];
         if (empty($ids) || !is_array($ids)) {
-            header('Location: /rxnTiendasIA/public/empresas');
+            header('Location: /empresas');
             exit;
         }
 
         try {
             $count = $this->service->bulkDelete($ids);
-            header('Location: /rxnTiendasIA/public/empresas?success=' . urlencode("Se eliminaron {$count} empresas correctamente."));
+            header('Location: /empresas?success=' . urlencode("Se eliminaron {$count} empresas correctamente."));
             exit;
         } catch (\Exception $e) {
-            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode("Error parcial o total al eliminar: " . $e->getMessage()));
+            header('Location: /empresas?error=' . urlencode("Error parcial o total al eliminar: " . $e->getMessage()));
             exit;
         }
     }
 
     public function eliminar(string $id): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         try {
             $this->service->bulkDelete([(int)$id]);
-            header('Location: /rxnTiendasIA/public/empresas?success=' . urlencode('Empresa enviada a la papelera'));
+            header('Location: /empresas?success=' . urlencode('Empresa enviada a la papelera'));
             exit;
         } catch (\Exception $e) {
-            header('Location: /rxnTiendasIA/public/empresas?error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
+            header('Location: /empresas?error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
             exit;
         }
     }
 
     public function restore(string $id): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         try {
             $this->service->restore((int)$id);
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode('Empresa restaurada exitosamente'));
+            header('Location: /empresas?status=papelera&success=' . urlencode('Empresa restaurada exitosamente'));
             exit;
         } catch (\Exception $e) {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode('Error al restaurar: ' . $e->getMessage()));
+            header('Location: /empresas?status=papelera&error=' . urlencode('Error al restaurar: ' . $e->getMessage()));
             exit;
         }
     }
 
     public function restoreMasivo(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            header('Location: /empresas?status=papelera');
             exit;
         }
 
         $ids = $_POST['ids'] ?? [];
         if (empty($ids) || !is_array($ids)) {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            header('Location: /empresas?status=papelera');
             exit;
         }
 
         try {
             $count = $this->service->bulkRestore($ids);
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode("Se restauraron {$count} empresas correctamente."));
+            header('Location: /empresas?status=papelera&success=' . urlencode("Se restauraron {$count} empresas correctamente."));
             exit;
         } catch (\Exception $e) {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode("Error al restaurar: " . $e->getMessage()));
+            header('Location: /empresas?status=papelera&error=' . urlencode("Error al restaurar: " . $e->getMessage()));
             exit;
         }
     }
 
     public function forceDelete(string $id): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         try {
             $this->service->forceDelete((int)$id);
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode('Empresa eliminada definitivamente'));
+            header('Location: /empresas?status=papelera&success=' . urlencode('Empresa eliminada definitivamente'));
             exit;
         } catch (\Exception $e) {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
+            header('Location: /empresas?status=papelera&error=' . urlencode('Error al eliminar: ' . $e->getMessage()));
             exit;
         }
     }
 
     public function forceDeleteMasivo(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            header('Location: /empresas?status=papelera');
             exit;
         }
 
         $ids = $_POST['ids'] ?? [];
         if (empty($ids) || !is_array($ids)) {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera');
+            header('Location: /empresas?status=papelera');
             exit;
         }
 
         try {
             $count = $this->service->bulkForceDelete($ids);
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&success=' . urlencode("Se destruyeron {$count} empresas correctamente."));
+            header('Location: /empresas?status=papelera&success=' . urlencode("Se destruyeron {$count} empresas correctamente."));
             exit;
         } catch (\Exception $e) {
-            header('Location: /rxnTiendasIA/public/empresas?status=papelera&error=' . urlencode("Error al destruir: " . $e->getMessage()));
+            header('Location: /empresas?status=papelera&error=' . urlencode("Error al destruir: " . $e->getMessage()));
             exit;
         }
     }

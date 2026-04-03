@@ -12,12 +12,12 @@ $footerSocials = $empresaObj->footer_socials ?? '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($empresa_nombre ?? 'Tienda') ?> - rxnTiendasIA</title>
+    <title><?= htmlspecialchars($empresa_nombre ?? 'Tienda') ?> - rxn_suite</title>
     <?php if ($faviconUrl): ?>
-        <link rel="icon" href="/rxnTiendasIA/public<?= htmlspecialchars($faviconUrl) ?>">
+        <link rel="icon" href="<?= htmlspecialchars($faviconUrl) ?>">
     <?php endif; ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">
+    <link href="/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">
     <?= \App\Core\Helpers\UIHelper::getTenantStyles($empresaId) ?>
     <style>
         body {
@@ -84,9 +84,9 @@ $footerSocials = $empresaObj->footer_socials ?? '';
 
 <nav class="navbar navbar-expand-lg navbar-store sticky-top">
     <div class="container">
-        <a class="navbar-brand fs-4" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>">
+        <a class="navbar-brand fs-4" href="/<?= htmlspecialchars($empresa_slug) ?>">
             <?php if ($logoUrl): ?>
-                <img src="/rxnTiendasIA/public<?= htmlspecialchars($logoUrl) ?>" alt="<?= htmlspecialchars($empresa_nombre) ?>" height="40" style="object-fit: contain;">
+                <img src="<?= htmlspecialchars($logoUrl) ?>" alt="<?= htmlspecialchars($empresa_nombre) ?>" height="40" style="object-fit: contain;">
             <?php else: ?>
                 <?= htmlspecialchars($empresa_nombre) ?>
             <?php endif; ?>
@@ -97,10 +97,10 @@ $footerSocials = $empresaObj->footer_socials ?? '';
         <div class="collapse navbar-collapse" id="storeNav">
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                 <li class="nav-item me-3">
-                    <a class="nav-link text-dark fw-medium" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>">Catálogo</a>
+                    <a class="nav-link text-dark fw-medium" href="/<?= htmlspecialchars($empresa_slug) ?>">Catálogo</a>
                 </li>
                 <li class="nav-item me-3">
-                    <a class="nav-link text-dark fw-medium" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>#categorias">Categorías</a>
+                    <a class="nav-link text-dark fw-medium" href="/<?= htmlspecialchars($empresa_slug) ?>#categorias">Categorías</a>
                 </li>
                 <?php if (\App\Modules\Store\Context\ClienteWebContext::isLoggedIn(\App\Modules\Store\Context\PublicStoreContext::getEmpresaId())): ?>
                     <li class="nav-item dropdown me-3">
@@ -108,14 +108,14 @@ $footerSocials = $empresaObj->footer_socials ?? '';
                             Hola, <?= htmlspecialchars(\App\Modules\Store\Context\ClienteWebContext::getClienteNombre()) ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="clienteDropdown">
-                            <li><a class="dropdown-item" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos">📦 Mis Pedidos</a></li>
+                            <li><a class="dropdown-item" href="/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos">📦 Mis Pedidos</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/logout">Cerrar Sesión</a></li>
+                            <li><a class="dropdown-item text-danger" href="/<?= htmlspecialchars($empresa_slug) ?>/logout">Cerrar Sesión</a></li>
                         </ul>
                     </li>
                 <?php else: ?>
                     <li class="nav-item me-3">
-                        <a class="nav-link text-dark fw-medium" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/login">Ingresar</a>
+                        <a class="nav-link text-dark fw-medium" href="/<?= htmlspecialchars($empresa_slug) ?>/login">Ingresar</a>
                     </li>
                 <?php endif; ?>
                 
@@ -132,7 +132,7 @@ $footerSocials = $empresaObj->footer_socials ?? '';
                             }
                         }
                     ?>
-                    <a class="btn btn-dark rounded-pill px-4 py-2 position-relative" style="background-color: var(--color-primary, #212529); border-color: var(--color-primary, #212529);" href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito">
+                    <a class="btn btn-dark rounded-pill px-4 py-2 position-relative" style="background-color: var(--color-primary, #212529); border-color: var(--color-primary, #212529);" href="/<?= htmlspecialchars($empresa_slug) ?>/carrito">
                         🛒 Mi Carrito
                         <?php if($cartQty > 0): ?>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-badge">
@@ -177,8 +177,7 @@ $footerSocials = $empresaObj->footer_socials ?? '';
     </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
+<script src="/js/rxn-row-links.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     
@@ -251,6 +250,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 </body>
 </html>

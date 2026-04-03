@@ -4,7 +4,7 @@ ob_start();
 ?>
 <?php
     $field = $field ?? 'all';
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/crm/clientes';
+    $basePath = $basePath ?? '/mi-empresa/crm/clientes';
     $buildQuery = function (array $overrides = []) use ($search, $field, $limit, $sort, $dir, $page) {
         $params = [
             'search' => $search,
@@ -237,11 +237,10 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

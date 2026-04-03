@@ -28,3 +28,14 @@
 
 ### Documento operativo
 - Referencia ampliada: `docs/crud_search_standard.md`
+
+## Política de Seguridad Base
+Antes de implementar cualquier módulo nuevo o ampliar uno existente, es **obligatorio** aplicar la Política de Seguridad Base (almacenada en Engram). 
+Toda implementación debe ser acompañada con un archivo MD de control de cambio en `docs/logs` que valide explícitamente:
+- Aislamiento multiempresa (Context::getEmpresaId()).
+- Permisos estrictos en backend (separación clara entre RXN admin y admin tenant).
+- Sin mutación de estado mediada por peticiones GET (uso de POST).
+- Validación fuerte server-side de entradas.
+- Escape seguro en salida dinámica para prevención XSS (`htmlspecialchars`).
+- Evaluación de impacto sobre el acceso local.
+- Necesidad o aplicación de tokens CSRF.

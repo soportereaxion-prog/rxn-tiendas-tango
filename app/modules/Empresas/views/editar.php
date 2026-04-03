@@ -16,15 +16,15 @@ ob_start();
                 
             </div>
             <div class="d-flex gap-2">
-                <a href="/rxnTiendasIA/public/empresas" class="btn btn-outline-secondary">
+                <a href="/empresas" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-1"></i> Volver a Empresas
                 </a>
-                <form action="/rxnTiendasIA/public/empresas/<?= $empresa->id ?>/copiar" method="POST" class="d-inline">
+                <form action="/empresas/<?= $empresa->id ?>/copiar" method="POST" class="d-inline">
                     <button type="submit" class="btn btn-outline-success" title="Duplicar Empresa">
                         <i class="bi bi-copy"></i>
                     </button>
                 </form>
-                <form action="/rxnTiendasIA/public/empresas/<?= $empresa->id ?>/eliminar" method="POST" class="d-inline" onsubmit="return confirm('¿Enviar empresa a la papelera?');">
+                <form action="/empresas/<?= $empresa->id ?>/eliminar" method="POST" class="d-inline" onsubmit="return confirm('¿Enviar empresa a la papelera?');">
                     <button type="submit" class="btn btn-outline-danger" title="Enviar a papelera">
                         <i class="bi bi-trash"></i>
                     </button>
@@ -44,7 +44,7 @@ ob_start();
 
         <div class="card rxn-form-card">
             <div class="card-body p-4 p-lg-5">
-                <form action="/rxnTiendasIA/public/empresas/<?= htmlspecialchars((string)$empresa->id) ?>" method="POST">
+                <form action="/empresas/<?= htmlspecialchars((string)$empresa->id) ?>" method="POST">
                     <div class="rxn-form-section">
                         <div class="rxn-form-section-title">Identidad de la empresa</div>
                         <div class="rxn-form-grid">
@@ -105,7 +105,7 @@ ob_start();
                     </div>
 
                     <div class="rxn-form-actions">
-                        <a href="/rxnTiendasIA/public/empresas" class="btn btn-light">Cancelar</a>
+                        <a href="/empresas" class="btn btn-light">Cancelar</a>
                         <button type="submit" class="btn btn-primary px-4">Actualizar Empresa</button>
                     </div>
 
@@ -157,7 +157,7 @@ ob_start();
             syncAll();
         }());
     </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

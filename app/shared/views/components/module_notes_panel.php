@@ -31,7 +31,7 @@ if ($moduleNotesKey === '') {
 $moduleNotes = \App\Shared\Services\ModuleNoteService::notesForModule($moduleNotesKey, 4);
 $moduleNotesCount = count(\App\Shared\Services\ModuleNoteService::notesForModule($moduleNotesKey, 0));
 $moduleNotesFlash = $_SESSION['module_notes_flash'] ?? null;
-$moduleNotesReturnTo = $_SERVER['REQUEST_URI'] ?? '/rxnTiendasIA/public/admin/notas-modulos';
+$moduleNotesReturnTo = $_SERVER['REQUEST_URI'] ?? '/admin/notas-modulos';
 $moduleNotesShouldOpen = $moduleNotesFlash !== null || $moduleNotesCount === 0;
 $moduleNotesDomId = preg_replace('/[^a-z0-9_-]/i', '-', $moduleNotesKey) ?: 'module-notes';
 
@@ -274,7 +274,7 @@ if (empty($GLOBALS['rxn_module_notes_assets_printed'])) {
             }
         }
     </style>
-    <script src="/rxnTiendasIA/public/js/rxn-module-notes.js"></script>
+    <script src="/js/rxn-module-notes.js"></script>
     <?php
 }
 ?>
@@ -309,10 +309,10 @@ if (empty($GLOBALS['rxn_module_notes_assets_printed'])) {
 
         <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
             <p class="small text-muted mb-0">Cada imagen que agregas inserta su referencia en el texto para que despues se entienda de que estabas hablando.</p>
-            <a href="/rxnTiendasIA/public/admin/notas-modulos" class="btn btn-outline-secondary btn-sm">Centro</a>
+            <a href="/admin/notas-modulos" class="btn btn-outline-secondary btn-sm">Centro</a>
         </div>
 
-        <form action="/rxnTiendasIA/public/admin/notas-modulos" method="POST" enctype="multipart/form-data" class="row g-3 mb-4" data-module-notes-form>
+        <form action="/admin/notas-modulos" method="POST" enctype="multipart/form-data" class="row g-3 mb-4" data-module-notes-form>
             <input type="hidden" name="module_key" value="<?= htmlspecialchars($moduleNotesKey) ?>">
             <input type="hidden" name="module_label" value="<?= htmlspecialchars($moduleNotesLabel) ?>">
             <input type="hidden" name="return_to" value="<?= htmlspecialchars($moduleNotesReturnTo) ?>">
@@ -393,8 +393,8 @@ if (empty($GLOBALS['rxn_module_notes_assets_printed'])) {
                                                 <span class="small text-muted text-truncate"><?= htmlspecialchars((string) $attachment['name']) ?></span>
                                             <?php endif; ?>
                                         </div>
-                                        <a href="/rxnTiendasIA/public<?= htmlspecialchars($noteAttachmentPath) ?>" target="_blank" rel="noopener noreferrer">
-                                            <img src="/rxnTiendasIA/public<?= htmlspecialchars($noteAttachmentPath) ?>" alt="Captura adjunta de <?= htmlspecialchars($moduleNotesLabel) ?>">
+                                        <a href="<?= htmlspecialchars($noteAttachmentPath) ?>" target="_blank" rel="noopener noreferrer">
+                                            <img src="<?= htmlspecialchars($noteAttachmentPath) ?>" alt="Captura adjunta de <?= htmlspecialchars($moduleNotesLabel) ?>">
                                         </a>
                                     </div>
                                 <?php endforeach; ?>

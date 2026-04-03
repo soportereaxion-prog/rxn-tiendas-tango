@@ -23,7 +23,7 @@ class GlobalConfigController extends Controller
      */
     public function showSmtpGlobal(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         
         $envVars = $this->envManager->getParsedVariables();
 
@@ -50,7 +50,7 @@ class GlobalConfigController extends Controller
      */
     public function updateSmtpGlobal(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
 
         try {
             $updates = [
@@ -69,11 +69,11 @@ class GlobalConfigController extends Controller
 
             $this->envManager->updateVariables($updates);
 
-            header('Location: /rxnTiendasIA/public/admin/smtp-global?success=Configuración+Master+actualizada+correctamente');
+            header('Location: /admin/smtp-global?success=Configuración+Master+actualizada+correctamente');
             exit;
 
         } catch (\Exception $e) {
-            header('Location: /rxnTiendasIA/public/admin/smtp-global?error=' . urlencode($e->getMessage()));
+            header('Location: /admin/smtp-global?error=' . urlencode($e->getMessage()));
             exit;
         }
     }
@@ -83,7 +83,7 @@ class GlobalConfigController extends Controller
      */
     public function testConnection(): void
     {
-        AuthService::requireBackofficeAdmin();
+        AuthService::requireRxnAdmin();
         
         header('Content-Type: application/json');
         

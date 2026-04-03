@@ -1,6 +1,6 @@
 /**
  * rxn-shortcuts.js
- * Atajos de teclado recomendados para rxnTiendasIA (Enfoque ERP)
+ * Atajos de teclado recomendados para rxn_suite (Enfoque ERP)
  * - F10 o Ctrl+Enter: Guardar (Realiza click en el boton de guardado principal del formulario)
  * - Escape: Cancelar o Volver al listado (click en flecha volver o menu anterior)
  * - Insert o Alt+N: Nuevo registro (click en botón crear/nuevo)

@@ -2,8 +2,11 @@
 use App\Core\Helpers\UIHelper;
 use App\Core\View;
 
-$pageTitle = $pageTitle ?? 'Admin - rxnTiendasIA';
+$pageTitle = $pageTitle ?? 'Admin - rxn_suite';
 $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : [];
+if (isset($topbarLeftHtml)) {
+    $ui['topbarLeftHtml'] = $topbarLeftHtml;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es" <?= UIHelper::getHtmlAttributes() ?>>
@@ -13,7 +16,7 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">
+    <link href="/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">
     <?= $extraHead ?? '' ?>
 </head>
 <body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-2">
@@ -43,9 +46,9 @@ $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : 
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
     <?= $extraScripts ?? '' ?>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 </body>
 </html>

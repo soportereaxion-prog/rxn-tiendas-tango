@@ -24,7 +24,7 @@ class ClienteAuthController extends Controller
     private function requireValidStore(string $slug): void
     {
         if (!StoreResolver::resolveEmpresaPublica($slug)) {
-            header("Location: /rxnTiendasIA/public/public-error");
+            header("Location: /public-error");
             exit;
         }
     }
@@ -33,7 +33,7 @@ class ClienteAuthController extends Controller
     {
         $this->requireValidStore($slug);
         if (ClienteWebContext::isLoggedIn(PublicStoreContext::getEmpresaId())) {
-            header("Location: /rxnTiendasIA/public/{$slug}");
+            header("Location: /{$slug}");
             exit;
         }
 
@@ -56,7 +56,7 @@ class ClienteAuthController extends Controller
         try {
             if ($this->authService->login($empresaId, $email, $password)) {
                 // Verificar si hay un redirect previo (ej. al pagar checkout y requeria login temporalmente)
-                $next = $_GET['next'] ?? "/rxnTiendasIA/public/{$slug}";
+                $next = $_GET['next'] ?? "/{$slug}";
                 header("Location: " . filter_var($next, FILTER_SANITIZE_URL));
                 exit;
             }
@@ -75,7 +75,7 @@ class ClienteAuthController extends Controller
     {
         $this->requireValidStore($slug);
         if (ClienteWebContext::isLoggedIn(PublicStoreContext::getEmpresaId())) {
-            header("Location: /rxnTiendasIA/public/{$slug}");
+            header("Location: /{$slug}");
             exit;
         }
 
@@ -109,7 +109,7 @@ class ClienteAuthController extends Controller
 
         try {
             $this->authService->register($empresaId, $data, $password);
-            header("Location: /rxnTiendasIA/public/{$slug}/login?msg=revisar_correo");
+            header("Location: /{$slug}/login?msg=revisar_correo");
             exit;
         } catch (Exception $e) {
             View::render('app/modules/Store/views/auth/registro.php', [
@@ -124,7 +124,7 @@ class ClienteAuthController extends Controller
     {
         $this->requireValidStore($slug);
         $this->authService->logout();
-        header("Location: /rxnTiendasIA/public/{$slug}");
+        header("Location: /{$slug}");
         exit;
     }
 }

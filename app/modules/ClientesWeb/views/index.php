@@ -32,8 +32,8 @@ ob_start();
             </div>
             <div class="rxn-module-actions">
 
-                <a href="/rxnTiendasIA/public/mi-empresa/ayuda" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="/rxnTiendasIA/public/mi-empresa/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
+                <a href="/mi-empresa/ayuda" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="/mi-empresa/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
             </div>
         </div>
 
@@ -64,12 +64,12 @@ ob_start();
         
         <ul class="nav nav-tabs mb-4 rxn-crud-tabs">
             <li class="nav-item">
-                <a class="nav-link <?= !$isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars((string) ($ui['basePath'] ?? '/rxnTiendasIA/public/mi-empresa/clientes')) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars((string) ($ui['basePath'] ?? '/mi-empresa/clientes')) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
                     Activos
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars((string) ($ui['basePath'] ?? '/rxnTiendasIA/public/mi-empresa/clientes')) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold' : '' ?>" href="<?= htmlspecialchars((string) ($ui['basePath'] ?? '/mi-empresa/clientes')) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
                     <i class="bi bi-trash"></i> Papelera
                 </a>
             </li>
@@ -79,7 +79,7 @@ ob_start();
             <div class="card-body p-4">
                 <div class="rxn-toolbar-split mb-3">
                     <span class="badge bg-primary text-light fs-6 py-2 px-3">👥 Total Clientes Web</span>
-                    <form action="/rxnTiendasIA/public/mi-empresa/clientes" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 720px; max-width: 100%;" data-search-form>
+                    <form action="/mi-empresa/clientes" method="GET" class="rxn-filter-form justify-content-end flex-md-nowrap ms-md-auto" style="width: 720px; max-width: 100%;" data-search-form>
                         <input type="hidden" name="search" value="<?= htmlspecialchars((string) $search) ?>" data-search-hidden>
                         <select name="field" class="form-select form-select-sm border-info rxn-filter-compact rxn-search-field-wrap" style="width: 150px;" data-search-field>
                             <option value="all" <?= $field === 'all' ? 'selected' : '' ?>>Todos los campos</option>
@@ -90,7 +90,7 @@ ob_start();
                             <option value="codigo_tango" <?= $field === 'codigo_tango' ? 'selected' : '' ?>>Cod. Tango</option>
                         </select>
                         <div class="rxn-search-input-wrap rxn-filter-grow">
-                            <input type="text" class="form-control form-control-sm border-info" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string)$search) ?>" data-search-input data-suggestions-url="/rxnTiendasIA/public/mi-empresa/clientes/sugerencias" autocomplete="off">
+                            <input type="text" class="form-control form-control-sm border-info" placeholder='🔎 Presioná F3 o "/" para buscar' value="<?= htmlspecialchars((string)$search) ?>" data-search-input data-suggestions-url="/mi-empresa/clientes/sugerencias" autocomplete="off">
                             <div class="rxn-search-suggestions d-none" data-search-suggestions></div>
                         </div>
                         <button type="submit" class="btn btn-info btn-sm text-white">Buscar</button>
@@ -100,12 +100,12 @@ ob_start();
 
                 <?php if (!$isPapelera): ?>
                 <div class="mb-3">
-                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/clientes/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar los clientes seleccionados a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="/mi-empresa/clientes/eliminar-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="¿Enviar los clientes seleccionados a la papelera?"><i class="bi bi-trash"></i> Eliminar Seleccionados</button>
                 </div>
                 <?php else: ?>
                 <div class="mb-3 d-flex gap-2">
-                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/clientes/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar los clientes seleccionados?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionados</button>
-                    <button type="submit" form="hiddenFormBulk" formaction="/rxnTiendasIA/public/mi-empresa/clientes/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente los clientes seleccionados?"><i class="bi bi-x-circle"></i> Destruir Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="/mi-empresa/clientes/restore-masivo" class="btn btn-outline-success btn-sm rxn-confirm-form" data-msg="¿Restaurar los clientes seleccionados?"><i class="bi bi-arrow-counterclockwise"></i> Restaurar Seleccionados</button>
+                    <button type="submit" form="hiddenFormBulk" formaction="/mi-empresa/clientes/force-delete-masivo" class="btn btn-outline-danger btn-sm rxn-confirm-form" data-msg="⚠️ ATENCIÓN: Acción irreversible. ¿Destruir definitivamente los clientes seleccionados?"><i class="bi bi-x-circle"></i> Destruir Seleccionados</button>
                 </div>
                 <?php endif; ?>
 
@@ -145,7 +145,7 @@ ob_start();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach($clientes as $cli): ?>
-                                    <tr data-row-link="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/editar" class="<?= $isPapelera ? 'rxn-row-deleted' : '' ?>">
+                                    <tr data-row-link="/mi-empresa/clientes/<?= $cli['id'] ?>/editar" class="<?= $isPapelera ? 'rxn-row-deleted' : '' ?>">
                                         <td class="text-center" data-row-link-ignore>
                                             <input class="form-check-input rxn-bulk-checkbox" type="checkbox" name="ids[]" value="<?= $cli['id'] ?>" form="hiddenFormBulk" aria-label="Seleccionar fila">
                                         </td>
@@ -167,7 +167,7 @@ ob_start();
                                         </td>
                                         <td>
                                             <?php if($cli['id_gva14_tango']): ?>
-                                                <span class="badge bg-success">✔ GVA14: <?= $cli['id_gva14_tango'] ?></span>
+                                                <span class="badge bg-success">✔ GVA14: <?= htmlspecialchars((string) $cli['id_gva14_tango'], ENT_QUOTES, 'UTF-8') ?></span>
                                             <?php else: ?>
                                                 <span class="badge bg-warning text-dark">Pendiente</span>
                                             <?php endif; ?>
@@ -175,19 +175,19 @@ ob_start();
                                         <td class="text-nowrap"><small class="text-secondary"><?= date('d/m/Y H:i', strtotime($cli['created_at'])) ?></small></td>
                                         <td class="rxn-actions-col text-end" data-row-link-ignore>
                                             <div class="d-inline-flex gap-1 align-items-center">
-                                                <a href="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium" title="Editar">
+                                                <a href="/mi-empresa/clientes/<?= $cli['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium" title="Editar">
                                                     <i class="bi bi-pencil-square"></i>
                                                 </a>
 
                                                 <?php if (!$isPapelera): ?>
-                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/eliminar" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar este cliente a la papelera?">
+                                                    <form method="POST" action="/mi-empresa/clientes/<?= $cli['id'] ?>/eliminar" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar este cliente a la papelera?">
                                                         <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium" title="Mover a Papelera"><i class="bi bi-trash"></i></button>
                                                     </form>
                                                 <?php else: ?>
-                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/restore" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Restaurar este cliente web?">
+                                                    <form method="POST" action="/mi-empresa/clientes/<?= $cli['id'] ?>/restore" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Restaurar este cliente web?">
                                                         <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 fw-medium" title="Restaurar"><i class="bi bi-arrow-counterclockwise"></i></button>
                                                     </form>
-                                                    <form method="POST" action="/rxnTiendasIA/public/mi-empresa/clientes/<?= $cli['id'] ?>/force-delete" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Destruir definitivamente este cliente web? Esta acción no se puede deshacer.">
+                                                    <form method="POST" action="/mi-empresa/clientes/<?= $cli['id'] ?>/force-delete" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Destruir definitivamente este cliente web? Esta acción no se puede deshacer.">
                                                         <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium" title="Destruir"><i class="bi bi-x-circle"></i></button>
                                                     </form>
                                                 <?php endif; ?>
@@ -226,11 +226,11 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
+<script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
 
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

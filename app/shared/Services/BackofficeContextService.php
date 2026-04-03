@@ -45,7 +45,7 @@ class BackofficeContextService
             return $summary;
         }
 
-        $summary['storeUrl'] = '/rxnTiendasIA/public/' . rawurlencode($slug);
+        $summary['storeUrl'] = '/' . rawurlencode($slug);
         $summary['storeLabel'] = $summary['storeUrl'];
 
         return $summary;

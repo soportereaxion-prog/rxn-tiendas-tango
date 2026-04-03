@@ -110,7 +110,7 @@ ob_start();
             background-image: var(--print-sheet-background-image, none);
         }
 
-        .print-object {
+        .print-object { touch-action: none;
             position: absolute;
             user-select: none;
             cursor: move;
@@ -127,7 +127,7 @@ ob_start();
             cursor: move;
         }
 
-        .print-object__inner {
+        .print-object__inner { pointer-events: none;
             width: 100%;
             height: 100%;
         }
@@ -221,7 +221,7 @@ ob_start();
             <div class="rxn-module-actions">
                 
                 <button type="submit" form="print-form-editor-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar version</button>
-                <a href="/rxnTiendasIA/public/mi-empresa/crm/presupuestos" class="btn btn-outline-secondary">Ir a Presupuestos</a>
+                <a href="/mi-empresa/crm/presupuestos" class="btn btn-outline-secondary">Ir a Presupuestos</a>
                 <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a Formularios</a>
             </div>
         </div>
@@ -250,7 +250,12 @@ ob_start();
                             <button type="button" class="btn btn-outline-primary" data-add-object="image"><i class="bi bi-image"></i> Agregar imagen</button>
                             <button type="button" class="btn btn-outline-primary" data-add-object="line"><i class="bi bi-slash-lg"></i> Agregar linea</button>
                             <button type="button" class="btn btn-outline-primary" data-add-object="rect"><i class="bi bi-square"></i> Agregar rectangulo</button>
-                            <button type="button" class="btn btn-outline-danger" data-delete-object disabled><i class="bi bi-trash"></i> Eliminar objeto</button>
+                            <button type="button" class="btn btn-outline-danger mt-2" data-delete-object disabled><i class="bi bi-trash"></i> Eliminar objeto</button>
+                            <div class="d-flex gap-2 w-100">
+                                <button type="button" class="btn btn-outline-secondary w-50" data-action="z-backward" title="Enviar hacia atrás" disabled><i class="bi bi-layer-backward"></i> Fon.</button>
+                                <button type="button" class="btn btn-outline-secondary w-50" data-action="z-forward" title="Traer al frente" disabled><i class="bi bi-layer-forward"></i> Fre.</button>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger mt-3 opacity-50" data-action="clear-canvas" title="Borrar todo el canvas"><i class="bi bi-eraser"></i> Limpiar todo</button>
                         </div>
 
                         <div class="print-editor-section-title">Variables disponibles</div>
@@ -309,6 +314,14 @@ ob_start();
                                 <option value="portrait">Vertical</option>
                                 <option value="landscape">Horizontal</option>
                             </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="print-bg-color" class="form-label">Color del papel</label>
+                            <input type="color" class="form-control form-control-color w-100 mb-2" id="print-bg-color" data-page-prop="background_color" value="#ffffff">
+                            <div class="form-check form-switch pt-1">
+                                <input class="form-check-input" type="checkbox" id="print-transparent-bg" data-page-prop="transparent_bg">
+                                <label class="form-check-label" for="print-transparent-bg">Papel sin fondo (Transparente)</label>
+                            </div>
                         </div>
                         <div class="mb-3 form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="print-grid-enabled" data-page-prop="grid_enabled">
@@ -464,9 +477,8 @@ ob_start();
     <script>
         window.printFormsEditorConfig = <?= $editorConfigJson ?: '{}' ?>;
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/print-forms-editor.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/print-forms-editor.js?v=<?= filemtime($_SERVER['DOCUMENT_ROOT'] . '/js/print-forms-editor.js') ?>"></script>
+    <script src="/js/rxn-shortcuts.js?v=<?= filemtime($_SERVER['DOCUMENT_ROOT'] . '/js/rxn-shortcuts.js') ?>"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

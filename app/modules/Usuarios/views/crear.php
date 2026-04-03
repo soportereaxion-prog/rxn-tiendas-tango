@@ -1,9 +1,9 @@
-<?php
+﻿<?php
 $area = $area ?? 'tiendas';
-$basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/usuarios';
+$basePath = $basePath ?? '/mi-empresa/usuarios';
 $indexPath = $basePath . '?' . http_build_query(['area' => $area]);
 
-$pageTitle = 'Nuevo Usuario - rxnTiendasIA';
+$pageTitle = 'Nuevo Usuario - rxn_suite';
 
 ob_start();
 ?>
@@ -39,13 +39,13 @@ ob_start();
                             </div>
 
                             <div class="rxn-form-span-6">
-                                <label for="email" class="form-label">Correo Electrónico</label>
+                                <label for="email" class="form-label">Correo ElectrÃ³nico</label>
                                 <input type="email" class="form-control" id="email" name="email" required value="<?= htmlspecialchars($old['email'] ?? '') ?>">
                             </div>
 
                             <?php if (isset($isGlobalAdmin) && $isGlobalAdmin && !empty($empresas)): ?>
                             <div class="rxn-form-span-6">
-                                <label for="empresa_id" class="form-label">Empresa Asignada (Gestión Local)</label>
+                                <label for="empresa_id" class="form-label">Empresa Asignada (GestiÃ³n Local)</label>
                                 <select class="form-select border-primary" id="empresa_id" name="empresa_id">
                                     <?php foreach ($empresas as $emp): ?>
                                         <option value="<?= $emp->id ?>" <?= (isset($old['empresa_id']) && $old['empresa_id'] == $emp->id) ? 'selected' : '' ?>>
@@ -58,14 +58,14 @@ ob_start();
                             <?php endif; ?>
 
                             <div class="rxn-form-span-6">
-                                <label for="password" class="form-label">Contraseña</label>
+                                <label for="password" class="form-label">ContraseÃ±a</label>
                                 <input type="password" class="form-control" id="password" name="password" required>
                             </div>
                         </div>
                     </div>
 
                     <div class="rxn-form-section">
-                        <div class="rxn-form-section-title">Integración Tango</div>
+                        <div class="rxn-form-section-title">IntegraciÃ³n Tango</div>
                         <div class="rxn-form-grid">
                             <div class="rxn-form-span-12">
                                 <label for="tango_perfil_pedido" class="form-label">Perfil de Pedido (Operativa CRM/Ventas)</label>
@@ -88,7 +88,7 @@ ob_start();
                                         <option value="" disabled>Sin acceso a Tango o sin perfiles configurados.</option>
                                     <?php endif; ?>
                                 </select>
-                                <div class="form-text">Si se asocia, todas las cabeceras de pedidos o presupuestos emitidos por esta persona se generarán con los vendedores y talonarios definidos en este Perfil de Tango.</div>
+                                <div class="form-text">Si se asocia, todas las cabeceras de pedidos o presupuestos emitidos por esta persona se generarÃ¡n con los vendedores y talonarios definidos en este Perfil de Tango.</div>
                             </div>
                         </div>
                     </div>
@@ -100,7 +100,7 @@ ob_start();
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input" type="checkbox" role="switch" id="activo" name="activo" checked>
                                     <label class="form-check-label fw-semibold" for="activo">Usuario activo</label>
-                                    <div class="form-text mb-0">Permite iniciar sesión y operar normalmente.</div>
+                                    <div class="form-text mb-0">Permite iniciar sesiÃ³n y operar normalmente.</div>
                                 </div>
                             </div>
 
@@ -110,6 +110,16 @@ ob_start();
                                     <input class="form-check-input" type="checkbox" role="switch" id="es_admin" name="es_admin" <?= (isset($old['es_admin']) && $old['es_admin'] === 'on') ? 'checked' : '' ?>>
                                     <label class="form-check-label fw-semibold" for="es_admin">Privilegios de administrador</label>
                                     <div class="form-text mb-0">Habilita gestión operativa ampliada dentro del tenant.</div>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php if (isset($isGlobalAdmin) && $isGlobalAdmin): ?>
+                            <div class="rxn-form-switch-card border-danger border-opacity-50" style="background-color: rgba(220,53,69,0.03);">
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input bg-danger border-danger" type="checkbox" role="switch" id="es_rxn_admin" name="es_rxn_admin" <?= (isset($old['es_rxn_admin']) && $old['es_rxn_admin'] === 'on') ? 'checked' : '' ?>>
+                                    <label class="form-check-label fw-bold text-danger" for="es_rxn_admin">Privilegios Super Administrador (RXN)</label>
+                                    <div class="form-text mb-0 text-danger opacity-75">Otorga el control global de sistema sobre todos los Módulos de Mantenimiento y Tenants.</div>
                                 </div>
                             </div>
                             <?php endif; ?>
@@ -130,3 +140,4 @@ $content = ob_get_clean();
 
 require BASE_PATH . '/app/shared/views/admin_layout.php';
 ?>
+

@@ -32,6 +32,7 @@ class UsuarioRepository
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_pedido_nombre VARCHAR(150) NULL AFTER tango_perfil_pedido_codigo;'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_snapshot_json LONGTEXT NULL AFTER tango_perfil_pedido_nombre;'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_snapshot_date DATETIME NULL AFTER tango_perfil_snapshot_json;'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN es_rxn_admin TINYINT(1) DEFAULT 0 AFTER es_admin;'); } catch (\Throwable $e) {}
     }
 
     public function findByEmail(string $email, ?int $excludeId = null): ?Usuario
@@ -209,7 +210,8 @@ class UsuarioRepository
                     tango_perfil_pedido_codigo = :tango_perfil_pedido_codigo,
                     tango_perfil_pedido_nombre = :tango_perfil_pedido_nombre,
                     tango_perfil_snapshot_json = :tango_perfil_snapshot_json,
-                    tango_perfil_snapshot_date = :tango_perfil_snapshot_date
+                    tango_perfil_snapshot_date = :tango_perfil_snapshot_date,
+                    es_rxn_admin = :es_rxn_admin
                     WHERE id = :id AND empresa_id = :empresa_id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -224,12 +226,13 @@ class UsuarioRepository
                 ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre ?? null,
                 ':tango_perfil_snapshot_json' => $usuario->tango_perfil_snapshot_json ?? null,
                 ':tango_perfil_snapshot_date' => $usuario->tango_perfil_snapshot_date ?? null,
+                ':es_rxn_admin' => $usuario->es_rxn_admin ?? 0,
                 ':id' => $usuario->id,
                 ':empresa_id' => $usuario->empresa_id
             ]);
         } else {
-            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, anura_interno) 
-                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :anura_interno)";
+            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, anura_interno, es_rxn_admin) 
+                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :anura_interno, :es_rxn_admin)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $usuario->empresa_id,
@@ -246,7 +249,8 @@ class UsuarioRepository
                 ':tango_perfil_pedido_codigo' => $usuario->tango_perfil_pedido_codigo ?? null,
                 ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre ?? null,
                 ':tango_perfil_snapshot_json' => $usuario->tango_perfil_snapshot_json ?? null,
-                ':tango_perfil_snapshot_date' => $usuario->tango_perfil_snapshot_date ?? null
+                ':tango_perfil_snapshot_date' => $usuario->tango_perfil_snapshot_date ?? null,
+                ':es_rxn_admin' => $usuario->es_rxn_admin ?? 0
             ]);
             $usuario->id = (int) $this->db->lastInsertId();
         }

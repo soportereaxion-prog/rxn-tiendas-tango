@@ -118,7 +118,7 @@ class PasswordResetController extends Controller
             'id' => (int)$user['id']
         ]);
 
-        $redirect = $user['table_name'] === 'usuarios' ? '/rxnTiendasIA/public/login' : '/rxnTiendasIA/public/';
+        $redirect = $user['table_name'] === 'usuarios' ? '/login' : '/';
         header("Location: {$redirect}?msg=pass_actualizada");
         exit;
     }
@@ -149,7 +149,7 @@ class PasswordResetController extends Controller
         <div class='card shadow-sm p-4' style='max-width: 500px;'>
             <h3 class='text-danger'>❌ Error de Recuperación</h3>
             <p class='text-secondary mt-3'>$msg</p>
-            <a href='/rxnTiendasIA/public/auth/forgot' class='btn btn-outline-primary mt-3'>Intentar nuevamente</a>
+            <a href='/auth/forgot' class='btn btn-outline-primary mt-3'>Intentar nuevamente</a>
         </div>
         </body></html>";
     }

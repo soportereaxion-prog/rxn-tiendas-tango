@@ -8,7 +8,7 @@ ob_start();
                 <h2 class="text-warning mb-1">⚙️ SMTP Master RXN</h2>
                 
             </div>
-            <a href="/rxnTiendasIA/public/admin/dashboard" class="btn btn-outline-light">Volver al Backoffice</a>
+            <a href="/admin/dashboard" class="btn btn-outline-light">Volver al Backoffice</a>
         </div>
 
         <?php
@@ -27,7 +27,7 @@ ob_start();
 
         <div class="card rxn-form-card shadow-lg">
             <div class="card-body p-4 p-lg-5">
-                <form action="/rxnTiendasIA/public/admin/smtp-global" method="POST">
+                <form action="/admin/smtp-global" method="POST">
                 
                     <div class="alert alert-dark border-secondary mb-4">
                         <small>🛡️ <strong>Alerta de Seguridad:</strong> Estás alterando estructuralmente el superglobal <code>.env</code> desde el Front. Estos cambios impactan diametralmente el transporte final de todas las entidades huérfanas o invitadas.</small>
@@ -107,7 +107,7 @@ ob_start();
 
             try {
                 const formData = new FormData(document.querySelector('form'));
-                const res = await fetch('/rxnTiendasIA/public/admin/smtp-global/test', {
+                const res = await fetch('/admin/smtp-global/test', {
                     method: 'POST',
                     body: formData
                 });
@@ -126,7 +126,7 @@ ob_start();
             }
         });
     </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

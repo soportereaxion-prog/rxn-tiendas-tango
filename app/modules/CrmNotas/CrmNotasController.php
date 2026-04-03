@@ -23,7 +23,7 @@ class CrmNotasController extends Controller
     {
         $empresaId = Context::getEmpresaId();
         if ($empresaId === null || $empresaId <= 0) {
-            $this->renderDenegado("No hay un contexto de empresa válido activo.", "/rxnTiendasIA/public/");
+            $this->renderDenegado("No hay un contexto de empresa válido activo.", "/");
         }
         return (int) $empresaId;
     }
@@ -376,6 +376,66 @@ class CrmNotasController extends Controller
         }
     }
 
+    public function export(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+
+        if (!class_exists('\\OpenSpout\\Writer\\XLSX\\Writer')) {
+            die("La exportación requiere que OpenSpout esté instalado.");
+        }
+
+        $search = $_GET['search'] ?? '';
+        $sortRaw = $_GET['sort'] ?? 'created_at_desc';
+        $parts = explode('_', $sortRaw);
+        $sortDir = strtoupper(array_pop($parts));
+        $sortColumn = implode('_', $parts);
+
+        $status = $_GET['status'] ?? 'activos';
+        $onlyDeleted = $status === 'papelera';
+
+        $limit = 999999;
+        $offset = 0;
+
+        $items = $this->repository->findAllWithClientName($empresaId, $limit, $offset, $search, $sortColumn, $sortDir, $onlyDeleted);
+
+        $filename = "notas_exportacion_" . date('Ymd_His') . ".xlsx";
+        
+        $writer = new \OpenSpout\Writer\XLSX\Writer();
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer->openToFile('php://output');
+        
+        $rowFromValues = function(array $values) {
+            $cells = array_map(function($v) {
+                return \OpenSpout\Common\Entity\Cell::fromValue($v);
+            }, $values);
+            return new \OpenSpout\Common\Entity\Row($cells);
+        };
+
+        // Header
+        $writer->addRow($rowFromValues(['ID', 'Título', 'Contenido', 'Tags', 'Cliente Módulo', 'Código Tango', 'Fecha Creación', 'Estado']));
+
+        foreach ($items as $item) {
+            $writer->addRow($rowFromValues([
+                $item['id'],
+                $item['titulo'],
+                $item['contenido'],
+                $item['tags'],
+                $item['cliente_nombre'],
+                $item['cliente_codigo'],
+                $item['created_at'],
+                $item['activo'] == 1 ? 'Activo' : 'Inactivo'
+            ]));
+        }
+        
+        $writer->close();
+        exit;
+    }
+
     public function downloadTemplate(): void
     {
         AuthService::requireLogin();
@@ -552,8 +612,8 @@ class CrmNotasController extends Controller
 
         return [
             'area' => $area,
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/notas',
-            'indexPath' => '/rxnTiendasIA/public/mi-empresa/crm/notas',
+            'basePath' => '/mi-empresa/crm/notas',
+            'indexPath' => '/mi-empresa/crm/notas',
             'dashboardPath' => OperationalAreaService::dashboardPath($area),
             'environmentLabel' => OperationalAreaService::environmentLabel($area),
         ];

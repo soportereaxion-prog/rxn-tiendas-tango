@@ -55,7 +55,7 @@ class PrintFormController
 
         if ($document === null || ($document['area'] ?? '') !== OperationalAreaService::AREA_CRM) {
             Flash::set('danger', 'El formulario de impresion solicitado no existe para este entorno.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/formularios-impresion');
+            header('Location: /mi-empresa/crm/formularios-impresion');
             exit;
         }
 
@@ -68,6 +68,27 @@ class PrintFormController
         $versions = $definition !== null ? $this->repository->findVersionsByDefinitionId((int) $definition['id']) : [];
         $backgroundUrl = (string) ($template['background_url'] ?? '');
 
+        // Fetch real company data to inject into sample context
+        $empresaConfigRepo = \App\Modules\EmpresaConfig\EmpresaConfigRepository::forArea('crm');
+        $empresaConfig = $empresaConfigRepo->findByEmpresaId($empresaId);
+
+        $sampleContext = $document['sample_context'] ?? [];
+        if (!isset($sampleContext['empresa']) || !is_array($sampleContext['empresa'])) {
+            $sampleContext['empresa'] = [];
+        }
+
+        if ($empresaConfig) {
+            if ($empresaConfig->nombre_fantasia) {
+                $sampleContext['empresa']['nombre'] = $empresaConfig->nombre_fantasia;
+            }
+            if ($empresaConfig->impresion_header_url) {
+                $sampleContext['empresa']['header_url'] = $empresaConfig->impresion_header_url;
+            }
+            if ($empresaConfig->impresion_footer_url) {
+                $sampleContext['empresa']['footer_url'] = $empresaConfig->impresion_footer_url;
+            }
+        }
+
         View::render('app/modules/PrintForms/views/editor.php', array_merge($this->buildUiContext(), [
             'document' => $document,
             'definition' => $definition,
@@ -79,7 +100,7 @@ class PrintFormController
             'availableFonts' => PrintFormRegistry::availableFonts(),
             'variables' => $document['variables'] ?? [],
             'repeaters' => $document['repeaters'] ?? [],
-            'sampleContext' => $document['sample_context'] ?? [],
+            'sampleContext' => $sampleContext,
             'backgroundUrl' => $backgroundUrl,
         ]));
     }
@@ -92,7 +113,7 @@ class PrintFormController
 
         if ($document === null || ($document['area'] ?? '') !== OperationalAreaService::AREA_CRM) {
             Flash::set('danger', 'El formulario de impresion solicitado no existe para este entorno.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/formularios-impresion');
+            header('Location: /mi-empresa/crm/formularios-impresion');
             exit;
         }
 
@@ -136,14 +157,14 @@ class PrintFormController
             Flash::set('danger', 'No se pudo guardar la definicion del formulario de impresion.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/formularios-impresion/' . rawurlencode($documentKey));
+        header('Location: /mi-empresa/crm/formularios-impresion/' . rawurlencode($documentKey));
         exit;
     }
 
     private function buildUiContext(): array
     {
         return [
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion',
+            'basePath' => '/mi-empresa/crm/formularios-impresion',
             'dashboardPath' => OperationalAreaService::dashboardPath(OperationalAreaService::AREA_CRM),
             'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_CRM),
             'moduleNotesKey' => 'crm_formularios_impresion',

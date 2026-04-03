@@ -3,7 +3,7 @@ $pageTitle = 'RXN Tiendas IA';
 ob_start();
 ?>
 <?php
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/articulos';
+    $basePath = $basePath ?? '/mi-empresa/articulos';
     $moduleNotesKey = $moduleNotesKey ?? 'articulos';
     $moduleNotesLabel = $moduleNotesLabel ?? 'Articulos';
     $showCategories = $showCategories ?? true;
@@ -51,7 +51,7 @@ ob_start();
                                             <?php endif; ?>
 
                                             <div style="height: 120px; overflow: hidden;" class="rounded mb-2">
-                                                <img src="/rxnTiendasIA/public<?= htmlspecialchars((string) $img['ruta']) ?>" class="w-100 h-100" style="object-fit: cover;">
+                                                <img src="<?= htmlspecialchars((string) $img['ruta']) ?>" class="w-100 h-100" style="object-fit: cover;">
                                             </div>
 
                                             <div class="d-flex justify-content-between gap-1">
@@ -173,9 +173,8 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

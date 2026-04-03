@@ -21,7 +21,7 @@ class CartController extends Controller
     private function requireValidStore(string $slug): void
     {
         if (!StoreResolver::resolveEmpresaPublica($slug)) {
-            header("Location: /rxnTiendasIA/public/public-error");
+            header("Location: /public-error");
             exit;
         }
     }
@@ -50,7 +50,7 @@ class CartController extends Controller
         }
 
         // Redireccionar a la vista anterior para seguir comprando
-        $referer = $_SERVER['HTTP_REFERER'] ?? "/rxnTiendasIA/public/{$slug}";
+        $referer = $_SERVER['HTTP_REFERER'] ?? "/{$slug}";
         header("Location: " . $referer);
         exit;
     }
@@ -66,7 +66,7 @@ class CartController extends Controller
             $this->cartService->updateItem($articuloId, $cantidad);
         }
 
-        header("Location: /rxnTiendasIA/public/{$slug}/carrito");
+        header("Location: /{$slug}/carrito");
         exit;
     }
 
@@ -80,7 +80,7 @@ class CartController extends Controller
             $this->cartService->removeItem($articuloId);
         }
 
-        header("Location: /rxnTiendasIA/public/{$slug}/carrito");
+        header("Location: /{$slug}/carrito");
         exit;
     }
 }

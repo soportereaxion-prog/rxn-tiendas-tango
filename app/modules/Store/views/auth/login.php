@@ -20,7 +20,7 @@
                         <div class="alert alert-danger rounded-3"><?= htmlspecialchars($error) ?></div>
                     <?php endif; ?>
                     
-                    <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/login<?= !empty($_GET['next']) ? '?next='.urlencode($_GET['next']) : '' ?>" method="POST">
+                    <form action="/<?= htmlspecialchars($empresa_slug) ?>/login<?= !empty($_GET['next']) ? '?next='.urlencode($_GET['next']) : '' ?>" method="POST">
                         <div class="mb-3">
                             <label class="form-label fw-medium text-secondary">Correo Electrónico</label>
                             <input type="email" name="email" class="form-control form-control-lg bg-light border-0" required autofocus>
@@ -28,7 +28,7 @@
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <label class="form-label fw-medium text-secondary mb-0">Contraseña</label>
-                                <a href="/rxnTiendasIA/public/auth/forgot" class="text-decoration-none small text-muted">¿La olvidaste?</a>
+                                <a href="/auth/forgot" class="text-decoration-none small text-muted">¿La olvidaste?</a>
                             </div>
                             <input type="password" name="password" class="form-control form-control-lg bg-light border-0" required>
                         </div>
@@ -36,12 +36,12 @@
                         <button type="submit" class="btn btn-dark w-100 py-3 rounded-3 fw-bold mb-3">Iniciar Sesión</button>
                         
                         <div class="text-center mb-3">
-                            <a href="/rxnTiendasIA/public/auth/resend-verify" class="text-decoration-none small text-secondary border-bottom">No recibí el enlace de activación</a>
+                            <a href="/auth/resend-verify" class="text-decoration-none small text-secondary border-bottom">No recibí el enlace de activación</a>
                         </div>
 
                         <div class="text-center pt-3 border-top">
                             <span class="text-muted">¿No tienes cuenta?</span>
-                            <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/registro" class="text-dark fw-bold text-decoration-none">Regístrate aquí</a>
+                            <a href="/<?= htmlspecialchars($empresa_slug) ?>/registro" class="text-dark fw-bold text-decoration-none">Regístrate aquí</a>
                         </div>
                     </form>
                 </div>

@@ -12,7 +12,7 @@ $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
         <i class="bi bi-person text-info"></i> <?= $userNameText ?>
     </span>
     <div class="vr mx-1 opacity-25"></div>
-    <a href="/rxnTiendasIA/public/logout" class="btn btn-sm text-danger p-0 d-flex align-items-center" title="Cerrar Sesi&oacute;n" style="line-height: 1;">
+    <a href="/logout" class="btn btn-sm text-danger p-0 d-flex align-items-center" title="Cerrar Sesi&oacute;n" style="line-height: 1;">
         <i class="bi bi-box-arrow-right fs-6"></i>
     </a>
 </div>
@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
             rootHtml.setAttribute('data-theme', newTheme);
             themeBtn.innerText = newTheme === 'dark' ? '☀️' : '🌙';
 
-            fetch('/rxnTiendasIA/public/mi-perfil/toggle-theme', {
+            fetch('/mi-perfil/toggle-theme', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ theme: newTheme })

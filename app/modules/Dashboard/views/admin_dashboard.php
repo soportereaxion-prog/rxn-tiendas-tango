@@ -22,7 +22,7 @@ ob_start();
             </div>
             <div class="rxn-module-actions">
                 
-                <a href="/rxnTiendasIA/public/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
+                <a href="/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
             </div>
         </div>
 
@@ -43,7 +43,7 @@ ob_start();
                         <div class="rxn-module-icon text-primary"><i class="bi bi-buildings"></i></div>
                         <h5 class="fw-bold mb-2">Listado de Empresas</h5>
                         <p class="text-muted small px-2">ABM de tenants, asignación de licencias y suspensión de cuentas.</p>
-                        <a href="/rxnTiendasIA/public/empresas" class="stretched-link"></a>
+                        <a href="/empresas" class="stretched-link"></a>
                     </div>
                 </div>
             </div>
@@ -54,7 +54,18 @@ ob_start();
                         <div class="rxn-module-icon text-secondary"><i class="bi bi-gear"></i></div>
                         <h5 class="fw-bold mb-2">Configuración Global</h5>
                         <p class="text-muted small px-2">Ajustes SMTP maestros para el pool de correos RXN.</p>
-                        <a href="/rxnTiendasIA/public/admin/smtp-global" class="stretched-link"></a>
+                        <a href="/admin/smtp-global" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-sm-6 col-lg-4">
+                <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
+                        <div class="rxn-module-icon text-danger"><i class="bi bi-tools"></i></div>
+                        <h5 class="fw-bold mb-2">Sistema y Mantenimiento</h5>
+                        <p class="text-muted small px-2">Actualizaciones de BD, migraciones y ejecución de dumps operativos.</p>
+                        <a href="/admin/mantenimiento" class="stretched-link"></a>
                     </div>
                 </div>
             </div>
@@ -94,7 +105,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

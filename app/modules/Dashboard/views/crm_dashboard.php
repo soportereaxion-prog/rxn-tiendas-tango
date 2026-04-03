@@ -25,61 +25,61 @@ $defaultCards = [
         'title' => 'Configuracion',
         'desc' => 'Parametros operativos propios de CRM con persistencia separada del entorno Tiendas.',
         'icon' => '<i class="bi bi-sliders"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/configuracion',
+        'link' => '/mi-empresa/crm/configuracion',
     ],
     'articulos' => [
         'title' => 'Articulos CRM',
         'desc' => 'Base inicial de articulos del CRM con estructura propia y estilo alineado al circuito de tiendas.',
         'icon' => '<i class="bi bi-box-seam"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/articulos',
+        'link' => '/mi-empresa/crm/articulos',
     ],
     'clientes' => [
         'title' => 'Clientes CRM',
         'desc' => 'Directorio de Clientes CRM y vinculacion comercial, con BD independiente de Tiendas.',
         'icon' => '<i class="bi bi-people"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/clientes',
+        'link' => '/mi-empresa/crm/clientes',
     ],
     'pedidos_servicio' => [
         'title' => 'Pedidos de Servicio',
         'desc' => 'Alta, seguimiento y calculo de tiempos operativos para el circuito tecnico/comercial de CRM.',
         'icon' => '<i class="bi bi-tools"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio',
+        'link' => '/mi-empresa/crm/pedidos-servicio',
     ],
     'presupuestos' => [
         'title' => 'Presupuestos CRM',
         'desc' => 'Gestión de presupuestos comerciales referenciados a clientes, con valorización y envio de PDF.',
         'icon' => '<i class="bi bi-file-earmark-spreadsheet"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos',
+        'link' => '/mi-empresa/crm/presupuestos',
     ],
     'notas' => [
         'title' => 'Notas CRM',
         'desc' => 'Historial de interacciones y trazabilidad de contactos con clientes. Base de conocimiento.',
         'icon' => '<i class="bi bi-journal-text"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/notas',
+        'link' => '/mi-empresa/crm/notas',
     ],
     'formularios' => [
         'title' => 'Formularios Impresos',
         'desc' => 'Configuración de tipografías y datos fiscales para documentos generados en PDF.',
         'icon' => '<i class="bi bi-file-earmark-richtext"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion',
+        'link' => '/mi-empresa/crm/formularios-impresion',
     ],
     'llamadas' => [
         'title' => 'Llamadas CRM',
         'desc' => 'Historial de llamadas de la central telefónica con reproducción de audios.',
         'icon' => '<i class="bi bi-telephone-fill"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/crm/llamadas',
+        'link' => '/mi-empresa/crm/llamadas',
     ],
     'usuarios' => [
         'title' => 'Administrar Cuentas',
         'desc' => 'Gestion de usuarios internos compartida entre los entornos operativos del tenant.',
         'icon' => '<i class="bi bi-shield-lock"></i>',
-        'link' => '/rxnTiendasIA/public/mi-empresa/usuarios?area=crm',
+        'link' => '/mi-empresa/usuarios?area=crm',
     ],
     'perfil' => [
         'title' => 'Mi Perfil',
         'desc' => 'Preferencias visuales y de uso para seguir trabajando desde CRM sin salir del circuito.',
         'icon' => '<i class="bi bi-person-badge"></i>',
-        'link' => '/rxnTiendasIA/public/mi-perfil?area=crm',
+        'link' => '/mi-perfil?area=crm',
     ],
 ];
 
@@ -98,8 +98,8 @@ foreach ($defaultCards as $cardId => $cardData) {
     $finalCards[$cardId] = $cardData;
 }
 $environmentLabel = 'Entorno Operativo';
-$dashboardPath = '/rxnTiendasIA/public/';
-$pageTitle = 'Entorno Operativo de CRM - rxnTiendasIA';
+$dashboardPath = '/';
+$pageTitle = 'Entorno Operativo de CRM - rxn_suite';
 
 ob_start();
 ?>
@@ -134,12 +134,12 @@ $headerMode = 'compact';
 $pageHeaderTitle = 'Entorno Operativo de CRM';
 $pageHeaderSubtitle = 'Base inicial del circuito CRM <span class="badge bg-secondary ms-1">Empresa #' . ($_SESSION['empresa_id'] ?? '') . '</span>';
 $pageHeaderIcon = 'bi bi-diagram-3';
-$pageHeaderBackUrl = '/rxnTiendasIA/public/';
+$pageHeaderBackUrl = '/';
 $pageHeaderBackLabel = 'Volver al Launcher';
 
 ob_start();
 ?>
-<a href="/rxnTiendasIA/public/mi-empresa/ayuda?area=crm" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
+<a href="/mi-empresa/ayuda?area=crm" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
 <?php
 $pageHeaderActions = ob_get_clean();
 ?>
@@ -217,7 +217,7 @@ ob_start();
                     currentOrder.push(col.getAttribute('data-id'));
                 });
 
-                fetch('/rxnTiendasIA/public/mi-perfil/dashboard-order', {
+                fetch('/mi-perfil/dashboard-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ area: 'crm', order: currentOrder })

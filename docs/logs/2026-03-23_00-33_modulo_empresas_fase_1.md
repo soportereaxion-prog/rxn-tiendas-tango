@@ -30,7 +30,7 @@ Flujo validado: Un GET a crear retorna vista, el submit a un POST graba en DB, y
 El sistema ya cuenta con el módulo base principal operando funcionalmente. Se puede generar tantas empresas como se solicite desde el navegador o servicios programáticos.
 
 ## Riesgos
-- El ruteo por URI depende de que `BASE_PATH` en Request mantenga `'/rxnTiendasIA/public'` estático en todos los entornos locales.
+- El ruteo por URI depende de que `BASE_PATH` en Request mantenga `'/rxn_suite/public'` estático en todos los entornos locales.
 - No contiene edición, ni desactivación todavía.
 
 ## Validación

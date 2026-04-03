@@ -407,8 +407,8 @@ class ArticuloController extends Controller
                 'pageTitle' => 'Articulos CRM',
                 'headerTitle' => 'Directorio de Articulos CRM',
                 'headerDescription' => 'Base inicial de articulos CRM con almacenamiento separado del circuito de Tiendas.',
-                'dashboardPath' => '/rxnTiendasIA/public/mi-empresa/crm/dashboard',
-                'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/articulos',
+                'dashboardPath' => '/mi-empresa/crm/dashboard',
+                'basePath' => '/mi-empresa/crm/articulos',
                 'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_CRM),
                 'moduleNotesKey' => 'crm_articulos',
                 'moduleNotesLabel' => 'Articulos CRM',
@@ -420,10 +420,10 @@ class ArticuloController extends Controller
                 'editTitle' => 'Modificar Articulo CRM',
                 'backLabel' => 'Volver al CRM',
                 'uploadSegment' => 'crm-articulos',
-                'syncTodoPath' => '/rxnTiendasIA/public/mi-empresa/crm/sync/todo',
-                'syncStockPath' => '/rxnTiendasIA/public/mi-empresa/crm/sync/stock',
-                'syncPreciosPath' => '/rxnTiendasIA/public/mi-empresa/crm/sync/precios',
-                'syncArticulosPath' => '/rxnTiendasIA/public/mi-empresa/crm/sync/articulos',
+                'syncTodoPath' => '/mi-empresa/crm/sync/todo',
+                'syncStockPath' => '/mi-empresa/crm/sync/stock',
+                'syncPreciosPath' => '/mi-empresa/crm/sync/precios',
+                'syncArticulosPath' => '/mi-empresa/crm/sync/articulos',
             ];
         }
 
@@ -431,8 +431,8 @@ class ArticuloController extends Controller
             'pageTitle' => 'Catalogo de Articulos',
             'headerTitle' => 'Directorio de Articulos',
             'headerDescription' => 'Gestion de Catalogo Web, Precios e Imagenes (Tango + RXN)',
-            'dashboardPath' => '/rxnTiendasIA/public/mi-empresa/dashboard',
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/articulos',
+            'dashboardPath' => '/mi-empresa/dashboard',
+            'basePath' => '/mi-empresa/articulos',
             'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_TIENDAS),
             'moduleNotesKey' => 'articulos',
             'moduleNotesLabel' => 'Articulos',
@@ -444,10 +444,10 @@ class ArticuloController extends Controller
             'editTitle' => 'Modificar Articulo',
             'backLabel' => 'Volver al Catalogo',
             'uploadSegment' => 'productos',
-            'syncTodoPath' => '/rxnTiendasIA/public/mi-empresa/sync/todo',
-            'syncStockPath' => '/rxnTiendasIA/public/mi-empresa/sync/stock',
-            'syncPreciosPath' => '/rxnTiendasIA/public/mi-empresa/sync/precios',
-            'syncArticulosPath' => '/rxnTiendasIA/public/mi-empresa/sync/articulos',
+            'syncTodoPath' => '/mi-empresa/sync/todo',
+            'syncStockPath' => '/mi-empresa/sync/stock',
+            'syncPreciosPath' => '/mi-empresa/sync/precios',
+            'syncArticulosPath' => '/mi-empresa/sync/articulos',
         ];
     }
 

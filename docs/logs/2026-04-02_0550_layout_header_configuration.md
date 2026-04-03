@@ -17,7 +17,7 @@ $headerMode = 'compact'; // standard o compact
 $pageHeaderTitle = 'Título del Módulo';
 $pageHeaderSubtitle = 'Subtítulo o métrica';
 $pageHeaderIcon = 'bi bi-reception-4';
-$pageHeaderBackUrl = '/rxnTiendasIA/public/';
+$pageHeaderBackUrl = '/rxn_suite/public/';
 $pageHeaderBackLabel = 'Volver';
 
 ob_start();

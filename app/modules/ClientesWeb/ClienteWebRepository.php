@@ -161,11 +161,12 @@ class ClienteWebRepository
             codigo_postal = :codigo_postal,
             razon_social = :razon_social,
             updated_at = NOW()
-            WHERE id = :id";
+            WHERE id = :id AND empresa_id = :empresa_id";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'id' => $id,
+            'empresa_id' => $newData['empresa_id'] ?? Context::getEmpresaId(),
             'nombre' => $newData['nombre'],
             'apellido' => $newData['apellido'] ?? '',
             'telefono' => $newData['telefono'] ?? null,

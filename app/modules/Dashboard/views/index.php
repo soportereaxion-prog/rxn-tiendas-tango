@@ -12,7 +12,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

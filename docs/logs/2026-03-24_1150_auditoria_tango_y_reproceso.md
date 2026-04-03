@@ -27,7 +27,7 @@ Durante el checkout, los pedidos generados localmente no lograban integrarse con
 4. (Script temporal `cli_tango_test.php` usado para fuzzing del Schema).
 
 ## Impacto
-Pese al rechazo de la API por schema estricto, el panel Web de rxnTiendasIA ofrece trazabilidad táctica (payload y respuesta exacta visualizado en tarjeta) y un método funcional para volver a empujar los JSONs una vez regularizada la configuración en Axoft.
+Pese al rechazo de la API por schema estricto, el panel Web de rxn_suite ofrece trazabilidad táctica (payload y respuesta exacta visualizado en tarjeta) y un método funcional para volver a empujar los JSONs una vez regularizada la configuración en Axoft.
 
 ## Riesgos
 - El payload no se integrará correctamente en automático hasta que se obtenga el *Swagger JSON* o especificación formal de los nodos `Items` y `Cliente Ocasional` por parte del integrador del ERP.

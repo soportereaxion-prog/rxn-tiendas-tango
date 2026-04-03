@@ -601,7 +601,7 @@ class PedidoServicioRepository
             return;
         }
 
-        $baseDir = $_SERVER['DOCUMENT_ROOT'] . '/rxnTiendasIA/public/uploads/pds-diagnostico/' . date('Y/m');
+        $baseDir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/pds-diagnostico/' . date('Y/m');
         if (!is_dir($baseDir) && !mkdir($baseDir, 0755, true) && !is_dir($baseDir)) {
             return;
         }
@@ -627,7 +627,7 @@ class PedidoServicioRepository
             $filePath = $baseDir . '/' . $fileName;
             
             if (file_put_contents($filePath, $fileData) !== false) {
-                $publicUrl = '/rxnTiendasIA/public/uploads/pds-diagnostico/' . date('Y/m') . '/' . $fileName;
+                $publicUrl = '/uploads/pds-diagnostico/' . date('Y/m') . '/' . $fileName;
                 
                 $stmt = $this->db->prepare('INSERT INTO crm_pedidos_servicio_adjuntos (pedido_servicio_id, empresa_id, name, path, label) VALUES (:pedido_id, :empresa_id, :file_name, :file_path, :label)');
                 $stmt->execute([

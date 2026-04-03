@@ -1,7 +1,7 @@
 # Auditoria de Encabezados y Topbars
 
 ## 1. Resumen Ejecutivo
-Se realizó un escaneo completo de todas las interfaces (`views`) del ecosistema rxnTiendasIA (Tiendas, CRM y Admin). El objetivo fue identificar cómo se estructuran actualmente los encabezados, barras de navegación y bloques superiores de contexto (títulos, subtítulos, botones de acción).
+Se realizó un escaneo completo de todas las interfaces (`views`) del ecosistema rxn_suite (Tiendas, CRM y Admin). El objetivo fue identificar cómo se estructuran actualmente los encabezados, barras de navegación y bloques superiores de contexto (títulos, subtítulos, botones de acción).
 Se ha detectado una alta dispersión en la construcción de estas piezas. Existen más de 4 variaciones principales para armar "la cabecera de la página", y la falta de un layout unificado en el entorno CRM/Admin provoca que la estructura base de HTML (`<!DOCTYPE...>`, `<head>`, `<body>`) se repita en decenas de archivos junto con el bloque superior.
 
 ## 2. Inventario de pantallas / vistas auditadas

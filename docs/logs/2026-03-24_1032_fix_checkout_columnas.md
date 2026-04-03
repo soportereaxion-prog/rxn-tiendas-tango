@@ -1,4 +1,4 @@
-# rxnTiendasIA — FIX CONFIRMACIÓN DE PEDIDO
+# rxn_suite — FIX CONFIRMACIÓN DE PEDIDO
 
 ## Fecha
 2026-03-24 10:32

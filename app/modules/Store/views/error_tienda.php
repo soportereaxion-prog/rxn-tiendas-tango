@@ -11,7 +11,7 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
     </style>
-    <link href="/rxnTiendasIA/public/css/rxn-theming.css" rel="stylesheet">
+    <link href="/css/rxn-theming.css" rel="stylesheet">
 </head>
 <body class="d-flex align-items-center justify-content-center vh-100">
     <div class="text-center  p-5 rounded-4 shadow-sm border" style="max-width: 500px;">
@@ -20,10 +20,10 @@
         <p class="text-secondary mb-4">
             La tienda que intentas visitar no existe, ha sido desactivada temporalmente o su enlace es incorrecto.
         </p>
-        <a href="/rxnTiendasIA/public/" class="btn btn-dark px-4 py-2 rounded-pill fw-medium">
+        <a href="/" class="btn btn-dark px-4 py-2 rounded-pill fw-medium">
             Volver al inicio
         </a>
     </div>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 </body>
 </html>

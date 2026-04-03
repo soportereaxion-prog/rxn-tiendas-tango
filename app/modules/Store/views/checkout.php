@@ -7,7 +7,7 @@
         </div>
     </div>
 
-    <form action="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/checkout/confirmar" method="POST">
+    <form action="/<?= htmlspecialchars($empresa_slug) ?>/checkout/confirmar" method="POST">
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class=" rounded-4 border shadow-sm p-4 mb-4">
@@ -104,7 +104,7 @@
                     </button>
                     
                     <div class="mt-3 text-center">
-                        <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/carrito" class="text-decoration-none text-muted small fw-medium">
+                        <a href="/<?= htmlspecialchars($empresa_slug) ?>/carrito" class="text-decoration-none text-muted small fw-medium">
                             ← Volver al carrito
                         </a>
                     </div>

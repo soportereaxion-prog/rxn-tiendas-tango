@@ -4,7 +4,7 @@ ob_start();
 ?>
 <?php
     $area = $area ?? 'tiendas';
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/usuarios';
+    $basePath = $basePath ?? '/mi-empresa/usuarios';
     $indexPath = $basePath . '?' . http_build_query(['area' => $area]);
     $formPath = $basePath . '/' . (int) $usuario->id . '?' . http_build_query(['area' => $area]);
     ?>
@@ -131,6 +131,16 @@ ob_start();
                                 </div>
                             </div>
                             <?php endif; ?>
+
+                            <?php if (isset($isGlobalAdmin) && $isGlobalAdmin): ?>
+                            <div class="rxn-form-switch-card border-danger border-opacity-50" style="background-color: rgba(220,53,69,0.03);">
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input bg-danger border-danger" type="checkbox" role="switch" id="es_rxn_admin" name="es_rxn_admin" <?= (isset($old['es_rxn_admin']) ? ($old['es_rxn_admin']==='on') : ($usuario->es_rxn_admin == 1)) ? 'checked' : '' ?>>
+                                    <label class="form-check-label fw-bold text-danger" for="es_rxn_admin">Privilegios Super Administrador (RXN)</label>
+                                    <div class="form-text mb-0 text-danger opacity-75">Otorga el control global de sistema sobre todos los Módulos de Mantenimiento y Tenants.</div>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -220,7 +230,7 @@ ob_start();
                 lblSta22.textContent = '...';
                 lblGva23.textContent = '...';
 
-                fetch('/rxnTiendasIA/public/mi-empresa/usuarios/fetch-tango-profile', {
+                fetch('/mi-empresa/usuarios/fetch-tango-profile', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({tango_perfil_pedido: perfilValue})

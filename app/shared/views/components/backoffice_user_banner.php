@@ -8,8 +8,12 @@ $backofficeStoreLabel = (string) ($backofficeUserSummary['storeLabel'] ?? '');
 $currentTheme = $_SESSION['pref_theme'] ?? 'light';
 $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
 ?>
-<div class="container-fluid px-4 d-flex justify-content-end align-items-center gap-2 mb-1" style="max-width: 1400px;">
-    <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 shadow-sm rxn-user-menu text-secondary">
+<div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1" style="max-width: 1400px;">
+    <div id="topbar-left-zone" class="flex-grow-1 d-flex align-items-center">
+        <?= isset($topbarLeftHtml) ? $topbarLeftHtml : '' ?>
+    </div>
+    <div class="d-flex align-items-center justify-content-end gap-2 flex-grow-0">
+        <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 shadow-sm rxn-user-menu text-secondary">
         <button class="btn btn-sm btn-link p-0 text-decoration-none" id="backendThemeToggleBtn" title="Cambiar Tema" style="line-height:1; font-size:1.1rem; filter: grayscale(0.5);">
             <?= $oppositeThemeBtn ?>
         </button>
@@ -22,7 +26,7 @@ $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
             <?php endif; ?>
         </span>
         <div class="vr mx-1 opacity-25"></div>
-        <a href="/rxnTiendasIA/public/logout" class="btn btn-sm text-danger p-0 d-flex align-items-center" title="Cerrar Sesi&oacute;n" style="line-height: 1;">
+        <a href="/logout" class="btn btn-sm text-danger p-0 d-flex align-items-center" title="Cerrar Sesi&oacute;n" style="line-height: 1;">
             <i class="bi bi-box-arrow-right fs-6"></i>
         </a>
     </div>
@@ -34,6 +38,7 @@ $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
             <span class="small text-muted mb-0"><?= htmlspecialchars($backofficeStoreLabel) ?></span>
         <?php endif; ?>
     </div>
+    </div> <!-- Close the wrapper div added in previous step -->
 </div>
 
 <script>
@@ -50,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
             rootHtml.setAttribute('data-theme', newTheme);
             themeBtn.innerText = newTheme === 'dark' ? '☀️' : '🌙';
 
-            fetch('/rxnTiendasIA/public/mi-perfil/toggle-theme', {
+            fetch('/mi-perfil/toggle-theme', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ theme: newTheme })

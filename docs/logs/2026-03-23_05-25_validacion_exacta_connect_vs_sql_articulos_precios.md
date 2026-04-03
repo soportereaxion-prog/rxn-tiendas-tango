@@ -1,7 +1,7 @@
 # [Artículos y Precios] — [Validación Exacta Connect vs SQL]
 
 ### 🧠 Lectura rápida
-Se realizó una auditoría forense a nivel binario de la API Tango Connect. El dictamen final es que el Backend Local (`rxnTiendasIA`) **no está alterando, recortando ni inventando los códigos** (`trim()` fue removido efectivamente). La discrepancia visual entre SKUs reportada (ej. visual de `C105` vs BD real `01050`) se debe a un mapeo atípico (Ítems Clones) inyectado directamente por la API Rest (Process 87).
+Se realizó una auditoría forense a nivel binario de la API Tango Connect. El dictamen final es que el Backend Local (`rxn_suite`) **no está alterando, recortando ni inventando los códigos** (`trim()` fue removido efectivamente). La discrepancia visual entre SKUs reportada (ej. visual de `C105` vs BD real `01050`) se debe a un mapeo atípico (Ítems Clones) inyectado directamente por la API Rest (Process 87).
 
 ### 🔍 Evidencia encontrada
 Se construyeron sondas en PHP Inyectado con carga de entorno (`DotEnv`) y lectura de la huella Hexadecimal sobre colecciones de la API Process 87 y 20091 para eludir los bloques de Firewall del Motor `EmpreB` SQL 2019.

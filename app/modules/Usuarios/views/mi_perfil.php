@@ -3,9 +3,9 @@ $pageTitle = 'RXN Tiendas IA';
 ob_start();
 ?>
 <?php
-    $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
-    $helpPath = $helpPath ?? '/rxnTiendasIA/public/mi-empresa/ayuda?area=tiendas';
-    $formPath = $formPath ?? '/rxnTiendasIA/public/mi-perfil?area=tiendas';
+    $dashboardPath = $dashboardPath ?? '/mi-empresa/dashboard';
+    $helpPath = $helpPath ?? '/mi-empresa/ayuda?area=tiendas';
+    $formPath = $formPath ?? '/mi-perfil?area=tiendas';
     ?>
     <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 720px;">
         <div class="rxn-module-header mb-4">
@@ -70,7 +70,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

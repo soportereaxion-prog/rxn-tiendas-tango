@@ -1,6 +1,6 @@
 {
     "name": "rxn/tiendas-ia",
-    "description": "rxnTiendasIA — gestión comercial multiempresa",
+    "description": "rxn_suite — gestión comercial multiempresa",
     "type": "project",
     "require": {
         "php": ">=8.0",

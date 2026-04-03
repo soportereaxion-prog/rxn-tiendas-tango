@@ -1,10 +1,10 @@
 <?php
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-define('BASE_PATH', 'd:\RXNAPP\3.3\www\rxnTiendasIA');
-require 'd:\RXNAPP\3.3\www\rxnTiendasIA\vendor\autoload.php';
+define('BASE_PATH', 'd:\RXNAPP\3.3\www\rxn_suite');
+require 'd:\RXNAPP\3.3\www\rxn_suite\vendor\autoload.php';
 
-$envFile = 'd:\RXNAPP\3.3\www\rxnTiendasIA\.env';
+$envFile = 'd:\RXNAPP\3.3\www\rxn_suite\.env';
 foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
     if (str_starts_with(trim($line), '#')) continue;
     putenv($line);

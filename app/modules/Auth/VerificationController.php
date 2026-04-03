@@ -34,7 +34,7 @@ class VerificationController extends Controller
             $this->processVerification($pdo, 'clientes_web', $cliente, $token);
             // Redirigir al store
             $slug = $this->getEmpresaSlug((int)$cliente['empresa_id'], $pdo);
-            header("Location: /rxnTiendasIA/public/{$slug}/login?msg=cuenta_verificada");
+            header("Location: /{$slug}/login?msg=cuenta_verificada");
             exit;
         }
 
@@ -46,7 +46,7 @@ class VerificationController extends Controller
         if ($usuario) {
             $this->processVerification($pdo, 'usuarios', $usuario, $token);
             // Redirigir al backoffice admin
-            header("Location: /rxnTiendasIA/public/login?msg=cuenta_verificada");
+            header("Location: /login?msg=cuenta_verificada");
             exit;
         }
 
@@ -125,7 +125,7 @@ class VerificationController extends Controller
         <div class='card shadow-sm p-4' style='max-width: 500px;'>
             <h3 class='text-danger'>❌ $title</h3>
             <p class='text-secondary mt-3'>$message</p>
-            <a href='/rxnTiendasIA/public/' class='btn btn-outline-secondary mt-3'>Volver al Inicio</a>
+            <a href='/' class='btn btn-outline-secondary mt-3'>Volver al Inicio</a>
         </div>
         </body></html>";
     }

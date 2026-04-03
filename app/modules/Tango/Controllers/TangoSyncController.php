@@ -12,7 +12,7 @@ class TangoSyncController extends Controller
     {
         AuthService::requireLogin();
         $syncService = $this->resolveService();
-        $redirectPath = '/rxnTiendasIA/public/mi-empresa/crm/clientes';
+        $redirectPath = '/mi-empresa/crm/clientes';
         
         try {
             $stats = $syncService->syncClientes();
@@ -133,7 +133,7 @@ class TangoSyncController extends Controller
     private function redirectPath(): string
     {
         return $this->resolveArea() === 'crm'
-            ? '/rxnTiendasIA/public/mi-empresa/crm/articulos'
-            : '/rxnTiendasIA/public/mi-empresa/articulos';
+            ? '/mi-empresa/crm/articulos'
+            : '/mi-empresa/articulos';
     }
 }

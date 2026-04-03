@@ -6,7 +6,7 @@ namespace App\Core;
 
 class Request
 {
-    private const BASE_PATH = '/rxnTiendasIA/public';
+    private const BASE_PATH = '';
 
     public function getMethod(): string
     {

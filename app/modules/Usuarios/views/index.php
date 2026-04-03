@@ -14,9 +14,9 @@ ob_start();
     $isPapelera = $status === 'papelera';
     $hasSearch = $search !== '';
     $area = $area ?? 'tiendas';
-    $basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/usuarios';
-    $helpPath = $helpPath ?? '/rxnTiendasIA/public/mi-empresa/ayuda?area=' . urlencode((string) $area);
-    $dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
+    $basePath = $basePath ?? '/mi-empresa/usuarios';
+    $helpPath = $helpPath ?? '/mi-empresa/ayuda?area=' . urlencode((string) $area);
+    $dashboardPath = $dashboardPath ?? '/mi-empresa/dashboard';
     $environmentLabel = $environmentLabel ?? 'Entorno Operativo';
     $isGlobalAdmin = !empty($_SESSION['es_rxn_admin']) && $_SESSION['es_rxn_admin'] == 1;
     $contextLabel = $isGlobalAdmin
@@ -289,12 +289,11 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-crud-search.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-row-links.js"></script>
+<script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
 
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

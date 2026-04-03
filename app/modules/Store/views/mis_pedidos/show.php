@@ -3,7 +3,7 @@
     <!-- Navegación -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos" class="text-decoration-none text-muted">Mis Pedidos</a></li>
+            <li class="breadcrumb-item"><a href="/<?= htmlspecialchars($empresa_slug) ?>/mis-pedidos" class="text-decoration-none text-muted">Mis Pedidos</a></li>
             <li class="breadcrumb-item active text-dark fw-medium" aria-current="page">Pedido #<?= $pedido['pedido_id'] ?></li>
         </ol>
     </nav>
@@ -65,7 +65,7 @@
                         <?php endif; ?>
                         
                         <?php if (!empty($pedido['tango_pedido_numero'])): ?>
-                            <p class="mt-2 mb-0 small text-center text-muted">Tu orden confirmada externa es: <strong>#<?= $pedido['tango_pedido_numero'] ?></strong></p>
+                            <p class="mt-2 mb-0 small text-center text-muted">Tu orden confirmada externa es: <strong>#<?= htmlspecialchars((string)$pedido['tango_pedido_numero'], ENT_QUOTES, 'UTF-8') ?></strong></p>
                         <?php endif; ?>
                     </div>
 

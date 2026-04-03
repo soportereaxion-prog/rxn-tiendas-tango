@@ -1,5 +1,5 @@
 <?php
-$cwd = 'd:/RXNAPP/3.3/www/rxnTiendasIA';
+$cwd = 'd:/RXNAPP/3.3/www/rxn_suite';
 define('BASE_PATH', $cwd);
 require $cwd . '/vendor/autoload.php';
 

@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Formularios de Impresion - rxnTiendasIA';
+$pageTitle = 'Formularios de Impresion - rxn_suite';
 ob_start();
 ?>
     <div class="container mt-5 rxn-responsive-container">
@@ -62,7 +62,7 @@ ob_start();
                                 <?php
                                 $docKey = $document['document_key'] ?? '';
                                 $isPds = strpos($docKey, 'pds') !== false;
-                                $goUrl = $isPds ? '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio' : '/rxnTiendasIA/public/mi-empresa/crm/presupuestos';
+                                $goUrl = $isPds ? '/mi-empresa/crm/pedidos-servicio' : '/mi-empresa/crm/presupuestos';
                                 $goLabel = $isPds ? 'Ir a Pedidos de Servicio' : 'Ir a Presupuestos';
                                 ?>
                                 <a href="<?= htmlspecialchars((string) $basePath) ?>/<?= rawurlencode((string) $docKey) ?>" class="btn btn-primary"><i class="bi bi-vector-pen"></i> Editar canvas</a>
@@ -80,8 +80,7 @@ $content = ob_get_clean();
 
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

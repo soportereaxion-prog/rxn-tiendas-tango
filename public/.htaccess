@@ -1,8 +1,15 @@
 Options -Indexes
 
-RewriteEngine On
-RewriteBase /rxnTiendasIA/public/
+# Estrategia de deploy: Document Root apunta a public/
+# El dominio resuelve rutas directamente desde aqui.
+# NO usar RewriteBase con subpath. BASE = /
 
+RewriteEngine On
+RewriteBase /
+
+# Servir archivos y directorios reales tal cual (css, js, uploads, etc.)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
+
+# Todo lo demas va al front controller
 RewriteRule ^ index.php [QSA,L]

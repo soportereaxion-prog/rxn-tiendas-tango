@@ -11,7 +11,7 @@ ob_start();
             <div class="rxn-module-actions">
                 
                 <span class="badge text-bg-dark px-3 py-2"><?= (int) ($totalNotes ?? 0) ?> notas</span>
-                <a href="/rxnTiendasIA/public/admin/dashboard" class="btn btn-outline-secondary">Volver al Backoffice</a>
+                <a href="/admin/dashboard" class="btn btn-outline-secondary">Volver al Backoffice</a>
             </div>
         </div>
 
@@ -73,8 +73,8 @@ ob_start();
                                                                     <span class="small text-muted text-truncate"><?= htmlspecialchars((string) $attachment['name']) ?></span>
                                                                 <?php endif; ?>
                                                             </div>
-                                                            <a href="/rxnTiendasIA/public<?= htmlspecialchars($attachmentPath) ?>" target="_blank" rel="noopener noreferrer" class="d-inline-block text-decoration-none">
-                                                                <img src="/rxnTiendasIA/public<?= htmlspecialchars($attachmentPath) ?>" alt="Captura adjunta" class="img-fluid rounded border" style="max-height: 220px; width: 100%; object-fit: cover;">
+                                                            <a href="<?= htmlspecialchars($attachmentPath) ?>" target="_blank" rel="noopener noreferrer" class="d-inline-block text-decoration-none">
+                                                                <img src="<?= htmlspecialchars($attachmentPath) ?>" alt="Captura adjunta" class="img-fluid rounded border" style="max-height: 220px; width: 100%; object-fit: cover;">
                                                             </a>
                                                         </div>
                                                     </div>
@@ -95,7 +95,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

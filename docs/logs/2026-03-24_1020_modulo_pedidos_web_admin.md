@@ -5,7 +5,7 @@ El checkout y la integración Tango ya están en la base de datos de manera esta
 A los administradores del licenciatario les faltaba la posibilidad de visualizar los pedidos desde el panel central.
 
 ## Problema
-Se requería brindar "Visibilidad Operativa" real (Lectura de Pedidos, Detalle, Estado API externa) para auditar ventas, sin desarrollar un ERP completo, reusando el scope mínimo y componentes UI crudos y livianos en el actual Dashboard de \`rxnTiendasIA\`.
+Se requería brindar "Visibilidad Operativa" real (Lectura de Pedidos, Detalle, Estado API externa) para auditar ventas, sin desarrollar un ERP completo, reusando el scope mínimo y componentes UI crudos y livianos en el actual Dashboard de \`rxn_suite\`.
 
 ## Decisión
 Se decidió implementar:

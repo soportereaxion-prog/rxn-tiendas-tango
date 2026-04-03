@@ -51,23 +51,23 @@ class OperationalAreaService
     public static function dashboardPath(string $area): string
     {
         return $area === self::AREA_CRM
-            ? '/rxnTiendasIA/public/mi-empresa/crm/dashboard'
-            : '/rxnTiendasIA/public/mi-empresa/dashboard';
+            ? '/mi-empresa/crm/dashboard'
+            : '/mi-empresa/dashboard';
     }
 
     public static function helpPath(string $area): string
     {
-        return self::appendArea('/rxnTiendasIA/public/mi-empresa/ayuda', $area);
+        return self::appendArea('/mi-empresa/ayuda', $area);
     }
 
     public static function usersPath(string $area): string
     {
-        return self::appendArea('/rxnTiendasIA/public/mi-empresa/usuarios', $area);
+        return self::appendArea('/mi-empresa/usuarios', $area);
     }
 
     public static function profilePath(string $area): string
     {
-        return self::appendArea('/rxnTiendasIA/public/mi-perfil', $area);
+        return self::appendArea('/mi-perfil', $area);
     }
 
     public static function environmentLabel(string $area): string

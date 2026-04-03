@@ -19,7 +19,7 @@ ob_start();
                 
             </div>
             <div class="d-flex gap-2">
-                <a href="<?= htmlspecialchars($dashboardPath ?? '/rxnTiendasIA/public/') ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+                <a href="<?= htmlspecialchars($dashboardPath ?? '/') ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 
@@ -38,7 +38,7 @@ ob_start();
 
         <div class="card shadow-sm border-0 bg-dark text-light mb-4 rxn-card-hover">
             <div class="card-body">
-                <form action="<?= htmlspecialchars($indexPath) ?>" method="GET" class="row g-3 align-items-end">
+                <form action="<?= htmlspecialchars($indexPath) ?>" method="GET" class="row g-3 align-items-end" data-search-form>
                     <input type="hidden" name="status" value="<?= htmlspecialchars($status ?? 'activos') ?>">
                     <div class="col-md-6">
                         <label class="form-label text-muted small mb-1">Buscar Llamada</label>
@@ -110,8 +110,8 @@ ob_start();
                             <tr><td colspan="8" class="text-center p-4 text-muted">No existen llamadas registradas.</td></tr>
                         <?php else: ?>
                             <?php foreach ($llamadas as $item): ?>
-                                <tr class="rxn-hover-bg">
-                                    <td><input type="checkbox" name="ids[]" value="<?= (int) $item['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk"></td>
+                                <tr class="rxn-hover-bg" data-row-link="">
+                                    <td data-row-link-ignore><input type="checkbox" name="ids[]" value="<?= (int) $item['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk"></td>
                                     <td class="small fw-bold">
                                         <?= date('d/m/Y H:i', strtotime($item['fecha'])) ?>
                                     </td>
@@ -134,7 +134,7 @@ ob_start();
                                             <span class="text-muted small">-</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td data-row-link-ignore>
                                         <?php if (!empty($item['mp3'])): ?>
                                             <audio controls style="height: 30px; max-width: 250px;">
                                                 <source src="<?= htmlspecialchars($item['mp3']) ?>" type="audio/mpeg">
@@ -150,7 +150,7 @@ ob_start();
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
-                                        <div class="btn-group">
+                                        <div class="btn-group" data-row-link-ignore>
                                             <?php if (!$isPapelera): ?>
                                                 <?php if (($item['evento_link'] ?? '') === 'HANGUP'): 
                                                     $dSegs = (int)($item['duracion'] ?? 0);
@@ -167,7 +167,7 @@ ob_start();
                                                     
                                                     $isoInicio = date('Y-m-d\TH:i:s', $tsInicio);
                                                     $isoFin = date('Y-m-d\TH:i:s', $tsFin);
-                                                    $urlCrear = "/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/crear?diagnostico=" . urlencode($diagnosticoStr) . "&inicio=" . urlencode($isoInicio) . "&fin=" . urlencode($isoFin);
+                                                    $urlCrear = "/mi-empresa/crm/pedidos-servicio/crear?diagnostico=" . urlencode($diagnosticoStr) . "&inicio=" . urlencode($isoInicio) . "&fin=" . urlencode($isoFin);
                                                     $internoExtraccion = substr((string)($item['atendio'] ?? ''), 0, 3);
                                                 ?>
                                                     <button type="button" onclick="validarInternoPds('<?= htmlspecialchars($internoExtraccion) ?>', '<?= htmlspecialchars($miInterno) ?>', '<?= $urlCrear ?>')" class="btn btn-sm btn-outline-primary" title="Generar PDS"><i class="bi bi-journal-plus"></i></button>
@@ -209,24 +209,6 @@ ob_start();
 
     </main>
 
-    <!-- Modal de Confirmación Universal rxnTiendasIA -->
-    <div class="modal fade" id="rxnConfirmModal" tabindex="-1" aria-labelledby="rxnConfirmModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark border-secondary text-light shadow-lg">
-                <div class="modal-header border-secondary border-opacity-25 pb-2">
-                    <h5 class="modal-title fs-5" id="rxnConfirmModalLabel"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Confirmación</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body py-4 fs-5 text-center" id="rxnConfirmMsg">
-                    ¿Estás seguro/a?
-                </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
-                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary px-4 fw-bold" id="rxnConfirmBtn">Aceptar</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal de Error Universal -->
     <div class="modal fade" id="rxnErrorModal" tabindex="-1" aria-labelledby="rxnErrorModalLabel" aria-hidden="true">
@@ -250,64 +232,9 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script>
     document.addEventListener('DOMContentLoaded', () => {
-        const confirmForms = document.querySelectorAll('.rxn-confirm-form');
-        const confirmModalEl = document.getElementById('rxnConfirmModal');
-        if (!confirmModalEl) return;
-        
-        const confirmModal = new bootstrap.Modal(confirmModalEl);
-        const confirmMsg = document.getElementById('rxnConfirmMsg');
-        const confirmBtn = document.getElementById('rxnConfirmBtn');
-        let pendingForm = null;
-
-        confirmForms.forEach(form => {
-            if (form.closest('.btn-group') !== null) {
-                // If it's a small button, use form submission on form element itself avoiding nested forms edge cases if any
-            }
-            form.addEventListener('submit', (e) => {
-                const isFormBulk = form.id === 'hiddenFormBulk';
-                
-                // Workaround for hiddenFormBulk button submissions where button lies outside
-                // actually we check if the submitter is marked or not.
-                e.preventDefault();
-                pendingForm = form;
-                
-                // If it's a hidden form bulk, we need to read from the clicked button
-                const submitter = e.submitter;
-                let msg = '';
-                let action = '';
-                
-                if (submitter) {
-                    msg = submitter.getAttribute('data-msg') || '¿Estás seguro/a?';
-                    action = submitter.getAttribute('formaction') || form.getAttribute('action');
-                    form.action = action; // set the proper action if changed
-                } else {
-                    msg = form.getAttribute('data-msg') || '¿Estás seguro/a?';
-                    action = form.getAttribute('action');
-                }
-                
-                if (action && action.includes('eliminar') || action.includes('force')) {
-                    confirmBtn.className = 'btn btn-danger px-4 fw-bold';
-                } else {
-                    confirmBtn.className = 'btn btn-primary px-4 fw-bold';
-                }
-                
-                confirmMsg.textContent = msg;
-                confirmModal.show();
-            });
-        });
-
-        confirmModalEl.addEventListener('shown.bs.modal', () => {
-            confirmBtn.focus();
-        });
-
-        confirmBtn.addEventListener('click', () => {
-            if (pendingForm) {
-                pendingForm.submit();
-            }
-        });
+        // ... rxnConfirmModal event handlers removed since they are grouped in universal JS ...
     });
 
     function validarInternoPds(internoLlamada, miInterno, urlPds) {
@@ -333,7 +260,9 @@ ob_start();
         }
     }
     </script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-crud-search.js"></script>
+    <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

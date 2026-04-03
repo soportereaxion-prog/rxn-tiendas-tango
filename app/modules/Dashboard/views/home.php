@@ -20,7 +20,7 @@ if ($canViewBackoffice) {
         'title' => 'RXN Backoffice',
         'desc' => 'Administracion global de licenciatarios, tenants y configuraciones master.',
         'icon' => 'bi-buildings',
-        'href' => '/rxnTiendasIA/public/admin/dashboard',
+        'href' => '/admin/dashboard',
     ];
 }
 
@@ -29,7 +29,7 @@ if ($hasTiendasAccess) {
         'title' => 'Entorno Operativo de Tiendas',
         'desc' => 'Catalogo, clientes web, pedidos, usuarios y configuracion comercial del tenant.',
         'icon' => 'bi-shop-window',
-        'href' => '/rxnTiendasIA/public/mi-empresa/dashboard',
+        'href' => '/mi-empresa/dashboard',
         'badge' => 'Empresa #' . ($_SESSION['empresa_id'] ?? ''),
     ];
 }
@@ -39,7 +39,7 @@ if ($hasCrmAccess) {
         'title' => 'Entorno Operativo de CRM',
         'desc' => 'Base comercial inicial para configuracion y articulos CRM del tenant.',
         'icon' => 'bi-diagram-3',
-        'href' => '/rxnTiendasIA/public/mi-empresa/crm/dashboard',
+        'href' => '/mi-empresa/crm/dashboard',
         'badge' => 'Empresa #' . ($_SESSION['empresa_id'] ?? ''),
     ];
 }
@@ -52,7 +52,7 @@ ob_start();
 ?>
 <div class="container rxn-responsive-container" style="max-width: 1100px;">
         <div class="text-center mb-5 pb-3">
-            <img src="/rxnTiendasIA/public/uploads/empresas/1/branding/logo_1774467026.png" alt="Reaxion Soluciones Inteligentes" class="rxn-auth-logo mb-3" style="max-height: 50px;">
+            <img src="/uploads/empresas/1/branding/logo_1774467026.png" alt="Reaxion Soluciones Inteligentes" class="rxn-auth-logo mb-3" style="max-height: 50px;">
             <p class="hero-subtitle">-Suite Re@xion para administrar tu empresa con centralización en Tango-</p>
         </div>
 
@@ -114,7 +114,7 @@ ob_start();
         <?php endif; ?>
 
         <div class="text-center mt-5">
-            <a href="/rxnTiendasIA/public/logout" class="btn btn-outline-secondary btn-sm rounded-pill px-4 text-muted border-secondary border-opacity-50">Cerrar Sesion</a>
+            <a href="/logout" class="btn btn-outline-secondary btn-sm rounded-pill px-4 text-muted border-secondary border-opacity-50">Cerrar Sesion</a>
         </div>
     </div>
     
@@ -122,7 +122,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+<script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

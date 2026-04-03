@@ -511,7 +511,7 @@ class UsuarioController extends Controller
 
         return [
             'area' => $area,
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/usuarios',
+            'basePath' => '/mi-empresa/usuarios',
             'indexPath' => OperationalAreaService::usersPath($area),
             'dashboardPath' => OperationalAreaService::dashboardPath($area),
             'helpPath' => OperationalAreaService::helpPath($area),

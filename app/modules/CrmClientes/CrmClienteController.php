@@ -168,7 +168,7 @@ class CrmClienteController extends Controller
             Flash::set('success', 'Cliente restaurado.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        header('Location: /mi-empresa/crm/clientes?status=papelera');
         exit;
     }
 
@@ -182,7 +182,7 @@ class CrmClienteController extends Controller
             Flash::set('success', 'Cliente eliminado definitivamente.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        header('Location: /mi-empresa/crm/clientes?status=papelera');
         exit;
     }
 
@@ -191,7 +191,7 @@ class CrmClienteController extends Controller
         AuthService::requireLogin();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+            header('Location: /mi-empresa/crm/clientes?status=papelera');
             exit;
         }
 
@@ -201,7 +201,7 @@ class CrmClienteController extends Controller
             Flash::set('success', 'Se restauraron ' . count($ids) . ' clientes.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        header('Location: /mi-empresa/crm/clientes?status=papelera');
         exit;
     }
 
@@ -210,7 +210,7 @@ class CrmClienteController extends Controller
         AuthService::requireLogin();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+            header('Location: /mi-empresa/crm/clientes?status=papelera');
             exit;
         }
 
@@ -220,7 +220,7 @@ class CrmClienteController extends Controller
             Flash::set('success', 'Se eliminaron definitivamente ' . count($ids) . ' clientes.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes?status=papelera');
+        header('Location: /mi-empresa/crm/clientes?status=papelera');
         exit;
     }
 
@@ -265,7 +265,7 @@ class CrmClienteController extends Controller
             Flash::set('success', 'Cliente CRM actualizado correctamente.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes/editar?id=' . $id);
+        header('Location: /mi-empresa/crm/clientes/editar?id=' . $id);
         exit;
     }
 
@@ -276,7 +276,7 @@ class CrmClienteController extends Controller
             'headerTitle' => 'Directorio de Clientes CRM',
             'headerDescription' => 'Cache local sincronizable de clientes Tango para operar el CRM sin depender del lookup remoto en cada pantalla.',
             'dashboardPath' => OperationalAreaService::dashboardPath(OperationalAreaService::AREA_CRM),
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/clientes',
+            'basePath' => '/mi-empresa/crm/clientes',
             'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_CRM),
             'moduleNotesKey' => 'crm_clientes',
             'moduleNotesLabel' => 'Clientes CRM',
@@ -285,7 +285,7 @@ class CrmClienteController extends Controller
             'totalBadgeLabel' => 'Total CRM',
             'editTitle' => 'Modificar Cliente CRM',
             'backLabel' => 'Volver a Clientes CRM',
-            'syncClientesPath' => '/rxnTiendasIA/public/mi-empresa/crm/sync/clientes',
+            'syncClientesPath' => '/mi-empresa/crm/sync/clientes',
         ];
     }
 
@@ -296,7 +296,7 @@ class CrmClienteController extends Controller
 
     private function redirectToIndex(): void
     {
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/clientes');
+        header('Location: /mi-empresa/crm/clientes');
         exit;
     }
 }

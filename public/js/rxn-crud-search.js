@@ -29,6 +29,7 @@
             closeSuggestions();
 
             if (shouldSubmit) {
+                sessionStorage.setItem('rxn_focus_first_row', '1');
                 if (typeof form.requestSubmit === 'function') {
                     form.requestSubmit();
                 } else {
@@ -159,6 +160,7 @@
         });
 
         form.addEventListener('submit', function () {
+            sessionStorage.setItem('rxn_focus_first_row', '1');
             syncCommittedSearch();
             closeSuggestions();
         });
@@ -178,5 +180,13 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-search-form]').forEach(setupCrudSearch);
+        
+        // Listener global auxiliar de submits para registrar la intencion de busqueda
+        // para cualquier formulario de busqueda (aun los que no tienen suggestions como Notas/Llamadas)
+        document.addEventListener('submit', function (event) {
+            if (event.target && event.target.hasAttribute('data-search-form')) {
+                sessionStorage.setItem('rxn_focus_first_row', '1');
+            }
+        });
     });
 }());

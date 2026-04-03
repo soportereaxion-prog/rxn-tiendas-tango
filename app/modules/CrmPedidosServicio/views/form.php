@@ -1,5 +1,5 @@
 <?php
-$pageTitle = $formMode === 'edit' ? 'Editar Pedido de Servicio - rxnTiendasIA' : 'Nuevo Pedido de Servicio - rxnTiendasIA';
+$pageTitle = $formMode === 'edit' ? 'Editar Pedido de Servicio - rxn_suite' : 'Nuevo Pedido de Servicio - rxn_suite';
 $usePageHeader = false; // Mantiene el layout header apagado explícitamente
 
 ob_start();
@@ -128,16 +128,9 @@ $extraHead = ob_get_clean();
 
 ob_start();
 ?>
-<div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-service-shell">
-        <div class="rxn-module-header mb-2 d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-                
-                
-            </div>
-            <div class="rxn-module-actions d-flex flex-wrap gap-2 align-items-center justify-content-end">
-
-                
-                <div class="d-flex align-items-center gap-1 border-end border-secondary pe-2">
+<div class="bg-light border rounded-pill px-3 py-1 shadow-sm d-flex align-items-center">
+    <div class="rxn-module-actions d-flex flex-wrap gap-2 align-items-center">
+        <div class="d-flex align-items-center gap-1 border-end border-secondary pe-2">
                     <?php if (empty($pedido['nro_pedido'])): ?>
                         <button type="submit" form="crm-pedido-servicio-form" name="action" value="tango" class="btn btn-success btn-sm" data-rxn-confirm="¿Confirma que desea enviar este pedido de servicio a Tango?" data-confirm-type="warning"><i class="bi bi-send"></i> Enviar a Tango</button>
                     <?php else: ?>
@@ -153,15 +146,25 @@ ob_start();
 
                 <div class="d-flex align-items-center gap-1 border-end border-secondary pe-2">
                     <?php if ($formMode === 'edit'): ?>
-                        <form action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/copiar" method="POST" class="d-inline">
+                        <form action="/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/copiar" method="POST" class="d-inline">
                             <button type="submit" class="btn btn-outline-success btn-sm" data-rxn-confirm="¿Confirma que desea duplicar este pedido de servicio?" data-confirm-type="info" title="Copiar"><i class="bi bi-copy"></i></button>
                         </form>
-                        <form action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-outline-primary btn-sm" data-rxn-confirm="¿Confirma enviar el pedido de servicio por correo al cliente?" data-confirm-type="primary" title="Enviar por mail"><i class="bi bi-envelope"></i></button>
-                        </form>
-                        <a href="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/imprimir" class="btn btn-outline-light btn-sm text-body border-secondary shadow-sm" target="_blank" title="Imprimir"><i class="bi bi-printer"></i></a>
+                        <?php if (($pedido['estado_ui'] ?? '') === 'finalizado'): ?>
+                            <?php 
+                            $correoMsg = '¿Confirma enviar el pedido de servicio por correo al cliente?';
+                            if (empty($pedido['nro_pedido'])) {
+                                $correoMsg .= ' ¡No te olvides de enviar el PDS a Tango después!';
+                            }
+                            ?>
+                            <form action="/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-outline-primary btn-sm" data-rxn-confirm="<?= htmlspecialchars($correoMsg) ?>" data-confirm-type="primary" title="Enviar por mail"><i class="bi bi-envelope"></i></button>
+                            </form>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="El PDS debe estar Finalizado para enviar por correo"><i class="bi bi-envelope"></i></button>
+                        <?php endif; ?>
+                        <a href="/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/imprimir" class="btn btn-outline-light btn-sm text-body border-secondary shadow-sm" target="_blank" title="Imprimir"><i class="bi bi-printer"></i></a>
                         <?php if (empty($pedido['nro_pedido'])): ?>
-                        <form action="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/eliminar" method="POST" class="d-inline">
+                        <form action="/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/eliminar" method="POST" class="d-inline">
                             <button type="submit" class="btn btn-outline-danger btn-sm" data-rxn-confirm="¿Confirma enviar este pedido a la papelera?" data-confirm-type="danger" title="Eliminar"><i class="bi bi-trash"></i></button>
                         </form>
                         <?php else: ?>
@@ -174,16 +177,21 @@ ob_start();
                     <?php endif; ?>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
-                    <a href="/rxnTiendasIA/public/mi-empresa/crm/formularios-impresion" class="btn btn-outline-light btn-sm text-body border-secondary shadow-sm" title="Formulario Impresión"><i class="bi bi-pc-display"></i> Form.</a>
+                <div class="d-flex align-items-center gap-2 ps-1">
+                    <a href="/mi-empresa/crm/formularios-impresion" class="btn btn-outline-light btn-sm text-body border-secondary shadow-sm" title="Formulario Impresión"><i class="bi bi-pc-display"></i> Form.</a>
                     <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i></a>
                     <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Volver</a>
                     <?php if (empty($pedido['nro_pedido'])): ?>
-                    <button type="submit" form="crm-pedido-servicio-form" name="action" value="save" class="btn btn-primary shadow px-4"><i class="bi bi-check2-circle"></i> Guardar</button>
+                    <button type="submit" form="crm-pedido-servicio-form" name="action" value="save" class="btn btn-primary btn-sm rounded-pill shadow px-4"><i class="bi bi-check2-circle"></i> Guardar</button>
                     <?php endif; ?>
                 </div>
             </div>
-        </div>
+</div>
+<?php
+$topbarLeftHtml = ob_get_clean();
+ob_start();
+?>
+<div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-service-shell">
 
         <?php require BASE_PATH . '/app/shared/views/components/module_notes_panel.php'; ?>
 
@@ -236,7 +244,7 @@ ob_start();
 
                             <div class="crm-col-2">
                                 <label for="clasificacion_codigo" class="form-label mb-1">Clasificacion</label>
-                                <div class="crm-picker-wrap" data-picker data-picker-url="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/clasificaciones/sugerencias" data-picker-allow-manual="1">
+                                <div class="crm-picker-wrap" data-picker data-picker-url="/mi-empresa/crm/pedidos-servicio/clasificaciones/sugerencias" data-picker-allow-manual="1">
                                     <input type="hidden" name="clasificacion_id_tango" id="clasificacion_id_tango" data-picker-extra-hidden value="<?= htmlspecialchars((string) ($pedido['clasificacion_id_tango'] ?? '')) ?>">
                                     <input type="hidden" class="crm-picker-hidden" data-picker-hidden value="<?= htmlspecialchars((string) $pedido['clasificacion_codigo']) ?>">
                                     <input type="text" class="form-control form-control-sm" id="clasificacion_codigo" name="clasificacion_codigo" value="<?= htmlspecialchars((string) $pedido['clasificacion_codigo']) ?>" autocomplete="off" placeholder="Clasificacion" data-picker-input>
@@ -252,7 +260,7 @@ ob_start();
 
                             <div class="crm-col-3">
                                 <label for="cliente_nombre" class="form-label mb-1">Cliente</label>
-                                <div class="crm-picker-wrap" data-picker data-picker-url="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/clientes/sugerencias">
+                                <div class="crm-picker-wrap" data-picker data-picker-url="/mi-empresa/crm/pedidos-servicio/clientes/sugerencias">
                                     <input type="hidden" name="cliente_id" value="<?= htmlspecialchars((string) $pedido['cliente_id']) ?>" data-picker-hidden>
                                     <input type="text" class="form-control form-control-sm <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>" id="cliente_nombre" name="cliente_nombre" value="<?= htmlspecialchars((string) $pedido['cliente_nombre']) ?>" autocomplete="off" placeholder="Buscar cliente..." data-picker-input>
                                     <div class="rxn-search-suggestions d-none" data-picker-results></div>
@@ -273,7 +281,7 @@ ob_start();
 
                             <div class="crm-col-12">
                                 <label for="articulo_nombre" class="form-label mb-1">Articulo</label>
-                                <div class="crm-picker-wrap" data-picker data-picker-url="/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/articulos/sugerencias">
+                                <div class="crm-picker-wrap" data-picker data-picker-url="/mi-empresa/crm/pedidos-servicio/articulos/sugerencias">
                                     <input type="hidden" name="articulo_id" value="<?= htmlspecialchars((string) $pedido['articulo_id']) ?>" data-picker-hidden>
                                     <input type="text" class="form-control form-control-sm <?= isset($errors['articulo_id']) ? 'is-invalid' : '' ?>" id="articulo_nombre" name="articulo_nombre" value="<?= htmlspecialchars((string) $pedido['articulo_nombre']) ?>" autocomplete="off" placeholder="Buscar articulo por codigo, nombre o descripcion" data-picker-input>
                                     <div class="rxn-search-suggestions d-none" data-picker-results></div>
@@ -405,10 +413,9 @@ ob_start();
     </div>
     <?php endif; ?>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/crm-pedidos-servicio-form.js?v=<?= time() ?>"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/crm-pedidos-servicio-form.js?v=<?= time() ?>"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
     <?php if ($formMode === 'create'): ?>
     <script>
         (function() {

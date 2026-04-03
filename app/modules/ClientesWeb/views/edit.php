@@ -17,8 +17,8 @@ $clienteTieneRelacionesLocales = $clienteTieneRelacionTango
     || $gva23Actual !== ''
     || $gva24Actual !== '';
 
-$basePath = $basePath ?? '/rxnTiendasIA/public/mi-empresa/clientes';
-$dashboardPath = $dashboardPath ?? '/rxnTiendasIA/public/mi-empresa/dashboard';
+$basePath = $basePath ?? '/mi-empresa/clientes';
+$dashboardPath = $dashboardPath ?? '/mi-empresa/dashboard';
 $moduleNotesKey = $moduleNotesKey ?? 'clientes_web';
 $moduleNotesLabel = $moduleNotesLabel ?? 'Clientes Web';
 $pageTitle = $pageTitle ?? 'Editar Cliente Web';
@@ -637,9 +637,8 @@ ob_start();
             });
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-confirm-modal.js"></script>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-confirm-modal.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

@@ -119,7 +119,7 @@ class EmpresaAccessService
         echo "<div style='font-family:sans-serif; text-align:center; margin-top:50px;'>";
         echo '<h2>Acceso denegado</h2>';
         echo '<p>El tenant actual no tiene habilitado ' . htmlspecialchars($environmentLabel, ENT_QUOTES, 'UTF-8') . '.</p>';
-        echo "<a href='/rxnTiendasIA/public/'>Volver al launcher</a>";
+        echo "<a href='/'>Volver al launcher</a>";
         echo '</div>';
         exit;
     }

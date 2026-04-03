@@ -25,7 +25,7 @@ class CheckoutController extends Controller
     private function requireValidStore(string $slug): void
     {
         if (!StoreResolver::resolveEmpresaPublica($slug)) {
-            header("Location: /rxnTiendasIA/public/public-error");
+            header("Location: /public-error");
             exit;
         }
     }
@@ -37,7 +37,7 @@ class CheckoutController extends Controller
         $items = $this->cartService->getItems();
         
         if (empty($items)) {
-            header("Location: /rxnTiendasIA/public/{$slug}/carrito");
+            header("Location: /{$slug}/carrito");
             exit;
         }
 
@@ -110,7 +110,8 @@ class CheckoutController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            die("Hubo un incoveniente al procesar su orden: " . $e->getMessage());
+            error_log("CheckoutController Exception (confirm): " . $e->getMessage());
+            die("Lo sentimos. Hubo un inconveniente técnico al procesar el pedido. Intentá de nuevo a la brevedad.");
         }
     }
 }

@@ -107,7 +107,7 @@ class PedidoWebController extends Controller
 
         if (!$pedido) {
             \App\Core\Flash::set('El pedido no existe o no pertenece a tu empresa.', 'danger');
-            header("Location: /rxnTiendasIA/public/mi-empresa/pedidos");
+            header("Location: /mi-empresa/pedidos");
             exit;
         }
 
@@ -158,7 +158,7 @@ class PedidoWebController extends Controller
         $pedidoId = (int)$id;
         $result = $this->sendPedidoToTango($pedidoId, $empresaId);
         \App\Core\Flash::set($result['message'], $result['type']);
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos/{$pedidoId}");
+        header("Location: /mi-empresa/pedidos/{$pedidoId}");
         exit;
     }
 
@@ -172,7 +172,7 @@ class PedidoWebController extends Controller
 
         if ($ids === []) {
             \App\Core\Flash::set('No hay pedidos seleccionados para reenviar.', 'danger');
-            header('Location: /rxnTiendasIA/public/mi-empresa/pedidos');
+            header('Location: /mi-empresa/pedidos');
             exit;
         }
 
@@ -189,7 +189,7 @@ class PedidoWebController extends Controller
         }
 
         \App\Core\Flash::set("Reenvio masivo finalizado. OK: {$ok}; Errores: {$error}.", $error > 0 ? 'warning' : 'success');
-        header('Location: /rxnTiendasIA/public/mi-empresa/pedidos');
+        header('Location: /mi-empresa/pedidos');
         exit;
     }
 
@@ -201,7 +201,7 @@ class PedidoWebController extends Controller
 
         if ($ids === []) {
             \App\Core\Flash::set('No hay pedidos pendientes para reenviar.', 'warning');
-            header('Location: /rxnTiendasIA/public/mi-empresa/pedidos');
+            header('Location: /mi-empresa/pedidos');
             exit;
         }
 
@@ -218,7 +218,7 @@ class PedidoWebController extends Controller
         }
 
         \App\Core\Flash::set("Reenvio de pendientes finalizado. OK: {$ok}; Errores: {$error}.", $error > 0 ? 'warning' : 'success');
-        header('Location: /rxnTiendasIA/public/mi-empresa/pedidos');
+        header('Location: /mi-empresa/pedidos');
         exit;
     }
 
@@ -231,7 +231,7 @@ class PedidoWebController extends Controller
             $this->pedidoRepo->softDeleteBulk(array_map('intval', $ids), $empresaId);
             \App\Core\Flash::set('Pedidos seleccionados movidos a la papelera.', 'success');
         }
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos");
+        header("Location: /mi-empresa/pedidos");
         exit;
     }
 
@@ -244,7 +244,7 @@ class PedidoWebController extends Controller
             $this->pedidoRepo->restoreBulk(array_map('intval', $ids), $empresaId);
             \App\Core\Flash::set('Pedidos seleccionados restaurados.', 'success');
         }
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        header("Location: /mi-empresa/pedidos?status=papelera");
         exit;
     }
 
@@ -257,7 +257,7 @@ class PedidoWebController extends Controller
             $this->pedidoRepo->forceDeleteBulk(array_map('intval', $ids), $empresaId);
             \App\Core\Flash::set('Pedidos seleccionados eliminados permanentemente.', 'success');
         }
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        header("Location: /mi-empresa/pedidos?status=papelera");
         exit;
     }
 
@@ -266,7 +266,7 @@ class PedidoWebController extends Controller
         AuthService::requireLogin();
         $this->pedidoRepo->softDelete((int)$id, Context::getEmpresaId());
         \App\Core\Flash::set('Pedido movido a la papelera.', 'success');
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos");
+        header("Location: /mi-empresa/pedidos");
         exit;
     }
 
@@ -275,7 +275,7 @@ class PedidoWebController extends Controller
         AuthService::requireLogin();
         $this->pedidoRepo->restore((int)$id, Context::getEmpresaId());
         \App\Core\Flash::set('Pedido restaurado.', 'success');
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        header("Location: /mi-empresa/pedidos?status=papelera");
         exit;
     }
 
@@ -284,7 +284,7 @@ class PedidoWebController extends Controller
         AuthService::requireLogin();
         $this->pedidoRepo->forceDelete((int)$id, Context::getEmpresaId());
         \App\Core\Flash::set('Pedido eliminado permanentemente.', 'success');
-        header("Location: /rxnTiendasIA/public/mi-empresa/pedidos?status=papelera");
+        header("Location: /mi-empresa/pedidos?status=papelera");
         exit;
     }
 

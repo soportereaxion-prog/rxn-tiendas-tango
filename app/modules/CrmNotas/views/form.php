@@ -105,8 +105,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script>
     document.addEventListener('DOMContentLoaded', () => {
         const basePath = <?= json_encode($indexPath) ?>;
         
@@ -315,7 +314,7 @@ ob_start();
     <style>
         .rxn-hover-bg:hover { background-color: rgba(255,255,255,0.1) !important; }
     </style>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

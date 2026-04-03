@@ -21,7 +21,7 @@
                 <?php endif; ?>
 
                 <div class="mt-2">
-                    <a href="/rxnTiendasIA/public/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-dark rounded-pill px-5 py-3 fw-bold shadow-sm">
+                    <a href="/<?= htmlspecialchars($empresa_slug) ?>" class="btn btn-dark rounded-pill px-5 py-3 fw-bold shadow-sm">
                         Volver al inicio
                     </a>
                 </div>

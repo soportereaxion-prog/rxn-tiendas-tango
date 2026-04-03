@@ -26,6 +26,40 @@ class App
             session_start();
         }
 
+        // --- Gestión de Sesión Estricta (Operador Backoffice) ---
+        if (isset($_SESSION['user_id'])) {
+            $now = time();
+            $idleTimeout = 21600; // 6 horas
+            $absoluteTimeout = 43200; // 12 horas
+
+            if (!isset($_SESSION['backoffice_created_at'])) {
+                $_SESSION['backoffice_created_at'] = $now;
+            }
+            if (!isset($_SESSION['backoffice_last_activity'])) {
+                $_SESSION['backoffice_last_activity'] = $now;
+            }
+
+            if (($now - $_SESSION['backoffice_last_activity']) > $idleTimeout || ($now - $_SESSION['backoffice_created_at']) > $absoluteTimeout) {
+                // Limpiamos selectivamente para no romper sesiones aisladas (ej. ClienteWeb)
+                unset(
+                    $_SESSION['user_id'],
+                    $_SESSION['empresa_id'],
+                    $_SESSION['user_name'],
+                    $_SESSION['anura_interno'],
+                    $_SESSION['es_rxn_admin'],
+                    $_SESSION['pref_theme'],
+                    $_SESSION['pref_font'],
+                    $_SESSION['es_admin'],
+                    $_SESSION['dashboard_order'],
+                    $_SESSION['backoffice_created_at'],
+                    $_SESSION['backoffice_last_activity']
+                );
+            } else {
+                // Renovar actividad
+                $_SESSION['backoffice_last_activity'] = $now;
+            }
+        }
+
         // Inicializar contexto base (ej: identificar empresa activa)
         Context::init();
 

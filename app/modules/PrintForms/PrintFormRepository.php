@@ -116,7 +116,7 @@ class PrintFormRepository
             'page_config' => $this->decodeJsonArray($activeVersion['page_config_json'] ?? null, $document['default_page_config'] ?? []),
             'objects' => $this->decodeJsonArray($activeVersion['objects_json'] ?? null, $document['default_objects'] ?? []),
             'fonts' => $this->decodeJsonArray($activeVersion['fonts_json'] ?? null, ['used' => []]),
-            'background_url' => !empty($activeVersion['background_ruta']) ? '/rxnTiendasIA/public' . (string) $activeVersion['background_ruta'] : '',
+            'background_url' => !empty($activeVersion['background_ruta']) ? '' . (string) $activeVersion['background_ruta'] : '',
         ];
     }
 
@@ -136,7 +136,7 @@ class PrintFormRepository
             'page_config' => $this->decodeJsonArray($activeVersion['page_config_json'] ?? null, $document['default_page_config'] ?? []),
             'objects' => $this->decodeJsonArray($activeVersion['objects_json'] ?? null, $document['default_objects'] ?? []),
             'fonts' => $this->decodeJsonArray($activeVersion['fonts_json'] ?? null, ['used' => []]),
-            'background_url' => !empty($activeVersion['background_ruta']) ? '/rxnTiendasIA/public' . (string) $activeVersion['background_ruta'] : '',
+            'background_url' => !empty($activeVersion['background_ruta']) ? '' . (string) $activeVersion['background_ruta'] : '',
         ];
     }
 
