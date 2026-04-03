@@ -849,6 +849,27 @@
         renderer.fitZoom();
         renderer.render();
         
+        // Serialize state to hidden inputs before submit
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                const addHidden = (name, val) => {
+                    let input = form.querySelector(`input[name="${name}"]`);
+                    if (!input) {
+                        input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        form.appendChild(input);
+                    }
+                    input.value = typeof val === 'string' ? val : JSON.stringify(val);
+                };
+                
+                addHidden('page_config_json', state.pageConfig);
+                addHidden('objects_json', state.objects);
+                addHidden('fonts_json', state.fonts);
+            });
+        }
+        
         // Listen to window resizes to automatically re-center
         window.addEventListener('resize', () => {
              renderer.applyZoom();
