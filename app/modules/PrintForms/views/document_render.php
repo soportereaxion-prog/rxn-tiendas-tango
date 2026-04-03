@@ -159,7 +159,8 @@
             return $url;
         };
         $bgUrl = $resolveUrl((string) ($page['background_url'] ?? ''));
-        $bgColor = htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
+        $isTransparent = !empty($page['transparent_bg']);
+        $bgColor = $isTransparent ? 'transparent' : htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
         ?>
         <div class="print-page" style="background-color: <?= $bgColor ?>;">
             <?php if (!empty($bgUrl)): ?>
