@@ -140,6 +140,38 @@ ob_start();
 </div>
 
 <div class="row g-4 mt-1">
+    <!-- ACTUALIZADOR OVER THE AIR (OTA) -->
+    <div class="col-12">
+        <div class="card rxn-form-card shadow-sm border-primary border-opacity-25">
+            <div class="card-header border-bottom-0 pt-4 pb-0 bg-primary bg-opacity-10 text-dark d-flex align-items-center">
+                <h5 class="card-title fw-bold mb-0">
+                    <i class="bi bi-cloud-arrow-up-fill text-primary me-2"></i>Actualización del Sistema (OTA Release)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <p class="text-muted small mb-2"><strong>Despliegue directo:</strong> Suba el paquete ZIP de release generado en desarrollo. El sistema aislará automáticamente los `.env`, carpetas `storage/` y `uploads/` para proteger la instalación viva.</p>
+                        <p class="text-muted small mb-0"><i class="bi bi-shield-check text-success"></i> Realizará un Backup previo completo antes de extraer.</p>
+                    </div>
+                    <div class="col-md-5 mt-3 mt-md-0 border-start bg-light rounded bg-opacity-50 p-3">
+                        <form action="/admin/mantenimiento/upload-update" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENCIÓN: Se iniciará la actualización de Código. Considere un posible tiempo de downtime de unos segundos. ¿Proceder?');">
+                            <div class="input-group">
+                                <input type="file" class="form-control" name="update_zip" accept=".zip" required id="updateFileField">
+                                <button type="submit" class="btn btn-primary fw-bold" id="btnUploadUpdate">
+                                    <i class="bi bi-upload me-1"></i> Instalar
+                                </button>
+                            </div>
+                            <div class="form-text mt-2 small" id="updateUploadNote">Solo admisible archivos `.zip` estructurados.</div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
     <!-- GENERADOR DE BACKUPS -->
     <div class="col-12 col-md-5">
         <div class="card rxn-form-card shadow-sm h-100 border-0 bg-dark text-white">

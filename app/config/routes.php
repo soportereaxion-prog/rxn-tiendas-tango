@@ -39,26 +39,26 @@ return function (Router $router): void {
     // Ruta raiz - Nivel 1 (Launcher Principal)
     $router->get('/', function () {
         if (empty($_SESSION['user_id'])) {
-            header('Location: /rxnTiendasIA/public/login');
+            header('Location: /login');
             exit;
         }
-        View::render('app/modules/dashboard/views/home.php');
+        View::render('app/modules/Dashboard/views/home.php');
     });
 
     // --- SUBDASHBOARDS (NIVEL 2) ---
     $router->get('/admin/dashboard', function () {
-        \App\Modules\Auth\AuthService::requireBackofficeAdmin();
-        View::render('app/modules/dashboard/views/admin_dashboard.php');
+        \App\Modules\Auth\AuthService::requireRxnAdmin();
+        View::render('app/modules/Dashboard/views/admin_dashboard.php');
     });
 
     $router->get('/mi-empresa/dashboard', function () {
         \App\Modules\Empresas\EmpresaAccessService::requireTiendasAccess();
-        View::render('app/modules/dashboard/views/tenant_dashboard.php');
+        View::render('app/modules/Dashboard/views/tenant_dashboard.php');
     });
 
     $router->get('/mi-empresa/crm/dashboard', function () {
         \App\Modules\Empresas\EmpresaAccessService::requireCrmAccess();
-        View::render('app/modules/dashboard/views/crm_dashboard.php');
+        View::render('app/modules/Dashboard/views/crm_dashboard.php');
     });
 
     // --- MI PERFIL (B2B) ---
@@ -84,6 +84,12 @@ return function (Router $router): void {
     $router->post('/empresas/{id}/ingresar', [\App\Modules\Empresas\EmpresaController::class, 'ingresar']);
 
     // --- MODULO ADMIN GLOBAL ---
+    $router->get('/admin/mantenimiento', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'index']);
+    $router->post('/admin/mantenimiento/migrar', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runMigrations']);
+    $router->post('/admin/mantenimiento/baseline', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'baseline']);
+    $router->post('/admin/mantenimiento/upload-update', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'uploadUpdate']);
+    $router->post('/admin/mantenimiento/backup-db', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runDbBackup']);
+    $router->post('/admin/mantenimiento/backup-files', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runFilesBackup']);
     $router->get('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'showSmtpGlobal']);
     $router->post('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'updateSmtpGlobal']);
     $router->post('/admin/smtp-global/test', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'testConnection']);
@@ -214,6 +220,7 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/notas/eliminar-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'eliminarMasivo', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/restore-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'restoreMasivo', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/force-delete-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'forceDeleteMasivo', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/exportar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'export', $requireCrmNotas));
     $router->get('/mi-empresa/crm/notas/sugerencias-tags', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'tagsSuggestions', $requireCrmNotas));
     $router->get('/mi-empresa/crm/notas/sugerencias-clientes', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'clientSuggestions', $requireCrmNotas));
     $router->get('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'showImportForm', $requireCrmNotas));
@@ -309,7 +316,7 @@ return function (Router $router): void {
 
     // TEMPORAL - test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {
-        View::render('app/modules/dashboard/views/index.php', [
+        View::render('app/modules/Dashboard/views/index.php', [
             'mensaje' => 'Variable pasada correctamente desde routes.php',
         ]);
     });
