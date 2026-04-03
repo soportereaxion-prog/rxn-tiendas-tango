@@ -161,11 +161,9 @@
         $bgUrl = $resolveUrl((string) ($page['background_url'] ?? ''));
         $isTransparent = !empty($page['transparent_bg']);
         $bgColor = $isTransparent ? 'transparent' : htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
+        $bgStyle = !empty($bgUrl) ? "background-image: url('" . htmlspecialchars($bgUrl) . "'); background-position: center; background-repeat: no-repeat; background-size: 100% 100%;" : '';
         ?>
-        <div class="print-page" style="background-color: <?= $bgColor ?>;">
-            <?php if (!empty($bgUrl)): ?>
-                <div class="print-page__background" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-position: center; background-repeat: no-repeat; background-size: 100% 100%; background-image:url('<?= htmlspecialchars($bgUrl) ?>'); opacity:<?= htmlspecialchars((string) ($page['background_opacity'] ?? 1)) ?>;"></div>
-            <?php endif; ?>
+        <div class="print-page" style="background-color: <?= $bgColor ?>; <?= $bgStyle ?>">
 
             <?php foreach (($renderedObjects ?? []) as $object): ?>
                 <div class="print-object" style="<?= htmlspecialchars((string) ($object['position_style'] ?? '')) ?>">
