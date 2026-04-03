@@ -48,7 +48,7 @@ class ReleaseBuilder
             'app',
             'public',
             'vendor',
-            'database_migrations_.*\.php',
+            'database',
             'composer\.json',
             'composer\.lock'
         ]) . ')/i';

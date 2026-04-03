@@ -40,16 +40,18 @@ Para los programadores clásicos o procesos automatizados:
 
 ---
 
-## 3. Despliegue Directo sobre Producción (OTA)
+## 3. Despliegue Integral sobre Producción (OTA + BdD)
 
 Usted es RXN Admin y ya tiene en sus manos el ZIP provisto por cualquiera de las dos vías anteriores. 
 
 1. **Ingreso:** Navegue en su BackOffice de Producción hacia **Mantenimiento y Actualizaciones**.
 2. **Carga:** En la tarjeta superior "Actualización del Sistema (OTA Release)", elija su archivo `.zip` en el selector nativo.
-3. **Instalación:** Pulse **Instalar** y no cierre la pestaña.
-4. **Validación Automática:** Durante los breves segundos de demora, RXN Suite estará forzando un guardado paralelo de Base de Datos y de Código Vivo para permitir rápida restauración por si se corta la luz.
-5. Si superó las cortapisas (bloqueos seguros a la modificación de `.env`, `storage` y `uploads`), la pantalla anunciará éxito rotundo en color verde.
-6. **Migraciones Diferidas:** Fíjese si el ZIP entrante liberó nuevas migraciones (Tarjeta Migraciones). Si hay pendientes, oprima "Ejecutar" sobre esa tarjeta separada para finalizar el deploy.
+3. **Auto-Migraciones (Switch Integral):** Verificará que el _switch_ "Auto-aplicar Migraciones" viene activado por defecto. Esto le indica al motor que, una vez aplicados los archivos PHP, transite inmediatamente por la ejecución de la Base de Datos para resolver el incremento de Software de forma monolítica.
+4. **Instalación:** Pulse **Instalar** y no cierre la pestaña. (Es un solo clic integral).
+5. **Validación Automática:** Durante los breves segundos de demora, RXN Suite forzará asincrónicamente el guardado paralelo de:
+    - Dump de su Base de Datos.
+    - ZIP de Backup de sus archivos originales.
+6. Si superó las cortapisas de exclusiones (.env), sobrescribirá carpetas seguras, e informará textualmente: *"Sistema actualizado exitosamente. Se aplicaron X archivos. Además, se detectaron y ejecutaron X migraciones de BD."*
 
 ---
 

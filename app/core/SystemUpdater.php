@@ -41,7 +41,7 @@ class SystemUpdater
      * @param array $fileInfo Arreglo proveniente de $_FILES['update_zip']
      * @return array ['status' => 'success|error', 'message' => '...']
      */
-    public function processUpdate(array $fileInfo): array
+    public function processUpdate(array $fileInfo, bool $autoMigrate = false, ?int $userId = null): array
     {
         // 1. Validación Básica de Subida PHP
         if ($fileInfo['error'] !== UPLOAD_ERR_OK) {
@@ -77,8 +77,8 @@ class SystemUpdater
         $totalFiles = $zip->numFiles;
         for ($i = 0; $i < $totalFiles; $i++) {
             $name = $zip->getNameIndex($i);
-            // El zip de build correcto debe contener la raíz de la app
-            if (str_starts_with($name, 'app/') || str_starts_with($name, 'public/') || str_starts_with($name, 'database_migrations_') || str_starts_with($name, 'vendor/')) {
+            // El zip de build correcto debe contener la raíz de la app u otros core
+            if (str_starts_with($name, 'app/') || str_starts_with($name, 'public/') || str_starts_with($name, 'database/') || str_starts_with($name, 'vendor/')) {
                 $hasCoreFiles = true;
                 break;
             }
@@ -87,7 +87,7 @@ class SystemUpdater
         if (!$hasCoreFiles) {
             $zip->close();
             unlink($finalZipPath); // Lo descartamos porque es basura.
-            return ['status' => 'error', 'message' => 'El archivo ZIP carece de la estructura troncal del sistema operativo (app/, public/). Abortado por seguridad.'];
+            return ['status' => 'error', 'message' => 'El archivo ZIP carece de la estructura troncal del sistema operativo (app/, public/, database/). Abortado por seguridad.'];
         }
         
         // 4. Backups Preventivos (Resguardo Obligatorio antes de pisar)
@@ -146,9 +146,39 @@ class SystemUpdater
         
         $zip->close();
         
+        $msgAddition = "";
+        // 6. Integración Funcional DB (Novedad)
+        if ($autoMigrate) {
+            try {
+                $migrationRunner = new \App\Core\MigrationRunner();
+                $pending = $migrationRunner->getPendingMigrations();
+                if (count($pending) > 0) {
+                    $results = $migrationRunner->runPending($userId ?? 0);
+                    $successes = 0;
+                    if (isset($results['run']) && is_array($results['run'])) {
+                        foreach ($results['run'] as $res) {
+                            if (($res['status'] ?? '') === 'SUCCESS') $successes++;
+                        }
+                    } else if (isset($results[0])) { // Compatibilidad si retorna array de arrays
+                        foreach ($results as $res) {
+                            if (($res['status'] ?? '') === 'SUCCESS') $successes++;
+                        }
+                    }
+                    $msgAddition = " Además, se detectaron y ejecutaron exitosamente {$successes} migraciones de BD.";
+                } else {
+                    $msgAddition = " El paquete no requería modificaciones en la Base de Datos.";
+                }
+            } catch (\Exception $e) {
+                return [
+                    'status' => 'error', 
+                    'message' => "Se instalaron $extractedFiles archivos, pero la inicialización de Base de Datos interrumpió la operación: " . $e->getMessage()
+                ];
+            }
+        }
+        
         return [
             'status' => 'success', 
-            'message' => "Sistema actualizado exitosamente. Se aplicaron $extractedFiles archivos. Protegidos $ignoredFiles archivos críticos."
+            'message' => "Sistema actualizado exitosamente. Se aplicaron $extractedFiles archivos (Protegidos $ignoredFiles).$msgAddition"
         ];
     }
     

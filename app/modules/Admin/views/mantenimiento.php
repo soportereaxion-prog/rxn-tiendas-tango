@@ -150,14 +150,22 @@ ob_start();
                         <p class="text-muted small mb-0"><i class="bi bi-shield-check text-success"></i> Realizará un Backup previo completo antes de extraer.</p>
                     </div>
                     <div class="col-12 mt-3 pt-3 border-top">
-                        <form action="/admin/mantenimiento/upload-update" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENCIÓN: Se iniciará la actualización de Código. Considere un posible tiempo de downtime de unos segundos. ¿Proceder?');">
-                            <div class="input-group">
+                        <form action="/admin/mantenimiento/upload-update" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENCIÓN: Se iniciará la actualización Integral del Sistema (Archivos y BdD).\nConsidere un posible tiempo de downtime de unos segundos.\n\n¿Proceder con la instalación de la Release?');">
+                            <div class="input-group mb-3">
                                 <input type="file" class="form-control" name="update_zip" accept=".zip" required id="updateFileField">
                                 <button type="submit" class="btn btn-primary fw-bold" id="btnUploadUpdate">
                                     <i class="bi bi-upload me-1"></i> Instalar
                                 </button>
                             </div>
-                            <div class="form-text mt-2 small" id="updateUploadNote">Solo admisible archivos `.zip` estructurados.</div>
+                            
+                            <div class="form-check form-switch mt-2 bg-light p-2 rounded border">
+                                <input class="form-check-input ms-1 me-2" type="checkbox" role="switch" id="autoMigrateCheck" name="auto_migrate" value="1" checked>
+                                <label class="form-check-label text-dark fw-bold" for="autoMigrateCheck">
+                                    <i class="bi bi-magic text-primary me-1"></i> Auto-aplicar Migraciones de BD incluidas
+                                </label>
+                                <div class="form-text ms-5 small mt-0">Detección y ejecución de los SQL/Archivos adjuntos para unificar el proceso.</div>
+                            </div>
+
                         </form>
                     </div>
                 </div>

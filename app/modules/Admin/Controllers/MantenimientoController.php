@@ -156,8 +156,12 @@ class MantenimientoController extends Controller
             exit;
         }
 
+        $autoMigrate = isset($_POST['auto_migrate']) && $_POST['auto_migrate'] === '1';
+        $userObj = AuthService::getCurrentUser();
+        $userId = $userObj ? $userObj->id : null;
+
         $updater = new SystemUpdater();
-        $result = $updater->processUpdate($_FILES['update_zip']);
+        $result = $updater->processUpdate($_FILES['update_zip'], $autoMigrate, $userId);
 
         if ($result['status'] === 'success') {
             header('Location: /admin/mantenimiento?success=' . urlencode($result['message']));
