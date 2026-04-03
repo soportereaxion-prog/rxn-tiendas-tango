@@ -8,8 +8,8 @@ $backofficeStoreLabel = (string) ($backofficeUserSummary['storeLabel'] ?? '');
 $currentTheme = $_SESSION['pref_theme'] ?? 'light';
 $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
 ?>
-<div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1" style="max-width: 1400px;">
-    <div id="topbar-left-zone" class="flex-grow-1 d-flex align-items-center">
+<div class="container-fluid px-4 d-flex justify-content-end align-items-center gap-2 mb-1" style="max-width: 1400px;">
+    <div id="topbar-left-zone" class="d-flex align-items-center">
         <?= isset($topbarLeftHtml) ? $topbarLeftHtml : '' ?>
     </div>
     <div class="d-flex align-items-center justify-content-end gap-2 flex-grow-0">

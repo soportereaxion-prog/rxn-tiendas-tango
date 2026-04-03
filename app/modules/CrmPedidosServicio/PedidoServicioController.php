@@ -70,7 +70,7 @@ class PedidoServicioController
             Flash::set('success', 'Pedido de servicio enviado a la papelera.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        header('Location: /mi-empresa/crm/pedidos-servicio');
         exit;
     }
 
@@ -84,7 +84,7 @@ class PedidoServicioController
             Flash::set('success', 'Pedido de servicio restaurado exitosamente.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        header('Location: /mi-empresa/crm/pedidos-servicio');
         exit;
     }
 
@@ -98,7 +98,7 @@ class PedidoServicioController
             Flash::set('success', 'Pedido de servicio eliminado permanentemente.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        header('Location: /mi-empresa/crm/pedidos-servicio');
         exit;
     }
 
@@ -116,7 +116,7 @@ class PedidoServicioController
             }
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        header('Location: /mi-empresa/crm/pedidos-servicio');
         exit;
     }
 
@@ -134,7 +134,7 @@ class PedidoServicioController
             }
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        header('Location: /mi-empresa/crm/pedidos-servicio');
         exit;
     }
 
@@ -152,7 +152,7 @@ class PedidoServicioController
             }
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+        header('Location: /mi-empresa/crm/pedidos-servicio');
         exit;
     }
 
@@ -207,7 +207,7 @@ class PedidoServicioController
 
         View::render('app/modules/CrmPedidosServicio/views/form.php', array_merge($this->buildUiContext(), [
             'formMode' => 'create',
-            'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio',
+            'formAction' => '/mi-empresa/crm/pedidos-servicio',
             'pedido' => $this->defaultFormState($empresaId),
             'errors' => [],
         ]));
@@ -237,13 +237,13 @@ class PedidoServicioController
                 Flash::set('success', 'Pedido de servicio creado correctamente.');
             }
             
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . $pedidoId . '/editar');
+            header('Location: /mi-empresa/crm/pedidos-servicio/' . $pedidoId . '/editar');
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
             View::render('app/modules/CrmPedidosServicio/views/form.php', array_merge($this->buildUiContext(), [
                 'formMode' => 'create',
-                'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio',
+                'formAction' => '/mi-empresa/crm/pedidos-servicio',
                 'pedido' => $this->buildFormStateFromPost($_POST, $empresaId),
                 'errors' => $e->errors(),
             ]));
@@ -258,13 +258,13 @@ class PedidoServicioController
 
         if ($pedido === null) {
             Flash::set('danger', 'El pedido de servicio no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            header('Location: /mi-empresa/crm/pedidos-servicio');
             exit;
         }
 
         View::render('app/modules/CrmPedidosServicio/views/form.php', array_merge($this->buildUiContext(), [
             'formMode' => 'edit',
-            'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $pedido['id'],
+            'formAction' => '/mi-empresa/crm/pedidos-servicio/' . (int) $pedido['id'],
             'pedido' => $this->hydrateFormState($pedido),
             'errors' => [],
         ]));
@@ -278,7 +278,7 @@ class PedidoServicioController
 
         if ($pedidoActual === null) {
             Flash::set('danger', 'El pedido de servicio no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            header('Location: /mi-empresa/crm/pedidos-servicio');
             exit;
         }
 
@@ -301,13 +301,13 @@ class PedidoServicioController
                 Flash::set('success', 'Pedido de servicio actualizado correctamente.');
             }
             
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+            header('Location: /mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
             View::render('app/modules/CrmPedidosServicio/views/form.php', array_merge($this->buildUiContext(), [
                 'formMode' => 'edit',
-                'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id,
+                'formAction' => '/mi-empresa/crm/pedidos-servicio/' . (int) $id,
                 'pedido' => $this->buildFormStateFromPost($_POST, $empresaId, $pedidoActual),
                 'errors' => $e->errors(),
             ]));
@@ -322,7 +322,7 @@ class PedidoServicioController
 
         if ($pedidoOriginal === null) {
             Flash::set('danger', 'El pedido de servicio base no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            header('Location: /mi-empresa/crm/pedidos-servicio');
             exit;
         }
 
@@ -349,11 +349,11 @@ class PedidoServicioController
             $nuevoId = $this->repository->create($data);
 
             Flash::set('success', 'Pedido de servicio copiado exitosamente.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . $nuevoId . '/editar');
+            header('Location: /mi-empresa/crm/pedidos-servicio/' . $nuevoId . '/editar');
             exit;
         } catch (\Throwable $e) {
             Flash::set('danger', 'Falla al copiar el pedido de servicio: ' . $e->getMessage());
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+            header('Location: /mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
             exit;
         }
     }
@@ -366,7 +366,7 @@ class PedidoServicioController
 
         if ($pedido === null) {
             Flash::set('danger', 'El pedido de servicio no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            header('Location: /mi-empresa/crm/pedidos-servicio');
             exit;
         }
 
@@ -416,7 +416,7 @@ class PedidoServicioController
             exit;
         } catch (\Throwable $e) {
             Flash::set('danger', 'No se pudo generar la impresion: ' . $e->getMessage());
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+            header('Location: /mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
             exit;
         }
     }
@@ -429,7 +429,7 @@ class PedidoServicioController
 
         if ($pedido === null) {
             Flash::set('danger', 'El pedido de servicio no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio');
+            header('Location: /mi-empresa/crm/pedidos-servicio');
             exit;
         }
 
@@ -441,7 +441,7 @@ class PedidoServicioController
                 $email = $pedido['cliente_email'];
             } else {
                 Flash::set('danger', 'El cliente asociado no tiene un correo electronico configurado.');
-                header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+                header('Location: /mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
                 exit;
             }
         }
@@ -454,11 +454,11 @@ class PedidoServicioController
         
         
         $adjuntos = [];
-        $capturasDir = $_SERVER['DOCUMENT_ROOT'] . '/rxnTiendasIA/public/uploads/pds-diagnostico/';
+        $capturasDir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/pds-diagnostico/';
         $dbAdjuntos = $this->repository->getAdjuntos((int) $id);
         
         foreach ($dbAdjuntos as $adjunto) {
-            $path = str_replace('/rxnTiendasIA/public/uploads/pds-diagnostico/', $capturasDir, $adjunto['file_path']);
+            $path = str_replace('/uploads/pds-diagnostico/', $capturasDir, $adjunto['file_path']);
             if (is_file($path)) {
                 $adjuntos[] = [
                     'path' => $path,
@@ -488,7 +488,7 @@ class PedidoServicioController
             Flash::set('danger', 'Falla en la generacion/envio de documento: ' . $e->getMessage());
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+        header('Location: /mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
         exit;
     }
 
@@ -773,7 +773,7 @@ class PedidoServicioController
     private function buildUiContext(): array
     {
         return [
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/pedidos-servicio',
+            'basePath' => '/mi-empresa/crm/pedidos-servicio',
             'dashboardPath' => OperationalAreaService::dashboardPath(OperationalAreaService::AREA_CRM),
             'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_CRM),
             'moduleNotesKey' => 'crm_pedidos_servicio',
@@ -990,3 +990,4 @@ final class ValidationException extends \RuntimeException
         return $this->errors;
     }
 }
+

@@ -120,7 +120,7 @@ class PresupuestoController
 
         View::render('app/modules/CrmPresupuestos/views/form.php', array_merge($this->buildUiContext(), [
             'formMode' => 'create',
-            'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos',
+            'formAction' => '/mi-empresa/crm/presupuestos',
             'presupuesto' => $this->defaultFormState($empresaId),
             'catalogs' => $catalogData['catalogs'],
             'catalogSyncWarning' => $catalogData['warning'],
@@ -137,14 +137,14 @@ class PresupuestoController
             $payload = $this->validateRequest($_POST, $empresaId, null);
             $presupuestoId = $this->repository->create($payload);
             Flash::set('success', 'Presupuesto CRM guardado correctamente.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . $presupuestoId . '/editar');
+            header('Location: /mi-empresa/crm/presupuestos/' . $presupuestoId . '/editar');
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
             $catalogData = $this->loadCatalogData($empresaId);
             View::render('app/modules/CrmPresupuestos/views/form.php', array_merge($this->buildUiContext(), [
                 'formMode' => 'create',
-                'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos',
+                'formAction' => '/mi-empresa/crm/presupuestos',
                 'presupuesto' => $this->buildFormStateFromPost($_POST, $empresaId),
                 'catalogs' => $catalogData['catalogs'],
                 'catalogSyncWarning' => $catalogData['warning'],
@@ -161,7 +161,7 @@ class PresupuestoController
 
         if ($presupuesto === null) {
             Flash::set('danger', 'El presupuesto CRM no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+            header('Location: /mi-empresa/crm/presupuestos');
             exit;
         }
 
@@ -170,7 +170,7 @@ class PresupuestoController
 
         View::render('app/modules/CrmPresupuestos/views/form.php', array_merge($this->buildUiContext(), [
             'formMode' => 'edit',
-            'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $presupuesto['id'],
+            'formAction' => '/mi-empresa/crm/presupuestos/' . (int) $presupuesto['id'],
             'presupuesto' => $this->hydrateFormState($presupuesto, $items),
             'catalogs' => $catalogData['catalogs'],
             'catalogSyncWarning' => $catalogData['warning'],
@@ -186,7 +186,7 @@ class PresupuestoController
 
         if ($presupuestoActual === null) {
             Flash::set('danger', 'El presupuesto CRM no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+            header('Location: /mi-empresa/crm/presupuestos');
             exit;
         }
 
@@ -194,14 +194,14 @@ class PresupuestoController
             $payload = $this->validateRequest($_POST, $empresaId, $presupuestoActual);
             $this->repository->update((int) $id, $empresaId, $payload);
             Flash::set('success', 'Presupuesto CRM actualizado correctamente.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+            header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
             $catalogData = $this->loadCatalogData($empresaId);
             View::render('app/modules/CrmPresupuestos/views/form.php', array_merge($this->buildUiContext(), [
                 'formMode' => 'edit',
-                'formAction' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id,
+                'formAction' => '/mi-empresa/crm/presupuestos/' . (int) $id,
                 'presupuesto' => $this->buildFormStateFromPost($_POST, $empresaId, $presupuestoActual),
                 'catalogs' => $catalogData['catalogs'],
                 'catalogSyncWarning' => $catalogData['warning'],
@@ -218,7 +218,7 @@ class PresupuestoController
 
         if ($presupuestoOriginal === null) {
             Flash::set('danger', 'El presupuesto CRM base no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+            header('Location: /mi-empresa/crm/presupuestos');
             exit;
         }
 
@@ -244,11 +244,11 @@ class PresupuestoController
             $nuevoId = $this->repository->create($data);
 
             Flash::set('success', 'Presupuesto CRM copiado exitosamente.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . $nuevoId . '/editar');
+            header('Location: /mi-empresa/crm/presupuestos/' . $nuevoId . '/editar');
             exit;
         } catch (Throwable $e) {
             Flash::set('danger', 'Falla al copiar el presupuesto CRM: ' . $e->getMessage());
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+            header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
             exit;
         }
     }
@@ -264,7 +264,7 @@ class PresupuestoController
             Flash::set('success', 'Presupuesto enviado a la papelera.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+        header('Location: /mi-empresa/crm/presupuestos');
         exit;
     }
 
@@ -281,7 +281,7 @@ class PresupuestoController
             }
         }
         
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+        header('Location: /mi-empresa/crm/presupuestos');
         exit;
     }
 
@@ -296,7 +296,7 @@ class PresupuestoController
             Flash::set('success', 'Presupuesto restaurado.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        header('Location: /mi-empresa/crm/presupuestos?status=papelera');
         exit;
     }
 
@@ -313,7 +313,7 @@ class PresupuestoController
             }
         }
         
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        header('Location: /mi-empresa/crm/presupuestos?status=papelera');
         exit;
     }
 
@@ -328,7 +328,7 @@ class PresupuestoController
             Flash::set('success', 'Presupuesto eliminado definitivamente.');
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        header('Location: /mi-empresa/crm/presupuestos?status=papelera');
         exit;
     }
 
@@ -345,7 +345,7 @@ class PresupuestoController
             }
         }
         
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos?status=papelera');
+        header('Location: /mi-empresa/crm/presupuestos?status=papelera');
         exit;
     }
 
@@ -357,7 +357,7 @@ class PresupuestoController
 
         if ($presupuesto === null) {
             Flash::set('danger', 'El presupuesto CRM no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+            header('Location: /mi-empresa/crm/presupuestos');
             exit;
         }
 
@@ -408,7 +408,7 @@ class PresupuestoController
             exit;
         } catch (\Throwable $e) {
             Flash::set('danger', 'No se pudo generar la impresion: ' . $e->getMessage());
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+            header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
             exit;
         }
     }
@@ -421,7 +421,7 @@ class PresupuestoController
 
         if ($presupuesto === null) {
             Flash::set('danger', 'El presupuesto CRM no existe o no pertenece a tu empresa.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos');
+            header('Location: /mi-empresa/crm/presupuestos');
             exit;
         }
 
@@ -430,7 +430,7 @@ class PresupuestoController
         $email = $cliente['email'] ?? '';
         if (trim((string)$email) === '') {
             Flash::set('danger', 'El cliente asociado no tiene un correo electrónico configurado.');
-            header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+            header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
             exit;
         }
 
@@ -461,7 +461,7 @@ class PresupuestoController
             Flash::set('danger', 'Falla en la generación/envío de documento: ' . $e->getMessage());
         }
 
-        header('Location: /rxnTiendasIA/public/mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+        header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
         exit;
     }
 
@@ -469,11 +469,11 @@ class PresupuestoController
     {
         AuthService::requireLogin();
         $empresaId = (int) Context::getEmpresaId();
-        $redirectPath = '/rxnTiendasIA/public/mi-empresa/crm/presupuestos';
+        $redirectPath = '/mi-empresa/crm/presupuestos';
         $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
         $refererPath = (string) parse_url($referer, PHP_URL_PATH);
         $refererQuery = (string) parse_url($referer, PHP_URL_QUERY);
-        if ($refererPath !== '' && str_contains($refererPath, '/rxnTiendasIA/public/mi-empresa/crm/presupuestos')) {
+        if ($refererPath !== '' && str_contains($refererPath, '/mi-empresa/crm/presupuestos')) {
             $redirectPath = $refererPath . ($refererQuery !== '' ? '?' . $refererQuery : '');
         }
 
@@ -644,10 +644,10 @@ class PresupuestoController
             'pageTitle' => 'Presupuestos CRM',
             'dashboardPath' => OperationalAreaService::dashboardPath(OperationalAreaService::AREA_CRM),
             'helpPath' => OperationalAreaService::helpPath(OperationalAreaService::AREA_CRM),
-            'basePath' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos',
+            'basePath' => '/mi-empresa/crm/presupuestos',
             'moduleNotesKey' => 'crm_presupuestos',
             'moduleNotesLabel' => 'Presupuestos CRM',
-            'syncCatalogosPath' => '/rxnTiendasIA/public/mi-empresa/crm/presupuestos/catalogos/sincronizar',
+            'syncCatalogosPath' => '/mi-empresa/crm/presupuestos/catalogos/sincronizar',
         ];
     }
 
@@ -1045,3 +1045,4 @@ final class ValidationException extends \RuntimeException
         return $this->errors;
     }
 }
+

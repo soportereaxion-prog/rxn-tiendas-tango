@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars((string) ($title ?? 'Preview de impresion')) ?> - rxnTiendasIA</title>
+    <title><?= htmlspecialchars((string) ($title ?? 'Preview de impresion')) ?> - rxn_suite</title>
     <style>
         :root {
             color-scheme: light;
@@ -159,10 +159,11 @@
             return $url;
         };
         $bgUrl = $resolveUrl((string) ($page['background_url'] ?? ''));
+        $bgColor = htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
         ?>
-        <div class="print-page">
+        <div class="print-page" style="background-color: <?= $bgColor ?>;">
             <?php if (!empty($bgUrl)): ?>
-                <div class="print-page__background" style="background-image:url('<?= htmlspecialchars($bgUrl) ?>'); opacity:<?= htmlspecialchars((string) ($page['background_opacity'] ?? 1)) ?>;"></div>
+                <div class="print-page__background" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-position: center; background-repeat: no-repeat; background-size: 100% 100%; background-image:url('<?= htmlspecialchars($bgUrl) ?>'); opacity:<?= htmlspecialchars((string) ($page['background_opacity'] ?? 1)) ?>;"></div>
             <?php endif; ?>
 
             <?php foreach (($renderedObjects ?? []) as $object): ?>
@@ -212,7 +213,7 @@
             });
         </script>
     <?php endif; ?>
-    <script src="/rxnTiendasIA/public/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js"></script>
 </body>
 </html>
 

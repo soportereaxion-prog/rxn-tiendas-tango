@@ -413,9 +413,7 @@ ob_start();
     </div>
     <?php endif; ?>
 
-    <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/crm-pedidos-servicio-form.js?v=<?= time() ?>"></script>
-    <script src="/js/rxn-shortcuts.js"></script>
     <?php if ($formMode === 'create'): ?>
     <script>
         (function() {
