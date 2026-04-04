@@ -467,6 +467,31 @@
                 if (undoBtn) {
                     if (this.state.undo()) this.renderer.render();
                 }
+
+                // Export Canvas
+                const exportBtn = e.target.closest('[data-action="export-canvas"]');
+                if (exportBtn) {
+                    this.exportCanvas();
+                }
+
+                // Import Canvas — dispara el file input oculto
+                const importBtn = e.target.closest('[data-action="import-canvas"]');
+                if (importBtn) {
+                    let fi = document.getElementById('print-canvas-import-input');
+                    if (!fi) {
+                        fi = document.createElement('input');
+                        fi.type = 'file';
+                        fi.id = 'print-canvas-import-input';
+                        fi.accept = '.json';
+                        fi.style.display = 'none';
+                        document.body.appendChild(fi);
+                        fi.addEventListener('change', (ev) => {
+                            if (ev.target.files[0]) this.importCanvas(ev.target.files[0]);
+                            fi.value = '';
+                        });
+                    }
+                    fi.click();
+                }
             });
 
             // Z Key tracking for Wheel Zoom
@@ -823,7 +848,135 @@
             this.state.selectedIds = new Set([this.state.objects[this.state.objects.length - 1].id]);
             this.renderer.render();
         }
+
+        // ─── EXPORT ───────────────────────────────────────────────────────────────
+        async exportCanvas() {
+            const state = this.state;
+            const exportData = {
+                meta: {
+                    format: 'rxn-canvas-v1',
+                    document_key: state.documentKey,
+                    exported_at: new Date().toISOString()
+                },
+                page_config: state.pageConfig,
+                objects: state.objects,
+                fonts: state.fonts,
+                background: {
+                    url: state.backgroundUrl || '',
+                    data: null
+                }
+            };
+
+            // Embeber fondo como base64 para portabilidad entre entornos
+            if (state.backgroundUrl) {
+                try {
+                    const res = await fetch(state.backgroundUrl);
+                    const blob = await res.blob();
+                    const b64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    exportData.background.data = b64;
+                } catch (_) {
+                    // Si falla (CORS, not found) dejamos solo la URL
+                }
+            }
+
+            const json = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = `${state.documentKey || 'canvas'}.canvas.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ─── IMPORT ───────────────────────────────────────────────────────────────
+        async importCanvas(file) {
+            let raw;
+            try { raw = await file.text(); }
+            catch (_) { alert('No se pudo leer el archivo.'); return; }
+
+            let data;
+            try { data = JSON.parse(raw); }
+            catch (_) { alert('El archivo no es un JSON válido.'); return; }
+
+            if (data?.meta?.format !== 'rxn-canvas-v1') {
+                if (!confirm('El archivo no tiene el formato esperado (rxn-canvas-v1). ¿Intentar igualmente?')) return;
+            }
+
+            this.state.saveUndo();
+
+            if (data.page_config)        this.state.pageConfig = data.page_config;
+            if (Array.isArray(data.objects)) {
+                this.state.objects = data.objects;
+                this.state.objects.forEach(o => {
+                    if (o.type === 'variable') o.type = 'TEXT';
+                    else if (typeof o.type === 'string') o.type = o.type.toUpperCase();
+                });
+            }
+            if (Array.isArray(data.fonts)) this.state.fonts = data.fonts;
+            this.state.selectedIds.clear();
+
+            // Restaurar imagen de fondo
+            const bgData = data.background?.data || '';
+            const bgUrl  = data.background?.url  || '';
+
+            if (bgData && bgData.startsWith('data:')) {
+                this.state.backgroundUrl = bgData;
+                // Inyectar en el file input para que el próximo "Guardar versión" la suba como asset
+                try {
+                    const res  = await fetch(bgData);
+                    const blob = await res.blob();
+                    const ext  = blob.type.split('/')[1] || 'jpg';
+                    const f    = new File([blob], `imported_bg.${ext}`, { type: blob.type });
+                    const dt   = new DataTransfer();
+                    dt.items.add(f);
+                    const fi = document.querySelector('[data-background-input]');
+                    if (fi) fi.files = dt.files;
+                } catch (_) {}
+                const previewWrap = document.querySelector('[data-background-preview-wrap]');
+                const previewImg  = document.querySelector('[data-background-preview]');
+                if (previewImg)  previewImg.src = bgData;
+                if (previewWrap) previewWrap.classList.remove('d-none');
+            } else if (bgUrl) {
+                this.state.backgroundUrl = bgUrl;
+            } else {
+                this.state.backgroundUrl = '';
+            }
+
+            // Sincronizar controles del panel izquierdo
+            const orientSel    = document.getElementById('print-orientation');
+            const gridCheck    = document.getElementById('print-grid-enabled');
+            const bgColor      = document.getElementById('print-bg-color');
+            const bgTransparent = document.getElementById('print-transparent-bg');
+            if (orientSel)     orientSel.value       = this.state.pageConfig.orientation    || 'portrait';
+            if (gridCheck)     gridCheck.checked      = !!this.state.pageConfig.grid_enabled;
+            if (bgColor)       bgColor.value          = this.state.pageConfig.background_color || '#ffffff';
+            if (bgTransparent) bgTransparent.checked  = !!this.state.pageConfig.transparent_bg;
+
+            this.renderer.render();
+
+            // Toast de confirmación
+            const defKey   = data.meta?.document_key || 'desconocido';
+            const objCount = (data.objects || []).length;
+            const toast = document.createElement('div');
+            toast.style.cssText = [
+                'position:fixed', 'bottom:1.5rem', 'right:1.5rem', 'z-index:9999',
+                'background:#0f172a', 'color:#f8fafc', 'padding:.75rem 1.25rem',
+                'border-radius:12px', 'font-size:.875rem',
+                'box-shadow:0 8px 24px rgba(0,0,0,.25)', 'transition:opacity .4s'
+            ].join(';');
+            toast.textContent = `✅ Canvas importado: "${defKey}" (${objCount} obj.). Guardá la versión para persistir.`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 4000);
+        }
     }
+
 
     // Init App
     document.addEventListener('DOMContentLoaded', () => {

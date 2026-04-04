@@ -295,7 +295,11 @@ ob_start();
                             <span class="small fw-bold" id="print-zoom-label" style="min-width: 3rem; text-align: center;">100%</span>
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-zoom="in" title="Acercar"><i class="bi bi-zoom-in"></i></button>
                             <button type="button" class="btn btn-sm btn-outline-primary" data-zoom="fit" title="Ajustar al ancho"><i class="bi bi-arrows-angle-contract"></i> Ajustar</button>
+                              <div class="vr mx-1"></div>
+                              <button type="button" class="btn btn-sm btn-outline-success" data-action="export-canvas" title="Exportar canvas a archivo .json"><i class="bi bi-box-arrow-up"></i> Exportar</button>
+                              <button type="button" class="btn btn-sm btn-outline-warning" data-action="import-canvas" title="Importar canvas desde archivo .json"><i class="bi bi-box-arrow-in-down"></i> Importar</button>
                         </div>
+
                     </div>
 
                     <div class="print-sheet-wrap">
