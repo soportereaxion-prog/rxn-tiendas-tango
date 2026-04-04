@@ -1,12 +1,26 @@
 <?php
 
 return [
-    'current_version' => '1.1.43',
-    'current_build' => '20260403.1',
+    'current_version' => '1.1.44',
+    'current_build' => '20260403.2',
     'history' => [
+        [
+            'version' => '1.1.44',
+            'build' => '20260403.2',
+            'released_at' => '2026-04-03',
+            'title' => 'Fix PrintForms: Color y transparencia en correos',
+            'summary' => 'Se corrigió el pipeline de renderizado de emails para que el color de fondo y la opción "Papel sin fondo" configurados en el editor Canvas se apliquen correctamente en los correos enviados.',
+            'items' => [
+                'El motor PrintFormRenderer ahora propaga background_color y transparent_bg al template de renderizado.',
+                'La opción "Papel sin fondo (Transparente)" ahora se respeta en los correos generados.',
+                'Se eliminó el !important del CSS del template que anulaba el color inline configurado.',
+                'La lógica de color es unificada para email y preview: transparente si así fue configurado, color elegido si no.',
+            ],
+        ],
         [
             'version' => '1.1.43',
             'build' => '20260403.1',
+
             'released_at' => '2026-04-03',
             'title' => 'Instalación Unificada OTA (Código + BD)',
             'summary' => 'Se unificó el actualizador del sistema permitiendo subir un ZIP que aplica tanto archivos del núcleo como migraciones de Base de Datos en un solo paso.',
