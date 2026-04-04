@@ -17,16 +17,37 @@ class PrintFormRenderer
 
         $renderedObjects = [];
         foreach ($objects as $object) {
-            $renderedObjects[] = match (strtolower(trim((string) ($object['type'] ?? '')))) {
-                'text', 'text_multiline' => $this->renderTextLike($object, $context, $page, $defaults, false),
-                'variable' => $this->renderTextLike($object, $context, $page, $defaults, true),
-                'image' => $this->renderImage($object, $context, $page, $defaults),
-                'line' => $this->renderLine($object, $page),
-                'rect' => $this->renderRect($object, $page),
-                'table_repeater' => $this->renderTableRepeater($object, $context, $page, $defaults),
-                default => null,
+            $typeRaw = strtolower(trim((string) ($object['type'] ?? '')));
+            $contentRaw = (string) ($object['content'] ?? '');
+
+            // Objetos TEXT que contienen variables de imagen deben renderizarse como <img>.
+            // El editor los guarda como TEXT porque Fabric/Canvas no tiene tipo "IMAGE variable",
+            // pero el renderer PHP debe tratarlos como imagen al generar HTML.
+            $isImgVariable = ($typeRaw === 'text' || $typeRaw === 'image')
+                && (
+                    str_contains($contentRaw, 'header_url')
+                    || str_contains($contentRaw, 'footer_url')
+                    || str_ends_with($contentRaw, '.png')
+                    || str_ends_with($contentRaw, '.jpg')
+                    || str_ends_with($contentRaw, '.jpeg')
+                    || str_ends_with($contentRaw, '.webp')
+                    || str_ends_with($contentRaw, '.gif')
+                    || str_starts_with($contentRaw, 'http')
+                );
+
+            $renderedObjects[] = match (true) {
+                $isImgVariable                          => $this->renderImage($object, $context, $page, $defaults),
+                $typeRaw === 'image'                    => $this->renderImage($object, $context, $page, $defaults),
+                $typeRaw === 'text'
+                || $typeRaw === 'text_multiline'        => $this->renderTextLike($object, $context, $page, $defaults, false),
+                $typeRaw === 'variable'                 => $this->renderTextLike($object, $context, $page, $defaults, true),
+                $typeRaw === 'line'                     => $this->renderLine($object, $page),
+                $typeRaw === 'rect'                     => $this->renderRect($object, $page),
+                $typeRaw === 'table_repeater'           => $this->renderTableRepeater($object, $context, $page, $defaults),
+                default                                 => null,
             };
         }
+
 
         // Leer configuración de color/transparencia de página desde page_config['page']
         $rawPage = $pageConfig['page'] ?? [];
@@ -125,11 +146,13 @@ class PrintFormRenderer
         }
 
         return [
-            'type' => 'image',
+            'type'           => 'image',
             'position_style' => $this->buildPositionStyle($object, $page),
-            'inner_style' => implode('; ', [
+            'inner_style'    => implode('; ', [
+                'display:block',
                 'width:100%',
                 'height:100%',
+                'max-width:100%',
                 'object-fit:' . ($style['object_fit'] ?? 'contain'),
             ]),
             'content' => $src,
