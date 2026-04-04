@@ -1,9 +1,22 @@
 <?php
 
 return [
-    'current_version' => '1.1.44',
-    'current_build' => '20260403.2',
+    'current_version' => '1.1.45',
+    'current_build' => '20260403.3',
     'history' => [
+        [
+            'version' => '1.1.45',
+            'build' => '20260403.3',
+            'released_at' => '2026-04-03',
+            'title' => 'Export/Import de Canvas PrintForms',
+            'summary' => 'El editor de Canvas PrintForms permite ahora exportar el diseño completo a un archivo .json portable (con imagen de fondo embebida en base64) e importarlo en cualquier otro entorno con un clic.',
+            'items' => [
+                'Botón "Exportar" en la toolbar del canvas: descarga un archivo .canvas.json con el diseño completo.',
+                'La imagen de fondo se embebe automáticamente en base64 para portabilidad entre entornos.',
+                'Botón "Importar" en la toolbar: restaura objetos, page config y fondo; prepara la imagen para subirse en el próximo "Guardar versión".',
+                'El estado importado es reversible con Ctrl+Z antes de guardar.',
+            ],
+        ],
         [
             'version' => '1.1.44',
             'build' => '20260403.2',
