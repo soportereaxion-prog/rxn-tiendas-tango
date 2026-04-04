@@ -74,7 +74,7 @@
             width: <?= number_format((float) ($page['width_mm'] ?? 210), 2, '.', '') ?>mm;
             min-height: <?= number_format((float) ($page['height_mm'] ?? 297), 2, '.', '') ?>mm;
             margin: 0 auto;
-            background-color: #ffffff !important;
+            background-color: #ffffff;
             color: #000000 !important;
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
             overflow: hidden;
@@ -160,16 +160,23 @@
         };
         $bgUrl = $resolveUrl((string) ($page['background_url'] ?? ''));
         $isTransparent = !empty($page['transparent_bg']);
-        $bgColor = $isTransparent ? 'transparent' : htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
-        $bgStyle = !empty($bgUrl) ? "background-image: url('" . htmlspecialchars($bgUrl) . "'); background-position: center; background-repeat: no-repeat; background-size: cover;" : '';
         $isEmail = !empty($isEmailContext);
+        
+        // Lógica unificada para email y preview:
+        // - Si transparent_bg está activo → fondo transparente (el usuario eligió explícitamente sin fondo)
+        // - Si no → usa el color configurado, con fallback a blanco
+        // Nota: el problema de dark mode en Thunderbird era por ausencia de color explícito, no por transparent CSS.
+        $bgColor = $isTransparent
+            ? 'transparent'
+            : htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
+        
+        // CSS en línea en la base para evadir a Thunderbird
+        $inlineBgForEmail = ($isEmail && !empty($bgUrl)) ? "background-image:url('" . htmlspecialchars($bgUrl) . "'); background-position: center; background-repeat: no-repeat; background-size: cover;" : '';
         ?>
-        <?php if ($isEmail): ?>
-        <table width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: <?= $bgColor ?>; margin:0; padding:0; height: 100%; width: 100%; border-collapse: collapse;" <?= !empty($bgUrl) ? 'background="' . htmlspecialchars($bgUrl) . '"' : '' ?>>
-            <tr><td valign="top" style="height: 100%; width: 100%; background-position: center; background-repeat: no-repeat; background-size: cover;">
-        <?php endif; ?>
-
-        <div class="print-page" style="background-color: <?= $bgColor ?>; <?= !$isEmail ? $bgStyle : '' ?>; position: relative; width: 100%; min-height: <?= number_format((float) ($page['height_mm'] ?? 297), 2, '.', '') ?>mm;">
+        <div class="print-page" style="background-color: <?= $bgColor ?>; <?= $inlineBgForEmail ?>">
+            <?php if (!empty($bgUrl) && !$isEmail): ?>
+                <div class="print-page__background" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-position: center; background-repeat: no-repeat; background-size: 100% 100%; background-image:url('<?= htmlspecialchars($bgUrl) ?>'); opacity:<?= htmlspecialchars((string) ($page['background_opacity'] ?? 1)) ?>;"></div>
+            <?php endif; ?>
 
             <?php foreach (($renderedObjects ?? []) as $object): ?>
                 <div class="print-object" style="<?= htmlspecialchars((string) ($object['position_style'] ?? '')) ?>">
@@ -209,11 +216,6 @@
                 </div>
             <?php endforeach; ?>
         </div>
-        
-        <?php if ($isEmail): ?>
-            </td></tr>
-        </table>
-        <?php endif; ?>
     </div>
 
     <?php if (!empty($autoPrint)): ?>

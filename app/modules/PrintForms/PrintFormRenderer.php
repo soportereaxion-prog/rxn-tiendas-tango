@@ -28,6 +28,11 @@ class PrintFormRenderer
             };
         }
 
+        // Leer configuración de color/transparencia de página desde page_config['page']
+        $rawPage = $pageConfig['page'] ?? [];
+        $bgColor = (string) ($rawPage['background_color'] ?? ($pageConfig['background_color'] ?? '#ffffff'));
+        $isTransparent = !empty($rawPage['transparent_bg']) || !empty($pageConfig['transparent_bg']);
+
         return [
             'page' => [
                 'size' => $page['size'],
@@ -36,6 +41,8 @@ class PrintFormRenderer
                 'height_mm' => $page['height_mm'],
                 'background_url' => $backgroundUrl,
                 'background_opacity' => isset($background['opacity']) ? (float) $background['opacity'] : 1,
+                'background_color' => $bgColor !== '' ? $bgColor : '#ffffff',
+                'transparent_bg' => $isTransparent,
             ],
             'objects' => array_values(array_filter($renderedObjects)),
         ];
