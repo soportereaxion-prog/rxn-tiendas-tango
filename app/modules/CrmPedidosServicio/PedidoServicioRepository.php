@@ -48,7 +48,7 @@ class PedidoServicioRepository
         return max(1, $base + 1, $maxDb + 1);
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = ''): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = '', array $advancedFilters = []): int
     {
         $sql = 'SELECT COUNT(*) FROM crm_pedidos_servicio ps WHERE ps.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
@@ -61,6 +61,29 @@ class PedidoServicioRepository
         }
 
         $this->applySearch($sql, $params, $search, $field, true);
+
+        // Truculencia SQL dinámica para los filtros por columna:
+        if (!empty($advancedFilters)) {
+            list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+                'numero' => 'CAST(ps.numero AS CHAR)',
+                'fecha_inicio' => 'ps.fecha_inicio',
+                'fecha_finalizado' => 'ps.fecha_finalizado',
+                'cliente_nombre' => 'ps.cliente_nombre',
+                'solicito' => 'ps.solicito',
+                'articulo_nombre' => 'ps.articulo_nombre',
+                'clasificacion_codigo' => 'ps.clasificacion_codigo',
+                'usuario_nombre' => 'ps.usuario_nombre',
+                'estado_codigo' => 'CASE WHEN ps.fecha_finalizado IS NULL THEN "abierto" ELSE "finalizado" END'
+            ]);
+            if ($advSql !== '') {
+                $sql .= $advSql;
+                foreach ($advParams as $i => $val) {
+                    $pKey = ':adv_c_' . $i;
+                    $sql = substr_replace($sql, $pKey, strpos($sql, '?'), 1);
+                    $params[$pKey] = $val;
+                }
+            }
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -76,7 +99,8 @@ class PedidoServicioRepository
         string $field = 'all',
         string $estado = '',
         string $orderBy = 'fecha_inicio',
-        string $orderDir = 'DESC'
+        string $orderDir = 'DESC',
+        array $advancedFilters = []
     ): array {
         $offset = max(0, ($page - 1) * $limit);
         $sql = 'SELECT ps.*,
@@ -93,6 +117,29 @@ class PedidoServicioRepository
         }
 
         $this->applySearch($sql, $params, $search, $field, true);
+
+        // Truculencia SQL dinámica para los filtros por columna:
+        if (!empty($advancedFilters)) {
+            list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+                'numero' => 'CAST(ps.numero AS CHAR)',
+                'fecha_inicio' => 'ps.fecha_inicio',
+                'fecha_finalizado' => 'ps.fecha_finalizado',
+                'cliente_nombre' => 'ps.cliente_nombre',
+                'solicito' => 'ps.solicito',
+                'articulo_nombre' => 'ps.articulo_nombre',
+                'clasificacion_codigo' => 'ps.clasificacion_codigo',
+                'usuario_nombre' => 'ps.usuario_nombre',
+                'estado_codigo' => 'CASE WHEN ps.fecha_finalizado IS NULL THEN "abierto" ELSE "finalizado" END'
+            ]);
+            if ($advSql !== '') {
+                $sql .= $advSql;
+                foreach ($advParams as $i => $val) {
+                    $pKey = ':adv_f_' . $i;
+                    $sql = substr_replace($sql, $pKey, strpos($sql, '?'), 1);
+                    $params[$pKey] = $val;
+                }
+            }
+        }
 
         $allowedColumns = ['numero', 'fecha_inicio', 'fecha_finalizado', 'cliente_nombre', 'articulo_nombre', 'clasificacion_codigo', 'duracion_neta_segundos'];
         if (!in_array($orderBy, $allowedColumns, true)) {

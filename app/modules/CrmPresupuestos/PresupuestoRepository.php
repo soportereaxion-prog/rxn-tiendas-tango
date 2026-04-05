@@ -37,12 +37,25 @@ class PresupuestoRepository
         return max(1, $base + 1, $maxDb + 1);
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = ''): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = '', array $advancedFilters = []): int
     {
         $sql = 'SELECT COUNT(*) FROM crm_presupuestos p WHERE p.empresa_id = :empresa_id';
         $params = [':empresa_id' => $empresaId];
         $this->applyEstadoFilter($sql, $params, $estado);
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'numero' => 'CAST(p.numero AS CHAR)',
+            'fecha' => 'DATE_FORMAT(p.fecha, "%Y-%m-%d %H:%i:%s")',
+            'cliente_nombre_snapshot' => 'p.cliente_nombre_snapshot',
+            'estado' => 'p.estado',
+            'total' => 'CAST(p.total AS CHAR)',
+        ]);
+        
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -58,7 +71,8 @@ class PresupuestoRepository
         string $field = 'all',
         string $estado = '',
         string $orderBy = 'fecha',
-        string $orderDir = 'DESC'
+        string $orderDir = 'DESC',
+        array $advancedFilters = []
     ): array {
         $offset = max(0, ($page - 1) * $limit);
         $sql = 'SELECT p.*,
@@ -75,6 +89,19 @@ class PresupuestoRepository
         }
         
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'numero' => 'CAST(p.numero AS CHAR)',
+            'fecha' => 'DATE_FORMAT(p.fecha, "%Y-%m-%d %H:%i:%s")',
+            'cliente_nombre_snapshot' => 'p.cliente_nombre_snapshot',
+            'estado' => 'p.estado',
+            'total' => 'CAST(p.total AS CHAR)',
+        ]);
+        
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $allowedColumns = ['numero', 'fecha', 'cliente_nombre_snapshot', 'total', 'estado'];
         if (!in_array($orderBy, $allowedColumns, true)) {

@@ -39,10 +39,12 @@ class CrmClienteController extends Controller
         $status = (string) ($_GET['status'] ?? 'activos');
         $onlyDeleted = $status === 'papelera';
 
-        $totalItems = $this->repository->countAll($empresaId, $search, $field, $onlyDeleted);
+        $advancedFilters = $this->handleCrudFilters('crm_clientes');
+
+        $totalItems = $this->repository->countAll($empresaId, $search, $field, $onlyDeleted, $advancedFilters);
         $totalPages = max(1, (int) ceil($totalItems / $limit));
         $page = min($page, $totalPages);
-        $clientes = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $onlyDeleted);
+        $clientes = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $onlyDeleted, $advancedFilters);
 
         View::render('app/modules/CrmClientes/views/index.php', array_merge($this->buildUiContext(), [
             'clientes' => $clientes,

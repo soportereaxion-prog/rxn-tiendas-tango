@@ -537,7 +537,7 @@ ob_start();
                     testBtn.disabled = true;
 
                     try {
-                        const formData = new FormData(document.querySelector('form'));
+                        const formData = new FormData(testBtn.closest('form'));
                         const res = await fetch('<?= htmlspecialchars($basePath) ?>/test-smtp', {
                             method: 'POST',
                             body: formData
@@ -545,12 +545,12 @@ ob_start();
                         
                         const json = await res.json();
                         if (json.success) {
-                            alert('✅ CONEXIÓN EXITOSA:\n' + json.message);
+                            (window.rxnAlert || alert)(json.message, 'success', 'Conexión Exitosa');
                         } else {
-                            alert('❌ ERROR FATAL SMTP:\n' + json.message);
+                            (window.rxnAlert || alert)(json.message, 'danger', 'Falló SMTP');
                         }
                     } catch (error) {
-                        alert('Error de RED o CORS al intentar contactar al Validador PHP.');
+                        (window.rxnAlert || alert)('Error de RED o CORS al intentar contactar al Validador PHP.', 'danger', 'Error de Conexión');
                     } finally {
                         testBtn.innerText = originalText;
                         testBtn.disabled = false;
@@ -578,35 +578,32 @@ ob_start();
                 }
 
                 try {
-                    const formData = new FormData(document.querySelector('form'));
+                    const formData = new FormData(tangoBtn.closest('form'));
 
                     if (validateFirst) {
                         const resAuth = await fetch('<?= htmlspecialchars($basePath) ?>/test-tango', { method: 'POST', body: formData });
                         const jsonAuth = await resAuth.json();
 
                         if (!jsonAuth.success) {
-                            tangoBtn.innerHTML = '❌ Falla Integración';
-                            tangoBtn.classList.replace('btn-primary', 'btn-danger');
-                            if (tangoHint) {
-                                tangoHint.textContent = 'No pude validar Tango Connect con los datos cargados.';
-                            }
-                            alert('Tango Connect advierte error:\n\n' + jsonAuth.message);
-                            return false;
+                            (window.rxnAlert || alert)(jsonAuth.message, 'warning', 'Tango Connect rechaza credenciales');
+                            tangoOk = false;
                         }
 
                         tangoBtn.innerHTML = '✅ Configurado y Funcional';
                         tangoBtn.classList.replace('btn-primary', 'btn-success');
                     }
 
-                    const resMeta = await fetch('<?= htmlspecialchars($basePath) ?>/tango-metadata', { method: 'POST', body: formData });
-                    const jsonMeta = await resMeta.json();
+                    if (tangoOk) {
+                        const resMeta = await fetch('<?= htmlspecialchars($basePath) ?>/tango-metadata', { method: 'POST', body: formData });
+                        const jsonMeta = await resMeta.json();
 
-                    if (jsonMeta.success && jsonMeta.data) {
-                        populateTangoSelects(jsonMeta.data);
-                        if (tangoHint) {
-                            tangoHint.textContent = 'Descripciones Tango resueltas. Si un valor no existe más en Connect, se conserva el guardado como referencia.';
+                        if (jsonMeta.success && jsonMeta.data) {
+                            populateTangoSelects(jsonMeta.data);
+                            if (tangoHint) {
+                                tangoHint.textContent = 'Descripciones Tango resueltas. Si un valor no existe más en Connect, se conserva el guardado como referencia.';
+                            }
+                            return true;
                         }
-                        return true;
                     }
 
                     if (tangoHint) {
@@ -620,9 +617,7 @@ ob_start();
                     if (tangoHint) {
                         tangoHint.textContent = 'Hubo un problema local al intentar resolver metadata de Tango.';
                     }
-                    if (validateFirst) {
-                        alert('Problema al contactar tu propia instancia de red (CORS/Timeout). Revise consola local.');
-                    }
+                    (window.rxnAlert || alert)('Problema al contactar tu propia instancia de red (CORS/Timeout). Revise consola local.', 'danger', 'Error interno');
                     return false;
                 } finally {
                     setTimeout(() => {

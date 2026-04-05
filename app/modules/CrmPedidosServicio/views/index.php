@@ -135,16 +135,16 @@ ob_start();
                                 <th style="width: 40px;" class="text-center">
                                     <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="document.querySelectorAll('.row-checkbox').forEach(e => e.checked = this.checked);">
                                 </th>
-                                <th><?= $sortLink('numero', 'Numero') ?></th>
-                                <th><?= $sortLink('fecha_inicio', 'Inicio') ?></th>
-                                <th><?= $sortLink('fecha_finalizado', 'Finalizado') ?></th>
-                                <th><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
-                                <th>Solicito</th>
-                                <th><?= $sortLink('articulo_nombre', 'Articulo') ?></th>
-                                <th><?= $sortLink('clasificacion_codigo', 'Clasificacion') ?></th>
-                                <th>Usuario</th>
+                                <th class="rxn-filter-col" data-filter-field="numero"><?= $sortLink('numero', 'Numero') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="fecha_inicio"><?= $sortLink('fecha_inicio', 'Inicio') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="fecha_finalizado"><?= $sortLink('fecha_finalizado', 'Finalizado') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="cliente_nombre"><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="solicito">Solicito</th>
+                                <th class="rxn-filter-col" data-filter-field="articulo_nombre"><?= $sortLink('articulo_nombre', 'Articulo') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="clasificacion_codigo"><?= $sortLink('clasificacion_codigo', 'Clasificacion') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="usuario_nombre">Usuario</th>
                                 <th><?= $sortLink('duracion_neta_segundos', 'Tiempo neto') ?></th>
-                                <th>Estado</th>
+                                <th class="rxn-filter-col" data-filter-field="estado_codigo">Estado</th>
                                 <th class="rxn-row-chevron-col"></th>
                             </tr>
                         </thead>
@@ -207,7 +207,7 @@ ob_start();
                                                     <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-medium rxn-confirm-form" data-msg="¿Enviar este pedido a la papelera?" title="Eliminar"><i class="bi bi-trash"></i></button>
                                                 </form>
                                                 <?php else: ?>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-medium" onclick="alert('El PDS fue enviado a Tango no se puede eliminar.'); event.stopPropagation();" title="No se puede eliminar"><i class="bi bi-trash"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-medium" onclick="(window.rxnAlert || alert)('El PDS fue enviado a Tango. No se puede eliminar.', 'danger', 'Operación bloqueada'); event.stopPropagation();" title="No se puede eliminar"><i class="bi bi-trash"></i></button>
                                                 <?php endif; ?>
                                             <?php endif; ?>
                                             <a href="/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" class="btn btn-sm btn-outline-primary py-0 px-2 fw-medium rxn-row-link-action rxn-row-chevron" title="Abrir pedido" aria-label="Abrir pedido" data-row-link-ignore>›</a>
@@ -245,10 +245,10 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/js/rxn-crud-search.js"></script>
+<script src="/js/rxn-advanced-filters.js"></script>
+    <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>
-    <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

@@ -21,7 +21,7 @@ class CategoriaService
         $this->repository = new CategoriaRepository();
     }
 
-    public function findAllForContext(array $filters = []): array
+    public function findAllForContext(array $filters = [], array $advancedFilters = []): array
     {
         $empresaId = $this->getContextId();
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
@@ -33,7 +33,7 @@ class CategoriaService
         $onlyDeleted = $status === 'papelera';
 
         $total = $this->repository->countAllByEmpresaId($empresaId);
-        $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field, $onlyDeleted);
+        $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field, $onlyDeleted, $advancedFilters);
         $lastPage = max(1, (int) ceil($filteredTotal / self::PER_PAGE));
         $page = $this->normalizePage($filters['page'] ?? 1, $lastPage);
         $offset = ($page - 1) * self::PER_PAGE;
@@ -46,7 +46,8 @@ class CategoriaService
             $dir,
             self::PER_PAGE,
             $offset,
-            $onlyDeleted
+            $onlyDeleted,
+            $advancedFilters
         );
 
         return [

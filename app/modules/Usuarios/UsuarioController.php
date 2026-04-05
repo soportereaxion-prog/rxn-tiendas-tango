@@ -31,7 +31,8 @@ class UsuarioController extends Controller
         $ui = $this->buildUiContext();
         try {
             $this->service = new UsuarioService();
-            $result = $this->service->findAllForContext($_GET);
+            $advancedFilters = $this->handleCrudFilters('config_usuarios');
+            $result = $this->service->findAllForContext($_GET, $advancedFilters);
             View::render('app/modules/Usuarios/views/index.php', array_merge($ui, [
                 'usuarios' => $result['items'],
                 'filters' => $result['filters'],

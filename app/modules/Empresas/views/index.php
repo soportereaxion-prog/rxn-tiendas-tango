@@ -186,13 +186,13 @@ ob_start();
                                     <th style="width: 40px;">
                                         <input class="form-check-input ms-2" type="checkbox" id="check-all" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);">
                                     </th>
-                                    <th><?= $sortLink('id', 'ID') ?></th>
-                                    <th><?= $sortLink('codigo', 'Codigo') ?></th>
-                                    <th><?= $sortLink('nombre', 'Nombre') ?></th>
-                                    <th><?= $sortLink('slug', 'Slug') ?></th>
-                                    <th><?= $sortLink('razon_social', 'Razon Social') ?></th>
-                                    <th><?= $sortLink('cuit', 'CUIT') ?></th>
-                                    <th><?= $sortLink('activa', 'Estado') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="id"><?= $sortLink('id', 'ID') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="codigo"><?= $sortLink('codigo', 'Codigo') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="nombre"><?= $sortLink('nombre', 'Nombre') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="slug"><?= $sortLink('slug', 'Slug') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="razon_social"><?= $sortLink('razon_social', 'Razon Social') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="cuit"><?= $sortLink('cuit', 'CUIT') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="activa"><?= $sortLink('activa', 'Estado') ?></th>
                                     <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -298,6 +298,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
+<script src="/js/rxn-advanced-filters.js"></script>
 <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>

@@ -43,7 +43,7 @@ class UsuarioService
         return $this->findAllForContext();
     }
 
-    public function findAllForContext(array $filters = []): array
+    public function findAllForContext(array $filters = [], array $advancedFilters = []): array
     {
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
         $field = $this->normalizeSearchField($filters['field'] ?? 'all');
@@ -55,11 +55,11 @@ class UsuarioService
 
         if ($isGlobalAdmin) {
             $total = $this->repository->countAll($onlyDeleted);
-            $filteredTotal = $this->repository->countFiltered($search, $field, $onlyDeleted);
+            $filteredTotal = $this->repository->countFiltered($search, $field, $onlyDeleted, $advancedFilters);
         } else {
             $empresaId = $this->getContextId();
             $total = $this->repository->countAllByEmpresaId($empresaId, $onlyDeleted);
-            $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field, $onlyDeleted);
+            $filteredTotal = $this->repository->countFilteredByEmpresaId($empresaId, $search, $field, $onlyDeleted, $advancedFilters);
         }
 
         $lastPage = max(1, (int) ceil($filteredTotal / self::PER_PAGE));
@@ -67,9 +67,9 @@ class UsuarioService
         $offset = ($page - 1) * self::PER_PAGE;
 
         if ($isGlobalAdmin) {
-            $items = $this->repository->findFilteredPaginated($search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted);
+            $items = $this->repository->findFilteredPaginated($search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted, $advancedFilters);
         } else {
-            $items = $this->repository->findFilteredPaginatedByEmpresaId($empresaId, $search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted);
+            $items = $this->repository->findFilteredPaginatedByEmpresaId($empresaId, $search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted, $advancedFilters);
         }
 
         return [

@@ -179,13 +179,13 @@ ob_start();
                                             <input type="checkbox" id="checkAll" class="form-check-input" data-row-link-ignore onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);">
                                         </th>
                                         <th>Vista</th>
-                                    <th><?= $sortLink('nombre', 'Nombre') ?></th>
-                                    <th><?= $sortLink('slug', 'Slug') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="nombre"><?= $sortLink('nombre', 'Nombre') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="slug"><?= $sortLink('slug', 'Slug') ?></th>
                                     <th>Descripcion</th>
-                                    <th><?= $sortLink('orden_visual', 'Orden') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="orden_visual"><?= $sortLink('orden_visual', 'Orden') ?></th>
                                     <th>Articulos</th>
-                                    <th><?= $sortLink('visible_store', 'Store') ?></th>
-                                    <th><?= $sortLink('activa', 'Estado') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="visible_store"><?= $sortLink('visible_store', 'Store') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="activa"><?= $sortLink('activa', 'Estado') ?></th>
                                     <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -296,6 +296,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
+<script src="/js/rxn-advanced-filters.js"></script>
 <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script>

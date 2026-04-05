@@ -14,7 +14,7 @@ use App\Shared\Services\OperationalAreaService;
 use DateTimeImmutable;
 use Throwable;
 
-class PresupuestoController
+class PresupuestoController extends \App\Core\Controller
 {
     private const SEARCH_FIELDS = ['all', 'numero', 'cliente', 'estado', 'fecha'];
     private const ESTADOS = ['borrador', 'emitido', 'anulado'];
@@ -52,10 +52,12 @@ class PresupuestoController
         $sort = trim((string) ($_GET['sort'] ?? 'fecha'));
         $dir = strtoupper((string) ($_GET['dir'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
-        $totalItems = $this->repository->countAll($empresaId, $search, $field, $estado);
+        $advancedFilters = $this->handleCrudFilters('crm_presupuestos');
+
+        $totalItems = $this->repository->countAll($empresaId, $search, $field, $estado, $advancedFilters);
         $totalPages = max(1, (int) ceil($totalItems / $limit));
         $page = min($page, $totalPages);
-        $presupuestos = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir);
+        $presupuestos = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir, $advancedFilters);
 
         View::render('app/modules/CrmPresupuestos/views/index.php', array_merge($this->buildUiContext(), [
             'presupuestos' => $presupuestos,

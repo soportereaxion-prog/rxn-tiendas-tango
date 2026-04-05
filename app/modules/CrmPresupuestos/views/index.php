@@ -139,13 +139,13 @@ ob_start();
                             ?>
                             <tr>
                                 <th style="width: 40px;"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                                <th><?= $sortLink('numero', 'Numero') ?></th>
-                                <th><?= $sortLink('fecha', 'Fecha') ?></th>
-                                <th><?= $sortLink('cliente_nombre_snapshot', 'Cliente') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="numero"><?= $sortLink('numero', 'Numero') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="fecha"><?= $sortLink('fecha', 'Fecha') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="cliente_nombre_snapshot"><?= $sortLink('cliente_nombre_snapshot', 'Cliente') ?></th>
                                 <th>Usuario</th>
                                 <th>Items</th>
-                                <th><?= $sortLink('total', 'Total') ?></th>
-                                <th><?= $sortLink('estado', 'Estado') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="total"><?= $sortLink('total', 'Total') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="estado"><?= $sortLink('estado', 'Estado') ?></th>
                                 <th class="rxn-row-chevron-col"></th>
                             </tr>
                         </thead>
@@ -228,7 +228,8 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/js/rxn-crud-search.js"></script>
+<script src="/js/rxn-advanced-filters.js"></script>
+    <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-shortcuts.js"></script>

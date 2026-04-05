@@ -48,12 +48,24 @@ class CategoriaRepository
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFilteredByEmpresaId(int $empresaId, string $search = '', string $field = 'all', bool $onlyDeleted = false): int
+    public function countFilteredByEmpresaId(int $empresaId, string $search = '', string $field = 'all', bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'c.deleted_at IS NOT NULL' : 'c.deleted_at IS NULL';
         $sql = 'SELECT COUNT(*) FROM categorias c WHERE c.empresa_id = :empresa_id AND ' . $delCond;
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'nombre' => 'c.nombre',
+            'slug' => 'c.slug',
+            'orden_visual' => 'CAST(c.orden_visual AS CHAR)',
+            'activa' => 'CAST(c.activa AS CHAR)',
+            'visible_store' => 'CAST(c.visible_store AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -69,7 +81,8 @@ class CategoriaRepository
         string $dir = 'asc',
         int $limit = 10,
         int $offset = 0,
-        bool $onlyDeleted = false
+        bool $onlyDeleted = false,
+        array $advancedFilters = []
     ): array {
         $delCond = $onlyDeleted ? 'c.deleted_at IS NOT NULL' : 'c.deleted_at IS NULL';
         $sql = 'SELECT c.*, COUNT(DISTINCT a.id) AS articulos_count
@@ -85,6 +98,18 @@ class CategoriaRepository
         $params = [':empresa_id' => $empresaId];
 
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'nombre' => 'c.nombre',
+            'slug' => 'c.slug',
+            'orden_visual' => 'CAST(c.orden_visual AS CHAR)',
+            'activa' => 'CAST(c.activa AS CHAR)',
+            'visible_store' => 'CAST(c.visible_store AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $sortColumn = self::SORTABLE_FIELDS[$sort] ?? self::SORTABLE_FIELDS['orden_visual'];
         $direction = strtolower($dir) === 'desc' ? 'DESC' : 'ASC';

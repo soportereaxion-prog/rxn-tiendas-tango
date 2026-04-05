@@ -40,13 +40,28 @@ class EmpresaRepository
         string $dir = 'asc',
         int $limit = 10,
         int $offset = 0,
-        bool $onlyDeleted = false
+        bool $onlyDeleted = false,
+        array $advancedFilters = []
     ): array
     {
         $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
         $sql = "SELECT * FROM empresas WHERE $delCond";
         $params = [];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'codigo' => 'codigo',
+            'nombre' => 'nombre',
+            'slug' => 'slug',
+            'razon_social' => 'razon_social',
+            'cuit' => 'cuit',
+            'activa' => 'CAST(activa AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
+
         $sql .= sprintf(
             ' ORDER BY %s %s LIMIT :limit OFFSET :offset',
             $this->normalizeSortField($sort),
@@ -69,12 +84,25 @@ class EmpresaRepository
         return (int) $this->db->query("SELECT COUNT(*) FROM empresas WHERE $delCond")->fetchColumn();
     }
 
-    public function countFiltered(?string $search = null, string $field = 'all', bool $onlyDeleted = false): int
+    public function countFiltered(?string $search = null, string $field = 'all', bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
         $sql = "SELECT COUNT(*) FROM empresas WHERE $delCond";
         $params = [];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'codigo' => 'codigo',
+            'nombre' => 'nombre',
+            'slug' => 'slug',
+            'razon_social' => 'razon_social',
+            'cuit' => 'cuit',
+            'activa' => 'CAST(activa AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

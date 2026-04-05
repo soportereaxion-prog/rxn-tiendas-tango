@@ -298,14 +298,7 @@ ob_start();
     }
 
     function showErrorModal(msg) {
-        const modalEl = document.getElementById('rxnErrorModal');
-        if (modalEl) {
-            document.getElementById('rxnErrorMsg').textContent = msg;
-            const myModal = new bootstrap.Modal(modalEl);
-            myModal.show();
-        } else {
-            alert(msg);
-        }
+        (window.rxnAlert || alert)(msg, 'danger', 'Acceso Denegado');
     }
 
     // --- Lógica Autocomplete Vincular Clientes ---
@@ -451,14 +444,17 @@ ob_start();
         })
         .then(res => res.json())
         .then(data => {
-            if(data.success) {
-                window.location.reload();
-            } else {
-                alert(data.message || 'Error al vincular cliente');
+            if (!data.success) {
+                (window.rxnAlert || alert)(data.message || 'Error al vincular cliente', 'danger', 'No se pudo vincular');
                 btnSubmit.disabled = false;
+                return;
             }
+            
+            (window.rxnAlert || alert)('Cliente vinculado correctamente', 'success', 'Operación exitosa');
+            window.location.reload();
         }).catch(err => {
-            alert('Error de conexión');
+            console.error(err);
+            (window.rxnAlert || alert)('Error de conexión', 'danger', 'Error de red');
             btnSubmit.disabled = false;
         });
     }

@@ -126,13 +126,13 @@ ob_start();
                                     <th style="width: 40px;" class="text-center">
                                         <input type="checkbox" class="form-check-input" id="bulk-select-all" aria-label="Seleccionar todos" onclick="document.querySelectorAll('.rxn-bulk-checkbox').forEach(e => e.checked = this.checked);">
                                     </th>
-                                    <th><?= $sortLink('id', 'ID') ?></th>
-                                    <th><?= $sortLink('nombre', 'Nombre/Razón Social') ?></th>
-                                    <th><?= $sortLink('email', 'Email') ?></th>
-                                    <th><?= $sortLink('documento', 'Documento') ?></th>
-                                    <th><?= $sortLink('codigo_tango', 'Cod. Tango') ?></th>
-                                    <th><?= $sortLink('id_gva14_tango', 'Tango Resuelto') ?></th>
-                                    <th><?= $sortLink('created_at', 'Alta') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="id"><?= $sortLink('id', 'ID') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="nombre"><?= $sortLink('nombre', 'Nombre/Razón Social') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="email"><?= $sortLink('email', 'Email') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="documento"><?= $sortLink('documento', 'Documento') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="codigo_tango"><?= $sortLink('codigo_tango', 'Cod. Tango') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="id_gva14_tango"><?= $sortLink('id_gva14_tango', 'Tango Resuelto') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="created_at"><?= $sortLink('created_at', 'Alta') ?></th>
                                     <th class="rxn-actions-col text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -226,6 +226,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
+<script src="/js/rxn-advanced-filters.js"></script>
 <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>

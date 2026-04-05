@@ -188,11 +188,11 @@ ob_start();
                                     <th style="width: 40px;" class="text-center">
                                         <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onclick="document.querySelectorAll('.row-checkbox').forEach(e => e.checked = this.checked);">
                                     </th>
-                                    <th><?= $sortLink('id', 'ID') ?></th>
-                                    <th><?= $sortLink('nombre', 'Nombre') ?></th>
-                                    <th><?= $sortLink('email', 'Email') ?></th>
-                                    <th><?= $sortLink('es_admin', 'Rol') ?></th>
-                                    <th><?= $sortLink('activo', 'Estado') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="id"><?= $sortLink('id', 'ID') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="nombre"><?= $sortLink('nombre', 'Nombre') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="email"><?= $sortLink('email', 'Email') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="es_admin"><?= $sortLink('es_admin', 'Rol') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="activo"><?= $sortLink('activo', 'Estado') ?></th>
                                     <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -289,6 +289,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
+<script src="/js/rxn-advanced-filters.js"></script>
 <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>

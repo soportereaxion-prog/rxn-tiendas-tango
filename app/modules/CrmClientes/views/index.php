@@ -141,11 +141,11 @@ ob_start();
                                 ?>
                                 <tr>
                                     <th style="width: 40px;"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                                    <th><?= $sortLink('codigo_tango', 'Codigo Tango') ?></th>
-                                    <th><?= $sortLink('razon_social', 'Razon Social') ?></th>
-                                    <th><?= $sortLink('documento', 'CUIT / Doc') ?></th>
-                                    <th><?= $sortLink('email', 'Email') ?></th>
-                                    <th><?= $sortLink('telefono', 'Telefono') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="codigo_tango"><?= $sortLink('codigo_tango', 'Codigo Tango') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="razon_social"><?= $sortLink('razon_social', 'Razon Social') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="documento"><?= $sortLink('documento', 'CUIT / Doc') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="email"><?= $sortLink('email', 'Email') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="telefono"><?= $sortLink('telefono', 'Telefono') ?></th>
                                     <th><?= $sortLink('activo', 'Estado') ?></th>
                                     <th><?= $sortLink('fecha_ultima_sync', 'Ultima Sync') ?></th>
                                     <th class="text-end">Acciones</th>
@@ -237,7 +237,8 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/js/rxn-crud-search.js"></script>
+<script src="/js/rxn-advanced-filters.js"></script>
+    <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-shortcuts.js"></script>

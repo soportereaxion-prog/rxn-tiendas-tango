@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\ClientesWeb;
 
 use App\Core\Database;
+use App\Core\Context;
 use PDO;
 
 class ClienteWebRepository
@@ -181,11 +182,11 @@ class ClienteWebRepository
     /**
      * Obtiene todos los clientes paginados para el ABM.
      */
-    public function findAllPaginated(int $empresaId, int $page, int $limit, string $search, string $field, string $sort, string $dir, string $status = 'activos'): array
+    public function findAllPaginated(int $empresaId, int $page, int $limit, string $search, string $field, string $sort, string $dir, string $status = 'activos', array $advancedFilters = []): array
     {
         $offset = ($page - 1) * $limit;
         $orderDir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
-        $allowedSorts = ['id', 'nombre', 'apellido', 'email', 'codigo_tango', 'id_gva14_tango', 'created_at'];
+        $allowedSorts = ['id', 'nombre', 'apellido', 'email', 'codigo_tango', 'id_gva14_tango', 'created_at', 'documento'];
         $orderBy = in_array(strtolower($sort), $allowedSorts) ? $sort : 'created_at';
 
         $activo = $status === 'papelera' ? 0 : 1;
@@ -193,6 +194,20 @@ class ClienteWebRepository
         $params = ['emp_id' => $empresaId, 'activo' => $activo];
 
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'id' => 'id',
+            'nombre' => 'nombre',
+            'email' => 'email',
+            'documento' => 'documento',
+            'codigo_tango' => 'codigo_tango',
+            'id_gva14_tango' => 'id_gva14_tango',
+            'created_at' => 'created_at'
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $sql .= " ORDER BY $orderBy $orderDir LIMIT :limit OFFSET :offset";
 
@@ -210,12 +225,26 @@ class ClienteWebRepository
     /**
      * Cuenta clientes para paginación.
      */
-    public function countAll(int $empresaId, string $search, string $field, string $status = 'activos'): int
+    public function countAll(int $empresaId, string $search, string $field, string $status = 'activos', array $advancedFilters = []): int
     {
         $activo = $status === 'papelera' ? 0 : 1;
         $sql = "SELECT COUNT(*) FROM {$this->clientesTable} WHERE empresa_id = :emp_id AND activo = :activo";
         $params = ['emp_id' => $empresaId, 'activo' => $activo];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'id' => 'id',
+            'nombre' => 'nombre',
+            'email' => 'email',
+            'documento' => 'documento',
+            'codigo_tango' => 'codigo_tango',
+            'id_gva14_tango' => 'id_gva14_tango',
+            'created_at' => 'created_at'
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

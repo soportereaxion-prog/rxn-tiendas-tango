@@ -21,7 +21,8 @@ class EmpresaController extends Controller
     public function index(): void
     {
         AuthService::requireRxnAdmin();
-        $result = $this->service->findAll($_GET);
+        $advancedFilters = $this->handleCrudFilters('config_empresas');
+        $result = $this->service->findAll($_GET, $advancedFilters);
         View::render('app/modules/Empresas/views/index.php', [
             'empresas' => $result['items'],
             'filters' => $result['filters'],
@@ -108,9 +109,11 @@ class EmpresaController extends Controller
                 'old' => $_POST
             ]);
         } catch (\PDOException $e) {
+            $pdo = \App\Core\Database::getConnection();
+            $dbName = $pdo->query('SELECT DATABASE()')->fetchColumn();
             $empresa = $this->service->findById((int) $id);
             View::render('app/modules/Empresas/views/editar.php', [
-                'error' => 'Error de base de datos: ' . $e->getMessage(),
+                'error' => "Error de base de datos [$dbName]: " . $e->getMessage(),
                 'empresa' => $empresa,
                 'old' => $_POST
             ]);

@@ -11,7 +11,7 @@ use App\Shared\Services\OperationalAreaService;
 use DateTimeImmutable;
 use Exception;
 
-class PedidoServicioController
+class PedidoServicioController extends \App\Core\Controller
 {
     private const SEARCH_FIELDS = ['all', 'numero', 'cliente', 'solicito', 'articulo', 'clasificacion', 'estado', 'usuario'];
 
@@ -27,6 +27,9 @@ class PedidoServicioController
         AuthService::requireLogin();
         $empresaId = (int) Context::getEmpresaId();
 
+        // 1. Truculencia: Levantar estado de sesión si aplica
+        $advancedFilters = $this->handleCrudFilters('crm_pedidos_servicio');
+
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 25;
         if (!in_array($limit, [25, 50, 100], true)) {
@@ -39,10 +42,10 @@ class PedidoServicioController
         $sort = trim((string) ($_GET['sort'] ?? 'fecha_inicio'));
         $dir = strtoupper((string) ($_GET['dir'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
-        $totalItems = $this->repository->countAll($empresaId, $search, $field, $estado);
+        $totalItems = $this->repository->countAll($empresaId, $search, $field, $estado, $advancedFilters);
         $totalPages = max(1, (int) ceil($totalItems / $limit));
         $page = min($page, $totalPages);
-        $pedidos = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir);
+        $pedidos = $this->repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir, $advancedFilters);
 
         View::render('app/modules/CrmPedidosServicio/views/index.php', array_merge($this->buildUiContext(), [
             'pedidos' => $pedidos,

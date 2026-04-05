@@ -123,7 +123,7 @@ class PedidoWebRepository
         ]);
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = '', string $status = 'activos'): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', string $estado = '', string $status = 'activos', array $advancedFilters = []): int
     {
         $activo = $status === 'papelera' ? 0 : 1;
         $sql = "SELECT COUNT(*) FROM pedidos_web p 
@@ -138,12 +138,26 @@ class PedidoWebRepository
 
         $this->applySearch($sql, $params, $search, $field, true);
 
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'id' => 'p.id',
+            'cliente_nombre' => 'c.nombre',
+            'cliente_apellido' => 'c.apellido',
+            'cliente_email' => 'c.email',
+            'estado_tango' => 'p.estado_tango',
+            'created_at' => 'p.created_at',
+            'total' => 'p.total'
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return (int)$stmt->fetchColumn();
     }
 
-    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = '', string $field = 'all', string $estado = '', string $orderBy = 'p.created_at', string $orderDir = 'DESC', string $status = 'activos'): array
+    public function findAllPaginated(int $empresaId, int $page = 1, int $limit = 50, string $search = '', string $field = 'all', string $estado = '', string $orderBy = 'p.created_at', string $orderDir = 'DESC', string $status = 'activos', array $advancedFilters = []): array
     {
         $offset = max(0, ($page - 1) * $limit);
         $activo = $status === 'papelera' ? 0 : 1;
@@ -159,6 +173,20 @@ class PedidoWebRepository
         }
 
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'id' => 'p.id',
+            'cliente_nombre' => 'c.nombre',
+            'cliente_apellido' => 'c.apellido',
+            'cliente_email' => 'c.email',
+            'estado_tango' => 'p.estado_tango',
+            'created_at' => 'p.created_at',
+            'total' => 'CAST(p.total AS CHAR)'
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $allowedColumns = ['p.created_at', 'p.id', 'p.total', 'cliente_nombre'];
         if (!in_array($orderBy, $allowedColumns)) {

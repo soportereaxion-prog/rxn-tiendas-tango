@@ -138,13 +138,13 @@ ob_start();
                                 <th style="width: 40px;" class="text-center">
                                     <input type="checkbox" class="form-check-input" id="bulk-select-all" aria-label="Seleccionar todos" onclick="document.querySelectorAll('.rxn-bulk-checkbox').forEach(e => { e.checked = this.checked; e.dispatchEvent(new Event('change')); });">
                                 </th>
-                                <th><?= $sortLink('p.id', '# Orden') ?></th>
-                                <th><?= $sortLink('p.created_at', 'Fecha') ?></th>
-                                <th><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
-                                <th>Email</th>
+                                <th class="rxn-filter-col" data-filter-field="id"><?= $sortLink('p.id', '# Orden') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="created_at"><?= $sortLink('p.created_at', 'Fecha') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="cliente_nombre"><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="cliente_email">Email</th>
                                 <th>Cód. Tango Asignado</th>
-                                <th class="text-nowrap"><?= $sortLink('p.total', 'Total ($)') ?></th>
-                                <th>Estado Integración</th>
+                                <th class="text-nowrap rxn-filter-col" data-filter-field="total"><?= $sortLink('p.total', 'Total ($)') ?></th>
+                                <th class="rxn-filter-col" data-filter-field="estado_tango">Estado Integración</th>
                                 <th class="rxn-actions-col text-end">Acciones</th>
                             </tr>
                         </thead>
@@ -242,6 +242,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
+<script src="/js/rxn-advanced-filters.js"></script>
 <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>

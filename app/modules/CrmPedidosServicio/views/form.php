@@ -168,7 +168,7 @@ ob_start();
                             <button type="submit" class="btn btn-outline-danger btn-sm" data-rxn-confirm="¿Confirma enviar este pedido a la papelera?" data-confirm-type="danger" title="Eliminar"><i class="bi bi-trash"></i></button>
                         </form>
                         <?php else: ?>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="alert('El PDS fue enviado a Tango no se puede eliminar.');" title="No se puede eliminar"><i class="bi bi-trash"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="(window.rxnAlert || alert)('El PDS fue enviado a Tango. No se puede eliminar.', 'danger', 'Operación bloqueada'); event.stopPropagation();" title="No se puede eliminar"><i class="bi bi-trash"></i></button>
                         <?php endif; ?>
                     <?php else: ?>
                         <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Debes guardar el pedido primero"><i class="bi bi-copy"></i></button>

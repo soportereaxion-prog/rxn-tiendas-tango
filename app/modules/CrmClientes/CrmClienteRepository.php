@@ -25,12 +25,25 @@ class CrmClienteRepository
         $this->ensureSchema();
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all', bool $onlyDeleted = false): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
         $sql = "SELECT COUNT(*) FROM crm_clientes WHERE empresa_id = :empresa_id AND $delCond";
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'id' => 'CAST(id AS CHAR)',
+            'codigo_tango' => 'codigo_tango',
+            'razon_social' => 'razon_social',
+            'documento' => 'documento',
+            'email' => 'email',
+            'telefono' => 'telefono',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -46,7 +59,8 @@ class CrmClienteRepository
         string $field = 'all',
         string $sort = 'razon_social',
         string $dir = 'ASC',
-        bool $onlyDeleted = false
+        bool $onlyDeleted = false,
+        array $advancedFilters = []
     ): array {
         $offset = max(0, ($page - 1) * $limit);
         $allowedSorts = ['id', 'codigo_tango', 'razon_social', 'documento', 'email', 'telefono', 'activo', 'fecha_ultima_sync', 'updated_at'];
@@ -59,6 +73,20 @@ class CrmClienteRepository
         $sql = "SELECT * FROM crm_clientes WHERE empresa_id = :empresa_id AND $delCond";
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'id' => 'CAST(id AS CHAR)',
+            'codigo_tango' => 'codigo_tango',
+            'razon_social' => 'razon_social',
+            'documento' => 'documento',
+            'email' => 'email',
+            'telefono' => 'telefono',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
+
         $sql .= ' ORDER BY ' . $sort . ' ' . $dir . ', razon_social ASC LIMIT :limit OFFSET :offset';
 
         $stmt = $this->db->prepare($sql);

@@ -1,9 +1,33 @@
 <?php
 
 return [
-    'current_version' => '1.1.57',
-    'current_build' => '20260404.10',
+    'current_version' => '1.2.0',
+    'current_build' => '20260405.2',
     'history' => [
+        [
+            'version' => '1.2.0',
+            'build' => '20260405.2',
+            'released_at' => '2026-04-05',
+            'title' => 'Filtros Avanzados Estilo Excel Globales',
+            'summary' => 'Despliegue operativo a lo largo de toda la plataforma de un sistema de filtros potentes con retención de estado, previniendo fuga de contexto y mejorando la agilidad de los operadores en ABMs clave.',
+            'items' => [
+                'Incorporación de filtros paramétricos directo en los encabezados de columnas (estilo Excel) para Empresas, Usuarios, Artículos, Categorías, Clientes y Pedidos.',
+                'El estado de los filtros ahora es persistente, logrando que el operador no pierda la vista de los listados tras entrar al detalle de un renglón y volver hacia atrás.',
+                'Motor de SQL centralizado blindado con whitelisting contra inyecciones usando mapeo seguro (AdvancedQueryFilter) soportando alias en sentencias complejas (JOINs).',
+            ],
+        ],
+        [
+            'version' => '1.1.58',
+            'build' => '20260405.1',
+            'released_at' => '2026-04-05',
+            'title' => 'Usabilidad Híbrida en Selectores (PDS y Llamadas)',
+            'summary' => 'Se rediseñaron los componentes de autocompletado para operar como selectores híbridos, integrando scroll nativo y carga condicional por click.',
+            'items' => [
+                'Hacer click directo en los selectores despliega un listado de sugerencias óptimo de 50 registros sin obligar a escribir previamente.',
+                'Los paneles ahora incluyen un scrollbar visual contenido en la cápsula, compatible con navegación dinámica mediante el ratón y teclado (flechas).',
+                'El Backend relajó lógicas restrictivas previas mejorando radicalmente la inmediatez de la interfaz.',
+            ],
+        ],
         [
             'version' => '1.1.57',
             'build' => '20260404.10',

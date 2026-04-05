@@ -20,7 +20,7 @@ class EmpresaService
         $this->repository = new EmpresaRepository();
     }
 
-    public function findAll(array $filters = []): array
+    public function findAll(array $filters = [], array $advancedFilters = []): array
     {
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
         $field = $this->normalizeSearchField($filters['field'] ?? 'all');
@@ -30,13 +30,13 @@ class EmpresaService
         $onlyDeleted = $status === 'papelera';
         
         $total = $this->repository->countAll($onlyDeleted);
-        $filteredTotal = $this->repository->countFiltered($search, $field, $onlyDeleted);
+        $filteredTotal = $this->repository->countFiltered($search, $field, $onlyDeleted, $advancedFilters);
         $lastPage = max(1, (int) ceil($filteredTotal / self::PER_PAGE));
         $page = $this->normalizePage($filters['page'] ?? 1, $lastPage);
         $offset = ($page - 1) * self::PER_PAGE;
 
         return [
-            'items' => $this->repository->findAll($search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted),
+            'items' => $this->repository->findAll($search, $field, $sort, $dir, self::PER_PAGE, $offset, $onlyDeleted, $advancedFilters),
             'filters' => [
                 'search' => $search,
                 'field' => $field,

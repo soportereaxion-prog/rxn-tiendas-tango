@@ -33,10 +33,11 @@ class PedidoWebController extends Controller
         $sort   = trim($_GET['sort'] ?? 'p.created_at');
         $dir    = trim($_GET['dir'] ?? 'DESC');
         $status = trim($_GET['status'] ?? 'activos');
+        $advancedFilters = $this->handleCrudFilters('pedidos_web');
 
-        $totalItems = $this->pedidoRepo->countAll($empresaId, $search, $field, $estado, $status);
+        $totalItems = $this->pedidoRepo->countAll($empresaId, $search, $field, $estado, $status, $advancedFilters);
         $totalPages = (int)ceil($totalItems / $limit);
-        $pedidos = $this->pedidoRepo->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir, $status);
+        $pedidos = $this->pedidoRepo->findAllPaginated($empresaId, $page, $limit, $search, $field, $estado, $sort, $dir, $status, $advancedFilters);
 
         View::render('app/modules/Pedidos/views/index.php', [
             'pedidos'    => $pedidos,
@@ -49,7 +50,8 @@ class PedidoWebController extends Controller
             'dir'        => $dir,
             'status'     => $status,
             'totalPages' => $totalPages,
-            'totalItems' => $totalItems
+            'totalItems' => $totalItems,
+            'filters'    => $advancedFilters
         ]);
     }
 

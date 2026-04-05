@@ -11,7 +11,7 @@ use App\Modules\Auth\AuthService;
 use App\Core\Context;
 use Exception;
 
-class ClienteWebController
+class ClienteWebController extends \App\Core\Controller
 {
     private const SEARCH_FIELDS = ['all', 'id', 'nombre', 'email', 'documento', 'codigo_tango'];
 
@@ -31,9 +31,10 @@ class ClienteWebController
         $sort = $_GET['sort'] ?? 'id';
         $dir = $_GET['dir'] ?? 'DESC';
         $status = $_GET['status'] ?? 'activos';
+        $advancedFilters = $this->handleCrudFilters('clientes_web');
 
-        $clientes = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $status);
-        $total = $repository->countAll($empresaId, $search, $field, $status);
+        $clientes = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $status, $advancedFilters);
+        $total = $repository->countAll($empresaId, $search, $field, $status, $advancedFilters);
         $totalPages = ceil($total / $limit) ?: 1;
 
         View::render('app/modules/ClientesWeb/views/index.php', array_merge($ui, [
@@ -44,7 +45,8 @@ class ClienteWebController
             'field' => $field,
             'sort' => $sort,
             'dir' => $dir,
-            'status' => $status
+            'status' => $status,
+            'filters' => $advancedFilters
         ]));
     }
 

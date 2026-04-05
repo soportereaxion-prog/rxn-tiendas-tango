@@ -24,7 +24,8 @@ class CategoriaController extends Controller
         $ui = $this->buildUiContext();
 
         try {
-            $result = $this->service->findAllForContext($_GET);
+            $advancedFilters = $this->handleCrudFilters('categorias');
+            $result = $this->service->findAllForContext($_GET, $advancedFilters);
             View::render('app/modules/Categorias/views/index.php', array_merge($ui, [
                 'categorias' => $result['items'],
                 'filters' => $result['filters'],
