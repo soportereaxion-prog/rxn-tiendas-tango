@@ -341,14 +341,15 @@ class PedidoServicioRepository
 
     public function findClientSuggestions(int $empresaId, string $term, int $limit = 5): array
     {
-        if (trim($term) === '') {
-            return [];
-        }
-
+        $termRaw = trim($term);
+        $termWildcard = '%' . $termRaw . '%';
+        
         $sql = 'SELECT id, nombre, apellido, razon_social, email, documento, codigo_tango
             FROM crm_clientes
-            WHERE empresa_id = :empresa_id
-              AND (
+            WHERE empresa_id = :empresa_id';
+            
+        if ($termRaw !== '') {
+            $sql .= ' AND (
                 razon_social LIKE :t1
                 OR codigo_tango LIKE :t2
                 OR email LIKE :t3
@@ -368,31 +369,35 @@ class PedidoServicioRepository
                     WHEN documento = :o_exact3 THEN 7
                     ELSE 99 
                 END ASC,
-                razon_social ASC, nombre ASC, apellido ASC
-            LIMIT :limit';
+                razon_social ASC, nombre ASC, apellido ASC';
+        } else {
+            $sql .= ' ORDER BY razon_social ASC, nombre ASC, apellido ASC';
+        }
+            
+        $sql .= ' LIMIT :limit';
 
-        $termRaw = trim($term);
-        $termWildcard = '%' . $termRaw . '%';
-        
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
-        $stmt->bindValue(':t1', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t2', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t3', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t4', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t5', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t6', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t7', $termWildcard, PDO::PARAM_STR);
         
-        $stmt->bindValue(':o_exact1', $termRaw, PDO::PARAM_STR);
-        $stmt->bindValue(':o_start1', $termRaw . '%', PDO::PARAM_STR);
-        $stmt->bindValue(':o_any1', '%' . $termRaw . '%', PDO::PARAM_STR);
-        
-        $stmt->bindValue(':o_exact2', $termRaw, PDO::PARAM_STR);
-        $stmt->bindValue(':o_start2', $termRaw . '%', PDO::PARAM_STR);
-        $stmt->bindValue(':o_any2', '%' . $termRaw . '%', PDO::PARAM_STR);
-        
-        $stmt->bindValue(':o_exact3', $termRaw, PDO::PARAM_STR);
+        if ($termRaw !== '') {
+            $stmt->bindValue(':t1', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t2', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t3', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t4', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t5', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t6', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t7', $termWildcard, PDO::PARAM_STR);
+            
+            $stmt->bindValue(':o_exact1', $termRaw, PDO::PARAM_STR);
+            $stmt->bindValue(':o_start1', $termRaw . '%', PDO::PARAM_STR);
+            $stmt->bindValue(':o_any1', '%' . $termRaw . '%', PDO::PARAM_STR);
+            
+            $stmt->bindValue(':o_exact2', $termRaw, PDO::PARAM_STR);
+            $stmt->bindValue(':o_start2', $termRaw . '%', PDO::PARAM_STR);
+            $stmt->bindValue(':o_any2', '%' . $termRaw . '%', PDO::PARAM_STR);
+            
+            $stmt->bindValue(':o_exact3', $termRaw, PDO::PARAM_STR);
+        }
         
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
@@ -418,14 +423,15 @@ class PedidoServicioRepository
 
     public function findArticleSuggestions(int $empresaId, string $term, int $limit = 5): array
     {
-        if (trim($term) === '') {
-            return [];
-        }
-
+        $termRaw = trim($term);
+        $termWildcard = '%' . $termRaw . '%';
+        
         $sql = 'SELECT id, codigo_externo, nombre, descripcion
             FROM crm_articulos
-            WHERE empresa_id = :empresa_id
-              AND (
+            WHERE empresa_id = :empresa_id';
+            
+        if ($termRaw !== '') {
+            $sql .= ' AND (
                 nombre LIKE :t1
                 OR codigo_externo LIKE :t2
                 OR descripcion LIKE :t3
@@ -443,28 +449,33 @@ class PedidoServicioRepository
                     WHEN nombre LIKE :o_start3 THEN 8
                     ELSE 99
                 END ASC,
-                codigo_externo ASC, nombre ASC
-            LIMIT :limit';
+                codigo_externo ASC, nombre ASC';
+        } else {
+            $sql .= ' ORDER BY nombre ASC, codigo_externo ASC';
+        }
+            
+        $sql .= ' LIMIT :limit';
 
-        $termRaw = trim($term);
-        $termWildcard = '%' . $termRaw . '%';
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
-        $stmt->bindValue(':t1', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t2', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t3', $termWildcard, PDO::PARAM_STR);
-        $stmt->bindValue(':t4', $termWildcard, PDO::PARAM_STR);
-
-        $stmt->bindValue(':o_exact1', $termRaw, PDO::PARAM_STR);
-        $stmt->bindValue(':o_start1', $termRaw . '%', PDO::PARAM_STR);
-        $stmt->bindValue(':o_any1', '%' . $termRaw . '%', PDO::PARAM_STR);
         
-        $stmt->bindValue(':o_exact2', $termRaw, PDO::PARAM_STR);
-        $stmt->bindValue(':o_start2', $termRaw . '%', PDO::PARAM_STR);
-        $stmt->bindValue(':o_any2', '%' . $termRaw . '%', PDO::PARAM_STR);
+        if ($termRaw !== '') {
+            $stmt->bindValue(':t1', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t2', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t3', $termWildcard, PDO::PARAM_STR);
+            $stmt->bindValue(':t4', $termWildcard, PDO::PARAM_STR);
 
-        $stmt->bindValue(':o_exact3', $termRaw, PDO::PARAM_STR);
-        $stmt->bindValue(':o_start3', $termRaw . '%', PDO::PARAM_STR);
+            $stmt->bindValue(':o_exact1', $termRaw, PDO::PARAM_STR);
+            $stmt->bindValue(':o_start1', $termRaw . '%', PDO::PARAM_STR);
+            $stmt->bindValue(':o_any1', '%' . $termRaw . '%', PDO::PARAM_STR);
+            
+            $stmt->bindValue(':o_exact2', $termRaw, PDO::PARAM_STR);
+            $stmt->bindValue(':o_start2', $termRaw . '%', PDO::PARAM_STR);
+            $stmt->bindValue(':o_any2', '%' . $termRaw . '%', PDO::PARAM_STR);
+
+            $stmt->bindValue(':o_exact3', $termRaw, PDO::PARAM_STR);
+            $stmt->bindValue(':o_start3', $termRaw . '%', PDO::PARAM_STR);
+        }
 
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();

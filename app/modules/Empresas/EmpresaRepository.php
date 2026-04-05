@@ -145,13 +145,14 @@ class EmpresaRepository
 
     public function save(Empresa $empresa): void
     {
-        $sql = "INSERT INTO empresas (codigo, nombre, razon_social, cuit, slug, activa, modulo_tiendas, tiendas_modulo_notas, modulo_crm, crm_modulo_notas) 
-                VALUES (:codigo, :nombre, :razon_social, :cuit, :slug, :activa, :modulo_tiendas, :tiendas_modulo_notas, :modulo_crm, :crm_modulo_notas)";
+        $sql = "INSERT INTO empresas (codigo, nombre, titulo_pestana, razon_social, cuit, slug, activa, modulo_tiendas, tiendas_modulo_notas, modulo_crm, crm_modulo_notas, crm_modulo_llamadas, crm_modulo_monitoreo, tiendas_modulo_rxn_live, crm_modulo_rxn_live) 
+                VALUES (:codigo, :nombre, :titulo_pestana, :razon_social, :cuit, :slug, :activa, :modulo_tiendas, :tiendas_modulo_notas, :modulo_crm, :crm_modulo_notas, :crm_modulo_llamadas, :crm_modulo_monitoreo, :tiendas_modulo_rxn_live, :crm_modulo_rxn_live)";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':codigo' => $empresa->codigo,
             ':nombre' => $empresa->nombre,
+            ':titulo_pestana' => $empresa->titulo_pestana,
             ':razon_social' => $empresa->razon_social,
             ':cuit' => $empresa->cuit,
             ':slug' => $empresa->slug,
@@ -160,6 +161,10 @@ class EmpresaRepository
             ':tiendas_modulo_notas' => $empresa->tiendas_modulo_notas,
             ':modulo_crm' => $empresa->modulo_crm,
             ':crm_modulo_notas' => $empresa->crm_modulo_notas,
+            ':crm_modulo_llamadas' => $empresa->crm_modulo_llamadas,
+            ':crm_modulo_monitoreo' => $empresa->crm_modulo_monitoreo,
+            ':tiendas_modulo_rxn_live' => $empresa->tiendas_modulo_rxn_live,
+            ':crm_modulo_rxn_live' => $empresa->crm_modulo_rxn_live,
         ]);
         
         $empresa->id = (int) $this->db->lastInsertId();
@@ -212,6 +217,7 @@ class EmpresaRepository
         $empresa->id = (int)$row['id'];
         $empresa->codigo = $row['codigo'];
         $empresa->nombre = $row['nombre'];
+        $empresa->titulo_pestana = $row['titulo_pestana'] ?? null;
         $empresa->razon_social = $row['razon_social'];
         $empresa->cuit = $row['cuit'];
         $empresa->slug = $row['slug'] ?? null;
@@ -220,6 +226,10 @@ class EmpresaRepository
         $empresa->tiendas_modulo_notas = isset($row['tiendas_modulo_notas']) ? (int)$row['tiendas_modulo_notas'] : 0;
         $empresa->modulo_crm = (int)$row['modulo_crm'];
         $empresa->crm_modulo_notas = isset($row['crm_modulo_notas']) ? (int)$row['crm_modulo_notas'] : 0;
+        $empresa->crm_modulo_llamadas = isset($row['crm_modulo_llamadas']) ? (int)$row['crm_modulo_llamadas'] : 0;
+        $empresa->crm_modulo_monitoreo = isset($row['crm_modulo_monitoreo']) ? (int)$row['crm_modulo_monitoreo'] : 0;
+        $empresa->tiendas_modulo_rxn_live = isset($row['tiendas_modulo_rxn_live']) ? (int)$row['tiendas_modulo_rxn_live'] : 0;
+        $empresa->crm_modulo_rxn_live = isset($row['crm_modulo_rxn_live']) ? (int)$row['crm_modulo_rxn_live'] : 0;
         $empresa->created_at = $row['created_at'] ?? null;
         $empresa->updated_at = $row['updated_at'] ?? null;
         return $empresa;
@@ -230,6 +240,7 @@ class EmpresaRepository
         $sql = "UPDATE empresas SET 
                 codigo = :codigo, 
                 nombre = :nombre, 
+                titulo_pestana = :titulo_pestana,
                 razon_social = :razon_social, 
                 cuit = :cuit, 
                 slug = :slug,
@@ -237,13 +248,19 @@ class EmpresaRepository
                 modulo_tiendas = :modulo_tiendas,
                 tiendas_modulo_notas = :tiendas_modulo_notas,
                 modulo_crm = :modulo_crm,
-                crm_modulo_notas = :crm_modulo_notas
+                crm_modulo_notas = :crm_modulo_notas,
+                crm_modulo_llamadas = :crm_modulo_llamadas,
+                crm_modulo_monitoreo = :crm_modulo_monitoreo,
+                tiendas_modulo_rxn_live = :tiendas_modulo_rxn_live,
+                crm_modulo_rxn_live = :crm_modulo_rxn_live,
+                updated_at = NOW()
                 WHERE id = :id";
                 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':codigo' => $empresa->codigo,
             ':nombre' => $empresa->nombre,
+            ':titulo_pestana' => $empresa->titulo_pestana,
             ':razon_social' => $empresa->razon_social,
             ':cuit' => $empresa->cuit,
             ':slug' => $empresa->slug,
@@ -252,6 +269,10 @@ class EmpresaRepository
             ':tiendas_modulo_notas' => $empresa->tiendas_modulo_notas,
             ':modulo_crm' => $empresa->modulo_crm,
             ':crm_modulo_notas' => $empresa->crm_modulo_notas,
+            ':crm_modulo_llamadas' => $empresa->crm_modulo_llamadas,
+            ':crm_modulo_monitoreo' => $empresa->crm_modulo_monitoreo,
+            ':tiendas_modulo_rxn_live' => $empresa->tiendas_modulo_rxn_live,
+            ':crm_modulo_rxn_live' => $empresa->crm_modulo_rxn_live,
             ':id' => $empresa->id,
         ]);
     }

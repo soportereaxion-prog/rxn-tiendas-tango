@@ -63,8 +63,18 @@ $defaultCards = [
         'desc' => 'Branding público, envíos SMTP y Tango Connect.', 
         'icon' => '<i class="bi bi-sliders"></i>', 
         'link' => '/mi-empresa/configuracion'
+    ],
+    'reporting' => [
+        'title' => 'RXN LIVE Reporting', 
+        'desc' => 'Evolución transaccional y métricas detalladas.', 
+        'icon' => '<i class="bi bi-graph-up-arrow"></i>', 
+        'link' => '/rxn_live?from=tiendas'
     ]
 ];
+
+if (!\App\Modules\Empresas\EmpresaAccessService::hasTiendasRxnLiveAccess()) {
+    unset($defaultCards['reporting']);
+}
 
 // Transformación del array según matriz persistente del usuario
 $finalCards = [];
@@ -79,7 +89,7 @@ foreach ($defaultCards as $cardId => $cardData) {
 }
 ?>
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">

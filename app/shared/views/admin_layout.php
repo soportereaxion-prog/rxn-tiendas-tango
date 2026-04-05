@@ -2,18 +2,44 @@
 use App\Core\Helpers\UIHelper;
 use App\Core\View;
 
-$pageTitle = $pageTitle ?? 'Admin - rxn_suite';
 $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : [];
 if (isset($topbarLeftHtml)) {
     $ui['topbarLeftHtml'] = $topbarLeftHtml;
 }
+
+$empresaId = \App\Core\Context::getEmpresaId();
+$faviconUrl = null;
+$siteTitle = 'RXN Suite';
+
+if ($empresaId) {
+    try {
+        $empresaObj = (new \App\Modules\Empresas\EmpresaRepository())->findById($empresaId);
+        $faviconUrl = $empresaObj->favicon_url ?? null;
+        if (!empty($empresaObj->titulo_pestana)) {
+            $siteTitle = (string)$empresaObj->titulo_pestana;
+        }
+    } catch (\Throwable $th) {
+        // Ignorar si hay error de DB o de import
+    }
+}
+
+// Si la vista todavía tiene código residual, lo ignoramos para construir el title limpio.
+if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
+    $finalPageTitle = $siteTitle;
+} else {
+    $finalPageTitle = isset($pageTitle) ? ($pageTitle . ' - ' . $siteTitle) : $siteTitle;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="es" <?= UIHelper::getHtmlAttributes() ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($pageTitle) ?></title>
+    <title><?= htmlspecialchars($finalPageTitle) ?></title>
+    <?php if ($faviconUrl): ?>
+        <link rel="icon" href="<?= htmlspecialchars($faviconUrl) ?>">
+    <?php endif; ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">

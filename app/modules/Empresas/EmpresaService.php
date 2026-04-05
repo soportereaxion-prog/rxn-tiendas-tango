@@ -134,6 +134,7 @@ class EmpresaService
         $empresa = new Empresa();
         $empresa->codigo = trim($data['codigo']);
         $empresa->nombre = trim($data['nombre']);
+        $empresa->titulo_pestana = !empty($data['titulo_pestana']) ? trim((string)$data['titulo_pestana']) : null;
         $empresa->razon_social = !empty($data['razon_social']) ? trim($data['razon_social']) : null;
         $empresa->cuit = !empty($data['cuit']) ? trim($data['cuit']) : null;
         $empresa->slug = $this->generateUniqueSlug($empresa->nombre);
@@ -142,6 +143,10 @@ class EmpresaService
         $empresa->tiendas_modulo_notas = ($empresa->modulo_tiendas === 1 && isset($data['tiendas_modulo_notas'])) ? 1 : 0;
         $empresa->modulo_crm = ($empresa->activa === 1 && isset($data['modulo_crm'])) ? 1 : 0;
         $empresa->crm_modulo_notas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_notas'])) ? 1 : 0;
+        $empresa->tiendas_modulo_rxn_live = ($empresa->modulo_tiendas === 1 && isset($data['tiendas_modulo_rxn_live'])) ? 1 : 0;
+        $empresa->crm_modulo_rxn_live = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_rxn_live'])) ? 1 : 0;
+        $empresa->crm_modulo_llamadas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_llamadas'])) ? 1 : 0;
+        $empresa->crm_modulo_monitoreo = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_monitoreo'])) ? 1 : 0;
 
         $this->repository->save($empresa);
     }
@@ -164,6 +169,9 @@ class EmpresaService
         $empresa->tiendas_modulo_notas = 0;
         $empresa->modulo_crm = 0;
         $empresa->crm_modulo_notas = 0;
+        $empresa->modulo_rxn_live = 0;
+        $empresa->crm_modulo_llamadas = 0;
+        $empresa->crm_modulo_monitoreo = 0;
 
         $this->repository->save($empresa);
     }
@@ -243,6 +251,9 @@ class EmpresaService
 
         $empresa->codigo = trim($data['codigo']);
         $empresa->nombre = trim($data['nombre']);
+        if (array_key_exists('titulo_pestana', $data)) {
+            $empresa->titulo_pestana = $data['titulo_pestana'] !== '' ? trim((string) $data['titulo_pestana']) : null;
+        }
         if (array_key_exists('razon_social', $data)) {
             $empresa->razon_social = $data['razon_social'] !== '' ? trim((string) $data['razon_social']) : null;
         }
@@ -255,6 +266,10 @@ class EmpresaService
         $empresa->tiendas_modulo_notas = ($empresa->modulo_tiendas === 1 && isset($data['tiendas_modulo_notas'])) ? 1 : 0;
         $empresa->modulo_crm = ($empresa->activa === 1 && isset($data['modulo_crm'])) ? 1 : 0;
         $empresa->crm_modulo_notas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_notas'])) ? 1 : 0;
+        $empresa->tiendas_modulo_rxn_live = ($empresa->modulo_tiendas === 1 && isset($data['tiendas_modulo_rxn_live'])) ? 1 : 0;
+        $empresa->crm_modulo_rxn_live = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_rxn_live'])) ? 1 : 0;
+        $empresa->crm_modulo_llamadas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_llamadas'])) ? 1 : 0;
+        $empresa->crm_modulo_monitoreo = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_monitoreo'])) ? 1 : 0;
 
         $this->repository->update($empresa);
     }

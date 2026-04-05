@@ -9,6 +9,7 @@ class Empresa
     public ?int $id = null;
     public string $codigo = '';
     public string $nombre = '';
+    public ?string $titulo_pestana = null;
     public ?string $razon_social = null;
     public ?string $cuit = null;
     public ?string $slug = null;
@@ -17,6 +18,10 @@ class Empresa
     public int $tiendas_modulo_notas = 0;
     public int $modulo_crm = 0;
     public int $crm_modulo_notas = 0;
+    public int $crm_modulo_llamadas = 0;
+    public int $crm_modulo_monitoreo = 0;
+    public int $tiendas_modulo_rxn_live = 0;
+    public int $crm_modulo_rxn_live = 0;
     public ?string $created_at = null;
     public ?string $updated_at = null;
     public ?string $deleted_at = null;

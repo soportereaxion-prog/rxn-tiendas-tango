@@ -439,11 +439,24 @@ ob_start();
     <script>
         (function() {
             document.addEventListener('keydown', function(event) {
+                // Alt + P para enviar a Tango
                 if (event.altKey && event.key.toLowerCase() === 'p') {
                     event.preventDefault();
                     const btnTango = document.querySelector('button[name="action"][value="tango"]');
                     if (btnTango && !btnTango.disabled) {
                         btnTango.click();
+                    }
+                }
+                
+                // Alt + E para enviar correo
+                if (event.altKey && event.key.toLowerCase() === 'e') {
+                    event.preventDefault();
+                    const formCorreo = document.querySelector('form[action*="/enviar-correo"]');
+                    if (formCorreo) {
+                        const btnCorreo = formCorreo.querySelector('button[type="submit"]');
+                        if (btnCorreo && !btnCorreo.disabled) {
+                            btnCorreo.click();
+                        }
                     }
                 }
             });

@@ -47,7 +47,7 @@ if ($hasCrmAccess) {
 
 ?>
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <div class="container rxn-responsive-container" style="max-width: 1100px;">
@@ -59,10 +59,11 @@ ob_start();
         <!-- Buscador de Módulos (Estándar F3 / /) -->
         <?php require BASE_PATH . '/app/shared/views/components/dashboard_search.php'; ?>
 
-        <div class="row g-4 justify-content-center">
+        <div class="row g-4 justify-content-center" id="homeLauncherGrid">
             <?php foreach ($launcherCards as $card): ?>
-                <div class="col-md-6 col-lg-4">
-                    <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
+                <?php $cardId = md5($card['href']); ?>
+                <div class="col-md-6 col-lg-4 rxn-launcher-col" data-id="<?= htmlspecialchars($cardId) ?>">
+                    <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm" style="cursor: grab;">
                         <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                             <div class="rxn-module-icon text-primary"><i class="bi <?= htmlspecialchars($card['icon']) ?>"></i></div>
                             <h4 class="fw-bold mb-2"><?= htmlspecialchars($card['title']) ?></h4>
@@ -74,7 +75,7 @@ ob_start();
                                     </span>
                                 </div>
                             <?php endif; ?>
-                            <a href="<?= htmlspecialchars($card['href']) ?>" class="stretched-link"></a>
+                            <a href="<?= htmlspecialchars($card['href']) ?>" class="stretched-link" draggable="false"></a>
                         </div>
                     </div>
                 </div>
@@ -123,6 +124,44 @@ $content = ob_get_clean();
 ob_start();
 ?>
 <script src="/js/rxn-shortcuts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var grid = document.getElementById('homeLauncherGrid');
+        if (grid && typeof Sortable !== 'undefined') {
+            // Restore order
+            var savedOrder = JSON.parse(localStorage.getItem('rxn_home_launcher_order') || '[]');
+            if (savedOrder.length > 0) {
+                var itemsArray = Array.from(grid.querySelectorAll('.rxn-launcher-col'));
+                itemsArray.sort(function (a, b) {
+                    var idA = a.getAttribute('data-id');
+                    var idB = b.getAttribute('data-id');
+                    var indexA = savedOrder.indexOf(idA);
+                    var indexB = savedOrder.indexOf(idB);
+                    if (indexA === -1) indexA = 99999;
+                    if (indexB === -1) indexB = 99999;
+                    return indexA - indexB;
+                });
+                itemsArray.forEach(function (item) { grid.appendChild(item); });
+            }
+
+            // Init sortable
+            new Sortable(grid, {
+                animation: 250,
+                ghostClass: 'opacity-50',
+                handle: '.rxn-module-card',
+                forceFallback: true, // Forzar fallback
+                onEnd: function () {
+                    var currentOrder = [];
+                    grid.querySelectorAll('.rxn-launcher-col').forEach(function (col) {
+                        currentOrder.push(col.getAttribute('data-id'));
+                    });
+                    localStorage.setItem('rxn_home_launcher_order', JSON.stringify(currentOrder));
+                }
+            });
+        }
+    });
+</script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

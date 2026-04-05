@@ -98,7 +98,7 @@ class EmpresaController extends Controller
         AuthService::requireRxnAdmin();
         try {
             $this->service->update((int) $id, $_POST);
-            header('Location: /empresas?success=actualizada');
+            header('Location: /empresas/' . $id . '/editar?success=actualizada');
             exit;
         } catch (InvalidArgumentException $e) {
             $empresa = $this->service->findById((int) $id);

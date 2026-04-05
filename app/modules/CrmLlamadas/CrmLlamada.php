@@ -8,6 +8,7 @@ class CrmLlamada
 {
     public int $id;
     public int $empresa_id;
+    public ?int $cliente_id = null;
     public ?int $usuario_id = null;
     public ?string $fecha = null;
     public ?string $origen = null;
@@ -26,4 +27,5 @@ class CrmLlamada
 
     // Relacional
     public ?string $usuario_nombre = null;
+    public ?string $cliente_nombre = null;
 }

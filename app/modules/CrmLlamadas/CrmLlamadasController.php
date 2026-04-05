@@ -184,6 +184,60 @@ class CrmLlamadasController extends Controller
         exit;
     }
 
+    public function vincularClienteApi(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $llamadaId = (int)($input['llamada_id'] ?? 0);
+        $clienteId = (int)($input['cliente_id'] ?? 0);
+        $numeroOrigen = trim((string)($input['numero_origen'] ?? ''));
+
+        if ($llamadaId <= 0 || $clienteId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Llamada o cliente inválido.']);
+            exit;
+        }
+
+        try {
+            $this->repository->vincularClienteLlamada($llamadaId, $empresaId, $clienteId, $numeroOrigen);
+            echo json_encode(['success' => true, 'message' => 'Cliente vinculado exitosamente.']);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error interno al vincular cliente.']);
+        }
+        exit;
+    }
+
+    public function desvincular(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . $ui['indexPath']);
+            exit;
+        }
+
+        $numeroOrigen = trim((string)($_POST['numero_origen'] ?? ''));
+        
+        try {
+            $this->repository->desvincularClienteLlamada((int)$id, $empresaId, $numeroOrigen);
+            header('Location: ' . $this->withSuccess($ui['indexPath'], 'Vínculo cliente/teléfono eliminado exitosamente.'));
+        } catch (\Throwable $e) {
+            header('Location: ' . $ui['indexPath'] . '?error=' . urlencode('Error interno al intentar desvincular el cliente.'));
+        }
+        exit;
+    }
+
     private function renderDenegado(string $motivo, string $backPath): void
     {
         http_response_code(403);

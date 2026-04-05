@@ -2,7 +2,7 @@
 // VISTA TEMPORAL — solo para test de bootstrap. Eliminar cuando haya vista real.
 ?>
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <h1>Render de vista: OK</h1>

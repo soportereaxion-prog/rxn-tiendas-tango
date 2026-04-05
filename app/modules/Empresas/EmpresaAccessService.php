@@ -63,6 +63,30 @@ class EmpresaAccessService
         return self::hasCrmAccess() && (int) $empresa->crm_modulo_notas === 1;
     }
 
+    public static function hasTiendasRxnLiveAccess(): bool
+    {
+        $empresa = self::current();
+        return $empresa !== null && (int) $empresa->activa === 1 && (int) $empresa->tiendas_modulo_rxn_live === 1;
+    }
+
+    public static function hasCrmRxnLiveAccess(): bool
+    {
+        $empresa = self::current();
+        return $empresa !== null && (int) $empresa->activa === 1 && (int) $empresa->crm_modulo_rxn_live === 1;
+    }
+
+    public static function hasCrmLlamadasAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_llamadas === 1;
+    }
+
+    public static function hasCrmMonitoreoAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_monitoreo === 1;
+    }
+
     public static function hasAnyOperationalAccess(): bool
     {
         return self::hasTiendasAccess() || self::hasCrmAccess();
@@ -101,6 +125,33 @@ class EmpresaAccessService
 
         if (!self::hasCrmNotasAccess()) {
             self::deny('Módulo de Notas en CRM');
+        }
+    }
+
+    public static function requireRxnLiveAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasTiendasRxnLiveAccess() && !self::hasCrmRxnLiveAccess()) {
+            self::deny('Módulo RXN Live');
+        }
+    }
+
+    public static function requireCrmLlamadasAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmLlamadasAccess()) {
+            self::deny('Módulo de Llamadas en CRM');
+        }
+    }
+
+    public static function requireCrmMonitoreoAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmMonitoreoAccess()) {
+            self::deny('Módulo de Monitoreo de Usuarios en CRM');
         }
     }
 

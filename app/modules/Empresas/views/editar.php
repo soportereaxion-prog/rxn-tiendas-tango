@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
@@ -9,6 +9,9 @@ ob_start();
         $tiendasNotasActual = $tiendasActual && (isset($old) ? isset($old['tiendas_modulo_notas']) : (bool) ($empresa->tiendas_modulo_notas ?? 0));
         $crmActual = $activaActual && (isset($old) ? isset($old['modulo_crm']) : (bool) ($empresa->modulo_crm ?? 0));
         $crmNotasActual = $crmActual && (isset($old) ? isset($old['crm_modulo_notas']) : (bool) ($empresa->crm_modulo_notas ?? 0));
+        $rxnLiveActual = $activaActual && (isset($old) ? isset($old['modulo_rxn_live']) : (bool) ($empresa->modulo_rxn_live ?? 0));
+        $crmLlamadasActual = $crmActual && (isset($old) ? isset($old['crm_modulo_llamadas']) : (bool) ($empresa->crm_modulo_llamadas ?? 0));
+        $crmMonitoreoActual = $crmActual && (isset($old) ? isset($old['crm_modulo_monitoreo']) : (bool) ($empresa->crm_modulo_monitoreo ?? 0));
         ?>
         <div class="rxn-module-header mb-4">
             <div>
@@ -57,6 +60,12 @@ ob_start();
                                 <label for="nombre" class="form-label">Nombre (Obligatorio)</label>
                                 <input type="text" class="form-control" id="nombre" name="nombre" required value="<?= htmlspecialchars($old['nombre'] ?? $empresa->nombre) ?>">
                             </div>
+                            
+                            <div class="rxn-form-span-12 mt-3">
+                                <label for="titulo_pestana" class="form-label">Título de la empresa (Pestaña)</label>
+                                <input type="text" class="form-control" id="titulo_pestana" name="titulo_pestana" value="<?= htmlspecialchars((string)($old['titulo_pestana'] ?? $empresa->titulo_pestana)) ?>" placeholder="Ej: Empresa Acme">
+                                <div class="form-text">Modifica el título de la pestaña del navegador para el entorno de esta empresa.</div>
+                            </div>
                             <!-- Variables de estado latente ocultas -->
                             <input type="hidden" name="razon_social" value="<?= htmlspecialchars($old['razon_social'] ?? (string)$empresa->razon_social) ?>">
                             <input type="hidden" name="cuit" value="<?= htmlspecialchars($old['cuit'] ?? (string)$empresa->cuit) ?>">
@@ -74,16 +83,21 @@ ob_start();
                                 </div>
                             </div>
 
+
                             <div class="rxn-form-switch-card">
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input" type="checkbox" role="switch" id="modulo_tiendas" name="modulo_tiendas" <?= $tiendasActual ? 'checked' : '' ?> <?= $activaActual ? '' : 'disabled' ?> data-empresa-dependiente="tiendas">
                                     <label class="form-check-label fw-semibold" for="modulo_tiendas">Tiendas</label>
                                     <div class="form-text mb-0">Habilita el circuito de tienda para esta empresa cuando el tenant esté activo.</div>
                                 </div>
-                                <div class="d-flex flex-wrap gap-3 mt-3 pt-3 border-top border-secondary border-opacity-25">
+                                <div class="d-flex flex-column gap-2 mt-3 pt-3 border-top border-secondary border-opacity-25">
                                     <div class="form-check form-switch m-0">
                                         <input class="form-check-input" type="checkbox" role="switch" id="tiendas_modulo_notas" name="tiendas_modulo_notas" <?= $tiendasNotasActual ? 'checked' : '' ?> <?= $tiendasActual ? '' : 'disabled' ?> data-empresa-subdependiente="tiendas">
                                         <label class="form-check-label" for="tiendas_modulo_notas">Módulo "Notas"</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="tiendas_modulo_rxn_live" name="tiendas_modulo_rxn_live" <?= $empresa->tiendas_modulo_rxn_live === 1 ? 'checked' : '' ?> <?= $tiendasActual ? '' : 'disabled' ?> data-empresa-subdependiente="tiendas">
+                                        <label class="form-check-label" for="tiendas_modulo_rxn_live">RXN Live</label>
                                     </div>
                                 </div>
                             </div>
@@ -94,10 +108,22 @@ ob_start();
                                     <label class="form-check-label fw-semibold" for="modulo_crm">CRM</label>
                                     <div class="form-text mb-0">Reserva el tenant para futuras funciones de CRM una vez que la empresa esté activa.</div>
                                 </div>
-                                <div class="d-flex flex-wrap gap-3 mt-3 pt-3 border-top border-secondary border-opacity-25">
+                                <div class="d-flex flex-column gap-2 mt-3 pt-3 border-top border-secondary border-opacity-25">
                                     <div class="form-check form-switch m-0">
                                         <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_notas" name="crm_modulo_notas" <?= $crmNotasActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
                                         <label class="form-check-label" for="crm_modulo_notas">Módulo "Notas"</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_llamadas" name="crm_modulo_llamadas" <?= $crmLlamadasActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_llamadas">Llamadas CRM</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_monitoreo" name="crm_modulo_monitoreo" <?= $crmMonitoreoActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_monitoreo">Monitoreo de Usuarios</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_rxn_live" name="crm_modulo_rxn_live" <?= $empresa->crm_modulo_rxn_live === 1 ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_rxn_live">RXN Live</label>
                                     </div>
                                 </div>
                             </div>
@@ -155,6 +181,18 @@ ob_start();
                 checkMod.addEventListener('change', syncAll);
             });
             syncAll();
+
+            var rxnLiveToggles = document.querySelectorAll('input[name="modulo_rxn_live"]');
+            rxnLiveToggles.forEach(function(toggle) {
+                toggle.addEventListener('change', function() {
+                    var isChecked = this.checked;
+                    rxnLiveToggles.forEach(function(other) {
+                        if (!other.disabled) {
+                            other.checked = isChecked;
+                        }
+                    });
+                });
+            });
         }());
     </script>
     <script src="/js/rxn-shortcuts.js"></script>

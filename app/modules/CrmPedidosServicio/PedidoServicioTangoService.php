@@ -99,10 +99,14 @@ class PedidoServicioTangoService
             ]];
 
             $headerResolver = new TangoOrderHeaderResolver('crm');
-            // Resolver el usuario operativo del perfil Tango:
-            // resolveForCurrentContext() usa al admin logueado, que puede NO tener perfil Tango.
-            // Buscamos el primer usuario activo de la empresa con perfil Tango configurado.
+            // Resolver el usuario operativo del perfil Tango.
+            // Si $tangoUser es nulo, significa que el usuario logueado NO tiene su perfil configurado.
             $tangoUser = $this->resolveTangoUser($empresaId);
+            
+            if ($tangoUser === null) {
+                return ['ok' => false, 'type' => 'danger', 'message' => 'Tu usuario no tiene un Perfil de Tango configurado. Por favor, editá tu usuario en la configuración y guardá tus credenciales operativas antes de enviar PDS.'];
+            }
+
             $resolvedHeaders = $headerResolver->resolveFromConfig($config, $clientePayload, $tangoUser);
 
             if (isset($pedido['clasificacion_id_tango']) && (int)$pedido['clasificacion_id_tango'] > 0) {
@@ -315,25 +319,14 @@ class PedidoServicioTangoService
      */
     private function resolveTangoUser(int $empresaId): ?\App\Modules\Auth\Usuario
     {
-        // Primero: el usuario logueado, si tiene perfil Tango propio.
+        // El usuario logueado manda. Si tiene perfil Tango propio, usamos sus IDs (ej: 45-1-12).
         $currentUser = \App\Modules\Auth\AuthService::getCurrentUser();
         if ($currentUser !== null && !empty($currentUser->tango_perfil_pedido_id)) {
             return $currentUser;
         }
 
-        // Segundo: buscar un usuario activo de la empresa con perfil Tango.
-        try {
-            $userRepo = new \App\Modules\Auth\UsuarioRepository();
-            $users = $userRepo->findAllByEmpresaId($empresaId);
-            foreach ($users as $user) {
-                if (!empty($user->tango_perfil_pedido_id) && $user->activo == 1) {
-                    return $user;
-                }
-            }
-        } catch (\Throwable $e) {
-            // Silencioso — el resolver hará fallback al config global
-        }
-
+        // Si el usuario actual no tiene perfil configurado, NO hacemos "fallback" robando el perfil 
+        // de Sergio ni de otro usuario. O operás con tu propio perfil, o con el perfil global de la empresa.
         return null;
     }
 }

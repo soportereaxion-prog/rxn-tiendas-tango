@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <?php

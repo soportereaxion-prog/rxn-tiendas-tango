@@ -4,7 +4,7 @@ use App\Core\View;
 $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : [];
 ?>
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 

@@ -25,6 +25,18 @@ return function (Router $router): void {
         \App\Modules\Empresas\EmpresaAccessService::requireAnyOperationalAccess();
     };
 
+    $requireRxnLive = static function (): void {
+        \App\Modules\Empresas\EmpresaAccessService::requireRxnLiveAccess();
+    };
+
+    $requireCrmLlamadas = static function (): void {
+        \App\Modules\Empresas\EmpresaAccessService::requireCrmLlamadasAccess();
+    };
+
+    $requireCrmMonitoreo = static function (): void {
+        \App\Modules\Empresas\EmpresaAccessService::requireCrmMonitoreoAccess();
+    };
+
     $action = static function (string $controllerClass, string $method, ?callable $guard = null): callable {
         return static function (...$params) use ($controllerClass, $method, $guard): void {
             if ($guard !== null) {
@@ -263,13 +275,19 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/formularios-impresion/{documentKey}', $action(\App\Modules\PrintForms\PrintFormController::class, 'update', $requireCrm));
 
     // --- MODULO CRM LLAMADAS ---
-    $router->get('/mi-empresa/crm/llamadas', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'index', $requireCrm));
-    $router->post('/mi-empresa/crm/llamadas/eliminar-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'eliminarMasivo', $requireCrm));
-    $router->post('/mi-empresa/crm/llamadas/restore-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'restoreMasivo', $requireCrm));
-    $router->post('/mi-empresa/crm/llamadas/force-delete-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'forceDeleteMasivo', $requireCrm));
-    $router->post('/mi-empresa/crm/llamadas/{id}/eliminar', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'eliminar', $requireCrm));
-    $router->post('/mi-empresa/crm/llamadas/{id}/restore', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'restore', $requireCrm));
-    $router->post('/mi-empresa/crm/llamadas/{id}/force-delete', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'forceDelete', $requireCrm));
+    $router->get('/mi-empresa/crm/llamadas', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'index', $requireCrmLlamadas));
+    $router->get('/mi-empresa/crm/llamadas/sugerencias', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'suggestions', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/eliminar-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'eliminarMasivo', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/restore-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'restoreMasivo', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/force-delete-masivo', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'forceDeleteMasivo', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/vincular-cliente-api', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'vincularClienteApi', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/{id}/eliminar', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'eliminar', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/{id}/restore', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'restore', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/{id}/force-delete', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'forceDelete', $requireCrmLlamadas));
+    $router->post('/mi-empresa/crm/llamadas/{id}/desvincular', $action(\App\Modules\CrmLlamadas\CrmLlamadasController::class, 'desvincular', $requireCrmLlamadas));
+
+    // --- MODULO CRM MONITOREO USUARIOS ---
+    $router->get('/mi-empresa/crm/monitoreo-usuarios', $action(\App\Modules\CrmMonitoreoUsuarios\CrmMonitoreoUsuariosController::class, 'index', $requireCrmMonitoreo));
 
     // --- MODULO CATEGORIAS ---
     $router->get('/mi-empresa/categorias', $action(\App\Modules\Categorias\CategoriaController::class, 'index', $requireTiendas));
@@ -315,6 +333,13 @@ return function (Router $router): void {
     $router->post('/mi-empresa/pedidos/{id}/reprocesar', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'reprocesar', $requireTiendas));
     $router->post('/mi-empresa/pedidos/reprocesar-seleccionados', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'reprocesarSeleccionados', $requireTiendas));
     $router->post('/mi-empresa/pedidos/reprocesar-pendientes', $action(\App\Modules\Pedidos\Controllers\PedidoWebController::class, 'reprocesarPendientes', $requireTiendas));
+
+    // --- MODULO RXN LIVE ---
+    $router->get('/rxn_live', $action(\App\Modules\RxnLive\RxnLiveController::class, 'index', $requireRxnLive));
+    $router->get('/rxn_live/dataset', $action(\App\Modules\RxnLive\RxnLiveController::class, 'dataset', $requireRxnLive));
+    $router->post('/rxn_live/dataset', $action(\App\Modules\RxnLive\RxnLiveController::class, 'dataset', $requireRxnLive));
+    $router->post('/rxn_live/guardar-vista', $action(\App\Modules\RxnLive\RxnLiveController::class, 'guardarVista', $requireRxnLive));
+    $router->post('/rxn_live/exportar', $action(\App\Modules\RxnLive\RxnLiveController::class, 'exportar', $requireRxnLive));
 
     // TEMPORAL - test render de vista. Eliminar cuando haya vista real.
     $router->get('/test-vista', function () {

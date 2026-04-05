@@ -20,11 +20,13 @@ class CrmLlamadaRepository
     {
         $delCond = $onlyDeleted ? 'l.deleted_at IS NOT NULL' : 'l.deleted_at IS NULL';
         
-        // Unimos con usuarios para traer el nombre del usuario asociado (si existe)
+        // Unimos con usuarios y crm_clientes para traer el nombre respectivo
         $sql = "
-            SELECT l.*, u.nombre as usuario_nombre
+            SELECT l.*, u.nombre as usuario_nombre, 
+                   IFNULL(NULLIF(cc.razon_social, ''), CONCAT(cc.nombre, ' ', cc.apellido)) as cliente_nombre
             FROM crm_llamadas l
             LEFT JOIN usuarios u ON l.usuario_id = u.id
+            LEFT JOIN crm_clientes cc ON l.cliente_id = cc.id
             WHERE l.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
@@ -39,7 +41,7 @@ class CrmLlamadaRepository
             $params[':search5'] = $searchStr;
         }
 
-        $validColumns = ['id', 'fecha', 'numero_origen', 'destino', 'duracion', 'interno', 'atendio', 'usuario_nombre'];
+        $validColumns = ['id', 'fecha', 'numero_origen', 'destino', 'duracion', 'interno', 'atendio', 'usuario_nombre', 'cliente_nombre'];
         $sortColumn = in_array($sortColumn, $validColumns) ? $sortColumn : 'fecha';
         $sortDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
 
@@ -90,9 +92,11 @@ class CrmLlamadaRepository
     {
         $delCond = $includeDeleted ? '1=1' : 'l.deleted_at IS NULL';
         $sql = "
-            SELECT l.*, u.nombre as usuario_nombre
+            SELECT l.*, u.nombre as usuario_nombre,
+                   IFNULL(NULLIF(cc.razon_social, ''), CONCAT(cc.nombre, ' ', cc.apellido)) as cliente_nombre
             FROM crm_llamadas l
             LEFT JOIN usuarios u ON l.usuario_id = u.id
+            LEFT JOIN crm_clientes cc ON l.cliente_id = cc.id
             WHERE l.id = :id AND l.empresa_id = :empresa_id AND $delCond
             LIMIT 1
         ";
@@ -136,5 +140,86 @@ class CrmLlamadaRepository
         $sql = "DELETE FROM crm_llamadas WHERE id = :id AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+    }
+
+    public function vincularClienteLlamada(int $llamadaId, int $empresaId, int $clienteId, string $numeroOrigen): void
+    {
+        try {
+            $this->db->beginTransaction();
+
+            if ($numeroOrigen !== '') {
+                // Actualizar todas las llamadas de este origen
+                $sqlUpdateMulti = "UPDATE crm_llamadas SET cliente_id = :cliente_id WHERE (numero_origen = :numero_origen OR origen = :origen_alt) AND empresa_id = :empresa_id";
+                $stmtMulti = $this->db->prepare($sqlUpdateMulti);
+                $stmtMulti->execute([
+                    ':cliente_id' => $clienteId,
+                    ':numero_origen' => $numeroOrigen,
+                    ':origen_alt' => $numeroOrigen,
+                    ':empresa_id' => $empresaId
+                ]);
+
+                $sqlUpsert = "
+                    INSERT INTO crm_telefonos_clientes (empresa_id, numero_origen, cliente_id, created_at, updated_at) 
+                    VALUES (:empresa_id, :numero_origen, :cliente_id, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE cliente_id = VALUES(cliente_id), updated_at = NOW()
+                ";
+                $stmtUpsert = $this->db->prepare($sqlUpsert);
+                $stmtUpsert->execute([
+                    ':empresa_id' => $empresaId,
+                    ':numero_origen' => $numeroOrigen,
+                    ':cliente_id' => $clienteId
+                ]);
+            } else {
+                // Solo por ID si no hay origen
+                $sqlUpdate = "UPDATE crm_llamadas SET cliente_id = :cliente_id WHERE id = :id AND empresa_id = :empresa_id";
+                $stmt = $this->db->prepare($sqlUpdate);
+                $stmt->execute([
+                    ':cliente_id' => $clienteId,
+                    ':id' => $llamadaId,
+                    ':empresa_id' => $empresaId
+                ]);
+            }
+
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function desvincularClienteLlamada(int $llamadaId, int $empresaId, string $numeroOrigen): void
+    {
+        try {
+            $this->db->beginTransaction();
+
+            if ($numeroOrigen !== '') {
+                $sqlDel = "DELETE FROM crm_telefonos_clientes WHERE numero_origen = :numero_origen AND empresa_id = :empresa_id";
+                $stmtDel = $this->db->prepare($sqlDel);
+                $stmtDel->execute([
+                    ':numero_origen' => $numeroOrigen,
+                    ':empresa_id' => $empresaId
+                ]);
+
+                $sqlUpdate = "UPDATE crm_llamadas SET cliente_id = NULL WHERE (numero_origen = :numero_origen OR origen = :origen_alt) AND empresa_id = :empresa_id";
+                $stmtUpd = $this->db->prepare($sqlUpdate);
+                $stmtUpd->execute([
+                    ':numero_origen' => $numeroOrigen,
+                    ':origen_alt' => $numeroOrigen,
+                    ':empresa_id' => $empresaId
+                ]);
+            } else {
+                $sqlUpdate = "UPDATE crm_llamadas SET cliente_id = NULL WHERE id = :id AND empresa_id = :empresa_id";
+                $stmtUpd = $this->db->prepare($sqlUpdate);
+                $stmtUpd->execute([
+                    ':id' => $llamadaId,
+                    ':empresa_id' => $empresaId
+                ]);
+            }
+
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 }

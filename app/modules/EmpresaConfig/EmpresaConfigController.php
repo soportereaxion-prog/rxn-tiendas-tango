@@ -62,6 +62,8 @@ class EmpresaConfigController extends Controller
 
             if ($area === OperationalAreaService::AREA_TIENDAS) {
                 $this->persistStoreBranding();
+            } elseif ($area === OperationalAreaService::AREA_CRM) {
+                $this->persistCrmFavicon();
             }
 
             header('Location: ' . $viewContext['basePath'] . '?success=guardado');
@@ -389,5 +391,39 @@ class EmpresaConfigController extends Controller
         }
 
         $this->empresaRepo->updateBranding($empresaId, $brandingData);
+    }
+
+    private function persistCrmFavicon(): void
+    {
+        if (!isset($_FILES['favicon']) || $_FILES['favicon']['error'] !== UPLOAD_ERR_OK) {
+            return;
+        }
+
+        $empresaId = (int) Context::getEmpresaId();
+        $empresa = $this->empresaRepo->findById($empresaId);
+        if ($empresa === null) {
+            return;
+        }
+
+        $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/branding';
+        if (!is_dir($dirUploads)) {
+            mkdir($dirUploads, 0777, true);
+        }
+
+        $ext = strtolower(pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION));
+        $filename = 'favicon_' . time() . '.' . $ext;
+        if (move_uploaded_file($_FILES['favicon']['tmp_name'], $dirUploads . '/' . $filename)) {
+            $brandingData = [
+                'logo_url' => $empresa->logo_url ?? null,
+                'favicon_url' => '/uploads/empresas/' . $empresaId . '/branding/' . $filename,
+                'color_primary' => $empresa->color_primary ?? null,
+                'color_secondary' => $empresa->color_secondary ?? null,
+                'footer_text' => $empresa->footer_text ?? null,
+                'footer_address' => $empresa->footer_address ?? null,
+                'footer_phone' => $empresa->footer_phone ?? null,
+                'footer_socials' => $empresa->footer_socials ?? null,
+            ];
+            $this->empresaRepo->updateBranding($empresaId, $brandingData);
+        }
     }
 }

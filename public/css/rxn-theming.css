@@ -336,7 +336,9 @@ iframe {
     border-radius: 0.85rem;
     background: var(--input-bg);
     box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12);
-    overflow: hidden;
+    max-height: 250px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .rxn-search-suggestion {

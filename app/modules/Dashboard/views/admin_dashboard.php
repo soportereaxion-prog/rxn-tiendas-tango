@@ -10,7 +10,7 @@ if ($canViewRelease) {
 }
 ?>
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">
@@ -66,6 +66,17 @@ ob_start();
                         <h5 class="fw-bold mb-2">Sistema y Mantenimiento</h5>
                         <p class="text-muted small px-2">Actualizaciones de BD, migraciones y ejecución de dumps operativos.</p>
                         <a href="/admin/mantenimiento" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-4">
+                <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
+                        <div class="rxn-module-icon text-success"><i class="bi bi-graph-up-arrow"></i></div>
+                        <h5 class="fw-bold mb-2">RXN LIVE</h5>
+                        <p class="text-muted small px-2">Métricas y reportes en tiempo real del tenant actual.</p>
+                        <a href="/rxn_live" class="stretched-link"></a>
                     </div>
                 </div>
             </div>

@@ -25,18 +25,32 @@ class WebhookController
         }
 
         /* 
-        Mapeo de campos típicos de Anura (basado en el código legacy):
-        $tiempo, $origen, $destino, $segundos, $origen_region, $interno, $link, $terminal, $mp3
+        Mapeo de campos de Anura discriminando formato nuevo y legacy:
         */
-        $fecha = $data['tiempo'] ?? date('Y-m-d H:i:s');
-        $origen = $data['origen_region'] ?? null;
-        $numero_origen = $data['origen'] ?? null;
-        $destino = $data['destino'] ?? null;
-        $duracion = $data['segundos'] ?? null;
-        $interno_central = $data['interno'] ?? null;
-        $evento_link = $data['link'] ?? null;
-        $terminal = $data['terminal'] ?? null;
-        $mp3 = $data['mp3'] ?? null;
+        if (isset($data['numero_origen']) || isset($data['precio'])) {
+            // Nuevo formato
+            $fecha = $data['fecha'] ?? date('Y-m-d H:i:s');
+            $origen = $data['origen'] ?? null;
+            $numero_origen = $data['numero_origen'] ?? null;
+            $destino = $data['destino'] ?? null;
+            $duracion = $data['duracion'] ?? null;
+            $interno_central = $data['interno'] ?? null;
+            $evento_link = $data['link_mp'] ?? null;
+            $atendio = $data['atendio'] ?? null;
+            $mp3 = $data['mp3'] ?? null;
+        } else {
+            // Formato antiguo / fallback
+            $fecha = $data['tiempo'] ?? date('Y-m-d H:i:s');
+            $origen = $data['origen_region'] ?? null;
+            $numero_origen = $data['origen'] ?? null;
+            $destino = $data['destino'] ?? null;
+            $duracion = $data['segundos'] ?? null;
+            $interno_central = $data['interno'] ?? null;
+            $evento_link = $data['link'] ?? null;
+            $atendio = $data['terminal'] ?? null;
+            $mp3 = $data['mp3'] ?? null;
+        }
+        
         $json_bruto = json_encode($data, JSON_UNESCAPED_UNICODE);
 
         try {
@@ -55,36 +69,53 @@ class WebhookController
 
             $db = Database::getConnection();
 
-            if ($terminal) {
-                // El terminal tiene la información operativa, el interno del agente son los 3 primeros caracteres según especificación
-                $internoAgente = substr((string)$terminal, 0, 3);
-                
-                // Buscar qué usuario tiene este interno asociado en esta empresa
-                $stmt = $db->prepare("SELECT id FROM usuarios WHERE anura_interno = :interno AND empresa_id = :empresa_id AND deleted_at IS NULL LIMIT 1");
-                $stmt->execute([':interno' => $internoAgente, ':empresa_id' => $empresaId]);
-                $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Si el webhook trae 'atendio' o 'interno_central', intentamos identificar al usuario
+            $internoAgenteParseado = substr((string)$atendio, 0, 3);
+            
+            $stmt = $db->prepare("SELECT id FROM usuarios WHERE (anura_interno = :interno OR anura_interno = :internoParseado) AND empresa_id = :empresa_id AND deleted_at IS NULL LIMIT 1");
+            $stmt->execute([
+                ':interno' => $interno_central,
+                ':internoParseado' => $internoAgenteParseado,
+                ':empresa_id' => $empresaId
+            ]);
+            $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                if ($usuario) {
-                    $usuarioId = (int)$usuario['id'];
+            if ($usuario) {
+                $usuarioId = (int)$usuario['id'];
+            }
+
+            // [NUEVO] - Buscar si este numero u origen ya está mapeado a un cliente de Tango
+            $clienteId = null;
+            $numeroBuscado = $numero_origen ?: $origen;
+            if (!empty($numeroBuscado)) {
+                $stmtPhone = $db->prepare("SELECT cliente_id FROM crm_telefonos_clientes WHERE empresa_id = :empresa_id AND numero_origen = :numero_origen LIMIT 1");
+                $stmtPhone->execute([
+                    ':empresa_id' => $empresaId,
+                    ':numero_origen' => $numeroBuscado
+                ]);
+                $phoneRow = $stmtPhone->fetch(PDO::FETCH_ASSOC);
+                if ($phoneRow && !empty($phoneRow['cliente_id'])) {
+                    $clienteId = (int)$phoneRow['cliente_id'];
                 }
             }
 
             $sql = "INSERT INTO crm_llamadas 
-                    (empresa_id, usuario_id, fecha, origen, numero_origen, destino, duracion, interno, atendio, evento_link, mp3, json_bruto)
+                    (empresa_id, usuario_id, cliente_id, fecha, origen, numero_origen, destino, duracion, interno, atendio, evento_link, mp3, json_bruto)
                     VALUES 
-                    (:empresa_id, :usuario_id, :fecha, :origen, :numero_origen, :destino, :duracion, :interno, :atendio, :evento_link, :mp3, :json_bruto)";
+                    (:empresa_id, :usuario_id, :cliente_id, :fecha, :origen, :numero_origen, :destino, :duracion, :interno, :atendio, :evento_link, :mp3, :json_bruto)";
             
             $stmtInsert = $db->prepare($sql);
             $stmtInsert->execute([
                 ':empresa_id' => $empresaId,
                 ':usuario_id' => $usuarioId,
+                ':cliente_id' => $clienteId,
                 ':fecha' => $fecha,
                 ':origen' => $origen,
                 ':numero_origen' => $numero_origen,
                 ':destino' => $destino,
                 ':duracion' => $duracion,
                 ':interno' => $interno_central,
-                ':atendio' => $terminal,
+                ':atendio' => $atendio,
                 ':evento_link' => $evento_link,
                 ':mp3' => $mp3,
                 ':json_bruto' => $json_bruto,
@@ -106,15 +137,20 @@ class WebhookController
         $interno = $_GET['interno'] ?? '100';
         
         $testData = [
-            'tiempo' => date('Y-m-d H:i:s'),
-            'origen_region' => 'Buenos Aires',
-            'origen' => '1155667788',
-            'destino' => '0800-444-1234',
-            'segundos' => (string)$randomDuration,
+            'origen' => 'Restringido',
+            'numero_origen' => '1155667788',
+            'precio' => '0.0',
+            'fecha' => date('Y-m-d H:i:s'),
+            'duracion' => (string)$randomDuration,
             'interno' => $interno,
-            'link' => 'HANGUP',
-            'terminal' => $interno . '_TestAgent',
-            'mp3' => 'https://example.com/audio/mock-call-' . rand(100, 999) . '.mp3'
+            'atendio' => '104-TestAgent',
+            'tiempo_espera' => '0',
+            'terminal' => '',
+            'link_mp' => 'HANGUP',
+            'destino' => '104',
+            'mp3' => 'https://example.com/audio/mock-call-' . rand(100, 999) . '.mp3',
+            'prueba' => '',
+            'prueba2' => ''
         ];
 
         // Simulamos que el POST está lleno

@@ -7,7 +7,7 @@ $activeUser = AuthService::getCurrentUser();
 $miInterno = $activeUser && $activeUser->anura_interno !== null ? (string)$activeUser->anura_interno : '';
 ?>
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 
@@ -115,7 +115,16 @@ ob_start();
                                     <td class="small fw-bold">
                                         <?= date('d/m/Y H:i', strtotime($item['fecha'])) ?>
                                     </td>
-                                    <td><?= htmlspecialchars($item['numero_origen'] ?? $item['origen'] ?? '-') ?></td>
+                                    <td>
+                                        <div class="fw-bold"><?= htmlspecialchars($item['numero_origen'] ?? $item['origen'] ?? '-') ?></div>
+                                        <?php if (!empty($item['cliente_nombre'])): ?>
+                                            <span class="badge bg-success text-white mt-1"><i class="bi bi-building"></i> <?= htmlspecialchars($item['cliente_nombre']) ?></span>
+                                        <?php else: ?>
+                                            <?php if (!$isPapelera): ?>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1 py-0 px-2 small" onclick="openVincularModal(<?= (int)$item['id'] ?>, '<?= htmlspecialchars($item['numero_origen'] ?? $item['origen'] ?? '') ?>')" data-row-link-ignore><i class="bi bi-person-plus"></i> Vincular</button>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($item['destino'] ?? '-') ?></td>
                                     <td>
                                         <span class="badge bg-secondary me-1"><?= htmlspecialchars($item['interno'] ?? '-') ?></span>
@@ -168,12 +177,22 @@ ob_start();
                                                     $isoInicio = date('Y-m-d\TH:i:s', $tsInicio);
                                                     $isoFin = date('Y-m-d\TH:i:s', $tsFin);
                                                     $urlCrear = "/mi-empresa/crm/pedidos-servicio/crear?diagnostico=" . urlencode($diagnosticoStr) . "&inicio=" . urlencode($isoInicio) . "&fin=" . urlencode($isoFin);
+                                                    if (!empty($item['cliente_id'])) {
+                                                        $urlCrear .= "&cliente_id=" . urlencode((string)$item['cliente_id']);
+                                                    }
+                                                    $internoLiteral = (string)($item['interno'] ?? '');
                                                     $internoExtraccion = substr((string)($item['atendio'] ?? ''), 0, 3);
                                                 ?>
-                                                    <button type="button" onclick="validarInternoPds('<?= htmlspecialchars($internoExtraccion) ?>', '<?= htmlspecialchars($miInterno) ?>', '<?= $urlCrear ?>')" class="btn btn-sm btn-outline-primary" title="Generar PDS"><i class="bi bi-journal-plus"></i></button>
+                                                    <button type="button" onclick="validarInternoPds('<?= htmlspecialchars($internoLiteral) ?>', '<?= htmlspecialchars($internoExtraccion) ?>', '<?= htmlspecialchars($miInterno) ?>', '<?= $urlCrear ?>')" class="btn btn-sm btn-outline-primary <?= !empty($item['cliente_id']) ? 'border-end-0' : '' ?>" title="Generar PDS"><i class="bi bi-journal-plus"></i></button>
+                                                <?php endif; ?>
+                                                <?php if (!empty($item['cliente_id'])): ?>
+                                                    <form action="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>/desvincular" method="POST" style="display:inline;" class="rxn-confirm-form" data-msg="¿Desea eliminar la relación cliente teléfono asociado?">
+                                                        <input type="hidden" name="numero_origen" value="<?= htmlspecialchars($item['numero_origen'] ?? $item['origen'] ?? '') ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary <?= (($item['evento_link'] ?? '') === 'HANGUP') ? 'border-start-0' : '' ?> border-end-0" title="Desvincular Cliente"><i class="bi bi-person-dash"></i></button>
+                                                    </form>
                                                 <?php endif; ?>
                                                 <form action="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>/eliminar" method="POST" style="display:inline;" class="rxn-confirm-form" data-msg="¿Enviar llamada a la papelera?">
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger <?= (($item['evento_link'] ?? '') === 'HANGUP') ? 'border-start-0' : '' ?>" title="Eliminar (Papelera)"><i class="bi bi-trash"></i></button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger <?= (($item['evento_link'] ?? '') === 'HANGUP' || !empty($item['cliente_id'])) ? 'border-start-0' : '' ?>" title="Eliminar (Papelera)"><i class="bi bi-trash"></i></button>
                                                 </form>
                                             <?php else: ?>
                                                 <form action="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>/restore" method="POST" style="display:inline;" class="rxn-confirm-form" data-msg="¿Confirma restaurar esta llamada?">
@@ -227,6 +246,35 @@ ob_start();
         </div>
     </div>
 
+    <!-- Modal Vincular Cliente Tango -->
+    <div class="modal fade" id="vincularClienteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-secondary text-light shadow-lg">
+                <div class="modal-header border-secondary border-opacity-25 py-3">
+                    <h5 class="modal-title fs-5"><i class="bi bi-person-plus me-2"></i>Vincular Cliente Tango</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="text-muted small">Asociá este número de origen a un cliente. El sistema preasignará el cliente en futuras llamadas desde este teléfono.</p>
+                    <form id="vincularForm" onsubmit="submitVincular(event)">
+                        <input type="hidden" id="v_llamada_id" name="llamada_id">
+                        <input type="hidden" id="v_numero_origen" name="numero_origen">
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-light small fw-bold">Buscar Cliente (Razón Social o Cód.)</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-light" id="vincular_cliente_search" placeholder="Escribí para buscar..." autocomplete="off">
+                            <input type="hidden" id="vincular_cliente_id" name="cliente_id" required>
+                            <div id="vincular_suggestions" class="dropdown-menu w-100 bg-dark border-secondary" style="max-height:200px;overflow-y:auto;"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25 pt-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="vincularForm" class="btn btn-primary" id="btn-vincular-submit" disabled>Vincular Cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
 <?php
 $content = ob_get_clean();
@@ -237,13 +285,13 @@ ob_start();
         // ... rxnConfirmModal event handlers removed since they are grouped in universal JS ...
     });
 
-    function validarInternoPds(internoLlamada, miInterno, urlPds) {
+    function validarInternoPds(internoLlamada1, internoLlamada2, miInterno, urlPds) {
         if (!miInterno) {
             showErrorModal('No tienes un interno de Anura configurado en tu perfil. No puedes generar PDS desde las llamadas de la central.');
             return;
         }
-        if (internoLlamada !== miInterno) {
-            showErrorModal(`No puedes generar un Pedido de Servicio desde esta llamada. El interno (${internoLlamada}) no coincide con tu interno asignado (${miInterno}).`);
+        if (internoLlamada1 !== miInterno && internoLlamada2 !== miInterno) {
+            showErrorModal(`No puedes generar un Pedido de Servicio desde esta llamada. El interno no coincide con tu interno asignado (${miInterno}).`);
             return;
         }
         window.location.href = urlPds;
@@ -258,6 +306,168 @@ ob_start();
         } else {
             alert(msg);
         }
+    }
+
+    // --- Lógica Autocomplete Vincular Clientes ---
+    const searchInput = document.getElementById('vincular_cliente_search');
+    const suggestionsDiv = document.getElementById('vincular_suggestions');
+    const hiddenInput = document.getElementById('vincular_cliente_id');
+    const btnSubmit = document.getElementById('btn-vincular-submit');
+    let searchTimeout;
+    let currentFocus = -1;
+
+    if(searchInput) {
+        function loadSuggestions(q = '') {
+            suggestionsDiv.innerHTML = '';
+            currentFocus = -1;
+
+            fetch(`/mi-empresa/crm/pedidos-servicio/clientes/sugerencias?q=${encodeURIComponent(q)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        suggestionsDiv.innerHTML = data.data.map(item => `
+                            <a href="#" class="dropdown-item text-light suggestion-item px-3 py-2 border-bottom border-light border-opacity-10" data-id="${item.id}" data-label="${item.label.replace(/"/g, '&quot;')}">
+                                <div class="fw-bold">${item.label}</div>
+                                <div class="small text-muted">${item.caption}</div>
+                            </a>
+                        `).join('');
+                        suggestionsDiv.classList.add('show');
+                    } else {
+                        suggestionsDiv.innerHTML = '<div class="dropdown-item text-muted disabled py-2">No se encontraron clientes</div>';
+                        suggestionsDiv.classList.add('show');
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const q = e.target.value.trim();
+            hiddenInput.value = '';
+            btnSubmit.disabled = true;
+            suggestionsDiv.classList.remove('show');
+
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(() => {
+                loadSuggestions(q);
+            }, 300);
+        });
+
+        searchInput.addEventListener('click', () => {
+            if (!suggestionsDiv.classList.contains('show')) {
+                loadSuggestions(searchInput.value.trim());
+            }
+        });
+
+        searchInput.addEventListener('focus', () => {
+            if (!suggestionsDiv.classList.contains('show')) {
+                loadSuggestions(searchInput.value.trim());
+            }
+        });
+
+        searchInput.addEventListener('keydown', function(e) {
+            let items = suggestionsDiv.querySelectorAll('.suggestion-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentFocus++;
+                addActive(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentFocus--;
+                addActive(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentFocus > -1) {
+                    if (items) items[currentFocus].click();
+                } else if (items.length === 1) {
+                    items[0].click();
+                } else if (!btnSubmit.disabled) {
+                    btnSubmit.click();
+                }
+            } else if (e.key === 'Escape') {
+                const modalEl = document.getElementById('vincularClienteModal');
+                const modalIns = bootstrap.Modal.getInstance(modalEl);
+                if (modalIns) modalIns.hide();
+            }
+        });
+
+        function addActive(items) {
+            if (!items || items.length === 0) return false;
+            removeActive(items);
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (items.length - 1);
+            items[currentFocus].classList.add('active', 'bg-primary');
+            items[currentFocus].scrollIntoView({ block: 'nearest' });
+        }
+
+        function removeActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('active', 'bg-primary');
+            }
+        }
+
+        suggestionsDiv.addEventListener('click', (e) => {
+            const row = e.target.closest('.suggestion-item');
+            if (row) {
+                e.preventDefault();
+                hiddenInput.value = row.dataset.id;
+                searchInput.value = row.dataset.label;
+                suggestionsDiv.classList.remove('show');
+                btnSubmit.disabled = false;
+                searchInput.focus();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.classList.remove('show');
+            }
+        });
+    }
+
+    function openVincularModal(id, numOrigen) {
+        document.getElementById('v_llamada_id').value = id;
+        document.getElementById('v_numero_origen').value = numOrigen;
+        hiddenInput.value = '';
+        searchInput.value = '';
+        btnSubmit.disabled = true;
+        suggestionsDiv.classList.remove('show');
+        
+        const myModal = new bootstrap.Modal(document.getElementById('vincularClienteModal'));
+        myModal.show();
+    }
+
+    function submitVincular(e) {
+        e.preventDefault();
+        btnSubmit.disabled = true;
+        const clId = hiddenInput.value;
+        const llId = document.getElementById('v_llamada_id').value;
+        const numOrg = document.getElementById('v_numero_origen').value;
+
+        fetch('<?= htmlspecialchars($indexPath) ?>/vincular-cliente-api', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ llamada_id: llId, cliente_id: clId, numero_origen: numOrg })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error al vincular cliente');
+                btnSubmit.disabled = false;
+            }
+        }).catch(err => {
+            alert('Error de conexión');
+            btnSubmit.disabled = false;
+        });
+    }
+
+    const vincularModalEl = document.getElementById('vincularClienteModal');
+    if (vincularModalEl && searchInput) {
+        vincularModalEl.addEventListener('shown.bs.modal', function () {
+            searchInput.focus();
+        });
     }
     </script>
     <script src="/js/rxn-crud-search.js"></script>

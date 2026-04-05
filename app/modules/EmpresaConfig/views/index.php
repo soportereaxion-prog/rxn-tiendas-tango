@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <?php
@@ -185,6 +185,28 @@ ob_start();
                             <?php endif; ?>
                         </div>
                     </div>
+
+                    <?php if (isset($area) && $area === 'crm'): ?>
+                    <hr class="text-muted opacity-50 my-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-9 col-lg-10 order-2 order-md-1">
+                            <label class="form-label">Ícono del Navegador (Favicon)</label>
+                            <input type="file" class="form-control mb-2" name="favicon" accept=".ico,.png,.svg">
+                            <div class="form-text"><small>Aparecerá en la pestaña del navegador web del CRM.</small></div>
+                        </div>
+                        <div class="col-md-3 col-lg-2 order-1 order-md-2 text-center mb-3 mb-md-0">
+                            <?php if(!empty($empresa->favicon_url)): ?>
+                                <div class="p-2 bg-light border rounded d-inline-block text-center shadow-sm">
+                                    <img src="<?= htmlspecialchars((string)$empresa->favicon_url) ?>" height="24">
+                                </div>
+                            <?php else: ?>
+                                <div class="bg-light border rounded-3 d-flex align-items-center justify-content-center mx-auto shadow-sm" style="height: 50px; width: 50px; border-style: dashed !important;">
+                                    <span class="text-muted" style="font-size: 0.7rem;">Sin Ico</span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
 

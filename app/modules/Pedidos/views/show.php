@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'RXN Tiendas IA';
+$pageTitle = 'RXN Suite';
 ob_start();
 ?>
 <div class="container mt-5 mb-5">

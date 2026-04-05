@@ -49,6 +49,7 @@ class ReleaseBuilder
             'public',
             'vendor',
             'database',
+            'deploy_db',
             'composer\.json',
             'composer\.lock'
         ]) . ')/i';

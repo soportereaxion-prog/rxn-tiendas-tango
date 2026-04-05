@@ -499,12 +499,8 @@ class PedidoServicioController
 
         $empresaId = (int) Context::getEmpresaId();
         $term = trim((string) ($_GET['q'] ?? ''));
-        if (mb_strlen($term) < 2) {
-            echo json_encode(['success' => true, 'data' => []]);
-            exit;
-        }
 
-        $rows = $this->repository->findClientSuggestions($empresaId, $term, 5);
+        $rows = $this->repository->findClientSuggestions($empresaId, $term, 50);
         $data = array_map(static function (array $row): array {
             $label = trim((string) ($row['razon_social'] ?? ''));
             if ($label === '') {
@@ -530,12 +526,8 @@ class PedidoServicioController
 
         $empresaId = (int) Context::getEmpresaId();
         $term = trim((string) ($_GET['q'] ?? ''));
-        if (mb_strlen($term) < 2) {
-            echo json_encode(['success' => true, 'data' => []], JSON_INVALID_UTF8_SUBSTITUTE);
-            exit;
-        }
 
-        $rows = $this->repository->findArticleSuggestions($empresaId, $term, 5);
+        $rows = $this->repository->findArticleSuggestions($empresaId, $term, 50);
         $data = array_map(static function (array $row): array {
             $nombre = trim((string) ($row['nombre'] ?? 'Articulo'));
             $codigo = trim((string) ($row['codigo_externo'] ?? ''));
@@ -633,7 +625,7 @@ class PedidoServicioController
             return strnatcasecmp($a['id'], $b['id']);
         });
 
-        echo json_encode(['success' => true, 'data' => array_slice($filtered, 0, 15)], JSON_INVALID_UTF8_SUBSTITUTE);
+        echo json_encode(['success' => true, 'data' => array_slice($filtered, 0, 50)], JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
@@ -790,13 +782,24 @@ class PedidoServicioController
     {
         $now = new DateTimeImmutable();
 
+        $clienteId = '';
+        $clienteNombre = '';
+        if (!empty($_GET['cliente_id'])) {
+            $cli = $this->repository->findClientById($empresaId, (int)$_GET['cliente_id']);
+            if ($cli) {
+                $clienteId = $cli['id'];
+                $razon = trim((string)($cli['razon_social'] ?? ''));
+                $clienteNombre = $razon !== '' ? $razon : trim(($cli['nombre'] ?? '') . ' ' . ($cli['apellido'] ?? ''));
+            }
+        }
+
         return [
             'id' => null,
             'numero' => $this->repository->previewNextNumero($empresaId),
             'fecha_inicio' => isset($_GET['inicio']) ? trim($_GET['inicio']) : $now->format('Y-m-d\TH:i:s'),
             'fecha_finalizado' => isset($_GET['fin']) ? trim($_GET['fin']) : '',
-            'cliente_id' => '',
-            'cliente_nombre' => '',
+            'cliente_id' => $clienteId,
+            'cliente_nombre' => $clienteNombre,
             'solicito' => '',
             'nro_pedido' => '',
             'articulo_id' => '',

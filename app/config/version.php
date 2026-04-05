@@ -1,9 +1,147 @@
 <?php
 
 return [
-    'current_version' => '1.1.45',
-    'current_build' => '20260403.3',
+    'current_version' => '1.1.57',
+    'current_build' => '20260404.10',
     'history' => [
+        [
+            'version' => '1.1.57',
+            'build' => '20260404.10',
+            'released_at' => '2026-04-04',
+            'title' => 'Gestión de Acceso Modular Multi-Tenant',
+            'summary' => 'Se implementó una arquitectura de permisos modulares granulares, permitiendo a los administradores habilitar reportes y funciones CRM de forma selectiva por tenant.',
+            'items' => [
+                'Activación dinámica de "Llamadas CRM", "Monitoreo de Usuarios" y el entorno analítico de "RXN Live" por empresa.',
+                'Refactorización de la UI de edición y alta de empresas para sincronizar visualmente la activación de submódulos anidados bajo CRM y Tiendas.',
+                'Los entornos operativos (Dashboards) ahora responden proactivamente, inyectando o quitando las tarjetas de acceso correspondientes según los módulos que el tenant tenga habilitados.',
+            ],
+        ],
+        [
+            'version' => '1.1.56',
+            'build' => '20260404.9',
+            'released_at' => '2026-04-04',
+            'title' => 'Títulos de Navegador Dinámicos y Rebranding',
+            'summary' => 'Se rediseñó el control de marcas y leyendas del sistema, purificando a lo largo del código duro la mención "RXN Tiendas IA" dando un paso más hacia el dinamismo Multi-Tenant.',
+            'items' => [
+                'Cada administrador master puede definir un "Título de Pestaña de Navegador" diferente para cada inquilino o tenant operativo configurado dentro de RXN Suite.',
+                'El framework general (Backoffice y CRM) asume el nombre de fallback global a RXN Suite en lugar del desactualizado "Tiendas IA".',
+            ],
+        ],
+        [
+            'version' => '1.1.55',
+            'build' => '20260404.8',
+            'released_at' => '2026-04-04',
+            'title' => 'Usabilidad Híbrida en Selectores (PDS y Llamadas)',
+            'summary' => 'Se rediseñaron los componentes de autocompletado en Pedidos de Servicio y Vinculaciones de Central Telefónica para operar como selectores híbridos, integrando scroll nativo y carga condicional por click.',
+            'items' => [
+                'Hacer click directo en los selectores despliega un listado de sugerencias óptimo de 50 registros sin obligar a escribir previamente.',
+                'Los paneles ahora incluyen un scrollbar visual contenido en la cápsula, compatible con navegación dinámica mediante el ratón y teclado (flechas).',
+                'El Backend relajó lógicas opresivas de validación previa mejorando radicalmente la presteza en PDS para Artículos, Clientes y Clasificaciones.',
+            ],
+        ],
+        [
+            'version' => '1.1.54',
+            'build' => '20260404.7',
+            'released_at' => '2026-04-04',
+            'title' => 'Hotfix: Estabilización de Exportación a Excel en Analytics',
+            'summary' => 'Se introdujeron dos correcciones técnicas profundas para garantizar la generación inquebrantable de archivos nativos de Microsoft Excel en el Módulo de Reportes avanzados.',
+            'items' => [
+                'Se resolvió una incompatibilidad de variables con la librería interna de generación, evitando que descargas presenten mensajes de "archivo corrompido" generados por la suite de Office.',
+                'Se mitigó una condición de carrera ("Race-Condition") en navegadores Chrome que omitía enviar los criterios de búsqueda al servidor cuando el operador exportaba a toda velocidad.',
+            ],
+        ],
+        [
+            'version' => '1.1.53',
+            'build' => '20260404.6',
+            'released_at' => '2026-04-04',
+            'title' => 'Directorio Expandido: Vinculación Llamadas a Clientes Tango',
+            'summary' => 'Se implementó un directorio activo en el CRM permitiendo que el historial y los webhooks reconozcan los perfiles de clientes Tango a través del CallerID (Número de Teléfono).',
+            'items' => [
+                'La vista de Historial permite acoplar un registro de recepción o salida telefónica con un cliente indexado en Tango Connect.',
+                'Esta operación introduce el teléfono en una persistencia local. Futuras llamadas provenientes del mismo son pareadas de forma automática.',
+                'La generación en caliente de un Pedido de Servicio hereda el cliente preanexado para reducir los clics operativos a la mitad.',
+            ],
+        ],
+        [
+            'version' => '1.1.52',
+            'build' => '20260404.5',
+            'released_at' => '2026-04-04',
+            'title' => 'Fix: Indicador de Estado en Monitoreo CRM',
+            'summary' => 'Se corrigió una confusión visual en el tablero de Monitoreo de Operadores del CRM donde todos los usuarios habilitados figuraban como "En línea".',
+            'items' => [
+                'El punto verde de "Conectado" ahora es exclusivo del usuario que actualmente está navegando la sesión operativa interna.',
+                'Los demás usuarios preservan un identificador gris neutro diferenciando visualmente qué cuenta está suspendida de la que se encuentra inactiva.',
+            ],
+        ],
+        [
+            'version' => '1.1.51',
+            'build' => '20260404.4',
+            'released_at' => '2026-04-04',
+            'title' => 'Gestión de Favicon en Entorno CRM',
+            'summary' => 'Se unifican las capacidades visuales del CRM permitiendo administrar el Favicon de la empresa directamente desde este entorno sin depender de la Tienda pública.',
+            'items' => [
+                'La vista de Configuración del CRM ahora incluye el campo para la gestión independiente del ícono de la pestaña del navegador (Favicon).',
+                'El Favicon permanece atado a la entidad de la Empresa, mostrándose uniformemente tanto en el panel operativo del CRM como en la vidriera de la Tienda.',
+            ],
+        ],
+        [
+            'version' => '1.1.50',
+            'build' => '20260404.3',
+            'released_at' => '2026-04-04',
+            'title' => 'Ampliacion Datos en Vista Live PDS',
+            'summary' => 'Se amplió el conjunto de datos disponible en la vista en vivo de Pedidos de Servicio (Tiempos), incorporando identificadores directos requeridos por la operativa.',
+            'items' => [
+                'Se agregó el Código de Artículo (Tango) para facilitar la vinculación de elementos de facturación.',
+                'Se expone explícitamente el Nro. Pedido de Tango dentro del selector de columnas del Pivot.',
+                'Se estandarizó la nomenclatura visual del autor ("Usuario" en vez de "Técnico") para hacer match con el entorno ABM original.',
+            ],
+        ],
+        [
+            'version' => '1.1.49',
+            'build' => '20260404.2',
+            'released_at' => '2026-04-04',
+            'title' => 'Favicon en Entorno CRM / Backoffice',
+            'summary' => 'Se unifica el ícono de navegador para que los administradores y operadores logueados en el backoffice vean el mismo favicon configurado para la tienda B2C.',
+            'items' => [
+                'La cabecera del panel de administración (CRM / Backoffice) ahora toma el favicon de la empresa activa y lo inyecta en la pestaña del navegador.',
+                'Esta mejora incrementa el contexto visual cuando los operadores trabajan con múltiples pestañas o empresas.',
+            ],
+        ],
+        [
+            'version' => '1.1.48',
+            'build' => '20260404.1',
+            'released_at' => '2026-04-04',
+            'title' => 'Módulo Analytics RXN_LIVE y Gestor de Vistas',
+            'summary' => 'Se incorporó el ecosistema de visualización de métricas avanzadas (RXN_LIVE) permitiendo armar tableros estadísticos interactivos sobre conjuntos de datos del CRM, Ecommerce y Taller (PDS).',
+            'items' => [
+                'Nuevas vistas dinámicas SQL precompiladas desde migraciones OTA para reportes más veloces.',
+                'Persistencia descentralizada de layout: cada usuario mantiene su propio guardado de posiciones y selecciones de gráficos JSON en la plataforma.',
+                'Integración cruzada de Datasets de Pedidos de Servicio (ERP/Tango), Contactos CRM y Pedidos Web con sincronización real.',
+            ],
+        ],
+        [
+            'version' => '1.1.47',
+            'build' => '20260403.5',
+            'released_at' => '2026-04-03',
+            'title' => 'Monitoreo de Usuarios en CRM',
+            'summary' => 'Se implementó un nuevo panel dedicado para supervisar y consultar rápidamente al equipo operativo y de ventas en el entorno CRM.',
+            'items' => [
+                'Nuevo acceso a "Monitoreo de Usuarios" centralizado en la cabecera del CRM.',
+                'Visualización directa de operadores, con detalle de su Interno Anura y Perfil comercial de Tango.',
+                'Buscador instantáneo optimizado (atajo F3 o "/") sin realizar consultas al servidor.',
+            ],
+        ],
+        [
+            'version' => '1.1.46',
+            'build' => '20260403.4',
+            'released_at' => '2026-04-03',
+            'title' => 'Hotfix: Compatibilidad DDL en Migraciones OTA',
+            'summary' => 'Se resolvió un falso reporte de error ("There is no active transaction") que aparecía al aplicar actualizaciones estructurales de base de datos desde la Central de Operaciones.',
+            'items' => [
+                'El motor de actualizaciones (OTA) ahora comprende la mecánica de auto-commit de MySQL al crear tablas.',
+                'Las actualizaciones que agregan nuevos módulos ya no quedarán frenadas reportando fallo falso tras aplicar la estructura principal.',
+            ],
+        ],
         [
             'version' => '1.1.45',
             'build' => '20260403.3',

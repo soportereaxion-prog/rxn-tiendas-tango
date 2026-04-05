@@ -69,6 +69,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-telephone-fill"></i>',
         'link' => '/mi-empresa/crm/llamadas',
     ],
+    'monitoreo' => [
+        'title' => 'Monitoreo de Usuarios',
+        'desc' => 'Supervisa al equipo de ventas y operadores operativos del sistema.',
+        'icon' => '<i class="bi bi-activity"></i>',
+        'link' => '/mi-empresa/crm/monitoreo-usuarios',
+    ],
     'usuarios' => [
         'title' => 'Administrar Cuentas',
         'desc' => 'Gestion de usuarios internos compartida entre los entornos operativos del tenant.',
@@ -81,10 +87,25 @@ $defaultCards = [
         'icon' => '<i class="bi bi-person-badge"></i>',
         'link' => '/mi-perfil?area=crm',
     ],
+    'reporting' => [
+        'title' => 'RXN LIVE Reporting',
+        'desc' => 'Métricas operativas, análisis de datos y reportes dinámicos de la suite.',
+        'icon' => '<i class="bi bi-graph-up-arrow"></i>',
+        'link' => '/rxn_live?from=crm',
+    ],
 ];
 
 if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmNotasAccess()) {
     unset($defaultCards['notas']);
+}
+if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmRxnLiveAccess()) {
+    unset($defaultCards['reporting']);
+}
+if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmLlamadasAccess()) {
+    unset($defaultCards['llamadas']);
+}
+if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmMonitoreoAccess()) {
+    unset($defaultCards['monitoreo']);
 }
 
 $finalCards = [];

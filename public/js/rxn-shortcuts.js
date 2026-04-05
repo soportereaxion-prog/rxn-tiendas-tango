@@ -17,6 +17,35 @@ document.addEventListener('keydown', function(e) {
     const isInsert = e.key === 'Insert' || (e.altKey && e.key.toLowerCase() === 'n');
     const isFocusSearch = (!isInput && e.key === '/') || (e.altKey && e.key.toLowerCase() === 'b') || e.key === 'F3';
 
+    // 0. Estandarización de Modales
+    const activeModal = document.querySelector('.modal.show');
+    if (activeModal) {
+        if (e.key === 'Enter') {
+            // Permitir saltos de línea en textareas dentro del modal
+            if (activeEl && activeEl.tagName === 'TEXTAREA') {
+                return; 
+            }
+            e.preventDefault();
+            const btnAccept = activeModal.querySelector('.modal-footer .btn-primary') || 
+                              activeModal.querySelector('.modal-footer .btn-success') || 
+                              activeModal.querySelector('.modal-footer button[type="submit"]') ||
+                              activeModal.querySelector('.btn-primary');
+            if (btnAccept && !btnAccept.disabled) {
+                btnAccept.click();
+            }
+            return; // Bloquea propagación al resto de atajos
+        }
+        if (isEscape) {
+            // Bootstrap puede cerrarlo solo, pero forzamos el click en el dismiss para ser explícitos
+            // y metemos return para no ejecutar el window.history.back de abajo.
+            const btnCancel = activeModal.querySelector('[data-bs-dismiss="modal"]');
+            if (btnCancel && !btnCancel.disabled) {
+                btnCancel.click();
+            }
+            return; // Bloquea propagación
+        }
+    }
+
     // 1. F10 o Ctrl+Enter -> Guardar (Submit)
     if (isF10 || isCtrlEnter) {
         // Buscar el boton submit principal en el header de acciones, o un submit primario

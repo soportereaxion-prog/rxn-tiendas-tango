@@ -93,12 +93,12 @@
             results.classList.remove('d-none');
         }
 
-        async function load() {
+        async function load(forceFetch = false) {
             var url = root.getAttribute('data-picker-url');
             var term = input.value.trim();
             var token = ++requestToken;
 
-            if (!url || term.length < 2) {
+            if (!url || (!forceFetch && term.length < 2)) {
                 closeResults();
                 if (term === '') {
                     clearSelection();
@@ -131,7 +131,19 @@
             if (!allowManual) {
                 hidden.value = '';
             }
-            load();
+            load(false);
+        });
+
+        input.addEventListener('click', function () {
+            if (results.classList.contains('d-none')) {
+                load(true);
+            }
+        });
+
+        input.addEventListener('focus', function () {
+            if (results.classList.contains('d-none')) {
+                load(true);
+            }
         });
 
         input.addEventListener('keydown', function (event) {
