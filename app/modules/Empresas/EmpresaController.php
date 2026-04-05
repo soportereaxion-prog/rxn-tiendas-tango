@@ -110,7 +110,7 @@ class EmpresaController extends Controller
         } catch (\PDOException $e) {
             $empresa = $this->service->findById((int) $id);
             View::render('app/modules/Empresas/views/editar.php', [
-                'error' => 'Error de base de datos.',
+                'error' => 'Error de base de datos: ' . $e->getMessage(),
                 'empresa' => $empresa,
                 'old' => $_POST
             ]);
