@@ -8,6 +8,28 @@ $miInterno = $activeUser && $activeUser->anura_interno !== null ? (string)$activ
 ?>
 <?php
 $pageTitle = 'RXN Suite';
+$sort = $sort ?? 'fecha';
+$dir = $dir ?? 'DESC';
+$buildQuery = function (array $overrides = []) use ($search, $sort, $dir, $page, $status) {
+    $params = [
+        'search' => $search,
+        'limit' => 25,
+        'sort' => $sort,
+        'dir' => $dir,
+        'page' => $page,
+        'status' => $status ?? 'activos',
+    ];
+
+    foreach ($overrides as $key => $value) {
+        if ($value === null || $value === '') {
+            unset($params[$key]);
+            continue;
+        }
+        $params[$key] = $value;
+    }
+
+    return http_build_query($params);
+};
 ob_start();
 ?>
 
@@ -44,17 +66,7 @@ ob_start();
                         <label class="form-label text-muted small mb-1">Buscar Llamada</label>
                         <input type="text" name="search" class="form-control bg-dark text-light border-secondary" value="<?= htmlspecialchars($search ?? '') ?>" placeholder='🔎 Presioná F3 o "/" para buscar' data-search-input autocomplete="off">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label text-muted small mb-1">Ordenar por</label>
-                        <select name="sort" class="form-select bg-dark text-light border-secondary">
-                            <option value="fecha_desc" <?= (empty($_GET['sort']) || $_GET['sort'] === 'fecha_desc') ? 'selected' : '' ?>>Más Recientes</option>
-                            <option value="fecha_asc" <?= ($_GET['sort'] ?? '') === 'fecha_asc' ? 'selected' : '' ?>>Más Antiguas</option>
-                            <option value="duracion_desc" <?= ($_GET['sort'] ?? '') === 'duracion_desc' ? 'selected' : '' ?>>Mayor Duración</option>
-                            <option value="usuario_nombre_asc" <?= ($_GET['sort'] ?? '') === 'usuario_nombre_asc' ? 'selected' : '' ?>>Atendió A-Z</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Aplicar</button>
+                    <div class="col-md-2" style="display:none;">
                     </div>
                 </form>
             </div>
@@ -67,12 +79,12 @@ ob_start();
 
         <ul class="nav nav-tabs mb-4 border-secondary border-opacity-25" style="border-bottom-width: 2px;">
             <li class="nav-item">
-                <a class="nav-link <?= !$isPapelera ? 'active fw-bold bg-dark text-light border-secondary border-bottom-0' : 'text-muted border-0 hover-text-light' ?>" href="<?= htmlspecialchars($indexPath) ?>?status=activos&search=<?= urlencode($search ?? '') ?>">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold bg-dark text-light border-secondary border-bottom-0' : 'text-muted border-0 hover-text-light' ?>" href="<?= htmlspecialchars($indexPath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
                     Activas
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold bg-dark border-secondary border-bottom-0' : 'border-0 hover-text-danger' ?>" href="<?= htmlspecialchars($indexPath) ?>?status=papelera&search=<?= urlencode($search ?? '') ?>">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold bg-dark border-secondary border-bottom-0' : 'border-0 hover-text-danger' ?>" href="<?= htmlspecialchars($indexPath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
                     <i class="bi bi-trash"></i> Papelera
                 </a>
             </li>
@@ -94,13 +106,21 @@ ob_start();
             <div class="table-responsive">
                 <table class="table table-dark table-hover mb-0 align-middle">
                     <thead class="table-dark">
+                        <?php
+                        $sortLink = function (string $fieldName, string $label) use ($buildQuery, $sort, $dir) {
+                            $newDir = ($sort === $fieldName && $dir === 'ASC') ? 'DESC' : 'ASC';
+                            $icon = ($sort === $fieldName) ? ($dir === 'ASC' ? '▲' : '▼') : '';
+                            $href = '?' . $buildQuery(['sort' => $fieldName, 'dir' => $newDir]);
+                            return '<a href="' . $href . '" class="text-white text-decoration-none"><span>' . $label . '</span><span class="ms-1">' . $icon . '</span></a>';
+                        };
+                        ?>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="checkAll" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                            <th style="width: 150px;">Fecha y Hora</th>
-                            <th>Origen</th>
-                            <th>Destino</th>
-                            <th>Interno (Usuario)</th>
-                            <th>Duración</th>
+                            <th style="width: 150px;" class="rxn-filter-col" data-filter-field="fecha"><?= $sortLink('fecha', 'Fecha y Hora') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="numero_origen"><?= $sortLink('numero_origen', 'Origen') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="destino"><?= $sortLink('destino', 'Destino') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="usuario_nombre"><?= $sortLink('usuario_nombre', 'Interno (Usuario)') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="duracion"><?= $sortLink('duracion', 'Duración') ?></th>
                             <th>Grabación</th>
                             <th style="width: 80px;" class="text-end">Acciones</th>
                         </tr>
@@ -217,10 +237,10 @@ ob_start();
                 <span class="text-sm text-muted">Mostrando página <?= $page ?> de <?= $totalPages ?> (Total: <?= $totalItems ?>)</span>
                 <div class="d-flex gap-1">
                     <?php if ($page > 1): ?>
-                        <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&sort=<?= urlencode($sortRaw ?? '') ?>&status=<?= urlencode($status ?? 'activos') ?>" class="btn btn-sm btn-outline-secondary">Anterior</a>
+                        <a href="?<?= htmlspecialchars($buildQuery(['page' => $page - 1])) ?>" class="btn btn-sm btn-outline-secondary">Anterior</a>
                     <?php endif; ?>
                     <?php if ($page < $totalPages): ?>
-                        <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&sort=<?= urlencode($sortRaw ?? '') ?>&status=<?= urlencode($status ?? 'activos') ?>" class="btn btn-sm btn-outline-secondary">Siguiente</a>
+                        <a href="?<?= htmlspecialchars($buildQuery(['page' => $page + 1])) ?>" class="btn btn-sm btn-outline-secondary">Siguiente</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -466,6 +486,7 @@ ob_start();
         });
     }
     </script>
+    <script src="/js/rxn-advanced-filters.js"></script>
     <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-shortcuts.js"></script>

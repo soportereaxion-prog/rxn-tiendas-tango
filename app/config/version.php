@@ -1,9 +1,20 @@
 <?php
 
 return [
-    'current_version' => '1.2.3',
-    'current_build' => '20260406.4',
+    'current_version' => '1.2.4',
+    'current_build' => '20260406.5',
     'history' => [
+        [
+            'version' => '1.2.4',
+            'build' => '20260406.5',
+            'released_at' => '2026-04-06',
+            'title' => 'OTA Fix: Normalización de UI en CRM Notas y Llamadas',
+            'summary' => 'Se mejoró la experiencia de usuario inyectando el sistema de Sort interactivo en cabeceras de columnas, reemplazando el listado estático tradicional.',
+            'items' => [
+                'Se actualizaron los controladores de CrmLlamadas y CrmNotas para soportar ordenamiento de consultas por URL nativa.',
+                'Se implementaron enlaces dinámicos en los Theads con feedback direccional.',
+            ],
+        ],
         [
             'version' => '1.2.3',
             'build' => '20260406.4',

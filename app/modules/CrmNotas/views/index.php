@@ -7,11 +7,33 @@ $pageHeaderIcon = 'bi bi-journal-text';
 $pageHeaderBackUrl = $dashboardPath ?? '/';
 $pageHeaderBackLabel = 'Volver';
 
+$sort = $sort ?? 'created_at';
+$dir = $dir ?? 'DESC';
+$buildQuery = function (array $overrides = []) use ($search, $sort, $dir, $page, $status) {
+    $params = [
+        'search' => $search,
+        'limit' => 25,
+        'sort' => $sort,
+        'dir' => $dir,
+        'page' => $page,
+        'status' => $status ?? 'activos',
+    ];
+
+    foreach ($overrides as $key => $value) {
+        if ($value === null || $value === '') {
+            unset($params[$key]);
+            continue;
+        }
+        $params[$key] = $value;
+    }
+
+    return http_build_query($params);
+};
 ob_start();
 ?>
 <a href="<?= htmlspecialchars($indexPath) ?>/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nueva Nota</a>
 <a href="<?= htmlspecialchars($indexPath) ?>/importar" class="btn btn-outline-info"><i class="bi bi-upload"></i> Importar CSV/Excel</a>
-<a href="<?= htmlspecialchars($indexPath) ?>/exportar<?= !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '' ?>" class="btn btn-outline-success"><i class="bi bi-download"></i> Exportar a Excel</a>
+<a href="<?= htmlspecialchars($indexPath) ?>/exportar?<?= htmlspecialchars($buildQuery()) ?>" class="btn btn-outline-success"><i class="bi bi-download"></i> Exportar a Excel</a>
 <?php
 $pageHeaderActions = ob_get_clean();
 
@@ -45,17 +67,7 @@ ob_start();
                         <label class="form-label text-muted small mb-1">Buscar Notas</label>
                         <input type="text" name="search" class="form-control bg-dark text-light border-secondary" value="<?= htmlspecialchars($search ?? '') ?>" placeholder='🔎 Presioná F3 o "/" para buscar' data-search-input autocomplete="off">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label text-muted small mb-1">Ordenar por</label>
-                        <select name="sort" class="form-select bg-dark text-light border-secondary">
-                            <option value="created_at_desc" <?= (empty($_GET['sort']) || $_GET['sort'] === 'created_at_desc') ? 'selected' : '' ?>>Más Recientes</option>
-                            <option value="created_at_asc" <?= ($_GET['sort'] ?? '') === 'created_at_asc' ? 'selected' : '' ?>>Más Antiguas</option>
-                            <option value="id_desc" <?= ($_GET['sort'] ?? '') === 'id_desc' ? 'selected' : '' ?>>ID Descendente</option>
-                            <option value="id_asc" <?= ($_GET['sort'] ?? '') === 'id_asc' ? 'selected' : '' ?>>ID Ascendente</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Aplicar</button>
+                    <div class="col-md-2" style="display:none;">
                     </div>
                 </form>
             </div>
@@ -68,12 +80,12 @@ ob_start();
 
         <ul class="nav nav-tabs mb-4 border-secondary border-opacity-25" style="border-bottom-width: 2px;">
             <li class="nav-item">
-                <a class="nav-link <?= !$isPapelera ? 'active fw-bold bg-dark text-light border-secondary border-bottom-0' : 'text-muted border-0 hover-text-light' ?>" href="<?= htmlspecialchars($indexPath) ?>?status=activos&search=<?= urlencode($search ?? '') ?>">
+                <a class="nav-link <?= !$isPapelera ? 'active fw-bold bg-dark text-light border-secondary border-bottom-0' : 'text-muted border-0 hover-text-light' ?>" href="<?= htmlspecialchars($indexPath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'activos', 'page' => 1])) ?>">
                     Activos
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold bg-dark border-secondary border-bottom-0' : 'border-0 hover-text-danger' ?>" href="<?= htmlspecialchars($indexPath) ?>?status=papelera&search=<?= urlencode($search ?? '') ?>">
+                <a class="nav-link text-danger <?= $isPapelera ? 'active fw-bold bg-dark border-secondary border-bottom-0' : 'border-0 hover-text-danger' ?>" href="<?= htmlspecialchars($indexPath) ?>?<?= htmlspecialchars($buildQuery(['status' => 'papelera', 'page' => 1])) ?>">
                     <i class="bi bi-trash"></i> Papelera
                 </a>
             </li>
@@ -95,13 +107,21 @@ ob_start();
             <div class="table-responsive">
                 <table class="table table-dark table-hover mb-0 align-middle">
                     <thead class="table-dark">
+                        <?php
+                        $sortLink = function (string $fieldName, string $label) use ($buildQuery, $sort, $dir) {
+                            $newDir = ($sort === $fieldName && $dir === 'ASC') ? 'DESC' : 'ASC';
+                            $icon = ($sort === $fieldName) ? ($dir === 'ASC' ? '▲' : '▼') : '';
+                            $href = '?' . $buildQuery(['sort' => $fieldName, 'dir' => $newDir]);
+                            return '<a href="' . $href . '" class="text-white text-decoration-none"><span>' . $label . '</span><span class="ms-1">' . $icon . '</span></a>';
+                        };
+                        ?>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="checkAll" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                            <th style="width: 50px;">ID</th>
-                            <th>Título</th>
-                            <th>Cliente Vinculado</th>
-                            <th>Tags</th>
-                            <th style="width: 150px;">Fecha</th>
+                            <th style="width: 50px;" class="rxn-filter-col" data-filter-field="id"><?= $sortLink('id', 'ID') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="titulo"><?= $sortLink('titulo', 'Título') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="cliente_nombre"><?= $sortLink('cliente_nombre', 'Cliente Vinculado') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="tags"><?= $sortLink('tags', 'Tags') ?></th>
+                            <th style="width: 150px;" class="rxn-filter-col" data-filter-field="created_at"><?= $sortLink('created_at', 'Fecha') ?></th>
                             <th style="width: 120px;" class="text-end">Acciones</th>
                         </tr>
                     </thead>
@@ -170,10 +190,10 @@ ob_start();
                 <span class="text-sm text-muted">Mostrando página <?= $page ?> de <?= $totalPages ?> (Total: <?= $totalItems ?>)</span>
                 <div class="d-flex gap-1">
                     <?php if ($page > 1): ?>
-                        <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($status ?? 'activos') ?>" class="btn btn-sm btn-outline-secondary">Anterior</a>
+                        <a href="?<?= htmlspecialchars($buildQuery(['page' => $page - 1])) ?>" class="btn btn-sm btn-outline-secondary">Anterior</a>
                     <?php endif; ?>
                     <?php if ($page < $totalPages): ?>
-                        <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($status ?? 'activos') ?>" class="btn btn-sm btn-outline-secondary">Siguiente</a>
+                        <a href="?<?= htmlspecialchars($buildQuery(['page' => $page + 1])) ?>" class="btn btn-sm btn-outline-secondary">Siguiente</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -191,6 +211,7 @@ ob_start();
     <script>
         // Universal rxn-confirm-modal.js is loaded in the layout and handles rxn-confirm-form submissions.
     </script>
+    <script src="/js/rxn-advanced-filters.js"></script>
     <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-shortcuts.js"></script>

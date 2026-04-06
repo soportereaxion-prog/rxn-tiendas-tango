@@ -38,10 +38,8 @@ class CrmNotasController extends Controller
         // Por ahora omitimos bloqueo estricto, o podríamos inyectar configuración general
 
         $search = $_GET['search'] ?? '';
-        $sortRaw = $_GET['sort'] ?? 'created_at_desc';
-        $parts = explode('_', $sortRaw);
-        $sortDir = strtoupper(array_pop($parts));
-        $sortColumn = implode('_', $parts);
+        $sortColumn = $_GET['sort'] ?? 'created_at';
+        $sortDir = strtoupper($_GET['dir'] ?? 'DESC');
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
@@ -49,9 +47,11 @@ class CrmNotasController extends Controller
 
         $status = $_GET['status'] ?? 'activos';
         $onlyDeleted = $status === 'papelera';
+        
+        $advancedFilters = $this->handleCrudFilters('crm_notas');
 
-        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted);
-        $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted);
+        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted, $advancedFilters);
+        $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted, $advancedFilters);
 
         View::render('app/modules/CrmNotas/views/index.php', array_merge($ui, [
             'notas' => $items,
@@ -59,7 +59,9 @@ class CrmNotasController extends Controller
             'page' => $page,
             'totalPages' => max(1, ceil($totalItems / $perPage)),
             'totalItems' => $totalItems,
-            'status' => $status
+            'status' => $status,
+            'sort' => $sortColumn,
+            'dir' => $sortDir
         ]));
     }
 
@@ -386,10 +388,8 @@ class CrmNotasController extends Controller
         }
 
         $search = $_GET['search'] ?? '';
-        $sortRaw = $_GET['sort'] ?? 'created_at_desc';
-        $parts = explode('_', $sortRaw);
-        $sortDir = strtoupper(array_pop($parts));
-        $sortColumn = implode('_', $parts);
+        $sortColumn = $_GET['sort'] ?? 'created_at';
+        $sortDir = strtoupper($_GET['dir'] ?? 'DESC');
 
         $status = $_GET['status'] ?? 'activos';
         $onlyDeleted = $status === 'papelera';

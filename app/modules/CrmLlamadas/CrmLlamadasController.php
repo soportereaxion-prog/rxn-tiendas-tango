@@ -35,10 +35,8 @@ class CrmLlamadasController extends Controller
         $ui = $this->buildUiContext();
 
         $search = $_GET['search'] ?? '';
-        $sortRaw = $_GET['sort'] ?? 'fecha_desc';
-        $parts = explode('_', $sortRaw);
-        $sortDir = strtoupper(array_pop($parts));
-        $sortColumn = implode('_', $parts);
+        $sortColumn = $_GET['sort'] ?? 'fecha';
+        $sortDir = strtoupper($_GET['dir'] ?? 'DESC');
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
@@ -46,9 +44,11 @@ class CrmLlamadasController extends Controller
 
         $status = $_GET['status'] ?? 'activos';
         $onlyDeleted = $status === 'papelera';
+        
+        $advancedFilters = $this->handleCrudFilters('crm_llamadas');
 
-        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted);
-        $items = $this->repository->findAllWithSearch($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted);
+        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted, $advancedFilters);
+        $items = $this->repository->findAllWithSearch($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted, $advancedFilters);
 
         View::render('app/modules/CrmLlamadas/views/index.php', array_merge($ui, [
             'llamadas' => $items,
@@ -57,7 +57,8 @@ class CrmLlamadasController extends Controller
             'totalPages' => max(1, ceil($totalItems / $perPage)),
             'totalItems' => $totalItems,
             'status' => $status,
-            'sortRaw' => $sortRaw
+            'sort' => $sortColumn,
+            'dir' => $sortDir
         ]));
     }
 
