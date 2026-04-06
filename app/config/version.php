@@ -1,9 +1,21 @@
 <?php
 
 return [
-    'current_version' => '1.2.2',
-    'current_build' => '20260406.3',
+    'current_version' => '1.2.3',
+    'current_build' => '20260406.4',
     'history' => [
+        [
+            'version' => '1.2.3',
+            'build' => '20260406.4',
+            'released_at' => '2026-04-06',
+            'title' => 'Hotfix: Estabilización de Base de Datos para Anura Webhook',
+            'summary' => 'Se resolvió un error fatal 500 originado en Plesk al registrar llamadas entrantes, creando las tablas relacionales faltantes para el cruce de clientes.',
+            'items' => [
+                'Se implementó la migración correctiva que añade la tabla crm_telefonos_clientes para la persistencia retroactiva de llamadas y clientes CRM.',
+                'Se inyectó en caliente la columna de cliente_id sobre las llamadas registradas.',
+                'El registro en vivo de Anura Webhook queda blindado y preparado para ser subido al servidor.',
+            ],
+        ],
         [
             'version' => '1.2.2',
             'build' => '20260406.3',
