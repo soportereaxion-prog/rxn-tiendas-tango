@@ -2,14 +2,14 @@
 
 return [
     'current_version' => '1.2.2',
-    'current_build' => '20260406.2',
+    'current_build' => '20260406.3',
     'history' => [
         [
             'version' => '1.2.2',
-            'build' => '20260406.2',
+            'build' => '20260406.3',
             'released_at' => '2026-04-06',
-            'title' => 'Fix: Compatibilidad de Correos con Outlook',
-            'summary' => 'Se corrigió el desfase visual que presentaban los correos generados por PrintForms al ser recibidos en clientes Microsoft Outlook. El cuerpo del email ahora utiliza un layout basado en tabla HTML, compatible con el motor de renderizado de Word utilizado por Outlook, preservando la tipografía configurada en el canvas y las dimensiones de las imágenes.',
+            'title' => 'Fix: Compatibilidad de Correos y PDS Validation',
+            'summary' => 'Se corrigió el desfase visual que presentaban los correos generados por PrintForms al ser recibidos en clientes Microsoft Outlook y se reparó la pérdida de fechas en recargas fallidas del módulo PDS.',
             'items' => [
                 'Nuevo template email_render.php dedicado al cuerpo del correo: layout de tabla HTML, sin position:absolute, sin unidades mm, compatible con Outlook 2007 a 2021.',
                 'La tipografía configurada en el canvas (fuente, tamaño en pt, color, peso, alineación) se preserva en el email mediante inline styles.',
@@ -18,6 +18,7 @@ return [
                 'Los objetos se ordenan por posición vertical (y_mm) para un flujo natural de arriba hacia abajo.',
                 'El PDF adjunto y el preview en browser no fueron modificados — siguen funcionando exactamente igual.',
                 'Hotfix sobre la tabla: Inyección fuerte de atributos de color para que los clientes en Dark Mode no inviertan a negro un "Papel blanco" predeterminado.',
+                'Hotfix PDS: Intercepción del auto-ticker de Javascript de "fecha_inicio" en el formulario de creación. Ahora se bloquea ante un renderizado con errores de validación, previniendo que sobre-escriba incondicionalmente la fecha que el cliente traía en su POST.',
             ],
         ],
         [

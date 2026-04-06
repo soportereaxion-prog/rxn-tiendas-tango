@@ -414,7 +414,7 @@ ob_start();
     <?php endif; ?>
 
     <script src="/js/crm-pedidos-servicio-form.js?v=<?= time() ?>"></script>
-    <?php if ($formMode === 'create'): ?>
+    <?php if ($formMode === 'create' && empty($errors)): ?>
     <script>
         (function() {
             const fechaInput = document.getElementById('fecha_inicio');
