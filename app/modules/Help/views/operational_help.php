@@ -91,14 +91,16 @@ ob_start();
             </div>
         </div>
 
-        <div class="card rxn-form-card help-card" id="novedades" data-help-item data-help-text="lo nuevo novedades actualizacion mejoras atajo teclado multiempresa multi-empresa zoom printforms csrf token expirado seguridad ingresar">
+        <div class="card rxn-form-card help-card" id="novedades" data-help-item data-help-text="lo nuevo novedades actualizacion mejoras atajo teclado multiempresa multi-empresa zoom printforms csrf token expirado seguridad ingresar correo email outlook copiar duplicar pds dropddown selectores">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Novedades (¡Lo último!)</h2>
                 <p class="text-muted">Un resumen súper fácil de las nuevas funcionalidades agregadas para ahorrarte clics y protegerte mejor.</p>
                 <ul class="help-list-tight mb-0">
-                    <li><strong>Operación Multi-Empresa rápida:</strong> Si administras más de una, en tu listado de empresas ahora hay un botón "Ingresar". Al hacerlo, el sistema se pone el sombrero de esa compañía para que operes todo directamente ahí sin tener que desloguearte.</li>
+                    <li><strong>Clonación Automática de PDS:</strong> Olvidate de reescribir todo cuando vayas de la tienda matriz de un cliente a sus sucursales. Ahora podés "Copiar" un pedido de servicio ya finalizado y crear uno idéntico con un clic (sin copiar su historial aburrido ni el cierre de horas de Tango).</li>
+                    <li><strong>Correos blindados en Microsoft Outlook:</strong> Se terminaron los textos desfasados amontonados. Los emails que manda el sistema ahora toleran que el viejo Outlook los reciba y que el Modo Oscuro no te invierta el "hoja blanca a hoja negra".</li>
+                    <li><strong>Selectores rápidos con teclado:</strong> Los menús desplegables (Dropdowns) para buscar clientes o artículos ahora se dejan domar con las flechas del teclado y la tecla <code>Enter</code>. ¡Listas larguísimas de clientes, ya no asustan!</li>
                     <li><strong>Zoom en impresión:</strong> Para los que sufren diseñando formularios (PrintForms), agregamos controles de Zoom (acercar, alejar, ajustar ventana). Ya no hay que pelear para ver la hoja A4 completa.</li>
-                    <li><strong>Seguridad vigilando (Token Expirado):</strong> Hay nuevos guardias ciegos cuidando tu sesión. Si vas a buscarte un café, volves a la hora e intentas modificar un pedido y te sale "Token Expirado", es normal, ¡no rompiste nada! Sólo apretá `F5` para recargar la página e intentar de nuevo.</li>
+                    <li><strong>Seguridad vigilando (Token Expirado):</strong> Hay nuevos guardias ciegos cuidando tu sesión. Si vas a buscarte un café, volves a la hora e intentas modificar un pedido y te sale "Token Expirado", es normal, ¡no rompiste nada! Sólo apretá <kbd>F5</kbd> para recargar la página e intentar de nuevo.</li>
                 </ul>
             </div>
         </div>
