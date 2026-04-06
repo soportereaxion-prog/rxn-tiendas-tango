@@ -53,7 +53,10 @@ usort($emailObjects, static function (array $a, array $b): int {
     return ($a['y_mm'] ?? 0) <=> ($b['y_mm'] ?? 0);
 });
 
+$isTransparent = !empty($page['transparent_bg']);
 $bgColor = htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
+$bgColorStyle = $isTransparent ? 'background-color:transparent;' : "background-color:{$bgColor};";
+$bgColorAttr  = $isTransparent ? '' : "bgcolor=\"{$bgColor}\"";
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="es">
@@ -63,9 +66,9 @@ $bgColor = htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documento</title>
 </head>
-<body style="margin:0; padding:0; background-color:#f4f4f4; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+<body style="margin:0; padding:0; <?= $bgColorStyle ?> -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
 
-    <!--[if mso]><table width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+    <!--[if mso]><table width="600" align="center" cellpadding="0" cellspacing="0" border="0" <?= $bgColorAttr ?>><tr><td><![endif]-->
 
     <table
         width="600"
@@ -73,7 +76,8 @@ $bgColor = htmlspecialchars((string) ($page['background_color'] ?? '#ffffff'));
         cellspacing="0"
         border="0"
         align="center"
-        style="width:600px; max-width:600px; background-color:<?= $bgColor ?>; margin:0 auto;"
+        <?= $bgColorAttr ?>
+        style="width:600px; max-width:600px; <?= $bgColorStyle ?> margin:0 auto;"
     >
 
         <?php foreach ($emailObjects as $obj): ?>

@@ -27,6 +27,7 @@ La Opción C preserva:
 - Dimensiones de imagen (w_mm → px a 96 DPI, con cap a 576px por container de 600px)
 - Orden visual (objetos ordenados por y_mm)
 - Tablas/repeaters del canvas (renderizadas como HTML table compatible con Outlook)
+- **Fondo de email**: Inyección robusta de atributos html `bgcolor` y sub-tags `mso` para prevenir la inversión a negro que hacen por defecto los modos oscuros cuando un div es transparente.
 
 ## Archivos modificados
 

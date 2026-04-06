@@ -2,11 +2,11 @@
 
 return [
     'current_version' => '1.2.2',
-    'current_build' => '20260406.1',
+    'current_build' => '20260406.2',
     'history' => [
         [
             'version' => '1.2.2',
-            'build' => '20260406.1',
+            'build' => '20260406.2',
             'released_at' => '2026-04-06',
             'title' => 'Fix: Compatibilidad de Correos con Outlook',
             'summary' => 'Se corrigió el desfase visual que presentaban los correos generados por PrintForms al ser recibidos en clientes Microsoft Outlook. El cuerpo del email ahora utiliza un layout basado en tabla HTML, compatible con el motor de renderizado de Word utilizado por Outlook, preservando la tipografía configurada en el canvas y las dimensiones de las imágenes.',
@@ -17,6 +17,7 @@ return [
                 'Las tablas/repeaters del canvas se renderizan como HTML table nativo compatible con Outlook.',
                 'Los objetos se ordenan por posición vertical (y_mm) para un flujo natural de arriba hacia abajo.',
                 'El PDF adjunto y el preview en browser no fueron modificados — siguen funcionando exactamente igual.',
+                'Hotfix sobre la tabla: Inyección fuerte de atributos de color para que los clientes en Dark Mode no inviertan a negro un "Papel blanco" predeterminado.',
             ],
         ],
         [
