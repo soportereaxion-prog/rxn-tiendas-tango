@@ -58,9 +58,11 @@ class DocumentMailerService
         }
         
         // 1. Obtener HTML del cuerpo del correo
+        // IMPORTANTE: se usa un renderer dedicado para email (Outlook-compatible)
+        // El PDF adjunto usa el renderer completo (document_render.php) sin cambios.
         $bodyHtml = '';
         if ($bodyCanvasId) {
-            $bodyHtml = $this->renderCanvasToHtml($empresaId, (int)$bodyCanvasId, $contextData);
+            $bodyHtml = $this->renderCanvasToEmailHtml($empresaId, (int)$bodyCanvasId, $contextData);
         } else {
             $bodyHtml = "
                 <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
@@ -105,6 +107,42 @@ class DocumentMailerService
 
         // 5. Enviar usando MailService base
         return $this->mailService->send($to, $subject, $bodyHtml, $empresaId, $attachments);
+    }
+
+    /**
+     * Renderiza un canvas como HTML de cuerpo de EMAIL (Outlook-compatible).
+     * Usa email_render.php en lugar de document_render.php.
+     * El PDF adjunto NO usa este método — sigue con renderCanvasToHtml() → document_render.php.
+     */
+    private function renderCanvasToEmailHtml(int $empresaId, int $canvasDefinitionId, array $contextData): string
+    {
+        try {
+            $template = $this->printRepo->resolveTemplateByDefinitionId($empresaId, $canvasDefinitionId);
+            return $this->buildEmailBodyHtmlString($template, $contextData);
+        } catch (\Throwable $e) {
+            // Fallback simple si falla la plantilla
+            return "<p style='font-family:Arial,sans-serif;color:#333;'>Error renderizando plantilla de email: " . htmlspecialchars($e->getMessage()) . "</p>";
+        }
+    }
+
+    /**
+     * Construye el string HTML del cuerpo del EMAIL usando el template Outlook-compatible.
+     * Extrae tipografía e imágenes del canvas pero usa layout de tabla en lugar de position:absolute.
+     * Los objetos se ordenan por y_mm (flujo vertical natural) dentro del template.
+     */
+    private function buildEmailBodyHtmlString(array $template, array $contextData): string
+    {
+        $rendered = $this->renderer->buildDocument(
+            $template['page_config'] ?? [],
+            $template['objects'] ?? [],
+            $contextData,
+            (string) ($template['background_url'] ?? '')
+        );
+
+        return View::renderToString('app/modules/PrintForms/views/email_render.php', [
+            'page'            => $rendered['page'],
+            'renderedObjects' => $rendered['objects'],
+        ]);
     }
 
     private function renderCanvasToHtml(int $empresaId, int $canvasDefinitionId, array $contextData): string

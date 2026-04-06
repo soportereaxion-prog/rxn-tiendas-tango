@@ -95,6 +95,11 @@ class PrintFormRenderer
                 'overflow:hidden',
             ]),
             'content' => $content,
+            // Dimensiones originales en mm — usadas por el email renderer para conversión px y sorting vertical
+            'x_mm' => (float) ($object['x_mm'] ?? 0),
+            'y_mm' => (float) ($object['y_mm'] ?? 0),
+            'w_mm' => (float) ($object['w_mm'] ?? 0),
+            'h_mm' => (float) ($object['h_mm'] ?? 0),
         ];
     }
 
@@ -111,6 +116,13 @@ class PrintFormRenderer
             'inner_style' => $isVertical
                 ? 'width:0; height:100%; border-left:' . $strokeWidth . 'mm solid ' . $stroke
                 : 'width:100%; height:0; border-top:' . $strokeWidth . 'mm solid ' . $stroke,
+            'x_mm' => (float) ($object['x_mm'] ?? 0),
+            'y_mm' => (float) ($object['y_mm'] ?? 0),
+            'w_mm' => (float) ($object['w_mm'] ?? 0),
+            'h_mm' => (float) ($object['h_mm'] ?? 0),
+            'stroke_color' => $stroke,
+            'stroke_width_mm' => $strokeWidth,
+            'is_vertical' => $isVertical,
         ];
     }
 
@@ -128,6 +140,10 @@ class PrintFormRenderer
                 'border:' . max(0.1, (float) ($style['stroke_width_mm'] ?? 0.3)) . 'mm solid ' . ($style['stroke'] ?? '#94a3b8'),
                 'background:' . (($style['fill'] ?? 'transparent') !== '' ? ($style['fill'] ?? 'transparent') : 'transparent'),
             ]),
+            'x_mm' => (float) ($object['x_mm'] ?? 0),
+            'y_mm' => (float) ($object['y_mm'] ?? 0),
+            'w_mm' => (float) ($object['w_mm'] ?? 0),
+            'h_mm' => (float) ($object['h_mm'] ?? 0),
         ];
     }
 
@@ -156,6 +172,11 @@ class PrintFormRenderer
                 'object-fit:' . ($style['object_fit'] ?? 'contain'),
             ]),
             'content' => $src,
+            // Dimensiones en mm para email renderer (conversión a px)
+            'x_mm' => (float) ($object['x_mm'] ?? 0),
+            'y_mm' => (float) ($object['y_mm'] ?? 0),
+            'w_mm' => (float) ($object['w_mm'] ?? 0),
+            'h_mm' => (float) ($object['h_mm'] ?? 0),
         ];
     }
 
@@ -222,6 +243,10 @@ class PrintFormRenderer
                 ];
             }, $columns),
             'rows' => $rows,
+            'x_mm' => (float) ($object['x_mm'] ?? 0),
+            'y_mm' => (float) ($object['y_mm'] ?? 0),
+            'w_mm' => (float) ($object['w_mm'] ?? 0),
+            'h_mm' => (float) ($object['h_mm'] ?? 0),
         ];
     }
 

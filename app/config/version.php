@@ -1,9 +1,39 @@
 <?php
 
 return [
-    'current_version' => '1.2.0',
-    'current_build' => '20260405.2',
+    'current_version' => '1.2.2',
+    'current_build' => '20260406.1',
     'history' => [
+        [
+            'version' => '1.2.2',
+            'build' => '20260406.1',
+            'released_at' => '2026-04-06',
+            'title' => 'Fix: Compatibilidad de Correos con Outlook',
+            'summary' => 'Se corrigió el desfase visual que presentaban los correos generados por PrintForms al ser recibidos en clientes Microsoft Outlook. El cuerpo del email ahora utiliza un layout basado en tabla HTML, compatible con el motor de renderizado de Word utilizado por Outlook, preservando la tipografía configurada en el canvas y las dimensiones de las imágenes.',
+            'items' => [
+                'Nuevo template email_render.php dedicado al cuerpo del correo: layout de tabla HTML, sin position:absolute, sin unidades mm, compatible con Outlook 2007 a 2021.',
+                'La tipografía configurada en el canvas (fuente, tamaño en pt, color, peso, alineación) se preserva en el email mediante inline styles.',
+                'Las imágenes respetan las dimensiones configuradas en el canvas (mm → px a 96 DPI), con límite al ancho del contenedor.',
+                'Las tablas/repeaters del canvas se renderizan como HTML table nativo compatible con Outlook.',
+                'Los objetos se ordenan por posición vertical (y_mm) para un flujo natural de arriba hacia abajo.',
+                'El PDF adjunto y el preview en browser no fueron modificados — siguen funcionando exactamente igual.',
+            ],
+        ],
+        [
+            'version' => '1.2.1',
+            'build' => '20260405.3',
+            'released_at' => '2026-04-05',
+            'title' => 'RXN Live: Estabilización de Gráficos y Persistencia de Filtros',
+            'summary' => 'Se consolidaron múltiples correcciones sobre el módulo de Analytics RXN_LIVE: renderizado de gráficos consistente en todos los datasets, persistencia de filtros locales al navegar entre informes, y corrección de configuraciones de vistas sistema con campos inválidos.',
+            'items' => [
+                'El gráfico analítico ahora se renderiza correctamente en Vista Base para todos los datasets (Clientes, Ventas Histórico, Integración Tango) sin requerir guardar una vista.',
+                'Los filtros de columna aplicados en un informe se recuperan automáticamente al regresar al mismo dataset después de navegar a otro.',
+                'Se corrigió el tipo de gráfico para Clientes (pie → doughnut) ya que "pie" no era una opción válida en el selector, causando que Chart.js recibiera un tipo vacío.',
+                'La vista sistema de Ventas Histórico fue corregida con los campos reales del dataset (estado_sincronizacion, cliente_nombre, total).',
+                'Se aplicaron límites de seguridad para gráficos tipo dona/pie (máx. 12 segmentos) y para agrupaciones temporales (últimos 20 períodos) evitando renders imperceptibles.',
+                'Se unificaron los dos handlers DOMContentLoaded que existían en el mismo archivo, eliminando duplicación de inicialización de pivot slots y eventos de tabs.',
+            ],
+        ],
         [
             'version' => '1.2.0',
             'build' => '20260405.2',
