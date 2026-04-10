@@ -232,74 +232,78 @@ class TangoSyncService
             throw new \RuntimeException("Sincronización abortada: No hay listas de precios configuradas (lista_precio_1 / lista_precio_2) para esta Empresa.");
         }
 
-        // 2. Iniciar registro de trazabilidad
         $logId = $this->logRepo->startLog((int)$empresaId, 'PRECIOS');
         $stats = ['recibidos' => 0, 'actualizados' => 0, 'omitidos' => 0, 'sin_match' => 0];
 
         try {
-            $dto = $this->tangoService->fetchPrecios();
+            $page = 1;
+            do {
+                $dto = $this->tangoService->fetchPrecios($page, 500);
 
-            if (!$dto->isSuccess) {
-                throw new \App\Infrastructure\Exceptions\HttpException("Respuesta fallida/rebotada desde Tango Process 20091: " . $dto->errorMessage);
-            }
-
-            $items = is_array($dto->payload) ? $dto->payload : [];
-            if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
-                $items = $items['resultData']['list'];
-            } elseif (isset($items['Data']) && is_array($items['Data'])) {
-                $items = $items['Data']; 
-            } elseif (isset($items['data']) && is_array($items['data'])) {
-                $items = $items['data'];
-            }
-
-            $stats['recibidos'] = count($items);
-
-            foreach ($items as $item) {
-                if (!is_array($item)) {
-                    $stats['omitidos']++;
-                    continue;
+                if (!$dto->isSuccess) {
+                    throw new \App\Infrastructure\Exceptions\HttpException("Respuesta fallida/rebotada desde Tango Process 20091: " . $dto->errorMessage);
                 }
 
-                // Parseo defensivo sin limpiar los espacios originales del SKU
-                $sku = (string)($item['COD_STA11'] ?? '');
-                $nroLista = (string)($item['NRO_DE_LIS'] ?? '');
-                $precioBruto = $item['PRECIO'] ?? null;
-
-                if ($sku === '' || $nroLista === '' || !is_numeric($precioBruto)) {
-                    $stats['omitidos']++; // Datos insuficientes (No se inventan)
-                    continue;
+                $items = is_array($dto->payload) ? $dto->payload : [];
+                if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
+                    $items = $items['resultData']['list'];
+                } elseif (isset($items['Data']) && is_array($items['Data'])) {
+                    $items = $items['Data'];
+                } elseif (isset($items['data']) && is_array($items['data'])) {
+                    $items = $items['data'];
                 }
 
-                $columnaDestino = null;
-                if ($lista1 !== null && $lista1 !== '' && $nroLista === (string)$lista1) {
-                    $columnaDestino = 'precio_lista_1';
-                } elseif ($lista2 !== null && $lista2 !== '' && $nroLista === (string)$lista2) {
-                    $columnaDestino = 'precio_lista_2';
+                $count = count($items);
+                $stats['recibidos'] += $count;
+
+                foreach ($items as $item) {
+                    if (!is_array($item)) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    // SKU se preserva sin trim (el código externo puede tener espacios significativos).
+                    // NRO_DE_LIS sí se normaliza porque es un identificador numérico de lista.
+                    $sku         = (string)($item['COD_STA11'] ?? '');
+                    $nroLista    = trim((string)($item['NRO_DE_LIS'] ?? ''));
+                    $precioBruto = $item['PRECIO'] ?? null;
+
+                    if ($sku === '' || $nroLista === '' || !is_numeric($precioBruto)) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    $columnaDestino = null;
+                    if ($lista1 !== null && $lista1 !== '' && $nroLista === trim((string)$lista1)) {
+                        $columnaDestino = 'precio_lista_1';
+                    } elseif ($lista2 !== null && $lista2 !== '' && $nroLista === trim((string)$lista2)) {
+                        $columnaDestino = 'precio_lista_2';
+                    }
+
+                    if (!$columnaDestino) {
+                        $stats['omitidos']++;
+                        continue; // Precio de lista no mapeada en Config Local — se ignora
+                    }
+
+                    $affected = $this->articuloRepo->updatePrecioListas($sku, (float)$precioBruto, $columnaDestino, (int)$empresaId);
+
+                    if ($affected > 0) {
+                        $stats['actualizados']++;
+                    } else {
+                        $stats['sin_match']++;
+                    }
                 }
 
-                if (!$columnaDestino) {
-                    $stats['omitidos']++; 
-                    continue; // El precio bajado de Tango pertenece a una lista que no fue mapeada en Config Local
-                }
+                $page++;
+            } while ($count > 0 && $page < 100); // Límite de seguridad: 100 páginas × 500 = 50.000 registros
 
-                // Ejecutar macheo silencioso via SQL Update (Afecta solo a productos pre-existentes localmente)
-                $affected = $this->articuloRepo->updatePrecioListas($sku, (float)$precioBruto, $columnaDestino, (int)$empresaId);
-                
-                if ($affected > 0) {
-                    $stats['actualizados']++;
-                } else {
-                    $stats['sin_match']++; 
-                }
-            }
-
-            // 4. Concluir Trazabilidad en Verde
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
             $this->clearAreaCaches((int) $empresaId);
             return $stats;
 
         } catch (\Exception $e) {
             $this->logRepo->endLog($logId, $stats, 'ERROR', $e->getMessage());
-            throw $e; 
+            throw $e;
         }
     }
 
@@ -315,55 +319,59 @@ class TangoSyncService
         $stats = ['recibidos' => 0, 'actualizados' => 0, 'omitidos' => 0, 'sin_match' => 0];
 
         try {
-            $dto = $this->tangoService->fetchStock();
+            $page = 1;
+            do {
+                $dto = $this->tangoService->fetchStock($page, 500);
 
-            if (!$dto->isSuccess) {
-                throw new \App\Infrastructure\Exceptions\HttpException("Respuesta fallida/rebotada desde Tango Process 17668: " . $dto->errorMessage);
-            }
-
-            $items = is_array($dto->payload) ? $dto->payload : [];
-            if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
-                $items = $items['resultData']['list'];
-            } elseif (isset($items['Data']) && is_array($items['Data'])) {
-                $items = $items['Data']; 
-            } elseif (isset($items['data']) && is_array($items['data'])) {
-                $items = $items['data'];
-            }
-
-            $stats['recibidos'] = count($items);
-
-            foreach ($items as $item) {
-                if (!is_array($item)) {
-                    $stats['omitidos']++;
-                    continue;
+                if (!$dto->isSuccess) {
+                    throw new \App\Infrastructure\Exceptions\HttpException("Respuesta fallida/rebotada desde Tango Process 17668: " . $dto->errorMessage);
                 }
 
-                // Parseo defensivo
-                $sku = (string)($item['COD_ARTICULO'] ?? '');
-                $depositoId = (string)($item['ID_STA22'] ?? ''); // Payload Connect usa ID_STA22 como referencia
-                $saldo = $item['SALDO_CONTROL_STOCK'] ?? null;
-
-                if ($sku === '' || $depositoId === '' || !is_numeric($saldo)) {
-                    $stats['omitidos']++; 
-                    continue;
+                $items = is_array($dto->payload) ? $dto->payload : [];
+                if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
+                    $items = $items['resultData']['list'];
+                } elseif (isset($items['Data']) && is_array($items['Data'])) {
+                    $items = $items['Data'];
+                } elseif (isset($items['data']) && is_array($items['data'])) {
+                    $items = $items['data'];
                 }
 
-                // El configurador de usuario es string de hasta 2 chars: macheamos contra el ID_STA22 string.
-                // EJ: si ID_STA22 es "1" y configuraron "1", entra acá.
-                if ($depositoId !== (string)$deposito) {
-                    $stats['omitidos']++;
-                    continue; // Stock es de otro depósito, no me interesa para esta tienda
+                $count = count($items);
+                $stats['recibidos'] += $count;
+
+                foreach ($items as $item) {
+                    if (!is_array($item)) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    $sku        = (string)($item['COD_ARTICULO'] ?? '');
+                    $depositoId = trim((string)($item['ID_STA22'] ?? '')); // ID_STA22 se normaliza para comparación segura
+                    $saldo      = $item['SALDO_CONTROL_STOCK'] ?? null;
+
+                    if ($sku === '' || $depositoId === '' || !is_numeric($saldo)) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    // Macheo por depósito: comparamos ambos lados normalizados.
+                    // EJ: ID_STA22 = "1" y deposito_codigo = "1" → match.
+                    if ($depositoId !== trim((string)$deposito)) {
+                        $stats['omitidos']++;
+                        continue; // Stock de otro depósito — se ignora para esta empresa
+                    }
+
+                    $affected = $this->articuloRepo->updateStock($sku, (float)$saldo, (int)$empresaId);
+
+                    if ($affected > 0) {
+                        $stats['actualizados']++;
+                    } else {
+                        $stats['sin_match']++;
+                    }
                 }
 
-                // Ejecutar macheo silencioso via SQL Update 
-                $affected = $this->articuloRepo->updateStock($sku, (float)$saldo, (int)$empresaId);
-                
-                if ($affected > 0) {
-                    $stats['actualizados']++;
-                } else {
-                    $stats['sin_match']++; 
-                }
-            }
+                $page++;
+            } while ($count > 0 && $page < 100); // Límite de seguridad: 100 páginas × 500 = 50.000 registros
 
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
             $this->clearAreaCaches((int) $empresaId);
@@ -371,7 +379,7 @@ class TangoSyncService
 
         } catch (\Exception $e) {
             $this->logRepo->endLog($logId, $stats, 'ERROR', $e->getMessage());
-            throw $e; 
+            throw $e;
         }
     }
 

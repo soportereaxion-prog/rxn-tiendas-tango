@@ -1,9 +1,23 @@
 <?php
 
 return [
-    'current_version' => '1.3.4',
-    'current_build' => '20260410.3',
+    'current_version' => '1.3.5',
+    'current_build' => '20260410.4',
     'history' => [
+        [
+            'version' => '1.3.5',
+            'build' => '20260410.4',
+            'released_at' => '2026-04-10',
+            'title' => 'TangoSync: Paginación completa en Sync Precios y Sync Stock',
+            'summary' => 'SyncPrecios y SyncStock ahora iteran sobre todas las páginas de Tango en lugar de limitarse a la primera. El pageSize se fijó en 500 registros por página independientemente de cantidad_articulos_sync (que aplica solo a artículos). Se corrigió además la comparación de NRO_DE_LIS e ID_STA22 aplicando trim() para evitar falsos negativos por espacios. Se actualizó MODULE_CONTEXT de RxnSync.',
+            'items' => [
+                'syncPreciosWithConfig: loop de paginación do-while (100 páginas máx × 500 = 50.000 registros).',
+                'syncStockWithConfig: loop de paginación do-while (100 páginas máx × 500 = 50.000 registros).',
+                'TangoService::fetchPrecios() y fetchStock(): pageSize propio (500 default), independiente de syncAmount.',
+                'Comparación de NRO_DE_LIS y ID_STA22 con trim() normalizado en ambos lados.',
+                'MODULE_CONTEXT de RxnSync actualizado: circuito de sync, tabs AJAX, persistencia de filtros, flujo de precios/stock.',
+            ],
+        ],
         [
             'version' => '1.3.4',
             'build' => '20260410.3',

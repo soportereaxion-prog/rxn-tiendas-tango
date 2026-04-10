@@ -112,14 +112,16 @@ class TangoService
     }
 
     /**
-     * Extrae diccionario de precios
+     * Extrae diccionario de precios.
+     * Usa un pageSize propio (no syncAmount) porque el catálogo de precios
+     * puede tener muchos más registros que artículos (artículos × listas).
      */
-    public function fetchPrecios(int $page = 1): TangoResponseDTO
+    public function fetchPrecios(int $page = 1, int $pageSize = 500): TangoResponseDTO
     {
         $dto = new TangoResponseDTO();
-        
+
         try {
-            $response = $this->apiClient->getPrecios($page, $this->syncAmount);
+            $response = $this->apiClient->getPrecios($page, $pageSize);
 
             $dto->isSuccess = ($response['status'] >= 200 && $response['status'] < 300);
             $dto->payload = $response['data'] ?? [];
@@ -131,15 +133,18 @@ class TangoService
 
         return $dto;
     }
+
     /**
-     * Extrae diccionario de stock
+     * Extrae diccionario de stock.
+     * Usa un pageSize propio (no syncAmount) porque el catálogo de stock
+     * puede tener registros por depósito multiplicado por artículo.
      */
-    public function fetchStock(int $page = 1): TangoResponseDTO
+    public function fetchStock(int $page = 1, int $pageSize = 500): TangoResponseDTO
     {
         $dto = new TangoResponseDTO();
-        
+
         try {
-            $response = $this->apiClient->getStock($page, $this->syncAmount);
+            $response = $this->apiClient->getStock($page, $pageSize);
 
             $dto->isSuccess = ($response['status'] >= 200 && $response['status'] < 300);
             $dto->payload = $response['data'] ?? [];
