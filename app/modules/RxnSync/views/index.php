@@ -244,6 +244,12 @@ document.addEventListener('DOMContentLoaded', function () {
         var container = document.getElementById(targetId + '-content');
         var tabKey    = entidad === 'cliente' ? 'clientes' : 'articulos';
 
+        // Limpiar params de filtro Motor BD de la URL al cambiar/recargar tab
+        // para mantener consistencia entre ícono y datos cargados
+        if (window.location.search) {
+            history.replaceState(null, '', location.pathname);
+        }
+
         if (resetPage) pageState[tabKey].page = 1;
 
         if (auditLabel) {
