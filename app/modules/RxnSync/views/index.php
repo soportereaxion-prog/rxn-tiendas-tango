@@ -897,6 +897,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <?php
 $content = ob_get_clean();
-$extraScripts = '<script src="/js/rxn-confirm-modal.js"></script>';
+$extraScripts = '<script src="/js/rxn-advanced-filters.js"></script><script src="/js/rxn-confirm-modal.js"></script>';
 require BASE_PATH . '/app/shared/views/admin_layout.php';
 ?>
