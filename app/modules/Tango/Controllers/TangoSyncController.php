@@ -132,6 +132,10 @@ class TangoSyncController extends Controller
 
     private function redirectPath(): string
     {
+        $return = trim((string) ($_GET['return'] ?? ''));
+        if ($return !== '' && str_starts_with($return, '/mi-empresa/')) {
+            return $return;
+        }
         return $this->resolveArea() === 'crm'
             ? '/mi-empresa/crm/articulos'
             : '/mi-empresa/articulos';

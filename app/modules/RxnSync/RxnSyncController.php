@@ -47,8 +47,8 @@ class RxnSyncController extends Controller
                 'stock_ready' => $articulosVinculados > 0 && $depositoReady,
                 'config_path' => $area === 'crm' ? '/mi-empresa/crm/configuracion' : '/mi-empresa/configuracion',
                 'sync_articulos_path' => $area === 'crm' ? '/mi-empresa/crm/sync/articulos' : '/mi-empresa/sync/articulos',
-                'sync_precios_path' => $area === 'crm' ? '/mi-empresa/crm/sync/precios' : '/mi-empresa/sync/precios',
-                'sync_stock_path' => $area === 'crm' ? '/mi-empresa/crm/sync/stock' : '/mi-empresa/sync/stock',
+                'sync_precios_path' => $area === 'crm' ? '/mi-empresa/crm/sync/precios?return=/mi-empresa/crm/rxn-sync' : '/mi-empresa/sync/precios?return=/mi-empresa/rxn-sync',
+                'sync_stock_path' => $area === 'crm' ? '/mi-empresa/crm/sync/stock?return=/mi-empresa/crm/rxn-sync' : '/mi-empresa/sync/stock?return=/mi-empresa/rxn-sync',
             ],
         ]);
     }
