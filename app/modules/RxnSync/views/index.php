@@ -153,6 +153,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     var pageState = { clientes: loadSortState('clientes'), articulos: loadSortState('articulos') };
 
+    // Filtros persistidos por tab — sobreviven cambios de solapa
+    var tabColFilters  = { clientes: {}, articulos: {} };       // embudos client-side
+    var tabSearchState = { clientes: { search: '', estado: '' }, articulos: { search: '', estado: '' } }; // búsqueda + estado
+    var tabBdParams    = { clientes: null, articulos: null };    // Motor BD (URLSearchParams)
+
     // ── Helpers ──────────────────────────────────────────────────────
     function showProgress() { if (progressBar) progressBar.classList.remove('d-none'); }
     function hideProgress() { if (progressBar) progressBar.classList.add('d-none'); }
@@ -244,8 +249,15 @@ document.addEventListener('DOMContentLoaded', function () {
         var container = document.getElementById(targetId + '-content');
         var tabKey    = entidad === 'cliente' ? 'clientes' : 'articulos';
 
+        // Guardar BD params del tab saliente ANTES de limpiar la URL
+        var leavingTabKey = getActiveTabKey();
+        if (leavingTabKey !== tabKey && window.location.search && window.location.search.length > 1) {
+            tabBdParams[leavingTabKey] = new URLSearchParams(window.location.search);
+        } else if (leavingTabKey !== tabKey) {
+            tabBdParams[leavingTabKey] = null;
+        }
+
         // Limpiar params de filtro Motor BD de la URL al cambiar/recargar tab
-        // para mantener consistencia entre ícono y datos cargados
         if (window.location.search) {
             history.replaceState(null, '', location.pathname);
         }
@@ -259,7 +271,11 @@ document.addEventListener('DOMContentLoaded', function () {
         container.innerHTML = '<div class="spinner-border text-primary my-4" role="status"></div>';
         showProgress();
 
-        fetch(url)
+        // Si hay BD params guardados para este tab, cargar directamente con ellos
+        var savedBdParams = tabBdParams[tabKey];
+        var fetchUrl = (savedBdParams && savedBdParams.toString()) ? url + '?' + savedBdParams.toString() : url;
+
+        fetch(fetchUrl)
             .then(function(r) {
                 if (!r.ok) throw new Error('Error al cargar el tab (' + r.status + ')');
                 return r.text();
@@ -269,6 +285,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 hideProgress();
                 rebindCheckboxes();
                 initTabControls(btn);
+                // Restaurar la URL con los BD params del tab si había filtro activo
+                if (savedBdParams && savedBdParams.toString()) {
+                    history.replaceState(null, '', location.pathname + '?' + savedBdParams.toString());
+                }
                 if (typeof window.rxnFiltersInit === 'function') window.rxnFiltersInit();
             })
             .catch(function(err) {
@@ -410,8 +430,18 @@ document.addEventListener('DOMContentLoaded', function () {
             renderPage();
         }
 
-        if (searchI) searchI.addEventListener('input', applyFilter);
-        if (filterS) filterS.addEventListener('change', applyFilter);
+        // Restaurar valores guardados al recargar el tab
+        if (searchI) searchI.value = tabSearchState[tabKey].search;
+        if (filterS) filterS.value = tabSearchState[tabKey].estado;
+
+        if (searchI) searchI.addEventListener('input', function() {
+            tabSearchState[tabKey].search = searchI.value;
+            applyFilter();
+        });
+        if (filterS) filterS.addEventListener('change', function() {
+            tabSearchState[tabKey].estado = filterS.value;
+            applyFilter();
+        });
 
         // ── Ordenamiento de columnas ──────────────────────────────
         if (table) {
@@ -461,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // ── Filtros de columna (embudo) ──────────────────────────────────
-        var colFilters = {}; // { col: { op, val } }
+        var colFilters = tabColFilters[tabKey]; // Referencia al estado persistido por tab
 
         function applyColFilter() {
             filteredRows = allRows.filter(function(row) {
@@ -597,13 +627,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (e.key === 'Enter') { e.preventDefault(); popover.querySelector('.rxnsync-fc-apply').click(); }
                 });
 
+                // Restaurar ícono activo si hay filtro guardado para esta columna
+                if (colFilters[col] && colFilters[col].val) {
+                    funnel.className = 'bi bi-funnel-fill rxnsync-funnel active';
+                }
+
                 th.appendChild(funnel);
                 th.appendChild(popover);
             });
         }
 
-        // Render inicial (con sort ya aplicado si había persistido)
-        renderPage();
+        // Render inicial: aplica todos los filtros persistidos (texto, estado, columna, sort)
+        applyColFilter();
     }
 
     // ── Tab activo cambia ────────────────────────────────────────────
