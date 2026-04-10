@@ -120,22 +120,6 @@ ob_start();
             </div>
         </div>
 
-        <!-- LINEA BASE (BASELINE) -->
-        <div class="card rxn-form-card shadow-sm mt-4 border-warning border-opacity-50">
-            <div class="card-header border-bottom-0 pt-4 pb-0 bg-warning bg-opacity-10 text-dark">
-                <h5 class="card-title fw-bold mb-0">
-                    <i class="bi bi-geo-alt-fill text-warning me-2"></i>Línea Base del Entorno (Baseline)
-                </h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted small"><strong>Uso crítico:</strong> Utilice esta función <strong>sólo cuando la instancia es un entorno pre-existente vivo</strong> que acaba de recibir el sistema de migraciones. Esto registrará todas las migraciones de código listadas como "Ejecutadas en origen" sin alterar las tablas de la BD actuales, previniendo colisiones de datos.</p>
-                <form action="/admin/mantenimiento/baseline" method="POST" onsubmit="return confirm('ATENCIÓN: ¿Está seguro que desea asentar el Baseline? Todas las migraciones mostradas arriba quedarán marcadas como ejecutadas y no se procesarán.');">
-                    <button type="submit" class="btn btn-outline-warning fw-bold shadow-sm">
-                        <i class="bi bi-pin-angle-fill me-1"></i> Establecer Línea Base (Ignorar Históricas)
-                    </button>
-                </form>
-            </div>
-        </div>
         <!-- ACTUALIZADOR OVER THE AIR (OTA) -->
         <div class="card rxn-form-card shadow-sm mt-4 border-primary border-opacity-25">
             <div class="card-header border-bottom-0 pt-4 pb-0 bg-primary bg-opacity-10 text-dark d-flex align-items-center">
@@ -310,6 +294,27 @@ ob_start();
     </div>
 </div>
 <?php endif; ?>
+
+<!-- LINEA BASE (BASELINE) -->
+<div class="row g-4 mt-4">
+    <div class="col-12">
+        <div class="card rxn-form-card shadow-sm border-warning border-opacity-50">
+            <div class="card-header border-bottom-0 pt-4 pb-0 bg-warning bg-opacity-10 text-dark">
+                <h5 class="card-title fw-bold mb-0">
+                    <i class="bi bi-geo-alt-fill text-warning me-2"></i>Línea Base del Entorno (Baseline)
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small"><strong>Uso crítico:</strong> Utilice esta función <strong>sólo cuando la instancia es un entorno pre-existente vivo</strong> que acaba de recibir el sistema de migraciones. Esto registrará todas las migraciones de código listadas como "Ejecutadas en origen" sin alterar las tablas de la BD actuales, previniendo colisiones de datos.</p>
+                <form action="/admin/mantenimiento/baseline" method="POST" onsubmit="return confirm('ATENCIÓN: ¿Está seguro que desea asentar el Baseline? Todas las migraciones mostradas arriba quedarán marcadas como ejecutadas y no se procesarán.');">
+                    <button type="submit" class="btn btn-outline-warning fw-bold shadow-sm">
+                        <i class="bi bi-pin-angle-fill me-1"></i> Establecer Línea Base (Ignorar Históricas)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 </div>
 

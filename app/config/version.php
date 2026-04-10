@@ -1,9 +1,20 @@
 <?php
 
 return [
-    'current_version' => '1.3.5',
-    'current_build' => '20260410.4',
+    'current_version' => '1.3.6',
+    'current_build' => '20260410.5',
     'history' => [
+        [
+            'version' => '1.3.6',
+            'build' => '20260410.5',
+            'released_at' => '2026-04-10',
+            'title' => 'Admin: Línea Base al fondo + limpieza de migración aplicada',
+            'summary' => 'La tarjeta "Línea Base del Entorno" fue movida al final de la página de Mantenimiento para reducir su visibilidad frente a operaciones de uso frecuente. Se eliminó la migración 2026_04_07_2030_add_clasificacion_to_presupuestos que ya fue aplicada manualmente en producción y causaba falsa pendiente en el panel.',
+            'items' => [
+                'mantenimiento.php: Línea Base movida al final de la página (debajo de Factory OTA).',
+                'Migración 2026_04_07_2030_add_clasificacion_to_presupuestos.php eliminada — ya aplicada en prod, evita fallo en OTA por columna duplicada.',
+            ],
+        ],
         [
             'version' => '1.3.5',
             'build' => '20260410.4',
