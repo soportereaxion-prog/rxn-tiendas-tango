@@ -29,13 +29,40 @@ ob_start();
                 <div class="d-flex flex-wrap gap-2 small text-muted align-items-center">
                     <span>Vinculados: <strong><?= (int) ($syncCircuit['articulos_vinculados'] ?? 0) ?></strong><?= !empty($syncCircuit['articulos_total']) ? ' / ' . (int) $syncCircuit['articulos_total'] : '' ?></span>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['config_path'] ?? '/mi-empresa/configuracion')) ?>" class="btn btn-sm btn-outline-secondary">Configuración</a>
-                    <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_articulos_path'] ?? '/mi-empresa/sync/articulos')) ?>" class="btn btn-sm btn-outline-warning">Sync Artículos</a>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_precios_path'] ?? '/mi-empresa/sync/precios')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['precios_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['precios_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Precios</a>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_stock_path'] ?? '/mi-empresa/sync/stock')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['stock_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['stock_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Stock</a>
                 </div>
             </div>
         </div>
     </div>
+
+    <?php $flash = \App\Core\Flash::get(); ?>
+    <?php if ($flash): ?>
+        <div class="alert alert-<?= htmlspecialchars((string) $flash['type']) ?> alert-dismissible fade show shadow-sm mb-3" role="alert">
+            <strong><?= $flash['type'] === 'success' ? 'OK' : 'Atención' ?></strong>
+            <?= htmlspecialchars((string) $flash['message']) ?>
+            <?php if (!empty($flash['stats'])): ?>
+                <ul class="mb-0 mt-2 fs-6">
+                    <?php if (isset($flash['stats']['recibidos'])): ?>
+                        <li>Recibidos en capa de red: <b class="text-primary"><?= (int) $flash['stats']['recibidos'] ?></b></li>
+                    <?php endif; ?>
+                    <?php if (isset($flash['stats']['insertados'])): ?>
+                        <li>Nuevos localmente: <b class="text-success"><?= (int) $flash['stats']['insertados'] ?></b></li>
+                    <?php endif; ?>
+                    <?php if (isset($flash['stats']['actualizados'])): ?>
+                        <li>Actualizados: <b class="text-info"><?= (int) $flash['stats']['actualizados'] ?></b></li>
+                    <?php endif; ?>
+                    <?php if (isset($flash['stats']['omitidos'])): ?>
+                        <li>Omitidos: <b class="text-secondary"><?= (int) $flash['stats']['omitidos'] ?></b></li>
+                    <?php endif; ?>
+                    <?php if (isset($flash['stats']['sin_match'])): ?>
+                        <li>Sin match local: <b class="text-warning"><?= (int) $flash['stats']['sin_match'] ?></b></li>
+                    <?php endif; ?>
+                </ul>
+            <?php endif; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
 
     <!-- Pestañas -->
     <ul class="nav nav-pills mb-0" id="syncTabs" role="tablist" data-base-path="<?= htmlspecialchars($basePath) ?>">
