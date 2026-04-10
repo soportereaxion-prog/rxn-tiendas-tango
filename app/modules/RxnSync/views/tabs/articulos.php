@@ -16,16 +16,18 @@
 </div>
 
 <div class="table-responsive text-start">
-    <table class="table table-hover table-sm align-middle view-table" id="rxnsync-table-art">
+    <table class="table table-hover table-sm align-middle view-table" id="rxnsync-table-art"
+           data-ajax-url="<?= htmlspecialchars(strtok($_SERVER['REQUEST_URI'], '?')) ?>"
+           data-ajax-container="articulos-content">
         <thead class="table-light">
             <tr>
                 <th style="width:40px;" class="text-center">
                     <input type="checkbox" id="rxnsync-select-all-art" class="form-check-input" title="Seleccionar todos">
                 </th>
-                <th class="rxnsync-sortable" data-col="estado">Estado <span class="rxnsync-sort-icon"></span></th>
-                <th class="rxnsync-sortable" data-col="codigo">Código <span class="rxnsync-sort-icon"></span></th>
+                <th class="rxnsync-sortable rxn-filter-col" data-col="estado" data-filter-field="estado" style="padding-right:24px;">Estado <span class="rxnsync-sort-icon"></span></th>
+                <th class="rxnsync-sortable rxn-filter-col" data-col="codigo" data-filter-field="codigo" style="padding-right:24px;">Código <span class="rxnsync-sort-icon"></span></th>
                 <th>ID Tango</th>
-                <th class="rxnsync-sortable" data-col="nombre">Nombre <span class="rxnsync-sort-icon"></span></th>
+                <th class="rxnsync-sortable rxn-filter-col" data-col="nombre" data-filter-field="nombre" style="padding-right:24px;">Nombre <span class="rxnsync-sort-icon"></span></th>
                 <th class="rxnsync-sortable" data-col="fecha">Última Sync <span class="rxnsync-sort-icon"></span></th>
                 <th class="text-end">Acciones</th>
             </tr>

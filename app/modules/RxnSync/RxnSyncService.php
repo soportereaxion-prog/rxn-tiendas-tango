@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\RxnSync;
 
+use App\Core\AdvancedQueryFilter;
 use App\Core\Database;
 use App\Modules\Tango\TangoService;
 use RuntimeException;
@@ -66,19 +67,30 @@ class RxnSyncService
         return $auditLog;
     }
 
-    public function getPivotStatus(int $empresaId, string $entidad): array
+    public function getPivotStatus(int $empresaId, string $entidad, array $advancedFilters = []): array
     {
         // Retorna un join con la tabla local para pintar la UI
         $table = $entidad === 'cliente' ? 'crm_clientes' : 'crm_articulos';
         $ident = $entidad === 'cliente' ? 'razon_social as nombre, codigo_tango as codigo' : 'nombre, codigo_externo as codigo';
-        
-        $sql = "SELECT p.*, l.$ident 
+
+        $columnMap = $entidad === 'cliente'
+            ? ['nombre' => 'l.razon_social', 'codigo' => 'l.codigo_tango', 'estado' => 'p.estado']
+            : ['nombre' => 'l.nombre', 'codigo' => 'l.codigo_externo', 'estado' => 'p.estado'];
+
+        [$advSql, $advParams] = AdvancedQueryFilter::build($advancedFilters, $columnMap);
+
+        $sql = "SELECT p.*, l.$ident
                 FROM rxn_sync_status p
                 JOIN $table l ON l.id = p.local_id
                 WHERE p.empresa_id = :empresa_id AND p.entidad = :entidad";
-                
+
+        if ($advSql !== '') {
+            $sql .= " AND $advSql";
+        }
+
+        $params = array_merge(['empresa_id' => $empresaId, 'entidad' => $entidad], $advParams);
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['empresa_id' => $empresaId, 'entidad' => $entidad]);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

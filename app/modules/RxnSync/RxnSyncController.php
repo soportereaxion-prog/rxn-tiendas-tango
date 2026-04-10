@@ -56,8 +56,9 @@ class RxnSyncController extends Controller
     public function listClientes(): void
     {
         $empresaId = Context::getEmpresaId();
-        $registros = $this->service->getPivotStatus($empresaId, 'cliente');
-        
+        $advancedFilters = is_array($_GET['f'] ?? null) ? $_GET['f'] : [];
+        $registros = $this->service->getPivotStatus($empresaId, 'cliente', $advancedFilters);
+
         View::render('app/modules/RxnSync/views/tabs/clientes.php', [
             'registros' => $registros
         ], true);
@@ -66,8 +67,9 @@ class RxnSyncController extends Controller
     public function listArticulos(): void
     {
         $empresaId = Context::getEmpresaId();
-        $registros = $this->service->getPivotStatus($empresaId, 'articulo');
-        
+        $advancedFilters = is_array($_GET['f'] ?? null) ? $_GET['f'] : [];
+        $registros = $this->service->getPivotStatus($empresaId, 'articulo', $advancedFilters);
+
         View::render('app/modules/RxnSync/views/tabs/articulos.php', [
             'registros' => $registros
         ], true);

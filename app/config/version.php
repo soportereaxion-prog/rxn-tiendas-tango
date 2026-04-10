@@ -1,9 +1,22 @@
 <?php
 
 return [
-    'current_version' => '1.3.2',
-    'current_build' => '20260410.1',
+    'current_version' => '1.3.3',
+    'current_build' => '20260410.2',
     'history' => [
+        [
+            'version' => '1.3.3',
+            'build' => '20260410.2',
+            'released_at' => '2026-04-10',
+            'title' => 'RxnSync: Filtro Motor BD integrado (AJAX mode)',
+            'summary' => 'Se integró el sistema de Filtro Motor BD al módulo RxnSync. Las columnas Estado, Código y Nombre del tab de Artículos y Clientes ahora soportan filtrado Motor BD con fetch AJAX (sin redirección), preservando la experiencia de pestañas. El sistema rxn-advanced-filters fue refactorizado para soportar modo AJAX con reinicialización post-fetch.',
+            'items' => [
+                'RxnSync Artículos y Clientes: columnas Estado, Código y Nombre ahora tienen ícono de filtro Motor BD + Selección Local.',
+                'Modo AJAX: al aplicar un filtro Motor BD en RxnSync, el contenido del tab se recarga vía fetch sin navegar fuera de la página ni romper la experiencia de pestañas.',
+                'history.pushState sincroniza la URL con los parámetros del filtro activo para que el ícono se muestre correctamente.',
+                'rxn-advanced-filters.js refactorizado: expuesto como window.rxnFiltersInit(), re-ejecutable post-AJAX con guard data-rxn-filter-init.',
+            ],
+        ],
         [
             'version' => '1.3.2',
             'build' => '20260410.1',

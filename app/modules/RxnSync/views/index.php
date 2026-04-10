@@ -263,6 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 hideProgress();
                 rebindCheckboxes();
                 initTabControls(btn);
+                if (typeof window.rxnFiltersInit === 'function') window.rxnFiltersInit();
             })
             .catch(function(err) {
                 hideProgress();
@@ -520,6 +521,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             table.querySelectorAll('.rxnsync-sortable[data-col]').forEach(function(th) {
+                // Columnas con rxn-filter-col usan el sistema Motor BD — saltar el embudo inline
+                if (th.classList.contains('rxn-filter-col')) return;
                 th.style.position = 'relative';
                 var col = th.dataset.col;
 
@@ -877,6 +880,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Load initial tab ──────────────────────────────────────────────
     var activeTab = document.querySelector('#syncTabs button.active');
     if (activeTab) loadTabContent(activeTab, true);
+
+    // ── Reinicializar tab controls tras reload por filtro Motor BD (AJAX mode) ──
+    document.addEventListener('rxnsync:contentRefreshed', function() {
+        rebindCheckboxes();
+        var activeBtn = getActiveTabBtn();
+        if (activeBtn) initTabControls(activeBtn);
+    });
 });
 </script>
 

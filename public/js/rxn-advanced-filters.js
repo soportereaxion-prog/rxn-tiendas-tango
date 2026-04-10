@@ -1,89 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const filterCols = document.querySelectorAll('.rxn-filter-col');
-    if (filterCols.length === 0) return;
+(function () {
+    'use strict';
 
     // =========================================================
-    // HELPERS
-    // =========================================================
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    // =========================================================
-    // MOTOR BD: filtros activos desde URL params
-    // =========================================================
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeBdFilters = {};
-    for (const [key, value] of urlParams.entries()) {
-        const match = key.match(/^f\[(.*?)\]\[(.*?)\]$/);
-        if (match) {
-            const field = match[1], type = match[2];
-            if (!activeBdFilters[field]) activeBdFilters[field] = {};
-            activeBdFilters[field][type] = value;
-        }
-    }
-
-    // =========================================================
-    // SELECCIÓN LOCAL: persistencia via sessionStorage
-    // =========================================================
-    const lsKey = (field) => `rxn_lf::${location.pathname}::${field}`;
-
-    const getExcluded = (field) => {
-        try { return JSON.parse(sessionStorage.getItem(lsKey(field)) || 'null'); }
-        catch { return null; }
-    };
-
-    const saveExcluded = (field, excluded) => {
-        try {
-            if (!excluded || excluded.length === 0) sessionStorage.removeItem(lsKey(field));
-            else sessionStorage.setItem(lsKey(field), JSON.stringify(excluded));
-        } catch {}
-    };
-
-    // Filas ocultas por campo (multi-columna safe)
-    const hiddenRowsByField = {};
-
-    const updateRowVisibility = (row) => {
-        const isHidden = Object.values(hiddenRowsByField).some(set => set.has(row));
-        row.style.display = isHidden ? 'none' : '';
-    };
-
-    const applyLocalFilter = (field, colIndex, excluded) => {
-        if (!hiddenRowsByField[field]) hiddenRowsByField[field] = new Set();
-        const hiddenSet = hiddenRowsByField[field];
-        hiddenSet.clear();
-        document.querySelectorAll('table tbody tr').forEach(row => {
-            const cell = row.querySelectorAll('td')[colIndex];
-            const value = cell ? (cell.textContent.trim() || '(Vacío)') : '(Vacío)';
-            if (excluded && excluded.length > 0 && excluded.includes(value)) {
-                hiddenSet.add(row);
-            }
-            updateRowVisibility(row);
-        });
-    };
-
-    const clearLocalFilter = (field) => {
-        if (hiddenRowsByField[field]) hiddenRowsByField[field].clear();
-        document.querySelectorAll('table tbody tr').forEach(row => updateRowVisibility(row));
-        saveExcluded(field, null);
-    };
-
-    const getColumnValues = (colIndex) => {
-        const counts = {};
-        document.querySelectorAll('table tbody tr').forEach(row => {
-            const cell = row.querySelectorAll('td')[colIndex];
-            const value = cell ? (cell.textContent.trim() || '(Vacío)') : '(Vacío)';
-            counts[value] = (counts[value] || 0) + 1;
-        });
-        return counts;
-    };
-
-    // =========================================================
-    // CSS
+    // CSS — inyectado una sola vez
     // =========================================================
     if (!document.getElementById('rxn-advanced-filters-css')) {
         const style = document.createElement('style');
@@ -120,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
-    // Cerrar popovers al cliquear afuera
+    // Cerrar popovers al cliquear afuera — registrado una sola vez
     // =========================================================
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.rxn-filter-popover') && !e.target.closest('.rxn-filter-icon')) {
@@ -129,208 +48,317 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =========================================================
-    // Procesar cada columna filtrable
+    // HELPERS
     // =========================================================
-    filterCols.forEach(th => {
-        const field = th.getAttribute('data-filter-field');
-        if (!field) return;
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
 
-        th.style.position = 'relative';
+    const lsKey       = (field) => `rxn_lf::${location.pathname}::${field}`;
+    const getExcluded = (field) => {
+        try { return JSON.parse(sessionStorage.getItem(lsKey(field)) || 'null'); }
+        catch { return null; }
+    };
+    const saveExcluded = (field, excluded) => {
+        try {
+            if (!excluded || excluded.length === 0) sessionStorage.removeItem(lsKey(field));
+            else sessionStorage.setItem(lsKey(field), JSON.stringify(excluded));
+        } catch {}
+    };
 
-        // Estado Motor BD
-        const isBdActive = !!(activeBdFilters[field] && activeBdFilters[field].val);
-        const currentOp  = isBdActive ? activeBdFilters[field].op : 'contiene';
-        const currentVal = isBdActive ? activeBdFilters[field].val : '';
+    // Estado de filas ocultas por campo (multi-columna safe)
+    const hiddenRowsByField = {};
 
-        // Índice de columna (para leer tds)
-        const allThs = Array.from(th.closest('tr').querySelectorAll('th'));
-        const colIndex = allThs.indexOf(th);
+    const updateRowVisibility = (row) => {
+        const isHidden = Object.values(hiddenRowsByField).some(set => set.has(row));
+        row.style.display = isHidden ? 'none' : '';
+    };
 
-        // Estado Local desde sessionStorage
-        const excludedFromStorage = getExcluded(field);
-        const isLocalActive = !!(excludedFromStorage && excludedFromStorage.length > 0);
-
-        // --- Ícono ---
-        const icon = document.createElement('i');
-        icon.className = `bi bi-funnel${(isBdActive || isLocalActive) ? '-fill active' : ''} rxn-filter-icon`;
-        icon.title = 'Filtrar columna';
-
-        // --- Popover ---
-        const popover = document.createElement('div');
-        popover.className = 'rxn-filter-popover text-start';
-        popover.onclick = (e) => e.stopPropagation();
-
-        popover.innerHTML = `
-            <div class="text-muted small fw-semibold mb-2 d-flex align-items-center gap-1">
-                <i class="bi bi-database-fill-gear"></i> Filtro Motor BD
-            </div>
-            <select class="form-select form-select-sm mb-2" id="filter_op_${field}">
-                <option value="contiene"    ${currentOp==='contiene'   ?'selected':''}>Contiene</option>
-                <option value="no_contiene" ${currentOp==='no_contiene'?'selected':''}>No contiene</option>
-                <option value="empieza_con" ${currentOp==='empieza_con'?'selected':''}>Empieza con</option>
-                <option value="termina_con" ${currentOp==='termina_con'?'selected':''}>Termina con</option>
-                <option value="igual"       ${currentOp==='igual'      ?'selected':''}>Igual</option>
-                <option value="distinto"    ${currentOp==='distinto'   ?'selected':''}>Distinto</option>
-                <option value="mayor_que"   ${currentOp==='mayor_que'  ?'selected':''}>Mayor a</option>
-                <option value="menor_que"   ${currentOp==='menor_que'  ?'selected':''}>Menor a</option>
-            </select>
-            <input type="text" class="form-control form-control-sm mb-2"
-                id="filter_val_${field}" value="${escapeHtml(currentVal)}" placeholder="Límite o valor...">
-            <div class="d-flex gap-2 mb-3">
-                <button type="button" class="btn btn-sm btn-outline-danger w-50 btn-clear-bd">Borrar BD</button>
-                <button type="button" class="btn btn-sm btn-warning w-50 btn-apply-bd">Aplicar BD</button>
-            </div>
-            <hr class="my-2">
-            <div class="text-muted small fw-semibold mb-2 d-flex align-items-center gap-1">
-                <i class="bi bi-funnel-fill"></i> Selección Local
-            </div>
-            <input type="text" class="form-control form-control-sm mb-2 rxn-local-search"
-                placeholder="Buscar en lista...">
-            <div class="d-flex justify-content-between mb-1 small">
-                <a href="#" class="btn-mark-all text-primary text-decoration-none">Marcar Todo</a>
-                <a href="#" class="btn-mark-none text-primary text-decoration-none">Ninguno</a>
-            </div>
-            <div class="rxn-local-list border rounded px-2 py-1"
-                style="max-height: 160px; overflow-y: auto; margin-bottom: 0.6rem;"></div>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary w-50 btn-clear-local">Limpiar Local</button>
-                <button type="button" class="btn btn-sm btn-primary w-50 btn-apply-local">Aplicar Local</button>
-            </div>
-        `;
-
-        // === Motor BD: eventos ===
-        const bdInput = popover.querySelector(`#filter_val_${field}`);
-
-        popover.querySelector('.btn-clear-bd').onclick = () => {
-            const params = new URLSearchParams(window.location.search);
-            params.delete(`f[${field}][op]`);
-            params.delete(`f[${field}][val]`);
-            params.delete('page');
-            if (![...params.keys()].some(k => k.startsWith('f['))) params.set('reset_filters', '1');
-            window.location.search = params.toString();
-        };
-
-        popover.querySelector('.btn-apply-bd').onclick = () => {
-            const op  = popover.querySelector(`#filter_op_${field}`).value;
-            const val = bdInput.value.trim();
-            const params = new URLSearchParams(window.location.search);
-            if (!val) {
-                params.delete(`f[${field}][op]`);
-                params.delete(`f[${field}][val]`);
-            } else {
-                params.set(`f[${field}][op]`, op);
-                params.set(`f[${field}][val]`, val);
-            }
-            params.delete('page');
-            if (![...params.keys()].some(k => k.startsWith('f['))) params.set('reset_filters', '1');
-            window.location.search = params.toString();
-        };
-
-        bdInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') { e.preventDefault(); popover.querySelector('.btn-apply-bd').click(); }
+    const applyLocalFilter = (field, colIndex, excluded) => {
+        if (!hiddenRowsByField[field]) hiddenRowsByField[field] = new Set();
+        const hiddenSet = hiddenRowsByField[field];
+        hiddenSet.clear();
+        document.querySelectorAll('table tbody tr').forEach(row => {
+            const cell  = row.querySelectorAll('td')[colIndex];
+            const value = cell ? (cell.textContent.trim() || '(Vacío)') : '(Vacío)';
+            if (excluded && excluded.length > 0 && excluded.includes(value)) hiddenSet.add(row);
+            updateRowVisibility(row);
         });
+    };
 
-        // === Selección Local: eventos ===
-        const localList   = popover.querySelector('.rxn-local-list');
-        const localSearch = popover.querySelector('.rxn-local-search');
+    const clearLocalFilter = (field) => {
+        if (hiddenRowsByField[field]) hiddenRowsByField[field].clear();
+        document.querySelectorAll('table tbody tr').forEach(row => updateRowVisibility(row));
+        saveExcluded(field, null);
+    };
 
-        const populateLocalList = () => {
-            const valueCounts = getColumnValues(colIndex);
-            const excluded    = getExcluded(field) || [];
+    const getColumnValues = (colIndex) => {
+        const counts = {};
+        document.querySelectorAll('table tbody tr').forEach(row => {
+            const cell  = row.querySelectorAll('td')[colIndex];
+            const value = cell ? (cell.textContent.trim() || '(Vacío)') : '(Vacío)';
+            counts[value] = (counts[value] || 0) + 1;
+        });
+        return counts;
+    };
 
-            const sorted = Object.entries(valueCounts).sort(([a], [b]) => {
-                if (a === '(Vacío)') return -1;
-                if (b === '(Vacío)') return 1;
-                return a.localeCompare(b, 'es');
+    // =========================================================
+    // AJAX helper — recarga contenido via fetch en modo tabla AJAX
+    // =========================================================
+    function applyBdAjax(ajaxUrl, containerId, params) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.innerHTML = '<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>';
+        history.pushState(null, '', '?' + params.toString());
+
+        fetch(ajaxUrl + '?' + params.toString())
+            .then(r => {
+                if (!r.ok) throw new Error('Error ' + r.status);
+                return r.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+                if (typeof window.rxnFiltersInit === 'function') window.rxnFiltersInit();
+                container.dispatchEvent(new CustomEvent('rxnsync:contentRefreshed', { bubbles: true }));
+            })
+            .catch(err => {
+                container.innerHTML = '<div class="alert alert-danger m-3"><i class="bi bi-exclamation-triangle me-2"></i>' + escapeHtml(err.message) + '</div>';
             });
+    }
 
-            localList.innerHTML = '';
-            sorted.forEach(([value, count]) => {
-                const label      = document.createElement('label');
-                const isChecked  = !excluded.includes(value);
-                const safe       = escapeHtml(value);
-                label.innerHTML  = `
-                    <input type="checkbox" class="form-check-input flex-shrink-0"
-                        value="${safe}" ${isChecked ? 'checked' : ''}>
-                    <span class="val-text">${safe}</span>
-                    <span class="val-count">(${count})</span>
-                `;
-                localList.appendChild(label);
-            });
+    // =========================================================
+    // INICIALIZACIÓN — re-ejecutable post-AJAX (guard por attr)
+    // =========================================================
+    function initRxnFilters() {
+        const filterCols = document.querySelectorAll('.rxn-filter-col:not([data-rxn-filter-init])');
+        if (filterCols.length === 0) return;
 
-            localSearch.value = '';
-            localSearch.oninput = () => {
-                const q = localSearch.value.toLowerCase();
-                localList.querySelectorAll('label').forEach(lbl => {
-                    const text = lbl.querySelector('.val-text').textContent.toLowerCase();
-                    lbl.style.display = text.includes(q) ? '' : 'none';
-                });
-            };
-        };
-
-        popover.querySelector('.btn-mark-all').onclick = (e) => {
-            e.preventDefault();
-            localList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-        };
-
-        popover.querySelector('.btn-mark-none').onclick = (e) => {
-            e.preventDefault();
-            localList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-        };
-
-        popover.querySelector('.btn-apply-local').onclick = () => {
-            const excluded = [...localList.querySelectorAll('input[type="checkbox"]:not(:checked)')]
-                .map(cb => cb.value);
-            saveExcluded(field, excluded);
-            applyLocalFilter(field, colIndex, excluded);
-            icon.className = `bi bi-funnel${(isBdActive || excluded.length > 0) ? '-fill active' : ''} rxn-filter-icon`;
-            popover.classList.remove('show');
-        };
-
-        popover.querySelector('.btn-clear-local').onclick = () => {
-            clearLocalFilter(field);
-            icon.className = `bi bi-funnel${isBdActive ? '-fill active' : ''} rxn-filter-icon`;
-            popover.classList.remove('show');
-        };
-
-        // === Abrir/cerrar popover ===
-        icon.onclick = (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.rxn-filter-popover.show').forEach(el => {
-                if (el !== popover) el.classList.remove('show');
-            });
-            popover.classList.toggle('show');
-            if (popover.classList.contains('show')) {
-                // Inteligencia espacial para evitar overflow
-                const tableContainer = th.closest('.table-responsive');
-                const thRect = th.getBoundingClientRect();
-                let isNearLeftEdge = false;
-                if (tableContainer) {
-                    const containerRect = tableContainer.getBoundingClientRect();
-                    isNearLeftEdge = (thRect.left - containerRect.left) < 280;
-                } else {
-                    isNearLeftEdge = thRect.left < 280;
-                }
-                popover.style.right = isNearLeftEdge ? 'auto' : '0';
-                popover.style.left  = isNearLeftEdge ? '0'    : 'auto';
-                populateLocalList();
-                bdInput.focus();
+        // Filtros Motor BD activos desde la URL actual (re-leído en cada llamada)
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeBdFilters = {};
+        for (const [key, value] of urlParams.entries()) {
+            const match = key.match(/^f\[(.*?)\]\[(.*?)\]$/);
+            if (match) {
+                const field = match[1], type = match[2];
+                if (!activeBdFilters[field]) activeBdFilters[field] = {};
+                activeBdFilters[field][type] = value;
             }
-        };
-
-        // Espacio para el link de sort
-        const aLink = th.querySelector('a');
-        if (aLink) {
-            aLink.style.paddingRight = '20px';
-            aLink.style.display = 'inline-block';
         }
 
-        th.appendChild(icon);
-        th.appendChild(popover);
+        filterCols.forEach(th => {
+            th.setAttribute('data-rxn-filter-init', '1');
 
-        // Reaplicar filtro local persistido al cargar la página
-        if (isLocalActive) {
-            applyLocalFilter(field, colIndex, excludedFromStorage);
-        }
-    });
-});
+            const field = th.getAttribute('data-filter-field');
+            if (!field) return;
+
+            th.style.position = 'relative';
+
+            // Estado Motor BD
+            const isBdActive = !!(activeBdFilters[field] && activeBdFilters[field].val);
+            const currentOp  = isBdActive ? activeBdFilters[field].op : 'contiene';
+            const currentVal = isBdActive ? activeBdFilters[field].val : '';
+
+            // Índice de columna
+            const allThs   = Array.from(th.closest('tr').querySelectorAll('th'));
+            const colIndex = allThs.indexOf(th);
+
+            // Estado Local
+            const excludedFromStorage = getExcluded(field);
+            const isLocalActive = !!(excludedFromStorage && excludedFromStorage.length > 0);
+
+            // Detección modo AJAX
+            const ajaxTable    = th.closest('table[data-ajax-url]');
+            const ajaxUrl      = ajaxTable ? ajaxTable.dataset.ajaxUrl      : null;
+            const ajaxContainer = ajaxTable ? ajaxTable.dataset.ajaxContainer : null;
+
+            // --- Ícono ---
+            const icon = document.createElement('i');
+            icon.className = `bi bi-funnel${(isBdActive || isLocalActive) ? '-fill active' : ''} rxn-filter-icon`;
+            icon.title = 'Filtrar columna';
+
+            // --- Popover ---
+            const popover = document.createElement('div');
+            popover.className = 'rxn-filter-popover text-start';
+            popover.onclick = (e) => e.stopPropagation();
+
+            popover.innerHTML = `
+                <div class="text-muted small fw-semibold mb-2 d-flex align-items-center gap-1">
+                    <i class="bi bi-database-fill-gear"></i> Filtro Motor BD
+                </div>
+                <select class="form-select form-select-sm mb-2" id="filter_op_${field}">
+                    <option value="contiene"    ${currentOp==='contiene'   ?'selected':''}>Contiene</option>
+                    <option value="no_contiene" ${currentOp==='no_contiene'?'selected':''}>No contiene</option>
+                    <option value="empieza_con" ${currentOp==='empieza_con'?'selected':''}>Empieza con</option>
+                    <option value="termina_con" ${currentOp==='termina_con'?'selected':''}>Termina con</option>
+                    <option value="igual"       ${currentOp==='igual'      ?'selected':''}>Igual</option>
+                    <option value="distinto"    ${currentOp==='distinto'   ?'selected':''}>Distinto</option>
+                    <option value="mayor_que"   ${currentOp==='mayor_que'  ?'selected':''}>Mayor a</option>
+                    <option value="menor_que"   ${currentOp==='menor_que'  ?'selected':''}>Menor a</option>
+                </select>
+                <input type="text" class="form-control form-control-sm mb-2"
+                    id="filter_val_${field}" value="${escapeHtml(currentVal)}" placeholder="Límite o valor...">
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-50 btn-clear-bd">Borrar BD</button>
+                    <button type="button" class="btn btn-sm btn-warning w-50 btn-apply-bd">Aplicar BD</button>
+                </div>
+                <hr class="my-2">
+                <div class="text-muted small fw-semibold mb-2 d-flex align-items-center gap-1">
+                    <i class="bi bi-funnel-fill"></i> Selección Local
+                </div>
+                <input type="text" class="form-control form-control-sm mb-2 rxn-local-search"
+                    placeholder="Buscar en lista...">
+                <div class="d-flex justify-content-between mb-1 small">
+                    <a href="#" class="btn-mark-all text-primary text-decoration-none">Marcar Todo</a>
+                    <a href="#" class="btn-mark-none text-primary text-decoration-none">Ninguno</a>
+                </div>
+                <div class="rxn-local-list border rounded px-2 py-1"
+                    style="max-height: 160px; overflow-y: auto; margin-bottom: 0.6rem;"></div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-50 btn-clear-local">Limpiar Local</button>
+                    <button type="button" class="btn btn-sm btn-primary w-50 btn-apply-local">Aplicar Local</button>
+                </div>
+            `;
+
+            // === Motor BD: construir params ===
+            const bdInput = popover.querySelector(`#filter_val_${field}`);
+
+            const buildBdParams = (includeFilter) => {
+                const params = new URLSearchParams(window.location.search);
+                if (includeFilter) {
+                    const op  = popover.querySelector(`#filter_op_${field}`).value;
+                    const val = bdInput.value.trim();
+                    if (!val) {
+                        params.delete(`f[${field}][op]`);
+                        params.delete(`f[${field}][val]`);
+                    } else {
+                        params.set(`f[${field}][op]`, op);
+                        params.set(`f[${field}][val]`, val);
+                    }
+                } else {
+                    params.delete(`f[${field}][op]`);
+                    params.delete(`f[${field}][val]`);
+                }
+                params.delete('page');
+                return params;
+            };
+
+            const dispatchBd = (params) => {
+                if (ajaxUrl && ajaxContainer) {
+                    applyBdAjax(ajaxUrl, ajaxContainer, params);
+                } else {
+                    if (![...params.keys()].some(k => k.startsWith('f['))) params.set('reset_filters', '1');
+                    window.location.search = params.toString();
+                }
+            };
+
+            popover.querySelector('.btn-clear-bd').onclick = () => dispatchBd(buildBdParams(false));
+            popover.querySelector('.btn-apply-bd').onclick = () => dispatchBd(buildBdParams(true));
+
+            bdInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); popover.querySelector('.btn-apply-bd').click(); }
+            });
+
+            // === Selección Local ===
+            const localList   = popover.querySelector('.rxn-local-list');
+            const localSearch = popover.querySelector('.rxn-local-search');
+
+            const populateLocalList = () => {
+                const valueCounts = getColumnValues(colIndex);
+                const excluded    = getExcluded(field) || [];
+                const sorted = Object.entries(valueCounts).sort(([a], [b]) => {
+                    if (a === '(Vacío)') return -1;
+                    if (b === '(Vacío)') return 1;
+                    return a.localeCompare(b, 'es');
+                });
+                localList.innerHTML = '';
+                sorted.forEach(([value, count]) => {
+                    const label     = document.createElement('label');
+                    const isChecked = !excluded.includes(value);
+                    const safe      = escapeHtml(value);
+                    label.innerHTML = `
+                        <input type="checkbox" class="form-check-input flex-shrink-0"
+                            value="${safe}" ${isChecked ? 'checked' : ''}>
+                        <span class="val-text">${safe}</span>
+                        <span class="val-count">(${count})</span>
+                    `;
+                    localList.appendChild(label);
+                });
+                localSearch.value = '';
+                localSearch.oninput = () => {
+                    const q = localSearch.value.toLowerCase();
+                    localList.querySelectorAll('label').forEach(lbl => {
+                        lbl.style.display = lbl.querySelector('.val-text').textContent.toLowerCase().includes(q) ? '' : 'none';
+                    });
+                };
+            };
+
+            popover.querySelector('.btn-mark-all').onclick = (e) => {
+                e.preventDefault();
+                localList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            };
+            popover.querySelector('.btn-mark-none').onclick = (e) => {
+                e.preventDefault();
+                localList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            };
+
+            popover.querySelector('.btn-apply-local').onclick = () => {
+                const excluded = [...localList.querySelectorAll('input[type="checkbox"]:not(:checked)')]
+                    .map(cb => cb.value);
+                saveExcluded(field, excluded);
+                applyLocalFilter(field, colIndex, excluded);
+                icon.className = `bi bi-funnel${(isBdActive || excluded.length > 0) ? '-fill active' : ''} rxn-filter-icon`;
+                popover.classList.remove('show');
+            };
+
+            popover.querySelector('.btn-clear-local').onclick = () => {
+                clearLocalFilter(field);
+                icon.className = `bi bi-funnel${isBdActive ? '-fill active' : ''} rxn-filter-icon`;
+                popover.classList.remove('show');
+            };
+
+            // === Abrir/cerrar popover ===
+            icon.onclick = (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.rxn-filter-popover.show').forEach(el => {
+                    if (el !== popover) el.classList.remove('show');
+                });
+                popover.classList.toggle('show');
+                if (popover.classList.contains('show')) {
+                    const tableContainer = th.closest('.table-responsive');
+                    const thRect = th.getBoundingClientRect();
+                    let isNearLeftEdge = false;
+                    if (tableContainer) {
+                        isNearLeftEdge = (thRect.left - tableContainer.getBoundingClientRect().left) < 280;
+                    } else {
+                        isNearLeftEdge = thRect.left < 280;
+                    }
+                    popover.style.right = isNearLeftEdge ? 'auto' : '0';
+                    popover.style.left  = isNearLeftEdge ? '0'    : 'auto';
+                    populateLocalList();
+                    bdInput.focus();
+                }
+            };
+
+            // Espacio para el link de sort
+            const aLink = th.querySelector('a');
+            if (aLink) {
+                aLink.style.paddingRight = '20px';
+                aLink.style.display = 'inline-block';
+            }
+
+            th.appendChild(icon);
+            th.appendChild(popover);
+
+            // Reaplicar filtro local persistido
+            if (isLocalActive) applyLocalFilter(field, colIndex, excludedFromStorage);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initRxnFilters);
+    window.rxnFiltersInit = initRxnFilters;
+})();
