@@ -199,6 +199,46 @@ class PresupuestoRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function markAsSentToTango(int $id, int $empresaId, string $nroComprobante, string $payload, string $response): void
+    {
+        $stmt = $this->db->prepare('UPDATE crm_presupuestos SET 
+                tango_sync_status = "success", 
+                nro_comprobante_tango = :nro,
+                tango_sync_date = NOW(),
+                tango_sync_log = :log,
+                updated_at = NOW()
+            WHERE id = :id AND empresa_id = :empresa_id');
+            
+        $payloadData = json_decode($payload, true) ?? $payload;
+        $responseData = json_decode($response, true) ?? $response;
+            
+        $stmt->execute([
+            ':nro' => $nroComprobante,
+            ':log' => json_encode(['payload' => $payloadData, 'response' => $responseData], JSON_UNESCAPED_UNICODE),
+            ':id' => $id,
+            ':empresa_id' => $empresaId
+        ]);
+    }
+
+    public function markAsErrorToTango(int $id, int $empresaId, string $payload, string $error, string $response = ''): void
+    {
+        $stmt = $this->db->prepare('UPDATE crm_presupuestos SET 
+                tango_sync_status = "error",
+                tango_sync_date = NOW(),
+                tango_sync_log = :log,
+                updated_at = NOW()
+            WHERE id = :id AND empresa_id = :empresa_id');
+            
+        $payloadData = json_decode($payload, true) ?? $payload;
+        $responseData = $response !== '' ? (json_decode($response, true) ?? $response) : null;
+        
+        $stmt->execute([
+            ':log' => json_encode(['payload' => $payloadData, 'error' => $error, 'response' => $responseData], JSON_UNESCAPED_UNICODE),
+            ':id' => $id,
+            ':empresa_id' => $empresaId
+        ]);
+    }
+
     public function create(array $data): int
     {
         $attempts = 0;
@@ -217,6 +257,7 @@ class PresupuestoRepository
                         transporte_codigo, transporte_nombre_snapshot, transporte_id_interno,
                         lista_codigo, lista_nombre_snapshot, lista_id_interno,
                         vendedor_codigo, vendedor_nombre_snapshot, vendedor_id_interno,
+                        clasificacion_codigo, clasificacion_id_tango,
                         subtotal, descuento_total, impuestos_total, total, estado, usuario_id, usuario_nombre, created_at, updated_at
                     ) VALUES (
                         :empresa_id, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
@@ -225,6 +266,7 @@ class PresupuestoRepository
                         :transporte_codigo, :transporte_nombre_snapshot, :transporte_id_interno,
                         :lista_codigo, :lista_nombre_snapshot, :lista_id_interno,
                         :vendedor_codigo, :vendedor_nombre_snapshot, :vendedor_id_interno,
+                        :clasificacion_codigo, :clasificacion_id_tango,
                         :subtotal, :descuento_total, :impuestos_total, :total, :estado, :usuario_id, :usuario_nombre, NOW(), NOW()
                     )');
                 $payload = $this->buildHeaderPayload($data);
@@ -274,6 +316,8 @@ class PresupuestoRepository
                     vendedor_codigo = :vendedor_codigo,
                     vendedor_nombre_snapshot = :vendedor_nombre_snapshot,
                     vendedor_id_interno = :vendedor_id_interno,
+                    clasificacion_codigo = :clasificacion_codigo,
+                    clasificacion_id_tango = :clasificacion_id_tango,
                     subtotal = :subtotal,
                     descuento_total = :descuento_total,
                     impuestos_total = :impuestos_total,
@@ -284,6 +328,8 @@ class PresupuestoRepository
             $payload = $this->buildHeaderPayload($data);
             $payload[':id'] = $id;
             $payload[':empresa_id'] = $empresaId;
+            unset($payload[':usuario_id'], $payload[':usuario_nombre']);
+            
             $stmt->execute($payload);
 
             $deleteStmt = $this->db->prepare('DELETE FROM crm_presupuesto_items WHERE presupuesto_id = :presupuesto_id AND empresa_id = :empresa_id');
@@ -404,6 +450,8 @@ class PresupuestoRepository
             ':vendedor_codigo' => $this->nullableString($data['vendedor_codigo'] ?? null),
             ':vendedor_nombre_snapshot' => $this->nullableString($data['vendedor_nombre_snapshot'] ?? null),
             ':vendedor_id_interno' => $this->nullableInt($data['vendedor_id_interno'] ?? null),
+            ':clasificacion_codigo' => $this->nullableString($data['clasificacion_codigo'] ?? null),
+            ':clasificacion_id_tango' => $this->nullableString($data['clasificacion_id_tango'] ?? null),
             ':subtotal' => (float) ($data['subtotal'] ?? 0),
             ':descuento_total' => (float) ($data['descuento_total'] ?? 0),
             ':impuestos_total' => (float) ($data['impuestos_total'] ?? 0),
@@ -481,6 +529,10 @@ class PresupuestoRepository
             estado VARCHAR(30) NOT NULL DEFAULT "borrador",
             usuario_id INT NULL,
             usuario_nombre VARCHAR(180) NULL,
+            tango_sync_status VARCHAR(50) NULL,
+            nro_comprobante_tango VARCHAR(100) NULL,
+            tango_sync_date DATETIME NULL,
+            tango_sync_log TEXT NULL,
             deleted_at TIMESTAMP NULL DEFAULT NULL,
             created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -492,7 +544,19 @@ class PresupuestoRepository
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
 
         try {
+            $this->db->exec('ALTER TABLE crm_presupuestos 
+                ADD COLUMN tango_sync_status VARCHAR(50) NULL AFTER usuario_nombre,
+                ADD COLUMN nro_comprobante_tango VARCHAR(100) NULL AFTER tango_sync_status,
+                ADD COLUMN tango_sync_date DATETIME NULL AFTER nro_comprobante_tango,
+                ADD COLUMN tango_sync_log TEXT NULL AFTER tango_sync_date');
+        } catch (\Throwable $e) {}
+
+        try {
             $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN usuario_id INT NULL AFTER estado, ADD COLUMN usuario_nombre VARCHAR(180) NULL AFTER usuario_id');
+        } catch (\Throwable $e) {}
+        
+        try {
+            $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN clasificacion_codigo VARCHAR(50) NULL AFTER vendedor_id_interno, ADD COLUMN clasificacion_id_tango VARCHAR(50) NULL AFTER clasificacion_codigo');
         } catch (\Throwable $e) {}
 
         try {

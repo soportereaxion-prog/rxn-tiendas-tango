@@ -239,6 +239,7 @@ class PresupuestoController extends \App\Core\Controller
             $itemsNuevos = [];
             foreach ($itemsOriginales as $item) {
                 unset($item['id'], $item['presupuesto_id']);
+                $item['articulo_descripcion'] = $item['articulo_descripcion_snapshot'] ?? '';
                 $itemsNuevos[] = $item;
             }
             $data['items'] = $itemsNuevos;
@@ -467,6 +468,28 @@ class PresupuestoController extends \App\Core\Controller
         exit;
     }
 
+    public function syncTango(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        
+        $presupuesto = $this->repository->findById((int) $id, $empresaId);
+
+        if ($presupuesto === null) {
+            Flash::set('danger', 'El presupuesto CRM no existe o no pertenece a tu empresa.');
+            header('Location: /mi-empresa/crm/presupuestos');
+            exit;
+        }
+
+        $service = new PresupuestoTangoService($this->repository);
+        $result = $service->send((int) $id, $empresaId);
+
+        Flash::set($result['type'] ?? 'info', $result['message'] ?? 'Sincronización procesada.');
+
+        header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+        exit;
+    }
+
     public function syncCatalogs(): void
     {
         AuthService::requireLogin();
@@ -481,6 +504,37 @@ class PresupuestoController extends \App\Core\Controller
 
         try {
             $stats = $this->catalogSyncService->sync($empresaId);
+
+            if (isset($_SESSION['user_id'])) {
+                $userRepo = new \App\Modules\Auth\UsuarioRepository();
+                $usuario = $userRepo->findById((int)$_SESSION['user_id']);
+                if ($usuario && $usuario->tango_perfil_pedido_id) {
+                    $config = $this->configRepository->findByEmpresaId($empresaId);
+                    if ($config) {
+                        $token = trim((string) ($config->tango_connect_token ?? ''));
+                        $clientKey = trim((string) ($config->tango_connect_key ?? ''));
+                        $apiUrl = trim((string) ($config->tango_api_url ?? ''));
+                        $companyId = trim((string) ($config->tango_connect_company_id ?? '-1'));
+                        
+                        if ($token !== '' && ($clientKey !== '' || $apiUrl !== '')) {
+                            $finalUrl = $clientKey !== ''
+                                ? rtrim(sprintf('https://%s.connect.axoft.com/Api', str_replace('/', '-', $clientKey)), '/')
+                                : rtrim($apiUrl, '/');
+                                
+                            $apiClient = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey !== '' ? $clientKey : null);
+                            try {
+                                $perfilData = $apiClient->getPerfilPedidoById($usuario->tango_perfil_pedido_id);
+                                if (!empty($perfilData)) {
+                                    $usuario->tango_perfil_snapshot_json = json_encode(['raw' => $perfilData, 'company_id' => $companyId], JSON_UNESCAPED_UNICODE);
+                                    $usuario->tango_perfil_snapshot_date = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
+                                    $userRepo->save($usuario);
+                                }
+                            } catch (\Throwable $ex) {}
+                        }
+                    }
+                }
+            }
+
             Flash::set('success', 'Catalogos comerciales CRM sincronizados correctamente.', $stats);
         } catch (Throwable $e) {
             Flash::set('danger', 'No se pudieron sincronizar los catalogos comerciales CRM: ' . $e->getMessage());
@@ -551,7 +605,7 @@ class PresupuestoController extends \App\Core\Controller
             exit;
         }
 
-        $defaults = $this->loadConfigDefaults($empresaId);
+        $defaults = $this->loadUserTangoProfileDefaults($empresaId);
         $payload = [
             'cliente' => [
                 'id' => (int) $cliente['id'],
@@ -559,10 +613,10 @@ class PresupuestoController extends \App\Core\Controller
                 'documento' => trim((string) ($cliente['documento'] ?? '')),
             ],
             'deposito' => $this->resolveCatalogSelection($empresaId, 'deposito', $defaults['deposito_codigo'] ?? null, 'Deposito'),
-            'condicion' => $this->resolveCatalogSelection($empresaId, 'condicion_venta', $cliente['id_gva01_condicion_venta'] ?? null, 'Condicion'),
-            'lista' => $this->resolveCatalogSelection($empresaId, 'lista_precio', $cliente['id_gva10_lista_precios'] ?? ($defaults['lista_codigo'] ?? null), 'Lista'),
-            'vendedor' => $this->resolveCatalogSelection($empresaId, 'vendedor', $cliente['id_gva23_vendedor'] ?? null, 'Vendedor'),
-            'transporte' => $this->resolveCatalogSelection($empresaId, 'transporte', $cliente['id_gva24_transporte'] ?? null, 'Transporte'),
+            'condicion' => $this->resolveCatalogSelection($empresaId, 'condicion_venta', $cliente['id_gva01_condicion_venta'] ?? $cliente['id_gva23_tango'] ?? ($defaults['condicion_codigo'] ?? null), 'Condicion'),
+            'lista' => $this->resolveCatalogSelection($empresaId, 'lista_precio', $cliente['id_gva10_lista_precios'] ?? $cliente['id_gva10_tango'] ?? ($defaults['lista_codigo'] ?? null), 'Lista'),
+            'vendedor' => $this->resolveCatalogSelection($empresaId, 'vendedor', $cliente['id_gva23_vendedor'] ?? $cliente['id_gva01_tango'] ?? ($defaults['vendedor_codigo'] ?? null), 'Vendedor'),
+            'transporte' => $this->resolveCatalogSelection($empresaId, 'transporte', $cliente['id_gva24_transporte'] ?? $cliente['id_gva24_tango'] ?? ($defaults['transporte_codigo'] ?? null), 'Transporte'),
             'warning' => $catalogData['warning'],
         ];
 
@@ -680,13 +734,57 @@ class PresupuestoController extends \App\Core\Controller
         ];
     }
 
-    private function loadConfigDefaults(int $empresaId): array
+    private function loadUserTangoProfileDefaults(int $empresaId): array
     {
-        $config = $this->configRepository->findByEmpresaId($empresaId);
+        $deposito = '';
+        $condicion = '';
+        $transporte = '';
+        $lista = '';
+        $vendedor = '';
+
+        if (isset($_SESSION['user_id'])) {
+            $userRepo = new \App\Modules\Auth\UsuarioRepository();
+            $usuario = $userRepo->findById((int)$_SESSION['user_id']);
+            if ($usuario && $usuario->tango_perfil_snapshot_json) {
+                $snap = json_decode($usuario->tango_perfil_snapshot_json, true) ?: [];
+                $raw = (!empty($snap['raw']) && is_array($snap['raw'])) ? $snap['raw'] : [];
+                $profileData = array_change_key_case(array_merge($raw, $snap), CASE_UPPER);
+
+                $vendedor = trim((string)($profileData['ID_GVA01_VENDEDOR'] ?? $profileData['ID_GVA01'] ?? ''));
+                $condicion = trim((string)($profileData['ID_GVA23_ENCABEZADO'] ?? $profileData['ID_GVA23_CONDICION_VENTA'] ?? $profileData['ID_GVA23'] ?? ''));
+                $deposito = trim((string)($profileData['ID_STA22_DEPOSITO'] ?? $profileData['ID_STA22'] ?? ''));
+                $lista = trim((string)($profileData['ID_GVA10_ENCABEZADO'] ?? $profileData['ID_GVA10_ZONA'] ?? $profileData['ID_GVA10'] ?? ''));
+                $transporte = trim((string)($profileData['ID_GVA24_TRANSPORTE'] ?? $profileData['ID_GVA24'] ?? ''));
+            }
+        }
+
+        if ($deposito === '') {
+            $firstDep = $this->catalogRepository->findFirstByType($empresaId, 'deposito');
+            $deposito = $firstDep ? trim((string)$firstDep['codigo']) : '';
+        }
+        if ($condicion === '') {
+            $firstCond = $this->catalogRepository->findFirstByType($empresaId, 'condicion_venta');
+            $condicion = $firstCond ? trim((string)$firstCond['codigo']) : '';
+        }
+        if ($transporte === '') {
+            $firstTra = $this->catalogRepository->findFirstByType($empresaId, 'transporte');
+            $transporte = $firstTra ? trim((string)$firstTra['codigo']) : '';
+        }
+        if ($lista === '') {
+            $firstList = $this->catalogRepository->findFirstByType($empresaId, 'lista_precio');
+            $lista = $firstList ? trim((string)$firstList['codigo']) : '';
+        }
+        if ($vendedor === '') {
+            $firstVend = $this->catalogRepository->findFirstByType($empresaId, 'vendedor');
+            $vendedor = $firstVend ? trim((string)$firstVend['codigo']) : '';
+        }
 
         return [
-            'deposito_codigo' => trim((string) ($config?->deposito_codigo ?? '')) ?: null,
-            'lista_codigo' => trim((string) ($config?->lista_precio_1 ?? '')) ?: null,
+            'deposito_codigo' => $deposito,
+            'condicion_codigo' => $condicion,
+            'transporte_codigo' => $transporte,
+            'lista_codigo' => $lista,
+            'vendedor_codigo' => $vendedor,
         ];
     }
 
@@ -707,7 +805,7 @@ class PresupuestoController extends \App\Core\Controller
     private function defaultFormState(int $empresaId): array
     {
         $now = new DateTimeImmutable();
-        $defaults = $this->loadConfigDefaults($empresaId);
+        $defaults = $this->loadUserTangoProfileDefaults($empresaId);
 
         return [
             'id' => null,
@@ -718,14 +816,20 @@ class PresupuestoController extends \App\Core\Controller
             'cliente_nombre' => '',
             'cliente_documento' => '',
             'deposito_codigo' => $defaults['deposito_codigo'] ?? '',
-            'condicion_codigo' => '',
-            'transporte_codigo' => '',
+            'condicion_codigo' => $defaults['condicion_codigo'] ?? '',
+            'transporte_codigo' => $defaults['transporte_codigo'] ?? '',
             'lista_codigo' => $defaults['lista_codigo'] ?? '',
-            'vendedor_codigo' => '',
+            'clasificacion_codigo' => '',
+            'clasificacion_id_tango' => '',
+            'vendedor_codigo' => $defaults['vendedor_codigo'] ?? '',
             'subtotal' => 0.0,
             'descuento_total' => 0.0,
             'impuestos_total' => 0.0,
             'total' => 0.0,
+            'tango_sync_status' => '',
+            'nro_comprobante_tango' => '',
+            'tango_sync_date' => '',
+            'tango_sync_log' => '',
             'items' => [],
         ];
     }
@@ -741,14 +845,29 @@ class PresupuestoController extends \App\Core\Controller
             'cliente_nombre' => (string) ($presupuesto['cliente_nombre_snapshot'] ?? ''),
             'cliente_documento' => (string) ($presupuesto['cliente_documento_snapshot'] ?? ''),
             'deposito_codigo' => (string) ($presupuesto['deposito_codigo'] ?? ''),
+            'deposito_nombre_snapshot' => (string) ($presupuesto['deposito_nombre_snapshot'] ?? ''),
             'condicion_codigo' => (string) ($presupuesto['condicion_codigo'] ?? ''),
+            'condicion_nombre_snapshot' => (string) ($presupuesto['condicion_nombre_snapshot'] ?? ''),
+            'condicion_id_interno' => (string) ($presupuesto['condicion_id_interno'] ?? ''),
             'transporte_codigo' => (string) ($presupuesto['transporte_codigo'] ?? ''),
+            'transporte_nombre_snapshot' => (string) ($presupuesto['transporte_nombre_snapshot'] ?? ''),
+            'transporte_id_interno' => (string) ($presupuesto['transporte_id_interno'] ?? ''),
             'lista_codigo' => (string) ($presupuesto['lista_codigo'] ?? ''),
+            'lista_nombre_snapshot' => (string) ($presupuesto['lista_nombre_snapshot'] ?? ''),
+            'lista_id_interno' => (string) ($presupuesto['lista_id_interno'] ?? ''),
             'vendedor_codigo' => (string) ($presupuesto['vendedor_codigo'] ?? ''),
+            'vendedor_nombre_snapshot' => (string) ($presupuesto['vendedor_nombre_snapshot'] ?? ''),
+            'vendedor_id_interno' => (string) ($presupuesto['vendedor_id_interno'] ?? ''),
+            'clasificacion_codigo' => (string) ($presupuesto['clasificacion_codigo'] ?? ''),
+            'clasificacion_id_tango' => (string) ($presupuesto['clasificacion_id_tango'] ?? ''),
             'subtotal' => isset($presupuesto['subtotal']) ? (float) $presupuesto['subtotal'] : 0.0,
             'descuento_total' => isset($presupuesto['descuento_total']) ? (float) $presupuesto['descuento_total'] : 0.0,
             'impuestos_total' => isset($presupuesto['impuestos_total']) ? (float) $presupuesto['impuestos_total'] : 0.0,
             'total' => isset($presupuesto['total']) ? (float) $presupuesto['total'] : 0.0,
+            'tango_sync_status' => (string) ($presupuesto['tango_sync_status'] ?? ''),
+            'nro_comprobante_tango' => (string) ($presupuesto['nro_comprobante_tango'] ?? ''),
+            'tango_sync_date' => (string) ($presupuesto['tango_sync_date'] ?? ''),
+            'tango_sync_log' => (string) ($presupuesto['tango_sync_log'] ?? ''),
             'items' => array_map(static function (array $item): array {
                 return [
                     'articulo_id' => (string) ($item['articulo_id'] ?? ''),
@@ -782,6 +901,8 @@ class PresupuestoController extends \App\Core\Controller
         $state['transporte_codigo'] = trim((string) ($input['transporte_codigo'] ?? $state['transporte_codigo']));
         $state['lista_codigo'] = trim((string) ($input['lista_codigo'] ?? $state['lista_codigo']));
         $state['vendedor_codigo'] = trim((string) ($input['vendedor_codigo'] ?? $state['vendedor_codigo']));
+        $state['clasificacion_codigo'] = trim((string) ($input['clasificacion_codigo'] ?? $state['clasificacion_codigo']));
+        $state['clasificacion_id_tango'] = trim((string) ($input['clasificacion_id_tango'] ?? $state['clasificacion_id_tango']));
         $state['items'] = $this->normalizePostedItems($input['items'] ?? [], $state['lista_codigo']);
 
         $totals = $this->calculateTotals($state['items']);
@@ -887,6 +1008,8 @@ class PresupuestoController extends \App\Core\Controller
             'lista_codigo' => $lista['codigo'],
             'lista_nombre_snapshot' => $lista['descripcion'],
             'lista_id_interno' => $lista['id_interno'],
+            'clasificacion_codigo' => trim((string) ($input['clasificacion_codigo'] ?? '')),
+            'clasificacion_id_tango' => trim((string) ($input['clasificacion_id_tango'] ?? '')),
             'vendedor_codigo' => $vendedor['codigo'],
             'vendedor_nombre_snapshot' => $vendedor['descripcion'],
             'vendedor_id_interno' => $vendedor['id_interno'],

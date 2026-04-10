@@ -35,10 +35,10 @@ document.addEventListener('keydown', function(e) {
             }
             return; // Bloquea propagación al resto de atajos
         }
-        if (isEscape) {
+        if (isEscape || e.key === 'ArrowLeft') {
             // Bootstrap puede cerrarlo solo, pero forzamos el click en el dismiss para ser explícitos
             // y metemos return para no ejecutar el window.history.back de abajo.
-            const btnCancel = activeModal.querySelector('[data-bs-dismiss="modal"]');
+            const btnCancel = activeModal.querySelector('[data-bs-dismiss="modal"]') || activeModal.querySelector('[data-confirm-cancel]');
             if (btnCancel && !btnCancel.disabled) {
                 btnCancel.click();
             }

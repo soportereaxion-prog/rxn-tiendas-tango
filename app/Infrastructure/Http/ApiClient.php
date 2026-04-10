@@ -33,6 +33,12 @@ class ApiClient
         return $this->request('POST', $url, $data);
     }
 
+    public function put(string $endpoint, array $data = []): array
+    {
+        $url = $this->baseUrl . '/' . ltrim($endpoint, '/');
+        return $this->request('PUT', $url, $data);
+    }
+
     private function request(string $method, string $url, array $data = []): array
     {
         $this->debugLastRequest = [
@@ -52,7 +58,7 @@ class ApiClient
             CURLOPT_SSL_VERIFYPEER => false // En prod cambiar a true si el config central lo requiere
         ];
 
-        if ($method === 'POST' && !empty($data)) {
+        if (($method === 'POST' || $method === 'PUT') && !empty($data)) {
             $options[CURLOPT_POSTFIELDS] = json_encode($data);
             $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/json';
         }

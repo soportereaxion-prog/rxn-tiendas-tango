@@ -63,6 +63,9 @@
             activeIndex = index;
             items.forEach(function (button, idx) {
                 button.classList.toggle('is-active', idx === activeIndex);
+                if (idx === activeIndex) {
+                    button.scrollIntoView({ block: 'nearest' });
+                }
             });
         }
 
@@ -93,17 +96,18 @@
             results.classList.remove('d-none');
         }
 
-        async function load(forceFetch = false) {
+        async function load(forceEmpty = false) {
             var url = root.getAttribute('data-picker-url');
-            var term = input.value.trim();
+            var term = forceEmpty ? '' : input.value.trim();
             var token = ++requestToken;
 
-            if (!url || (!forceFetch && term.length < 2)) {
+            if (!url) {
                 closeResults();
-                if (term === '') {
-                    clearSelection();
-                }
                 return;
+            }
+
+            if (term === '' && !forceEmpty) {
+                clearSelection();
             }
 
             try {
@@ -136,12 +140,14 @@
 
         input.addEventListener('click', function () {
             if (results.classList.contains('d-none')) {
+                input.select();
                 load(true);
             }
         });
 
         input.addEventListener('focus', function () {
             if (results.classList.contains('d-none')) {
+                input.select();
                 load(true);
             }
         });
@@ -383,7 +389,7 @@
                     if (isDirty) {
                         e.preventDefault();
                         e.stopImmediatePropagation();
-                        alert('Has modificado datos en este pedido.\n\nPor favor, hacé clic en el botón azul "Guardar" antes de enviarlo por correo para asegurarte de que el cliente reciba la información actualizada.');
+                        (window.rxnAlert || alert)('Has modificado datos en este pedido.\n\nPor favor, hacé clic en el botón azul "Guardar" antes de enviarlo por correo para asegurarte de que el cliente reciba la información actualizada.', 'warning', 'Atención: Cambios sin guardar');
                     }
                 }, true); // Capture phase para ganar prioridad
             }

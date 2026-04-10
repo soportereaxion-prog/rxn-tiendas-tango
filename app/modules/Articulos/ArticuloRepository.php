@@ -99,7 +99,7 @@ class ArticuloRepository
         ];
     }
 
-    public function countAll(int $empresaId, string $search = '', string $field = 'all', ?int $categoriaId = null, bool $onlyDeleted = false): int
+    public function countAll(int $empresaId, string $search = '', string $field = 'all', ?int $categoriaId = null, bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'a.deleted_at IS NOT NULL' : 'a.deleted_at IS NULL';
         $sql = 'SELECT COUNT(*)
@@ -116,6 +116,21 @@ class ArticuloRepository
         $this->applyCategoriaFilter($sql, $params, $categoriaId);
         $this->applySearch($sql, $params, $search, $field, true);
 
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'codigo_externo' => 'a.codigo_externo',
+            'nombre' => 'a.nombre',
+            'categoria_nombre' => 'c.nombre',
+            'precio_lista_1' => 'CAST(a.precio_lista_1 AS CHAR)',
+            'precio_lista_2' => 'CAST(a.precio_lista_2 AS CHAR)',
+            'stock_actual' => 'CAST(a.stock_actual AS CHAR)',
+            'activo' => 'CAST(a.activo AS CHAR)',
+            'fecha_ultima_sync' => 'DATE_FORMAT(a.fecha_ultima_sync, "%Y-%m-%d %H:%i:%s")',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
 
@@ -131,7 +146,8 @@ class ArticuloRepository
         string $orderBy = 'nombre',
         string $orderDir = 'ASC',
         ?int $categoriaId = null,
-        bool $onlyDeleted = false
+        bool $onlyDeleted = false,
+        array $advancedFilters = []
     ): array {
         $delCond = $onlyDeleted ? 'a.deleted_at IS NOT NULL' : 'a.deleted_at IS NULL';
         $offset = max(0, ($page - 1) * $limit);
@@ -154,6 +170,21 @@ class ArticuloRepository
 
         $this->applyCategoriaFilter($sql, $params, $categoriaId);
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'codigo_externo' => 'a.codigo_externo',
+            'nombre' => 'a.nombre',
+            'categoria_nombre' => 'c.nombre',
+            'precio_lista_1' => 'CAST(a.precio_lista_1 AS CHAR)',
+            'precio_lista_2' => 'CAST(a.precio_lista_2 AS CHAR)',
+            'stock_actual' => 'CAST(a.stock_actual AS CHAR)',
+            'activo' => 'CAST(a.activo AS CHAR)',
+            'fecha_ultima_sync' => 'DATE_FORMAT(a.fecha_ultima_sync, "%Y-%m-%d %H:%i:%s")',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $allowedColumns = ['codigo_externo', 'nombre', 'precio_lista_1', 'precio_lista_2', 'stock_actual', 'activo', 'fecha_ultima_sync', 'categoria_nombre', 'mostrar_oferta_store'];
         if (!in_array($orderBy, $allowedColumns, true)) {

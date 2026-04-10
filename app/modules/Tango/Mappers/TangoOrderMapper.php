@@ -56,7 +56,7 @@ class TangoOrderMapper
                 "CANTIDAD_A_FACTURAR" => (float) $renglon['cantidad'],
                 "CANTIDAD_PENDIENTE_A_FACTURAR" => (float) $renglon['cantidad'],
                 "PRECIO" => (float) $renglon['precio_unitario'],
-                "PORCENTAJE_BONIFICACION" => 0,
+                "PORCENTAJE_BONIFICACION" => (float) ($renglon['bonificacion_porcentaje'] ?? 0),
                 "DESCRIPCION_ARTICULO" => "",
                 "DESCRIPCION_ADICIONAL_ARTICULO" => ""
             ];

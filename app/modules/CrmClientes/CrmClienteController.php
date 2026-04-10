@@ -271,6 +271,35 @@ class CrmClienteController extends Controller
         exit;
     }
 
+    public function pushToTango(string $id): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+
+        $empresaId = (int) Context::getEmpresaId();
+        $localId   = (int) $id;
+
+        if ($localId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID de cliente inválido.']);
+            exit;
+        }
+
+        set_time_limit(60);
+
+        try {
+            $syncService = new \App\Modules\RxnSync\RxnSyncService();
+            $payload = $syncService->pushToTangoByLocalId($empresaId, $localId, 'cliente');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Cliente sincronizado con Tango.',
+                'payload' => $payload,
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
     private function buildUiContext(): array
     {
         return [

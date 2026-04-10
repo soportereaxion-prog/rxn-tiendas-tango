@@ -179,50 +179,98 @@ class TangoApiClient
                 'id' => (int) $profileId
             ]);
 
-            // Caso 1: la respuesta ya tiene 'value' en el nivel raíz
-            if (isset($data['value']) && is_array($data['value'])) {
-                $val = $data['value'];
-                return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
-            }
-
-            // Caso 2: la respuesta tiene 'data.value' (envelope estándar del cliente HTTP)
-            // Tango Connect GetById devuelve {value: {...perfil...}, message, succeeded}
-            if (isset($data['data']['value']) && is_array($data['data']['value'])) {
-                $val = $data['data']['value'];
-                return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
-            }
-
-            // Caso 3: resultData directo
-            if (isset($data['resultData']) && is_array($data['resultData'])) {
-                return $data['resultData'];
-            }
-            if (isset($data['data']['resultData']) && is_array($data['data']['resultData'])) {
-                return $data['data']['resultData'];
-            }
-
-            // Caso 4: array indexado en data
-            if (isset($data['data'][0]) && is_array($data['data'][0])) {
-                return $data['data'][0];
-            }
-
-            // Caso 5: data plano que NO sea el envelope (evitar devolver {value, message, succeeded})
-            if (isset($data['data']) && is_array($data['data']) && !isset($data['data'][0])) {
-                $inner = $data['data'];
-                // Si es el envelope, extraer value de adentro
-                if (isset($inner['value']) && is_array($inner['value'])) {
-                    $val = $inner['value'];
-                    return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
-                }
-                // Si tiene las keys típicas de un perfil Tango, devolverlo
-                if (!isset($inner['succeeded']) && !isset($inner['message'])) {
-                    return $inner;
-                }
-            }
-
-            return null;
+            return $this->extractGetByIdValue($data);
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Obtiene el detalle de un Artículo por ID (process 87)
+     */
+    public function getArticuloById(string|int $id): ?array
+    {
+        try {
+            $data = $this->client->get('GetById', [
+                'process' => 87,
+                'id' => (int) $id
+            ]);
+
+            return $this->extractGetByIdValue($data);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene el detalle de un Cliente por ID (process 2117)
+     */
+    public function getClienteById(string|int $id): ?array
+    {
+        try {
+            $data = $this->client->get('GetById', [
+                'process' => 2117,
+                'id' => (int) $id
+            ]);
+
+            return $this->extractGetByIdValue($data);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Actualiza una entidad completa usando Whitelist
+     * Depende del API Connect subyacente (usaremos Update por defecto).
+     */
+    public function updateEntity(int $process, array $payload): array
+    {
+        // En un patrón REST de Connect solemos usar `Update` o `Save` 
+        // Pasamos un envelope estándar "data" => [...] si fuera POST masivo, 
+        // pero la documentación nativa de Update PUT asume el objeto directo.
+        return $this->client->put("Update?process=" . $process, $payload);
+    }
+
+    private function extractGetByIdValue(array $data): ?array
+    {
+        // Caso 1: la respuesta ya tiene 'value' en el nivel raíz
+        if (isset($data['value']) && is_array($data['value'])) {
+            $val = $data['value'];
+            return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
+        }
+
+        // Caso 2: la respuesta tiene 'data.value' (envelope estándar del cliente HTTP)
+        if (isset($data['data']['value']) && is_array($data['data']['value'])) {
+            $val = $data['data']['value'];
+            return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
+        }
+
+        // Caso 3: resultData directo
+        if (isset($data['resultData']) && is_array($data['resultData'])) {
+            return $data['resultData'];
+        }
+        if (isset($data['data']['resultData']) && is_array($data['data']['resultData'])) {
+            return $data['data']['resultData'];
+        }
+
+        // Caso 4: array indexado en data
+        if (isset($data['data'][0]) && is_array($data['data'][0])) {
+            return $data['data'][0];
+        }
+
+        // Caso 5: data plano que NO sea el envelope
+        if (isset($data['data']) && is_array($data['data']) && !isset($data['data'][0])) {
+            $inner = $data['data'];
+            if (isset($inner['value']) && is_array($inner['value'])) {
+                $val = $inner['value'];
+                return (isset($val[0]) && is_array($val[0])) ? $val[0] : $val;
+            }
+            if (!isset($inner['succeeded']) && !isset($inner['message'])) {
+                return $inner;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -238,7 +286,9 @@ class TangoApiClient
             2941,
             ['ID_STA22'],
             ['COD_DESCRIP', 'NOMBRE_SUC'],
-            $this->debugLastRawDepositos
+            $this->debugLastRawDepositos,
+            null,
+            1000  // Depósitos son maestros pequeños: 1 request cubre todo
         );
     }
 
@@ -251,7 +301,9 @@ class TangoApiClient
             984,
             ['ID_GVA10'],
             ['COD_DESCRIP', 'NOMBRE_LIS'],
-            $this->debugLastRawListas
+            $this->debugLastRawListas,
+            null,
+            1000  // Listas de precio son maestros pequeños: 1 request cubre todo
         );
     }
 
@@ -264,7 +316,8 @@ class TangoApiClient
             ['ID_EMPRESA', 'ID', 'EMPRESA'],
             ['NOMBRE_EMPRESA', 'NOMBRE', 'RAZON_SOCIAL', 'DESCRIPCION', 'COD_DESCRIP'],
             $this->debugLastRawEmpresas,
-            '-1'
+            '-1',
+            1000  // Empresas son maestros: 1 request cubre todo
         );
     }
     
@@ -288,11 +341,12 @@ class TangoApiClient
         array $idKeys,
         array $fieldKeys,
         mixed &$debugRawStore,
-        ?string $companyOverride = null
+        ?string $companyOverride = null,
+        int $maxPageSize = 100
     ): array {
         $items = [];
         $page = 0;
-        $pageSize = 100;
+        $pageSize = $maxPageSize;
         $client = $companyOverride !== null ? $this->buildClient($companyOverride) : $this->client;
         $seenFirstIds = [];
 
@@ -316,7 +370,8 @@ class TangoApiClient
                 }
 
                 $firstId = $this->firstAvailableValue($list[0], $idKeys);
-                if ($firstId !== null) {
+                $hasValidId = ($firstId !== null);
+                if ($hasValidId) {
                     $firstIdStr = (string)$firstId;
                     if (isset($seenFirstIds[$firstIdStr])) {
                         break; 
@@ -338,7 +393,7 @@ class TangoApiClient
                     $items[] = $richItem;
                 }
 
-                if (count($list) < $pageSize || $page >= 30) {
+                if (!$hasValidId || count($list) < $pageSize || $page >= 10) {
                     break;
                 }
 
@@ -355,11 +410,12 @@ class TangoApiClient
         array $idKeys,
         array $descriptionKeys,
         mixed &$debugRawStore,
-        ?string $companyOverride = null
+        ?string $companyOverride = null,
+        int $maxPageSize = 100
     ): array {
         $items = [];
         $page = 0;
-        $pageSize = 100;
+        $pageSize = $maxPageSize;
         $client = $companyOverride !== null ? $this->buildClient($companyOverride) : $this->client;
         $seenFirstIds = [];
 
@@ -383,7 +439,8 @@ class TangoApiClient
                 }
 
                 $firstId = $this->firstAvailableValue($list[0], $idKeys);
-                if ($firstId !== null) {
+                $hasValidId = ($firstId !== null);
+                if ($hasValidId) {
                     $firstIdStr = (string)$firstId;
                     if (isset($seenFirstIds[$firstIdStr])) {
                         break; 
@@ -404,7 +461,7 @@ class TangoApiClient
                     $items[$normalizedId] = $normalizedDescription !== '' ? $normalizedDescription : $normalizedId;
                 }
 
-                if (count($list) < $pageSize || $page >= 30) {
+                if (!$hasValidId || count($list) < $pageSize || $page >= 10) {
                     break;
                 }
 

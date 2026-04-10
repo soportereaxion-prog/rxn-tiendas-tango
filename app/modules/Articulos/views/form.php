@@ -16,12 +16,39 @@ ob_start();
                     <i class="bi bi-arrow-left"></i> <?= htmlspecialchars((string) ($backLabel ?? 'Volver')) ?>
                 </a>
                 <?php if (isset($articulo->id)): ?>
+                    <?php if (!empty($articulo->codigo_externo) && ($showSyncActions ?? false)): ?>
+                    <button type="button" id="btn-form-push"
+                        class="btn btn-outline-warning"
+                        title="Push → Tango"
+                        data-id="<?= (int)$articulo->id ?>"
+                        data-entidad="articulo"
+                        data-nombre="<?= htmlspecialchars((string)$articulo->nombre) ?>"
+                        data-base="<?= htmlspecialchars($basePath) ?>">
+                        <i class="bi bi-cloud-upload"></i> Push
+                    </button>
+                    <button type="button" id="btn-form-pull"
+                        class="btn btn-outline-info"
+                        title="Pull ← Tango"
+                        data-id="<?= (int)$articulo->id ?>"
+                        data-entidad="articulo"
+                        data-nombre="<?= htmlspecialchars((string)$articulo->nombre) ?>"
+                        data-base="<?= htmlspecialchars($basePath) ?>">
+                        <i class="bi bi-cloud-download"></i> Pull
+                    </button>
+                    <button type="button" id="btn-form-info"
+                        class="btn btn-outline-secondary"
+                        title="Ver último payload Tango"
+                        data-id="<?= (int)$articulo->id ?>"
+                        data-entidad="articulo">
+                        <i class="bi bi-info-circle"></i>
+                    </button>
+                    <?php endif; ?>
                     <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $articulo->id ?>/copiar" method="POST" class="d-inline">
                         <button type="submit" class="btn btn-outline-success" title="Duplicar">
                             <i class="bi bi-copy"></i>
                         </button>
                     </form>
-                    <form action="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" method="POST" class="d-inline" onsubmit="return confirm('¿Enviar artículo a la papelera?');">
+                    <form action="<?= htmlspecialchars($basePath) ?>/eliminar-masivo" method="POST" class="d-inline rxn-confirm-form" data-msg="¿Enviar artículo a la papelera?">
                         <input type="hidden" name="ids[]" value="<?= (int) $articulo->id ?>">
                         <button type="submit" class="btn btn-outline-danger" title="Enviar a papelera">
                             <i class="bi bi-trash"></i>
@@ -175,6 +202,170 @@ ob_start();
 ?>
 <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-shortcuts.js"></script>
+<?php if (!empty($articulo->codigo_externo) && ($showSyncActions ?? false)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var isCrm    = window.location.pathname.includes('/crm/');
+    var syncBase = isCrm ? '/mi-empresa/crm/rxn-sync' : '/mi-empresa/rxn-sync';
+
+    function renderJsonBlock(label, data) {
+        if (!data) return '';
+        var json = JSON.stringify(data, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<details><summary style="font-size:.8rem;color:#aaa;cursor:pointer;">' + label + '</summary>'
+            + '<pre style="font-size:.7rem;max-height:200px;overflow:auto;background:#111;color:#0f0;'
+            + 'padding:8px;border-radius:4px;margin-top:4px;text-align:left;">' + json + '</pre></details>';
+    }
+
+    function payloadHtml(meta, snapshot, summaryLabel) {
+        var lines = [
+            '<strong>Estado:</strong> ' + (meta.estado || '—'),
+            '<strong>Dirección:</strong> ' + (meta.direccion || '—').toUpperCase() +
+                ' <span class="badge bg-' + (meta.resultado === 'ok' ? 'success' : 'danger') + ' ms-1">' +
+                (meta.resultado || '—').toUpperCase() + '</span>',
+            '<strong>Tango ID:</strong> #' + (meta.tango_id || '?'),
+            '<strong>Fecha:</strong> ' + (meta.fecha || '—'),
+        ];
+        if (meta.error) lines.push('<strong class="text-danger">Error:</strong> ' + meta.error);
+        var html = '<div style="font-size:.85rem;margin-bottom:8px;">' + lines.join('<br>') + '</div>';
+        if (snapshot) {
+            html += renderJsonBlock(summaryLabel || 'Snapshot Tango', snapshot);
+        }
+        return html;
+    }
+
+    function syncResultHtml(endpoint, payload) {
+        if (!payload) return '';
+        var html = payloadHtml(
+            { tango_id: payload.tango_id, estado: 'vinculado', direccion: endpoint, resultado: 'ok' },
+            endpoint === 'push' ? payload.payload_enviado : payload.snapshot_tango,
+            endpoint === 'push' ? 'Payload enviado' : 'Snapshot Tango'
+        );
+        if (endpoint === 'push' && payload.response_tango) {
+            html += renderJsonBlock('Respuesta API', payload.response_tango);
+        }
+        return html;
+    }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then(function(r) {
+            return r.text().then(function(text) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    var raw = (text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    throw new Error(raw || 'La respuesta no vino en JSON válido.');
+                }
+            });
+        });
+    }
+
+    function applyPulledData(payload) {
+        if (!payload || !payload.local_actualizado) return;
+        var local = payload.local_actualizado;
+        if (document.getElementById('nombre') && typeof local.nombre !== 'undefined') {
+            document.getElementById('nombre').value = local.nombre || '';
+        }
+
+        var pushBtn = document.getElementById('btn-form-push');
+        var pullBtn = document.getElementById('btn-form-pull');
+        if (local.nombre) {
+            if (pushBtn) pushBtn.dataset.nombre = local.nombre;
+            if (pullBtn) pullBtn.dataset.nombre = local.nombre;
+        }
+    }
+
+    var pushBtn = document.getElementById('btn-form-push');
+    var pullBtn = document.getElementById('btn-form-pull');
+    var infoBtn = document.getElementById('btn-form-info');
+
+    if (pushBtn) {
+        pushBtn.addEventListener('click', function() {
+            var id     = this.dataset.id;
+            var nombre = this.dataset.nombre;
+            var base   = this.dataset.base;
+            var self   = this;
+            window.rxnConfirm({
+                message: '¿Sincronizar "' + nombre + '" hacia Tango?',
+                type: 'warning', title: 'Confirmar Push',
+                okText: 'Push', okClass: 'btn-warning',
+                onConfirm: function() {
+                    self.disabled = true;
+                    fetchJson(base + '/' + id + '/push-tango', {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(function(d) {
+                        var msg = d.message || '';
+                        if (d.success && d.payload) {
+                            msg += '<br>' + syncResultHtml('push', d.payload);
+                        }
+                        window.rxnAlert(msg, d.success ? 'success' : 'danger', d.success ? 'Push OK' : 'Error');
+                        if (!d.success) self.disabled = false;
+                    })
+                    .catch(function(e) {
+                        window.rxnAlert(e.message || 'Error de red', 'danger', 'Error');
+                        self.disabled = false;
+                    });
+                }
+            });
+        });
+    }
+
+    if (pullBtn) {
+        pullBtn.addEventListener('click', function() {
+            var id     = this.dataset.id;
+            var nombre = this.dataset.nombre;
+            var self   = this;
+            window.rxnConfirm({
+                message: '¿Traer datos de "' + nombre + '" desde Tango? Los datos locales se actualizarán.',
+                type: 'info', title: 'Confirmar Pull',
+                okText: 'Pull', okClass: 'btn-info',
+                onConfirm: function() {
+                    self.disabled = true;
+                    var form = new FormData();
+                    form.append('id', id);
+                    form.append('entidad', 'articulo');
+                    fetchJson(syncBase + '/pull', {
+                        method: 'POST',
+                        body: form,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(function(d) {
+                        var msg = d.message || '';
+                        if (d.success && d.payload) {
+                            msg += '<br>' + syncResultHtml('pull', d.payload);
+                            applyPulledData(d.payload);
+                        }
+                        window.rxnAlert(msg, d.success ? 'success' : 'danger', d.success ? 'Pull OK' : 'Error');
+                        if (!d.success) self.disabled = false;
+                    })
+                    .catch(function(e) {
+                        window.rxnAlert(e.message || 'Error de red', 'danger', 'Error');
+                        self.disabled = false;
+                    });
+                }
+            });
+        });
+    }
+
+    if (infoBtn) {
+        infoBtn.addEventListener('click', function() {
+            var id      = this.dataset.id;
+            var entidad = this.dataset.entidad;
+            fetchJson(syncBase + '/payload?entidad=' + entidad + '&id=' + id, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(d) {
+                if (!d.success) { window.rxnAlert(d.message, 'warning', 'Sin historial'); return; }
+                window.rxnAlert(payloadHtml(d.meta, d.snapshot), 'info',
+                    'Historial Tango — ID #' + (d.meta.tango_id || '?'));
+            })
+            .catch(function(e) { window.rxnAlert(e.message || 'Error de red', 'danger', 'Error'); });
+        });
+    }
+});
+</script>
+<?php endif; ?>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

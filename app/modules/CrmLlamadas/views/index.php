@@ -121,7 +121,7 @@ ob_start();
                             <th class="rxn-filter-col" data-filter-field="destino"><?= $sortLink('destino', 'Destino') ?></th>
                             <th class="rxn-filter-col" data-filter-field="usuario_nombre"><?= $sortLink('usuario_nombre', 'Interno (Usuario)') ?></th>
                             <th class="rxn-filter-col" data-filter-field="duracion"><?= $sortLink('duracion', 'Duración') ?></th>
-                            <th>Grabación</th>
+                            <th class="rxn-filter-col" data-filter-field="grabacion_estado">Grabación</th>
                             <th style="width: 80px;" class="text-end">Acciones</th>
                         </tr>
                     </thead>

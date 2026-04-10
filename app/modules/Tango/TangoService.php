@@ -62,6 +62,11 @@ class TangoService
         return new self('crm');
     }
 
+    public function getApiClient(): TangoApiClient
+    {
+        return $this->apiClient;
+    }
+
     /**
      * Orquesta la petición hacia el adaptador y procesa entidades en un Data Transfer Object.
      */

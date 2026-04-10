@@ -48,10 +48,12 @@ class ArticuloController extends Controller
         $status = $_GET['status'] ?? 'activos';
         $onlyDeleted = $status === 'papelera';
 
-        $totalItems = $repository->countAll($empresaId, $search, $field, $categoriaId, $onlyDeleted);
+        $advancedFilters = $this->handleCrudFilters($area === 'crm' ? 'crm_articulos' : 'articulos');
+
+        $totalItems = $repository->countAll($empresaId, $search, $field, $categoriaId, $onlyDeleted, $advancedFilters);
         $totalPages = ceil($totalItems / $limit) ?: 1;
         $page = min($page, $totalPages);
-        $articulos = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $categoriaId, $onlyDeleted);
+        $articulos = $repository->findAllPaginated($empresaId, $page, $limit, $search, $field, $sort, $dir, $categoriaId, $onlyDeleted, $advancedFilters);
 
         View::render('app/modules/Articulos/views/index.php', array_merge($ui, [
             'articulos' => $articulos,
@@ -487,5 +489,43 @@ class ArticuloController extends Controller
 
         $categoria = $this->categoriaRepository->findByIdAndEmpresaId($normalized, $empresaId);
         return $categoria ? $categoria->id : null;
+    }
+
+    /**
+     * AJAX: Push de un artículo individual a Tango.
+     * Disponible para CRM y Tiendas. Retorna JSON con payload de auditoría.
+     */
+    public function pushToTango(string $id): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+
+        $area      = $this->resolveArea();
+        $empresaId = (int) Context::getEmpresaId();
+        $localId   = (int) $id;
+
+        if ($localId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID de artículo inválido.']);
+            exit;
+        }
+
+        set_time_limit(60);
+
+        try {
+            $configRepo  = \App\Modules\EmpresaConfig\EmpresaConfigRepository::forArea($area);
+            $empresaConf = $configRepo->findByEmpresaId($empresaId);
+            $syncBatch   = max(50, (int) ($empresaConf->cantidad_articulos_sync ?? 500));
+
+            $syncService = new \App\Modules\RxnSync\RxnSyncService();
+            $payload = $syncService->pushToTangoByLocalId($empresaId, $localId, 'articulo', $syncBatch);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Artículo sincronizado con Tango.',
+                'payload' => $payload,
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
     }
 }

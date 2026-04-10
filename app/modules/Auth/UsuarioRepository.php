@@ -110,12 +110,25 @@ class UsuarioRepository
         string $dir = 'desc',
         int $limit = 10,
         int $offset = 0,
-        bool $onlyDeleted = false
+        bool $onlyDeleted = false,
+        array $advancedFilters = []
     ): array {
         $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
         $sql = "SELECT * FROM usuarios WHERE $delCond";
         $params = [];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'nombre' => 'nombre',
+            'email' => 'email',
+            'es_admin' => 'CAST(es_admin AS CHAR)',
+            'es_rxn_admin' => 'CAST(es_rxn_admin AS CHAR)',
+            'activo' => 'CAST(activo AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
         $sql .= sprintf(
             ' ORDER BY %s %s LIMIT :limit OFFSET :offset',
             $this->normalizeSortField($sort),
@@ -131,12 +144,24 @@ class UsuarioRepository
         return $stmt->fetchAll(PDO::FETCH_CLASS, Usuario::class);
     }
 
-    public function countFiltered(?string $search = null, string $field = 'all', bool $onlyDeleted = false): int
+    public function countFiltered(?string $search = null, string $field = 'all', bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
         $sql = "SELECT COUNT(*) FROM usuarios WHERE $delCond";
         $params = [];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'nombre' => 'nombre',
+            'email' => 'email',
+            'es_admin' => 'CAST(es_admin AS CHAR)',
+            'es_rxn_admin' => 'CAST(es_rxn_admin AS CHAR)',
+            'activo' => 'CAST(activo AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $stmt = $this->db->prepare($sql);
         $this->bindParams($stmt, $params);
@@ -153,12 +178,25 @@ class UsuarioRepository
         string $dir = 'desc',
         int $limit = 10,
         int $offset = 0,
-        bool $onlyDeleted = false
+        bool $onlyDeleted = false,
+        array $advancedFilters = []
     ): array {
         $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
         $sql = "SELECT * FROM usuarios WHERE empresa_id = :empresa_id AND $delCond";
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'nombre' => 'nombre',
+            'email' => 'email',
+            'es_admin' => 'CAST(es_admin AS CHAR)',
+            'es_rxn_admin' => 'CAST(es_rxn_admin AS CHAR)',
+            'activo' => 'CAST(activo AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
         $sql .= sprintf(
             ' ORDER BY %s %s LIMIT :limit OFFSET :offset',
             $this->normalizeSortField($sort),
@@ -174,12 +212,24 @@ class UsuarioRepository
         return $stmt->fetchAll(PDO::FETCH_CLASS, Usuario::class);
     }
 
-    public function countFilteredByEmpresaId(int $empresaId, ?string $search = null, string $field = 'all', bool $onlyDeleted = false): int
+    public function countFilteredByEmpresaId(int $empresaId, ?string $search = null, string $field = 'all', bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
         $sql = "SELECT COUNT(*) FROM usuarios WHERE empresa_id = :empresa_id AND $delCond";
         $params = [':empresa_id' => $empresaId];
         $this->applySearch($sql, $params, $search, $field, true);
+
+        list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
+            'nombre' => 'nombre',
+            'email' => 'email',
+            'es_admin' => 'CAST(es_admin AS CHAR)',
+            'es_rxn_admin' => 'CAST(es_rxn_admin AS CHAR)',
+            'activo' => 'CAST(activo AS CHAR)',
+        ]);
+        if ($advSql !== '') {
+            $sql .= ' AND (' . $advSql . ')';
+            $params = array_merge($params, $advParams);
+        }
 
         $stmt = $this->db->prepare($sql);
         $this->bindParams($stmt, $params);

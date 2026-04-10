@@ -569,12 +569,38 @@ ob_start();
                 const originalBtnHtml = tangoBtn.innerHTML;
                 const originalHint = tangoHint ? tangoHint.textContent : '';
 
-                tangoBtn.innerHTML = validateFirst ? '⏳ Validando...' : '⏳ Resolviendo descripciones...';
+                // Resuelve la base del contexto (CRM vs Tiendas)
+                const configBase = window.location.pathname.includes('/crm/')
+                    ? '/mi-empresa/crm/configuracion'
+                    : '/mi-empresa/configuracion';
+
+                async function fetchCatalog(endpoint, formData, onSuccess, label) {
+                    try {
+                        const res  = await fetch(configBase + '/' + endpoint, { method: 'POST', body: formData });
+                        const text = await res.text();
+                        let json;
+                        try { json = JSON.parse(text); } catch (e) {
+                            console.warn('[Tango] JSON inválido en ' + endpoint + ':', text.substring(0, 100));
+                            return false;
+                        }
+                        if (json.success && Array.isArray(json.data)) {
+                            onSuccess(json.data);
+                            return true;
+                        }
+                        console.warn('[Tango]', label, '→', json.message || 'sin datos');
+                        return false;
+                    } catch (err) {
+                        console.error('[Tango] Error de red en ' + endpoint + ':', err);
+                        return false;
+                    }
+                }
+
+                tangoBtn.innerHTML = validateFirst ? '⏳ Validando...' : '⏳ Resolviendo catálogos...';
                 tangoBtn.disabled = true;
                 if (tangoHint) {
                     tangoHint.textContent = validateFirst
-                        ? 'Validando credenciales y sincronizando descripciones de Tango Connect...'
-                        : 'Intentando resolver las descripciones guardadas desde Tango Connect...';
+                        ? 'Validando credenciales contra Tango Connect...'
+                        : 'Resolviendo catálogos guardados desde Tango Connect...';
                 }
 
                 try {
@@ -582,34 +608,57 @@ ob_start();
 
                     if (validateFirst) {
                         const resAuth = await fetch('<?= htmlspecialchars($basePath) ?>/test-tango', { method: 'POST', body: formData });
-                        const jsonAuth = await resAuth.json();
+                        const resAuthText = await resAuth.text();
+                        let jsonAuth;
+                        try {
+                            jsonAuth = JSON.parse(resAuthText);
+                        } catch (e) {
+                            (window.rxnAlert || alert)('PHP retornó contenido inválido (No JSON): ' + resAuthText.substring(0, 100), 'danger', 'Error interno');
+                            tangoBtn.innerHTML = '❌ Falla Base';
+                            tangoBtn.classList.replace('btn-primary', 'btn-danger');
+                            return false;
+                        }
 
                         if (!jsonAuth.success) {
                             (window.rxnAlert || alert)(jsonAuth.message, 'warning', 'Tango Connect rechaza credenciales');
                             tangoOk = false;
+                            tangoBtn.innerHTML = '❌ Error de Conexión';
+                            tangoBtn.classList.replace('btn-primary', 'btn-danger');
+                            if (tangoHint) tangoHint.textContent = jsonAuth.message;
+                            return false;
                         }
 
-                        tangoBtn.innerHTML = '✅ Configurado y Funcional';
+                        tangoBtn.innerHTML = '✅ Conectado — cargando catálogos...';
                         tangoBtn.classList.replace('btn-primary', 'btn-success');
                     }
 
-                    if (tangoOk) {
-                        const resMeta = await fetch('<?= htmlspecialchars($basePath) ?>/tango-metadata', { method: 'POST', body: formData });
-                        const jsonMeta = await resMeta.json();
+                    // 4 fetches atómicos paralelos — cada uno es independiente, ~2-3s c/u
+                    let done = 0;
+                    const tick = () => {
+                        done++;
+                        if (tangoHint) tangoHint.textContent = `Cargando catálogos Tango... ${done}/4`;
+                    };
 
-                        if (jsonMeta.success && jsonMeta.data) {
-                            populateTangoSelects(jsonMeta.data);
-                            if (tangoHint) {
-                                tangoHint.textContent = 'Descripciones Tango resueltas. Si un valor no existe más en Connect, se conserva el guardado como referencia.';
-                            }
-                            return true;
-                        }
-                    }
+                    await Promise.allSettled([
+                        fetchCatalog('tango-empresas', formData, function(items) {
+                            tick(); populateTangoSelects({ empresas: items });
+                        }, 'Empresas'),
+                        fetchCatalog('tango-listas', formData, function(items) {
+                            tick(); populateTangoSelects({ listas_precios: items });
+                        }, 'Listas'),
+                        fetchCatalog('tango-depositos', formData, function(items) {
+                            tick(); populateTangoSelects({ depositos: items });
+                        }, 'Depósitos'),
+                        fetchCatalog('tango-perfiles', formData, function(items) {
+                            tick(); populateTangoSelects({ perfiles_pedidos: items });
+                        }, 'Perfiles'),
+                    ]);
 
                     if (tangoHint) {
-                        tangoHint.textContent = 'No pude obtener metadata legible desde Tango Connect.';
+                        tangoHint.textContent = 'Catálogos Tango resueltos. Si un valor no existe más en Connect, se conserva el guardado.';
                     }
-                    return false;
+                    return true;
+
                 } catch (error) {
                     console.error("Local JS fetch error en API Connect Metadata:", error);
                     tangoBtn.innerHTML = '❌ Falla Local';
@@ -676,61 +725,72 @@ ob_start();
             }
 
             function populateTangoSelects(data) {
-                const sCompany = document.getElementById('tango_connect_company_id');
+                const sCompany    = document.getElementById('tango_connect_company_id');
                 const inputSnapshot = document.getElementById('tango_perfil_snapshot_json');
 
-                const origCompany = sCompany.value || sCompany.getAttribute('data-original');
+                // Usar String() para comparación segura (el valor del select puede llegar como int o string)
+                const origCompany = String(sCompany.value || sCompany.getAttribute('data-original') || '').trim();
 
                 let companyMatched = false;
                 let preHtmlCompany = '<option value="">-- Seleccioná una empresa --</option>';
 
                 (data.empresas || []).forEach(company => {
-                    let selCompany = (origCompany == company.id) ? 'selected' : '';
+                    let selCompany = (origCompany && String(company.id) === origCompany) ? 'selected' : '';
                     if (selCompany) companyMatched = true;
                     preHtmlCompany += `<option value="${company.id}" ${selCompany}>${company.descripcion}</option>`;
                 });
 
                 if (origCompany && !companyMatched) {
-                    preHtmlCompany += `<option value="${origCompany}" selected>Valor guardado sin descripción (${origCompany})</option>`;
+                    preHtmlCompany += `<option value="${origCompany}" selected>(ID: ${origCompany} — sin descripción en catálogo)</option>`;
                 }
 
                 sCompany.innerHTML = preHtmlCompany;
 
-                // Render Listas
-                const sL1 = document.getElementById('lista_precio_1');
-                const sL2 = document.getElementById('lista_precio_2');
+                // Render Listas (independiente por catálogo)
+                const sL1   = document.getElementById('lista_precio_1');
+                const sL2   = document.getElementById('lista_precio_2');
                 const sDepo = document.getElementById('deposito_codigo');
 
-                if (sL1 && sL2 && sDepo) {
-                    const origL1 = sL1.getAttribute('data-original');
-                    const origL2 = sL2.getAttribute('data-original');
-                    const origDep = sDepo.getAttribute('data-original');
+                if (sL1 && sL2 && data.listas_precios) {
+                    const origL1 = String(sL1.getAttribute('data-original') || '').trim();
+                    const origL2 = String(sL2.getAttribute('data-original') || '').trim();
 
                     let preHtmlL1 = '<option value="">-- Sin asignar --</option>';
                     let preHtmlL2 = '<option value="">-- Sin asignar --</option>';
-                    
-                    if (data.listas_precios) {
-                        data.listas_precios.forEach(l => {
-                            let sel1 = (origL1 == l.id) ? 'selected' : '';
-                            let sel2 = (origL2 == l.id) ? 'selected' : '';
-                            preHtmlL1 += `<option value="${l.id}" ${sel1}>${l.descripcion}</option>`;
-                            preHtmlL2 += `<option value="${l.id}" ${sel2}>${l.descripcion}</option>`;
-                        });
-                    }
+
+                    data.listas_precios.forEach(l => {
+                        let sel1 = (origL1 && String(l.id) === origL1) ? 'selected' : '';
+                        let sel2 = (origL2 && String(l.id) === origL2) ? 'selected' : '';
+                        preHtmlL1 += `<option value="${l.id}" ${sel1}>${l.descripcion}</option>`;
+                        preHtmlL2 += `<option value="${l.id}" ${sel2}>${l.descripcion}</option>`;
+                    });
 
                     sL1.innerHTML = preHtmlL1;
                     sL2.innerHTML = preHtmlL2;
 
+                    applyLocalSearchPattern(sL1);
+                    applyLocalSearchPattern(sL2);
+                    // setTimeout(0): dejar que el DOM procese el wrapper antes de sincronizar el input
+                    setTimeout(function() {
+                        if (sL1._syncSearch) sL1._syncSearch();
+                        if (sL2._syncSearch) sL2._syncSearch();
+                    }, 0);
+                }
+
+                if (sDepo && data.depositos) {
+                    const origDep = String(sDepo.getAttribute('data-original') || '').trim();
                     let preHtmlDep = '<option value="">-- Ignorar Stock / Sin asignar --</option>';
-                    
-                    if (data.depositos) {
-                        data.depositos.forEach(d => {
-                            let selD = (origDep == d.id) ? 'selected' : '';
-                            preHtmlDep += `<option value="${d.id}" ${selD}>${d.descripcion}</option>`;
-                        });
-                    }
+
+                    data.depositos.forEach(d => {
+                        let selD = (origDep && String(d.id) === origDep) ? 'selected' : '';
+                        preHtmlDep += `<option value="${d.id}" ${selD}>${d.descripcion}</option>`;
+                    });
 
                     sDepo.innerHTML = preHtmlDep;
+                    applyLocalSearchPattern(sDepo);
+                    setTimeout(function() {
+                        if (sDepo._syncSearch) sDepo._syncSearch();
+                    }, 0);
                 }
 
                 // Guardar Perfiles Pedido en input oculto
@@ -738,12 +798,15 @@ ob_start();
                     inputSnapshot.value = JSON.stringify(data.perfiles_pedidos);
                 }
 
-                // Aplicar / Resincronizar buscadores
-                if (sCompany) applyLocalSearchPattern(sCompany);
-                if (sL1) applyLocalSearchPattern(sL1);
-                if (sL2) applyLocalSearchPattern(sL2);
-                if (sDepo) applyLocalSearchPattern(sDepo);
+                // Aplicar / Resincronizar buscador empresa con setTimeout para evitar race condition
+                if (sCompany) {
+                    applyLocalSearchPattern(sCompany);
+                    setTimeout(function() {
+                        if (sCompany._syncSearch) sCompany._syncSearch();
+                    }, 0);
+                }
             }
+
 
             function applyLocalSearchPattern(selectEl) {
                 if (!selectEl.dataset.searchified) {

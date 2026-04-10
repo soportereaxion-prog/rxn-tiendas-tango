@@ -84,7 +84,9 @@ ob_start();
                         <form action="<?= htmlspecialchars($basePath) ?>/purgar" method="POST" class="d-inline">
                             <button type="submit" class="btn btn-danger btn-sm fw-bold shadow-sm" data-rxn-confirm="¿Purgar toda la cache local de clientes CRM?" data-confirm-type="danger">Purgar Todo</button>
                         </form>
-                        <a href="<?= htmlspecialchars((string) ($syncClientesPath ?? '')) ?>" class="btn btn-warning btn-sm fw-bold shadow-sm" data-rxn-confirm="¿Sincronizar clientes desde Tango/Connect hacia la cache CRM?" data-confirm-type="warning">Sync Clientes</a>
+                        <a href="/mi-empresa/crm/rxn-sync" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">
+                            <i class="fas fa-sync me-1"></i> Auditoría RXN Sync
+                        </a>
                     </div>
                 </div>
 
@@ -182,9 +184,34 @@ ob_start();
                                             <td class="text-nowrap"><small class="text-secondary"><?= htmlspecialchars((string) ($cliente['fecha_ultima_sync'] ?? '--')) ?></small></td>
                                             <td class="text-end text-nowrap">
                                                 <div class="btn-group" data-row-link-ignore>
-                                                    <?php if (!$isPapelera): ?>
+                                                     <?php if (!$isPapelera): ?>
                                                         <a href="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $cliente['id'] ?>" class="btn btn-sm btn-outline-info" title="Editar"><i class="bi bi-pencil"></i></a>
-                                                        
+
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-warning btn-push-tango-row"
+                                                            title="Push → Tango"
+                                                            data-id="<?= (int) $cliente['id'] ?>"
+                                                            data-entidad="cliente"
+                                                            data-nombre="<?= htmlspecialchars((string)$cliente['razon_social']) ?>"
+                                                            data-base="<?= htmlspecialchars($basePath) ?>">
+                                                            <i class="bi bi-cloud-upload"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-info btn-pull-tango-row"
+                                                            title="Pull ← Tango"
+                                                            data-id="<?= (int) $cliente['id'] ?>"
+                                                            data-entidad="cliente"
+                                                            data-nombre="<?= htmlspecialchars((string)$cliente['razon_social']) ?>">
+                                                            <i class="bi bi-cloud-download"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-secondary btn-payload-info"
+                                                            title="Ver último payload Tango"
+                                                            data-id="<?= (int) $cliente['id'] ?>"
+                                                            data-entidad="cliente">
+                                                            <i class="bi bi-info-circle"></i>
+                                                        </button>
+
                                                         <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $cliente['id'] ?>/eliminar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar cliente a la papelera?">
                                                             <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Eliminar (Papelera)">
                                                                 <i class="bi bi-trash"></i>
@@ -242,7 +269,136 @@ ob_start();
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-shortcuts.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var syncBase = '/mi-empresa/crm/rxn-sync';
+
+    function confirmarAccion(mensaje, tipo, cbOk) {
+        if (typeof window.rxnConfirm === 'function') {
+            window.rxnConfirm({ message: mensaje, type: tipo || 'warning',
+                title: 'Confirmar Sync', okText: 'Confirmar',
+                okClass: 'btn-' + (tipo || 'warning'), onConfirm: cbOk });
+        } else { if (confirm(mensaje)) cbOk(); }
+    }
+
+    function renderJsonBlock(label, data) {
+        if (!data) return '';
+        var json = JSON.stringify(data, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<details><summary style="font-size:.8rem;color:#aaa;cursor:pointer;">' + label + '</summary>'
+              + '<pre style="font-size:.7rem;max-height:200px;overflow:auto;background:#111;color:#0f0;'
+              + 'padding:8px;border-radius:4px;margin-top:4px;text-align:left;">' + json + '</pre></details>';
+    }
+
+    function payloadHtml(meta, snapshot, summaryLabel) {
+        var lines = [
+            '<strong>Estado:</strong> ' + (meta.estado || '—'),
+            '<strong>Dirección:</strong> ' + (meta.direccion || '—').toUpperCase() +
+                ' <span class="badge bg-' + (meta.resultado === 'ok' ? 'success' : 'danger') + ' ms-1">' +
+                (meta.resultado || '—').toUpperCase() + '</span>',
+            '<strong>Tango ID:</strong> #' + (meta.tango_id || '?'),
+            '<strong>Fecha:</strong> ' + (meta.fecha || '—'),
+        ];
+        if (meta.error) lines.push('<strong class="text-danger">Error:</strong> ' + meta.error);
+        var html = '<div style="font-size:.85rem;margin-bottom:8px;">' + lines.join('<br>') + '</div>';
+        if (snapshot) {
+            html += renderJsonBlock(summaryLabel || 'Snapshot Tango', snapshot);
+        }
+        return html;
+    }
+
+    function syncResultHtml(endpoint, payload) {
+        if (!payload) return '';
+        var html = payloadHtml(
+            { tango_id: payload.tango_id, estado: 'vinculado', direccion: endpoint, resultado: 'ok' },
+            endpoint === 'push' ? payload.payload_enviado : payload.snapshot_tango,
+            endpoint === 'push' ? 'Payload enviado' : 'Snapshot Tango'
+        );
+        if (endpoint === 'push' && payload.response_tango) {
+            html += renderJsonBlock('Respuesta API', payload.response_tango);
+        }
+        return html;
+    }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then(function(r) {
+            return r.text().then(function(text) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    var raw = (text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    throw new Error(raw || 'La respuesta no vino en JSON válido.');
+                }
+            });
+        });
+    }
+
+    function doSync(endpoint, id, entidad, btn, resetIcon, base) {
+        btn.disabled = true;
+        var url = syncBase + '/' + endpoint;
+        var options = { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } };
+        if (endpoint === 'push' && base) {
+            url = base + '/' + id + '/push-tango';
+        } else {
+            var form = new FormData();
+            form.append('id', id);
+            form.append('entidad', entidad);
+            options.body = form;
+        }
+
+        fetchJson(url, options)
+            .then(function(d) {
+                var msg = d.message || '';
+                if (d.success && d.payload) {
+                    msg += '<br>' + syncResultHtml(endpoint, d.payload);
+                }
+                window.rxnAlert(msg, d.success ? 'success' : 'danger',
+                    d.success ? endpoint.toUpperCase() + ' OK' : 'Error');
+                if (!d.success) btn.disabled = false;
+            }).catch(function(e) {
+                window.rxnAlert(e.message || 'Error de red', 'danger', 'Error');
+                btn.disabled = false;
+            });
+    }
+
+    document.querySelectorAll('.btn-push-tango-row').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var self = this;
+            var id = self.dataset.id, nombre = self.dataset.nombre, entidad = self.dataset.entidad, base = self.dataset.base;
+            confirmarAccion('¿Sincronizar "' + nombre + '" hacia Tango?', 'warning', function() {
+                doSync('push', id, entidad, self, 'bi bi-cloud-upload', base);
+            });
+        });
+    });
+
+    document.querySelectorAll('.btn-pull-tango-row').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var self = this;
+            var id = self.dataset.id, nombre = self.dataset.nombre, entidad = self.dataset.entidad;
+            confirmarAccion('¿Traer datos de "' + nombre + '" desde Tango? Los datos locales se actualizarán.', 'info', function() {
+                doSync('pull', id, entidad, self, 'bi bi-cloud-download');
+            });
+        });
+    });
+
+    document.querySelectorAll('.btn-payload-info').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.dataset.id, entidad = this.dataset.entidad;
+            fetchJson(syncBase + '/payload?entidad=' + entidad + '&id=' + id, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(d) {
+                if (!d.success) { window.rxnAlert(d.message, 'warning', 'Sin historial'); return; }
+                window.rxnAlert(payloadHtml(d.meta, d.snapshot), 'info',
+                    'Historial Tango — ID #' + (d.meta.tango_id || '?'));
+            }).catch(function(e) {
+                window.rxnAlert(e.message || 'Error de red', 'danger', 'Error');
+            });
+        });
+    });
+});
+</script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';
 ?>
+

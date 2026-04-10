@@ -106,10 +106,9 @@ ob_start();
                             <button type="submit" class="btn btn-danger btn-sm fw-bold shadow-sm">Purgar Todo</button>
                         </form>
                         <?php if ($showSyncActions): ?>
-                            <a href="<?= htmlspecialchars($syncTodoPath) ?>" class="btn btn-sm fw-bold shadow-sm text-dark border-0" style="background: linear-gradient(135deg, #f7b733 0%, #fc4a1a 100%);" data-rxn-confirm="¿Ejecutar sincronizacion total? Esto encadena Articulos + Precios + Stock." data-confirm-type="warning">Sync Total</a>
-                            <a href="<?= htmlspecialchars($syncStockPath) ?>" class="btn btn-outline-info btn-sm fw-bold shadow-sm" data-rxn-confirm="¿Forzar sincronizacion de stock?" data-confirm-type="info">Sync Stock</a>
-                            <a href="<?= htmlspecialchars($syncPreciosPath) ?>" class="btn btn-outline-success btn-sm fw-bold shadow-sm" data-rxn-confirm="¿Forzar sincronizacion de precios?" data-confirm-type="success">Sync Precios</a>
-                            <a href="<?= htmlspecialchars($syncArticulosPath) ?>" class="btn btn-warning btn-sm fw-bold shadow-sm" data-rxn-confirm="¿Forzar sincronizacion del maestro de articulos?" data-confirm-type="warning">Sync Articulos</a>
+                            <a href="<?= htmlspecialchars((string) (strpos($basePath, '/crm/') !== false ? '/mi-empresa/crm/rxn-sync' : '/mi-empresa/rxn-sync')) ?>" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark border-0" style="background: linear-gradient(135deg, #f7b733 0%, #fc4a1a 100%);">
+                                <i class="fas fa-sync me-1"></i> Auditoría RXN Sync
+                            </a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -178,15 +177,15 @@ ob_start();
                                 ?>
                                 <tr>
                                     <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                                    <th><?= $sortLink('codigo_externo', 'Codigo / SKU') ?></th>
-                                    <th><?= $sortLink('nombre', 'Descripcion') ?></th>
-                                    <?php if ($showCategories): ?><th><?= $sortLink('categoria_nombre', 'Categoria') ?></th><?php endif; ?>
+                                    <th class="rxn-filter-col" data-filter-field="codigo_externo"><?= $sortLink('codigo_externo', 'Codigo / SKU') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="nombre"><?= $sortLink('nombre', 'Descripcion') ?></th>
+                                    <?php if ($showCategories): ?><th class="rxn-filter-col" data-filter-field="categoria_nombre"><?= $sortLink('categoria_nombre', 'Categoria') ?></th><?php endif; ?>
                                     <th>Descripcion Adicional</th>
-                                    <th class="text-nowrap"><?= $sortLink('precio_lista_1', 'P. L1 ($)') ?></th>
-                                    <th class="text-nowrap"><?= $sortLink('precio_lista_2', 'P. L2 ($)') ?></th>
-                                    <th><?= $sortLink('stock_actual', 'Stock') ?></th>
-                                    <th><?= $sortLink('activo', 'Estado') ?></th>
-                                    <th><?= $sortLink('fecha_ultima_sync', 'Ultima Sincro') ?></th>
+                                    <th class="text-nowrap rxn-filter-col" data-filter-field="precio_lista_1"><?= $sortLink('precio_lista_1', 'P. L1 ($)') ?></th>
+                                    <th class="text-nowrap rxn-filter-col" data-filter-field="precio_lista_2"><?= $sortLink('precio_lista_2', 'P. L2 ($)') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="stock_actual"><?= $sortLink('stock_actual', 'Stock') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="activo"><?= $sortLink('activo', 'Estado') ?></th>
+                                    <th class="rxn-filter-col" data-filter-field="fecha_ultima_sync"><?= $sortLink('fecha_ultima_sync', 'Ultima Sincro') ?></th>
                                     <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -228,14 +227,42 @@ ob_start();
                                             <td class="text-nowrap"><small class="text-secondary"><?= htmlspecialchars((string) $art['fecha_ultima_sync']) ?></small></td>
                                             <td class="text-end text-nowrap">
                                                 <div class="btn-group" data-row-link-ignore>
-                                                    <?php if (!$isPapelera): ?>
+                                                        <?php if (!$isPapelera): ?>
                                                         <a href="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $art['id'] ?>" class="btn btn-sm btn-outline-info" title="Editar"><i class="bi bi-pencil"></i></a>
                                                         
+                                                        <?php if (($showSyncActions ?? false) && !empty($art['codigo_externo'])): ?>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-warning btn-push-tango-row"
+                                                            title="Push → Tango"
+                                                            data-id="<?= (int) $art['id'] ?>"
+                                                            data-base="<?= htmlspecialchars($basePath) ?>"
+                                                            data-nombre="<?= htmlspecialchars((string)$art['nombre']) ?>">
+                                                            <i class="bi bi-cloud-upload"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-info btn-pull-tango-row"
+                                                            title="Pull ← Tango"
+                                                            data-id="<?= (int) $art['id'] ?>"
+                                                            data-entidad="articulo"
+                                                            data-base="<?= htmlspecialchars($basePath) ?>"
+                                                            data-nombre="<?= htmlspecialchars((string)$art['nombre']) ?>">
+                                                            <i class="bi bi-cloud-download"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-secondary btn-payload-info"
+                                                            title="Ver último payload Tango"
+                                                            data-id="<?= (int) $art['id'] ?>"
+                                                            data-entidad="articulo">
+                                                            <i class="bi bi-info-circle"></i>
+                                                        </button>
+                                                        <?php endif; ?>
+
                                                         <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $art['id'] ?>/eliminar" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Enviar artículo a la papelera?">
                                                             <button type="submit" class="btn btn-sm btn-outline-danger" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Eliminar (Papelera)">
                                                                 <i class="bi bi-trash"></i>
                                                             </button>
                                                         </form>
+
                                                     <?php else: ?>
                                                         <form action="<?= htmlspecialchars($basePath) ?>/<?= (int) $art['id'] ?>/restore" method="POST" class="d-inline m-0 p-0 rxn-confirm-form" data-msg="¿Confirma restaurar este artículo?">
                                                             <button type="submit" class="btn btn-sm btn-outline-success border-end-0" title="Restaurar Artículo">
@@ -284,10 +311,177 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/js/rxn-crud-search.js"></script>
+<script src="/js/rxn-advanced-filters.js"></script>
+    <script src="/js/rxn-crud-search.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>
     <script src="/js/rxn-shortcuts.js"></script>
+<?php if (($showSyncActions ?? false)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Resuelve la ruta de sync según el contexto (CRM vs Tiendas)
+    var isCrm    = window.location.pathname.includes('/crm/');
+    var syncBase = isCrm ? '/mi-empresa/crm/rxn-sync' : '/mi-empresa/rxn-sync';
+
+    // ── Helper de confirmación ────────────────────────────────────────
+    function confirmarAccion(mensaje, tipo, cbOk) {
+        if (typeof window.rxnConfirm === 'function') {
+            window.rxnConfirm({ message: mensaje, type: tipo || 'warning',
+                title: 'Confirmar Sync', okText: 'Confirmar', okClass: 'btn-warning',
+                onConfirm: cbOk });
+        } else {
+            if (confirm(mensaje)) cbOk();
+        }
+    }
+
+    // ── Helpers de payload formateado ─────────────────────────────────
+    function renderJsonBlock(label, data) {
+        if (!data) return '';
+        var json = JSON.stringify(data, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<details><summary style="font-size:.8rem;color:#aaa;cursor:pointer;">' + label + '</summary>'
+              + '<pre style="font-size:.7rem;max-height:200px;overflow:auto;background:#111;color:#0f0;'
+              + 'padding:8px;border-radius:4px;margin-top:4px;text-align:left;">' + json + '</pre></details>';
+    }
+
+    function payloadHtml(meta, snapshot, summaryLabel) {
+        var lines = [
+            '<strong>Estado:</strong> ' + (meta.estado || '—'),
+            '<strong>Dirección:</strong> ' + (meta.direccion || '—').toUpperCase() +
+                ' <span class="badge bg-' + (meta.resultado === 'ok' ? 'success' : 'danger') + ' ms-1">' +
+                (meta.resultado || '—').toUpperCase() + '</span>',
+            '<strong>Tango ID:</strong> #' + (meta.tango_id || '?'),
+            '<strong>Fecha:</strong> ' + (meta.fecha || '—'),
+        ];
+        if (meta.error) lines.push('<strong class="text-danger">Error:</strong> ' + meta.error);
+
+        var html = '<div style="font-size:.85rem;margin-bottom:8px;">' + lines.join('<br>') + '</div>';
+        if (snapshot) {
+            html += renderJsonBlock(summaryLabel || 'Snapshot Tango', snapshot);
+        }
+        return html;
+    }
+
+    function syncResultHtml(endpoint, payload) {
+        if (!payload) return '';
+        var html = payloadHtml(
+            { tango_id: payload.tango_id, estado: 'vinculado', direccion: endpoint, resultado: 'ok' },
+            endpoint === 'push' ? payload.payload_enviado : payload.snapshot_tango,
+            endpoint === 'push' ? 'Payload enviado' : 'Snapshot Tango'
+        );
+        if (endpoint === 'push' && payload.response_tango) {
+            html += renderJsonBlock('Respuesta API', payload.response_tango);
+        }
+        return html;
+    }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then(function(r) {
+            return r.text().then(function(text) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    var raw = (text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    throw new Error(raw || 'La respuesta no vino en JSON válido.');
+                }
+            });
+        });
+    }
+
+    // ── Push Individual ──────────────────────────────────────────────
+    document.querySelectorAll('.btn-push-tango-row').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id     = this.getAttribute('data-id');
+            var nombre = this.getAttribute('data-nombre');
+            var base   = this.getAttribute('data-base');
+            var self   = this;
+
+            confirmarAccion('¿Sincronizar "' + nombre + '" hacia Tango?', 'warning', function () {
+                self.disabled = true;
+
+                fetchJson(base + '/' + id + '/push-tango', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function (data) {
+                    var msg = data.message || '';
+                    if (data.success && data.payload) {
+                        msg += '<br>' + syncResultHtml('push', data.payload);
+                    }
+                    window.rxnAlert(msg, data.success ? 'success' : 'danger',
+                        data.success ? 'Push OK' : 'Error de Push');
+                    if (!data.success) self.disabled = false;
+                })
+                .catch(function (err) {
+                    window.rxnAlert(err.message || 'Error de red', 'danger', 'Error de Push');
+                    self.disabled = false;
+                });
+            });
+        });
+    });
+
+    // ── Pull Individual ──────────────────────────────────────────────
+    document.querySelectorAll('.btn-pull-tango-row').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id     = this.getAttribute('data-id');
+            var nombre = this.getAttribute('data-nombre');
+            var self   = this;
+
+            confirmarAccion('¿Traer datos de "' + nombre + '" desde Tango? Sobreescribirá los datos locales.', 'info', function () {
+                self.disabled = true;
+
+                var form = new FormData();
+                form.append('id', id);
+                form.append('entidad', 'articulo');
+
+                fetchJson(syncBase + '/pull', {
+                    method: 'POST',
+                    body: form,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function (data) {
+                    var msg = data.message || '';
+                    if (data.success && data.payload) {
+                        msg += '<br>' + syncResultHtml('pull', data.payload);
+                    }
+                    window.rxnAlert(msg, data.success ? 'success' : 'danger',
+                        data.success ? 'Pull OK' : 'Error de Pull');
+                    if (!data.success) self.disabled = false;
+                })
+                .catch(function (err) {
+                    window.rxnAlert(err.message || 'Error de red', 'danger', 'Error de Pull');
+                    self.disabled = false;
+                });
+            });
+        });
+    });
+
+    // ── Botón Info (último payload guardado) ─────────────────────────
+    document.querySelectorAll('.btn-payload-info').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id      = this.getAttribute('data-id');
+            var entidad = this.getAttribute('data-entidad');
+
+            fetchJson(syncBase + '/payload?entidad=' + entidad + '&id=' + id, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function (data) {
+                if (!data.success) {
+                    window.rxnAlert(data.message, 'warning', 'Sin historial');
+                    return;
+                }
+                var html = payloadHtml(data.meta, data.snapshot);
+                window.rxnAlert(html, 'info', 'Historial Tango — ID #' + (data.meta.tango_id || '?'));
+            })
+            .catch(function (err) {
+                window.rxnAlert(err.message || 'Error de red', 'danger', 'Error');
+            });
+        });
+    });
+});
+</script>
+<?php endif; ?>
+
+
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

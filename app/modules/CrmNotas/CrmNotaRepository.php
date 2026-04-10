@@ -51,9 +51,10 @@ class CrmNotaRepository
         $this->db->exec($sqlTags);
     }
 
-    public function findAllWithClientName(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false): array
+    public function findAllWithClientName(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false, array $advancedFilters = []): array
     {
         $delCond = $onlyDeleted ? 'n.deleted_at IS NOT NULL' : 'n.deleted_at IS NULL';
+        
         $sql = "
             SELECT n.*, c.razon_social as cliente_nombre, c.codigo_tango as cliente_codigo
             FROM crm_notas n
@@ -61,6 +62,22 @@ class CrmNotaRepository
             WHERE n.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
+
+        // Advanced Filters integration
+        $filterMap = [
+            'id' => 'n.id',
+            'titulo' => 'n.titulo',
+            'cliente_nombre' => 'c.razon_social',
+            'tags' => 'n.tags',
+            'created_at' => 'n.created_at',
+            'cliente_codigo' => 'c.codigo_tango'
+        ];
+        
+        [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
+        if ($advFilterSql !== '') {
+            $sql .= " AND (" . $advFilterSql . ")";
+            $params = array_merge($params, $advParams);
+        }
 
         if ($search !== '') {
             $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3)";
@@ -89,7 +106,7 @@ class CrmNotaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function countAll(int $empresaId, string $search = '', bool $onlyDeleted = false): int
+    public function countAll(int $empresaId, string $search = '', bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'n.deleted_at IS NOT NULL' : 'n.deleted_at IS NULL';
         $sql = "
@@ -99,6 +116,21 @@ class CrmNotaRepository
             WHERE n.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
+
+        $filterMap = [
+            'id' => 'n.id',
+            'titulo' => 'n.titulo',
+            'cliente_nombre' => 'c.razon_social',
+            'tags' => 'n.tags',
+            'created_at' => 'n.created_at',
+            'cliente_codigo' => 'c.codigo_tango'
+        ];
+        
+        [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
+        if ($advFilterSql !== '') {
+            $sql .= " AND (" . $advFilterSql . ")";
+            $params = array_merge($params, $advParams);
+        }
 
         if ($search !== '') {
             $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3)";

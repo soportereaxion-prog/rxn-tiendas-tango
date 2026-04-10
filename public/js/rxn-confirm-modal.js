@@ -68,14 +68,40 @@
         modal.querySelector('[data-confirm-badge]').className = 'rxn-confirm-badge ' + config.badge;
         modal.querySelector('[data-confirm-badge] i').className = 'bi ' + config.icon;
         modal.querySelector('[data-confirm-title]').textContent = options.title || config.title;
-        modal.querySelector('[data-confirm-message]').textContent = options.message || '¿Confirmar esta acción?';
-        modal.querySelector('[data-confirm-ok]').className = 'btn ' + (options.okClass || 'btn-primary');
-        modal.querySelector('[data-confirm-ok]').textContent = options.okText || 'Aceptar';
-        modal.querySelector('[data-confirm-cancel]').textContent = options.cancelText || 'Cancelar';
+        var msgEl = modal.querySelector('[data-confirm-message]');
+        var rawMsg = options.message || '¿Confirmar esta acción?';
+        // Usar innerHTML si el mensaje contiene tags (ej: payload expandible de Tango)
+        if (/<[a-z][\s\S]*>/i.test(rawMsg)) {
+            msgEl.innerHTML = rawMsg;
+        } else {
+            msgEl.textContent = rawMsg;
+        }
+
+        
+        var okBtn = modal.querySelector('[data-confirm-ok]');
+        okBtn.className = 'btn ' + (options.okClass || 'btn-primary');
+        okBtn.textContent = options.okText || 'Aceptar';
+        okBtn.style.display = options.hideOk ? 'none' : 'block';
+        
+        var cancelBtn = modal.querySelector('[data-confirm-cancel]');
+        cancelBtn.textContent = options.cancelText || 'Cancelar';
+        cancelBtn.style.display = options.hideCancel ? 'none' : 'block';
 
         currentAction = typeof options.onConfirm === 'function' ? options.onConfirm : null;
         modalInstance.show();
     }
+
+    // Exponer wrapper global para Alerts (Modal del sitio en modo info/warning sin botón cancelar)
+    window.rxnAlert = function(message, type, title) {
+        openConfirm({
+            message: message,
+            type: type || 'info',
+            title: title || 'Aviso del sistema',
+            hideCancel: true,
+            okText: 'Cerrar'
+        });
+    };
+    window.rxnConfirm = openConfirm;
 
     function findConfirmTarget(eventTarget) {
         if (!eventTarget) return null;

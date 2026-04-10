@@ -159,7 +159,40 @@ return function (Router $router): void {
     $router->post('/mi-empresa/usuarios/{id}/restore', $action(\App\Modules\Usuarios\UsuarioController::class, 'restore', $requireAnyOperational));
     $router->post('/mi-empresa/usuarios/{id}/force-delete', $action(\App\Modules\Usuarios\UsuarioController::class, 'forceDelete', $requireAnyOperational));
 
-    // --- MODULO TANGO CONNECT ---
+    $router->get('/mi-empresa/rxn-sync', $action(\App\Modules\RxnSync\RxnSyncController::class, 'index', $requireTiendas));
+    $router->get('/mi-empresa/rxn-sync/clientes/list', $action(\App\Modules\RxnSync\RxnSyncController::class, 'listClientes', $requireTiendas));
+    $router->get('/mi-empresa/rxn-sync/articulos/list', $action(\App\Modules\RxnSync\RxnSyncController::class, 'listArticulos', $requireTiendas));
+    $router->post('/mi-empresa/rxn-sync/push', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pushToTango', $requireTiendas));
+    $router->post('/mi-empresa/rxn-sync/pull', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pullSingle', $requireTiendas));
+    $router->post('/mi-empresa/rxn-sync/push-masivo', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pushMasivo', $requireTiendas));
+    $router->post('/mi-empresa/rxn-sync/pull-masivo', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pullMasivo', $requireTiendas));
+    $router->post('/mi-empresa/rxn-sync/auditar-articulos', $action(\App\Modules\RxnSync\RxnSyncController::class, 'auditarArticulos', $requireTiendas));
+    $router->post('/mi-empresa/rxn-sync/auditar-clientes', $action(\App\Modules\RxnSync\RxnSyncController::class, 'auditarClientes', $requireTiendas));
+    $router->get('/mi-empresa/rxn-sync/payload', $action(\App\Modules\RxnSync\RxnSyncController::class, 'getPayload', $requireTiendas));
+
+    $router->get('/mi-empresa/crm/rxn-sync', $action(\App\Modules\RxnSync\RxnSyncController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/rxn-sync/clientes/list', $action(\App\Modules\RxnSync\RxnSyncController::class, 'listClientes', $requireCrm));
+    $router->get('/mi-empresa/crm/rxn-sync/articulos/list', $action(\App\Modules\RxnSync\RxnSyncController::class, 'listArticulos', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/push', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pushToTango', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/pull', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pullSingle', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/push-masivo', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pushMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/pull-masivo', $action(\App\Modules\RxnSync\RxnSyncController::class, 'pullMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/auditar-articulos', $action(\App\Modules\RxnSync\RxnSyncController::class, 'auditarArticulos', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/auditar-clientes', $action(\App\Modules\RxnSync\RxnSyncController::class, 'auditarClientes', $requireCrm));
+    $router->get('/mi-empresa/crm/rxn-sync/payload', $action(\App\Modules\RxnSync\RxnSyncController::class, 'getPayload', $requireCrm));
+
+    // --- Endpoints atómicos Tango Metadata (CORS fix: 1 request por catálogo) ---
+    $router->post('/mi-empresa/configuracion/tango-empresas', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoEmpresas', $requireTiendas));
+    $router->post('/mi-empresa/configuracion/tango-listas', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoListas', $requireTiendas));
+    $router->post('/mi-empresa/configuracion/tango-depositos', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoDepositos', $requireTiendas));
+    $router->post('/mi-empresa/configuracion/tango-perfiles', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoPerfiles', $requireTiendas));
+
+    $router->post('/mi-empresa/crm/configuracion/tango-empresas', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoEmpresas', $requireCrm));
+    $router->post('/mi-empresa/crm/configuracion/tango-listas', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoListas', $requireCrm));
+    $router->post('/mi-empresa/crm/configuracion/tango-depositos', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoDepositos', $requireCrm));
+    $router->post('/mi-empresa/crm/configuracion/tango-perfiles', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoPerfiles', $requireCrm));
+
+    // --- MODULO TANGO CONNECT (Legacy) ---
     $router->get('/mi-empresa/sync/todo', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncTodo', $requireTiendas));
     $router->get('/mi-empresa/sync/articulos', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncArticulos', $requireTiendas));
     $router->get('/mi-empresa/sync/precios', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncPrecios', $requireTiendas));
@@ -183,6 +216,8 @@ return function (Router $router): void {
     $router->post('/mi-empresa/articulos/{id}/force-delete', $action(\App\Modules\Articulos\ArticuloController::class, 'forceDelete', $requireTiendas));
     $router->get('/mi-empresa/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'editar', $requireTiendas));
     $router->post('/mi-empresa/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'actualizar', $requireTiendas));
+    $router->post('/mi-empresa/articulos/{id}/push-tango', $action(\App\Modules\Articulos\ArticuloController::class, 'pushToTango', $requireTiendas));
+
 
     $router->get('/mi-empresa/crm/articulos', $action(\App\Modules\Articulos\ArticuloController::class, 'index', $requireCrm));
     $router->get('/mi-empresa/crm/articulos/sugerencias', $action(\App\Modules\Articulos\ArticuloController::class, 'suggestions', $requireCrm));
@@ -193,6 +228,7 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/articulos/{id}/eliminar', $action(\App\Modules\Articulos\ArticuloController::class, 'eliminar', $requireCrm));
     $router->post('/mi-empresa/crm/articulos/{id}/restore', $action(\App\Modules\Articulos\ArticuloController::class, 'restore', $requireCrm));
     $router->post('/mi-empresa/crm/articulos/{id}/force-delete', $action(\App\Modules\Articulos\ArticuloController::class, 'forceDelete', $requireCrm));
+    $router->post('/mi-empresa/crm/articulos/{id}/push-tango', $action(\App\Modules\Articulos\ArticuloController::class, 'pushToTango', $requireCrm));
     $router->get('/mi-empresa/crm/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'editar', $requireCrm));
     $router->post('/mi-empresa/crm/articulos/editar', $action(\App\Modules\Articulos\ArticuloController::class, 'actualizar', $requireCrm));
 
@@ -206,6 +242,7 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/clientes/{id}/restore', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'restore', $requireCrm));
     $router->post('/mi-empresa/crm/clientes/{id}/force-delete', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'forceDelete', $requireCrm));
     $router->post('/mi-empresa/crm/clientes/{id}/copiar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'copy', $requireCrm));
+    $router->post('/mi-empresa/crm/clientes/{id}/push-tango', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'pushToTango', $requireCrm));
     $router->get('/mi-empresa/crm/clientes/editar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'editar', $requireCrm));
     $router->post('/mi-empresa/crm/clientes/editar', $action(\App\Modules\CrmClientes\CrmClienteController::class, 'actualizar', $requireCrm));
 
@@ -266,6 +303,7 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/presupuestos/{id}/editar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'edit', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'update', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/copiar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'copy', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/sync-tango', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'syncTango', $requireCrm));
     $router->get('/mi-empresa/crm/presupuestos/{id}/imprimir', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'printPreview', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/enviar-correo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'sendEmail', $requireCrm));
 

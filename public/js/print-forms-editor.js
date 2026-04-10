@@ -899,11 +899,11 @@
         async importCanvas(file) {
             let raw;
             try { raw = await file.text(); }
-            catch (_) { alert('No se pudo leer el archivo.'); return; }
+            catch (_) { (window.rxnAlert || alert)('No se pudo leer el archivo.', 'danger', 'Error I/O'); return; }
 
             let data;
             try { data = JSON.parse(raw); }
-            catch (_) { alert('El archivo no es un JSON válido.'); return; }
+            catch (_) { (window.rxnAlert || alert)('El archivo no es un JSON válido.', 'danger', 'Parse Error'); return; }
 
             if (data?.meta?.format !== 'rxn-canvas-v1') {
                 if (!confirm('El archivo no tiene el formato esperado (rxn-canvas-v1). ¿Intentar igualmente?')) return;

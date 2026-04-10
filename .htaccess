@@ -1,0 +1,19 @@
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# NOTA DE DEPLOY (Estrategia B — Document Root = public/)
+# Este .htaccess protege la raiz del proyecto pero NO debe procesar trafico web.
+# En produccion (Plesk/Apache), el Document Root del subdominio debe apuntar
+# DIRECTAMENTE a la carpeta public/ de este proyecto.
+# Si el Document Root apunta aqui (raiz), el deploy esta MAL configurado.
+
+<FilesMatch "^\.env|composer\.(json|lock)$|\.txt$|\.md$">
+    Require all denied
+</FilesMatch>
+
+# Bloquear acceso directo a directorios sensibles del backend
+RedirectMatch 404 ^/(app|vendor|docs|database|tools|deploy_db|storage|build)/.*$
+
+# NO hay regla de rewrite que redirija a public/ intencionalmente.
+# Si el servidor llega aqui, es porque el Document Root NO esta bien configurado.

@@ -76,6 +76,7 @@ ob_start();
                     <a href="#modulo-articulos" class="help-anchor"><strong><?= $isCrm ? 'Articulos CRM' : 'Catalogo de Articulos' ?></strong><br><small class="text-muted"><?= $isCrm ? 'Articulos internos, precios, stock, imagenes y sync CRM.' : 'Productos, precios, stock, imagenes y sync.' ?></small></a>
                     <?php if ($isCrm): ?>
                         <a href="#modulo-pedidos-servicio" class="help-anchor"><strong>Pedidos de Servicio</strong><br><small class="text-muted">Alta, tiempos, diagnostico, motivo de descuento y cierre.</small></a>
+                        <a href="#modulo-presupuestos" class="help-anchor"><strong>Presupuestos</strong><br><small class="text-muted">Armado, carga rápida por teclado y Sync Catálogos.</small></a>
                     <?php else: ?>
                         <a href="#modulo-clientes" class="help-anchor"><strong>Clientes Web</strong><br><small class="text-muted">Clientes, datos, vinculo con Tango.</small></a>
                         <a href="#modulo-pedidos" class="help-anchor"><strong>Pedidos Web</strong><br><small class="text-muted">Seguimiento, estados y reproceso.</small></a>
@@ -141,6 +142,18 @@ ob_start();
                     <div class="help-highlight">
                         <strong>Dato importante:</strong> el pedido guarda snapshot de cliente y articulo. Eso significa que el historico sigue legible aunque mas adelante cambie el origen de datos.
                     </div>
+                </div>
+            </div>
+
+            <div class="card rxn-form-card help-card" id="modulo-presupuestos" data-help-item data-help-text="crm presupuestos presupuesto cotizacion articulo teclado carga rapida sync catalogos sincronizar listas precios vendedores condicion venta">
+                <div class="card-body p-4 p-lg-5">
+                    <h2 class="h4 fw-bold mb-3">Presupuestos</h2>
+                    <p class="text-muted">Este módulo te permite armar propuestas comerciales ágiles para tus clientes y prospectos.</p>
+                    <ul class="help-list-tight mb-4">
+                        <li><strong>Carga ágil por teclado:</strong> Puedes cargar renglones enteros casi sin usar el ratón. En el buscador escribes el material, confirmas con <kbd>Enter</kbd> (o seleccionas de la lista), luego usas <kbd>TAB</kbd> para pasear por Cantidad, Precio y Bonificación, y presionas de nuevo <kbd>Enter</kbd> para agregar el renglón al cuerpo.</li>
+                        <li><strong>Botón Sync Catálogos:</strong> Está en las opciones del presupuesto. Úsalo para actualizar rápido de Tango las Listas de Precios, Vendedores, Condiciones de Venta y Transporte. El sistema asume tu última elección.</li>
+                        <li><strong>Resolución de precio:</strong> Si el artículo que buscaste tiene precio en la lista de precios seleccionada, la barra de carga te lo autocompleta al instante. Si no, queda en "0" para edición manual.</li>
+                    </ul>
                 </div>
             </div>
         <?php endif; ?>

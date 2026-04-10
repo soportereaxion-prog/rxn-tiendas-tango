@@ -39,7 +39,6 @@ ob_start();
         .crm-budget-chip {
             border: 1px solid rgba(13, 110, 253, 0.1);
             border-radius: 14px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,249,253,0.98));
             padding: 0.4rem 0.6rem;
         }
 
@@ -85,9 +84,8 @@ ob_start();
         }
 
         .crm-budget-items-card {
-            border: 1px solid rgba(15, 23, 42, 0.08);
+            border: 1px solid var(--bs-border-color, rgba(15, 23, 42, 0.08));
             border-radius: 16px;
-            background: rgba(255, 255, 255, 0.96);
         }
 
         .crm-budget-items-toolbar {
@@ -272,10 +270,27 @@ ob_start();
                     <form action="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline-block m-0 p-0">
                         <button type="submit" class="btn btn-outline-primary shadow-sm" data-rxn-confirm="¿Enviar el presupuesto por correo electrónico al cliente?" data-confirm-type="info"><i class="bi bi-envelope-paper"></i> Enviar</button>
                     </form>
+                    <?php if (($presupuesto['estado'] ?? '') !== 'anulado'): ?>
+                        <?php if (empty($presupuesto['nro_comprobante_tango'])): ?>
+                            <form action="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/sync-tango" method="POST" class="d-inline-block m-0 p-0">
+                                <button type="submit" class="btn btn-outline-warning shadow-sm" data-rxn-confirm="¿Estás seguro que querés enviar el presupuesto a Tango? Esta acción integrará el mismo como un pedido ingresado." data-confirm-type="warning"><i class="bi bi-cloud-arrow-up"></i> Enviar a Tango</button>
+                            </form>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-success shadow-sm" disabled><i class="bi bi-check-all"></i> Enviado a Tango (#<?= htmlspecialchars($presupuesto['nro_comprobante_tango']) ?>)</button>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($presupuesto['tango_sync_log'])): ?>
+                            <button type="button" class="btn btn-outline-info px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#tangoInspectorModal" title="Inspeccionar conexión a Tango Connect">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        <?php endif; ?>
+                    <?php endif; ?>
                     <a href="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/imprimir" class="btn btn-outline-dark shadow-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-printer"></i> Imprimir</a>
                 <?php endif; ?>
                 <a href="/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
-                <a href="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" class="btn btn-outline-warning" data-rxn-confirm="¿Sincronizar catalogos comerciales CRM antes de seguir trabajando?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Sync Catalogos</a>
+                <form action="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" method="POST" class="d-inline-block m-0 p-0">
+                    <button type="submit" class="btn btn-outline-warning" data-rxn-confirm="¿Sincronizar catalogos comerciales CRM antes de seguir trabajando?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Sync Catalogos</button>
+                </form>
                 <?php if (($presupuesto['estado'] ?? '') !== 'emitido'): ?>
                     <button type="submit" form="crm-presupuesto-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar</button>
                 <?php endif; ?>
@@ -337,6 +352,14 @@ ob_start();
                             <div class="crm-budget-chip-title">Total</div>
                             <div class="crm-budget-chip-value" data-summary-total>$<?= number_format((float) ($presupuesto['total'] ?? 0), 2, ',', '.') ?></div>
                         </div>
+                        <?php if (!empty($presupuesto['tango_sync_status'])): ?>
+                        <div class="crm-budget-chip <?= $presupuesto['tango_sync_status'] === 'success' ? 'bg-success bg-opacity-10 border-success' : 'bg-danger bg-opacity-10 border-danger' ?>">
+                            <div class="crm-budget-chip-title <?= $presupuesto['tango_sync_status'] === 'success' ? 'text-success' : 'text-danger' ?>">Tango Sync</div>
+                            <div class="crm-budget-chip-value <?= $presupuesto['tango_sync_status'] === 'success' ? 'text-success' : 'text-danger' ?>">
+                                <?= $presupuesto['tango_sync_status'] === 'success' ? '<i class="bi bi-check-circle-fill"></i> #' . htmlspecialchars((string) ($presupuesto['nro_comprobante_tango'] ?? '')) : '<i class="bi bi-exclamation-triangle-fill"></i> Error' ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="crm-budget-section-title">Cabecera comercial</div>
@@ -404,6 +427,16 @@ ob_start();
                         </div>
 
                         <div class="crm-budget-col-3">
+                            <label for="clasificacion_codigo" class="form-label">Clasificacion</label>
+                            <div class="crm-picker-wrap" data-picker data-picker-url="/mi-empresa/crm/pedidos-servicio/clasificaciones/sugerencias" data-picker-allow-manual="1">
+                                <input type="hidden" name="clasificacion_id_tango" id="clasificacion_id_tango" data-picker-extra-hidden value="<?= htmlspecialchars((string) ($presupuesto['clasificacion_id_tango'] ?? '')) ?>">
+                                <input type="hidden" class="crm-picker-hidden" data-picker-hidden value="<?= htmlspecialchars((string) ($presupuesto['clasificacion_codigo'] ?? '')) ?>">
+                                <input type="text" class="form-control" id="clasificacion_codigo" name="clasificacion_codigo" value="<?= htmlspecialchars((string) ($presupuesto['clasificacion_codigo'] ?? '')) ?>" autocomplete="off" placeholder="Clasificacion" data-picker-input>
+                                <div class="rxn-search-suggestions crm-picker-results d-none" data-picker-results></div>
+                            </div>
+                        </div>
+
+                        <div class="crm-budget-col-3">
                             <label for="presupuesto-transporte" class="form-label">Transporte</label>
                             <select class="form-select" id="presupuesto-transporte" name="transporte_codigo" data-catalog-select="transporte">
                                 <?= $renderOptions($catalogs['transportes'] ?? [], (string) ($presupuesto['transporte_codigo'] ?? ''), '-- Transporte --') ?>
@@ -417,17 +450,44 @@ ob_start();
                 <div class="card-body">
                     <div class="crm-budget-section-title">Cuerpo del presupuesto</div>
 
-                    <div class="crm-budget-items-toolbar mb-3">
-                        <div class="crm-budget-picker-col">
-                            <label class="form-label">Buscar articulo para agregar renglon</label>
-                            <div class="crm-picker-wrap" data-article-picker data-picker-url="/mi-empresa/crm/presupuestos/articulos/sugerencias" data-context-url="/mi-empresa/crm/presupuestos/articulos/contexto">
-                                <input type="hidden" value="" class="crm-picker-hidden" data-picker-hidden>
-                                <input type="text" class="form-control" value="" placeholder="Buscar por codigo o descripcion en Articulos CRM..." autocomplete="off" data-picker-input>
-                                <div class="rxn-search-suggestions crm-picker-results d-none" data-picker-results></div>
-                            </div>
-                            <div class="form-text crm-picker-meta" data-picker-meta>Al seleccionar un articulo se agrega un renglon editable al cuerpo.</div>
+                    <div class="small text-muted mb-2"><strong>Carga rápida:</strong> Busque un artículo, revise cantidad, precio, bonificación y presione <b>Enter</b> o el botón Agregar. <span class="ms-lg-3"><i class="bi bi-info-circle"></i> La lista de precios activa resuelve los valores monetarios.</span></div>
+                    
+                    <div class="d-flex align-items-end gap-2 flex-wrap mb-3 p-2 rounded border" style="background: var(--bs-secondary-bg, rgba(0,0,0,0.03)); border-color: var(--bs-border-color) !important;">
+                        <div class="crm-picker-wrap flex-grow-1" style="min-width: 250px;" data-article-picker data-picker-url="/mi-empresa/crm/presupuestos/articulos/sugerencias" data-context-url="/mi-empresa/crm/presupuestos/articulos/contexto">
+                            <label class="form-label fw-semibold text-primary" style="font-size: 0.85rem">Buscar artículo</label>
+                            <input type="hidden" value="" class="crm-picker-hidden" data-picker-hidden>
+                            <input type="text" class="form-control border-primary shadow-sm" value="" placeholder="Cod. o desc. en CRM..." autocomplete="off" data-picker-input id="inline-picker-input">
+                            <div class="rxn-search-suggestions crm-picker-results d-none" data-picker-results></div>
                         </div>
-                        <div class="small text-muted">La lista activa se usa para intentar resolver el precio. Si no existe precio catalogado, el renglon queda editable y manual.</div>
+
+                        <input type="hidden" id="inline-articulo-id" value="">
+                        <input type="hidden" id="inline-articulo-codigo" value="">
+                        <input type="hidden" id="inline-articulo-descripcion" value="">
+                        <input type="hidden" id="inline-precio-origen" value="manual">
+
+                        <div style="width: 85px;">
+                            <label class="form-label crm-budget-chip-title mb-1">CANT.</label>
+                            <input type="number" step="0.0001" min="0" class="form-control text-end" id="inline-qty" value="1" tabindex="0">
+                        </div>
+                        
+                        <div style="width: 120px;">
+                            <label class="form-label crm-budget-chip-title mb-1">PRECIO</label>
+                            <input type="number" step="0.0001" min="0" class="form-control text-end" id="inline-price" value="0" tabindex="0">
+                        </div>
+
+                        <div style="width: 80px;">
+                            <label class="form-label crm-budget-chip-title mb-1">% BONIF</label>
+                            <input type="number" step="0.0001" min="0" max="100" class="form-control text-end" id="inline-bonus" value="0" tabindex="0">
+                        </div>
+
+                        <div style="width: 130px;">
+                            <label class="form-label crm-budget-chip-title mb-1">IMPORTE TEMP</label>
+                            <input type="text" class="form-control text-end fw-bold" id="inline-temp-total" value="$0,00" readonly tabindex="-1" style="background-color: #f8f9fa !important; color: #000 !important; border-color: var(--bs-border-color-translucent);">
+                        </div>
+
+                        <div>
+                            <button type="button" class="btn btn-primary fw-bold" id="inline-add-btn" tabindex="0" title="Agregar al presupuesto"><i class="bi bi-plus-lg"></i></button>
+                        </div>
                     </div>
 
                     <?php if (isset($errors['items'])): ?>
@@ -511,14 +571,57 @@ ob_start();
         </form>
     </div>
 
-    
+<?php 
+$tangoPayload = '';
+$tangoResponse = '';
+if (!empty($presupuesto['tango_sync_log'])) {
+    $logStr = (string) $presupuesto['tango_sync_log'];
+    $logData = json_decode($logStr, true);
+    if (is_array($logData)) {
+        $tangoPayload = isset($logData['payload']) && $logData['payload'] ? (is_array($logData['payload']) || is_object($logData['payload']) ? json_encode($logData['payload'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : $logData['payload']) : '';
+        $tangoResponse = isset($logData['response']) && $logData['response'] ? (is_array($logData['response']) || is_object($logData['response']) ? json_encode($logData['response'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : $logData['response']) : (isset($logData['error']) ? $logData['error'] : '');
+    } else {
+        $tangoPayload = '';
+        $tangoResponse = $logStr;
+    }
+}
+?>
+
+<?php if ($tangoPayload !== '' || $tangoResponse !== ''): ?>
+<div class="modal fade" id="tangoInspectorModal" tabindex="-1" aria-labelledby="tangoInspectorModalLabel" aria-hidden="true" data-bs-theme="dark">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title" id="tangoInspectorModalLabel"><i class="bi bi-info-circle text-info me-2"></i> Inspeccionando conexión a Tango Connect</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body bg-dark text-light font-monospace small" style="white-space: pre-wrap">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 text-white">Último Payload Procesado</h6>
+                    <button type="button" class="btn btn-sm btn-outline-info copy-payload-btn" title="Copiar al portapapeles" onclick="navigator.clipboard.writeText(document.getElementById('tangoPayloadPre').innerText).then(() => { let prev = this.innerHTML; this.innerHTML = '<i class=\'bi bi-check2\'></i> Copiado!'; setTimeout(() => this.innerHTML = prev, 1500); })">
+                        <i class="bi bi-clipboard"></i> Copiar
+                    </button>
+                </div>
+                <hr class="mt-0 border-secondary">
+                <div class="mb-4 text-warning" id="tangoPayloadPre"><?= htmlspecialchars($tangoPayload) ?></div>
+                
+                <h6 class="text-white">Última Respuesta / Error</h6>
+                <hr class="border-secondary">
+                <div class="mb-2 text-info"><?= htmlspecialchars($tangoResponse) ?></div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php
 $content = ob_get_clean();
 ob_start();
 ?>
-<script src="/js/rxn-confirm-modal.js"></script>
-    <script src="/js/crm-presupuestos-form.js"></script>
-    <script src="/js/rxn-shortcuts.js"></script>
+<script src="/js/crm-presupuestos-form.js"></script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

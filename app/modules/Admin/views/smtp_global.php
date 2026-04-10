@@ -106,7 +106,7 @@ ob_start();
             btn.disabled = true;
 
             try {
-                const formData = new FormData(document.querySelector('form'));
+                const formData = new FormData(btn.closest('form'));
                 const res = await fetch('/admin/smtp-global/test', {
                     method: 'POST',
                     body: formData
@@ -114,12 +114,12 @@ ob_start();
                 
                 const json = await res.json();
                 if (json.success) {
-                    alert('✅ ÉXITO:\n' + json.message);
+                    (window.rxnAlert || alert)(json.message, 'success', 'ÉXITO');
                 } else {
-                    alert('❌ FALLÓ:\n' + json.message);
+                    (window.rxnAlert || alert)(json.message, 'danger', 'FALLÓ');
                 }
             } catch (error) {
-                alert('Ocurrió un error de red intentando contactar al validador.');
+                (window.rxnAlert || alert)('Ocurrió un error de red intentando contactar al validador.', 'danger', 'Error Interno');
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;

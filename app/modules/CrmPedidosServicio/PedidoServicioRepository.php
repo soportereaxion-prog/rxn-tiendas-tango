@@ -62,7 +62,6 @@ class PedidoServicioRepository
 
         $this->applySearch($sql, $params, $search, $field, true);
 
-        // Truculencia SQL dinámica para los filtros por columna:
         if (!empty($advancedFilters)) {
             list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
                 'numero' => 'CAST(ps.numero AS CHAR)',
@@ -76,12 +75,8 @@ class PedidoServicioRepository
                 'estado_codigo' => 'CASE WHEN ps.fecha_finalizado IS NULL THEN "abierto" ELSE "finalizado" END'
             ]);
             if ($advSql !== '') {
-                $sql .= $advSql;
-                foreach ($advParams as $i => $val) {
-                    $pKey = ':adv_c_' . $i;
-                    $sql = substr_replace($sql, $pKey, strpos($sql, '?'), 1);
-                    $params[$pKey] = $val;
-                }
+                $sql .= ' AND (' . $advSql . ')';
+                $params = array_merge($params, $advParams);
             }
         }
 
@@ -118,7 +113,6 @@ class PedidoServicioRepository
 
         $this->applySearch($sql, $params, $search, $field, true);
 
-        // Truculencia SQL dinámica para los filtros por columna:
         if (!empty($advancedFilters)) {
             list($advSql, $advParams) = \App\Core\AdvancedQueryFilter::build($advancedFilters, [
                 'numero' => 'CAST(ps.numero AS CHAR)',
@@ -132,12 +126,8 @@ class PedidoServicioRepository
                 'estado_codigo' => 'CASE WHEN ps.fecha_finalizado IS NULL THEN "abierto" ELSE "finalizado" END'
             ]);
             if ($advSql !== '') {
-                $sql .= $advSql;
-                foreach ($advParams as $i => $val) {
-                    $pKey = ':adv_f_' . $i;
-                    $sql = substr_replace($sql, $pKey, strpos($sql, '?'), 1);
-                    $params[$pKey] = $val;
-                }
+                $sql .= ' AND (' . $advSql . ')';
+                $params = array_merge($params, $advParams);
             }
         }
 

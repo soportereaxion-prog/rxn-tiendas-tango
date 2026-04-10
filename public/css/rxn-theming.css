@@ -825,3 +825,92 @@ html[data-theme="dark"] .rxn-form-switch-card {
 .rxn-auth-card .card-body {
     padding: 2.5rem 2rem; /* Restaurar login padding por si lo achica el de arriba */
 }
+
+/* Spotlight Search */
+.rxn-spotlight-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1050;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+}
+.rxn-spotlight-backdrop.show {
+    opacity: 1;
+}
+
+.rxn-spotlight-dialog {
+    position: absolute;
+    background: var(--card-bg, #ffffff);
+    color: var(--text-color, #212529);
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 1055;
+    width: 450px;
+    max-width: 90vw;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+.rxn-spotlight-dialog.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.rxn-spotlight-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+.rxn-spotlight-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 1.1rem;
+    outline: none;
+    padding: 4px 0;
+}
+.rxn-spotlight-results {
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.rxn-spotlight-result-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
+}
+.rxn-spotlight-result-item:last-child {
+    border-bottom: none;
+}
+.rxn-spotlight-result-item:hover,
+.rxn-spotlight-result-item.active {
+    background: rgba(13, 110, 253, 0.1);
+}
+.rxn-spotlight-result-title {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 2px;
+}
+.rxn-spotlight-result-desc {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+html[data-theme="dark"] .rxn-spotlight-dialog {
+    background: #1e1e1e;
+    color: #e9ecef;
+    border-color: #333;
+}
+html[data-theme="dark"] .rxn-spotlight-header,
+html[data-theme="dark"] .rxn-spotlight-result-item {
+    border-color: #333;
+}

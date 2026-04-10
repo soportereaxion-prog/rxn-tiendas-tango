@@ -2,197 +2,323 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterCols = document.querySelectorAll('.rxn-filter-col');
     if (filterCols.length === 0) return;
 
-    // Obtener los filtros aplicados desde la URL params ?f[campo][op]=...
+    // =========================================================
+    // HELPERS
+    // =========================================================
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // =========================================================
+    // MOTOR BD: filtros activos desde URL params
+    // =========================================================
     const urlParams = new URLSearchParams(window.location.search);
-    const activeFilters = {};
+    const activeBdFilters = {};
     for (const [key, value] of urlParams.entries()) {
         const match = key.match(/^f\[(.*?)\]\[(.*?)\]$/);
         if (match) {
-            const field = match[1];
-            const type = match[2]; // op or val
-            if (!activeFilters[field]) activeFilters[field] = {};
-            activeFilters[field][type] = value;
+            const field = match[1], type = match[2];
+            if (!activeBdFilters[field]) activeBdFilters[field] = {};
+            activeBdFilters[field][type] = value;
         }
     }
 
-    // Inyectar CSS minimo si no existe
+    // =========================================================
+    // SELECCIÓN LOCAL: persistencia via sessionStorage
+    // =========================================================
+    const lsKey = (field) => `rxn_lf::${location.pathname}::${field}`;
+
+    const getExcluded = (field) => {
+        try { return JSON.parse(sessionStorage.getItem(lsKey(field)) || 'null'); }
+        catch { return null; }
+    };
+
+    const saveExcluded = (field, excluded) => {
+        try {
+            if (!excluded || excluded.length === 0) sessionStorage.removeItem(lsKey(field));
+            else sessionStorage.setItem(lsKey(field), JSON.stringify(excluded));
+        } catch {}
+    };
+
+    // Filas ocultas por campo (multi-columna safe)
+    const hiddenRowsByField = {};
+
+    const updateRowVisibility = (row) => {
+        const isHidden = Object.values(hiddenRowsByField).some(set => set.has(row));
+        row.style.display = isHidden ? 'none' : '';
+    };
+
+    const applyLocalFilter = (field, colIndex, excluded) => {
+        if (!hiddenRowsByField[field]) hiddenRowsByField[field] = new Set();
+        const hiddenSet = hiddenRowsByField[field];
+        hiddenSet.clear();
+        document.querySelectorAll('table tbody tr').forEach(row => {
+            const cell = row.querySelectorAll('td')[colIndex];
+            const value = cell ? (cell.textContent.trim() || '(Vacío)') : '(Vacío)';
+            if (excluded && excluded.length > 0 && excluded.includes(value)) {
+                hiddenSet.add(row);
+            }
+            updateRowVisibility(row);
+        });
+    };
+
+    const clearLocalFilter = (field) => {
+        if (hiddenRowsByField[field]) hiddenRowsByField[field].clear();
+        document.querySelectorAll('table tbody tr').forEach(row => updateRowVisibility(row));
+        saveExcluded(field, null);
+    };
+
+    const getColumnValues = (colIndex) => {
+        const counts = {};
+        document.querySelectorAll('table tbody tr').forEach(row => {
+            const cell = row.querySelectorAll('td')[colIndex];
+            const value = cell ? (cell.textContent.trim() || '(Vacío)') : '(Vacío)';
+            counts[value] = (counts[value] || 0) + 1;
+        });
+        return counts;
+    };
+
+    // =========================================================
+    // CSS
+    // =========================================================
     if (!document.getElementById('rxn-advanced-filters-css')) {
         const style = document.createElement('style');
         style.id = 'rxn-advanced-filters-css';
         style.innerHTML = `
             .rxn-filter-col .rxn-filter-icon {
-                cursor: pointer;
-                opacity: 0.3;
-                font-size: 0.85rem;
-                margin-left: 5px;
-                transition: opacity 0.2s;
+                cursor: pointer; opacity: 0.3; font-size: 0.85rem;
+                transition: opacity 0.2s; position: absolute;
+                right: 5px; top: 50%; transform: translateY(-50%);
             }
             .rxn-filter-col:hover .rxn-filter-icon { opacity: 0.7; }
             .rxn-filter-col .rxn-filter-icon.active { opacity: 1; color: #0d6efd; }
             .rxn-filter-popover {
-                position: absolute;
-                top: 100%;
-                right: 0;
-                z-index: 1050;
-                min-width: 250px;
-                background: white;
+                position: absolute; top: 100%; right: 0; z-index: 1050;
+                min-width: 280px; background: white;
                 border: 1px solid rgba(0,0,0,0.15);
                 box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
-                border-radius: 0.375rem;
-                padding: 1rem;
-                display: none;
-                font-weight: normal;
-                font-size: 0.9rem;
+                border-radius: 0.375rem; padding: 1rem;
+                display: none; font-weight: normal; font-size: 0.875rem;
             }
             .rxn-filter-popover.show { display: block; }
+            .rxn-local-list label {
+                display: flex; align-items: center; gap: 0.4rem;
+                padding: 0.15rem 0.25rem; cursor: pointer;
+                border-radius: 0.2rem; user-select: none;
+            }
+            .rxn-local-list label:hover { background: #f0f4ff; }
+            .rxn-local-list .val-text {
+                flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            }
+            .rxn-local-list .val-count { flex-shrink: 0; color: #6c757d; font-size: 0.8rem; }
         `;
         document.head.appendChild(style);
     }
 
+    // =========================================================
     // Cerrar popovers al cliquear afuera
+    // =========================================================
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.rxn-filter-popover') && !e.target.closest('.rxn-filter-icon')) {
             document.querySelectorAll('.rxn-filter-popover.show').forEach(el => el.classList.remove('show'));
         }
     });
 
+    // =========================================================
+    // Procesar cada columna filtrable
+    // =========================================================
     filterCols.forEach(th => {
         const field = th.getAttribute('data-filter-field');
         if (!field) return;
 
-        th.style.position = 'relative'; // Ensure absolute positioning works
+        th.style.position = 'relative';
 
-        const isActive = activeFilters[field] && activeFilters[field].val;
-        const currentOp = isActive ? activeFilters[field].op : 'contiene';
-        const currentVal = isActive ? activeFilters[field].val : '';
+        // Estado Motor BD
+        const isBdActive = !!(activeBdFilters[field] && activeBdFilters[field].val);
+        const currentOp  = isBdActive ? activeBdFilters[field].op : 'contiene';
+        const currentVal = isBdActive ? activeBdFilters[field].val : '';
 
-        // Boton icon
+        // Índice de columna (para leer tds)
+        const allThs = Array.from(th.closest('tr').querySelectorAll('th'));
+        const colIndex = allThs.indexOf(th);
+
+        // Estado Local desde sessionStorage
+        const excludedFromStorage = getExcluded(field);
+        const isLocalActive = !!(excludedFromStorage && excludedFromStorage.length > 0);
+
+        // --- Ícono ---
         const icon = document.createElement('i');
-        icon.className = `bi bi-funnel${isActive ? '-fill active' : ''} rxn-filter-icon float-end mt-1`;
-        icon.title = "Filtrar columna";
-        
-        // Popover
+        icon.className = `bi bi-funnel${(isBdActive || isLocalActive) ? '-fill active' : ''} rxn-filter-icon`;
+        icon.title = 'Filtrar columna';
+
+        // --- Popover ---
         const popover = document.createElement('div');
         popover.className = 'rxn-filter-popover text-start';
-        popover.onclick = (e) => e.stopPropagation(); // Evitar q click propague y ordene columna
+        popover.onclick = (e) => e.stopPropagation();
 
         popover.innerHTML = `
-            <div class="mb-2 fw-bold text-dark">Filtrar columna</div>
+            <div class="text-muted small fw-semibold mb-2 d-flex align-items-center gap-1">
+                <i class="bi bi-database-fill-gear"></i> Filtro Motor BD
+            </div>
             <select class="form-select form-select-sm mb-2" id="filter_op_${field}">
-                <option value="contiene" ${currentOp==='contiene'?'selected':''}>Contiene</option>
+                <option value="contiene"    ${currentOp==='contiene'   ?'selected':''}>Contiene</option>
                 <option value="no_contiene" ${currentOp==='no_contiene'?'selected':''}>No contiene</option>
                 <option value="empieza_con" ${currentOp==='empieza_con'?'selected':''}>Empieza con</option>
                 <option value="termina_con" ${currentOp==='termina_con'?'selected':''}>Termina con</option>
-                <option value="igual" ${currentOp==='igual'?'selected':''}>Igual</option>
-                <option value="distinto" ${currentOp==='distinto'?'selected':''}>Distinto</option>
+                <option value="igual"       ${currentOp==='igual'      ?'selected':''}>Igual</option>
+                <option value="distinto"    ${currentOp==='distinto'   ?'selected':''}>Distinto</option>
+                <option value="mayor_que"   ${currentOp==='mayor_que'  ?'selected':''}>Mayor a</option>
+                <option value="menor_que"   ${currentOp==='menor_que'  ?'selected':''}>Menor a</option>
             </select>
-            <input type="text" class="form-control form-control-sm mb-3" id="filter_val_${field}" value="${currentVal}" placeholder="Valor...">
-            <div class="d-flex justify-content-between gap-2">
-                <button type="button" class="btn btn-sm btn-outline-danger w-50 btn-clear-filter">Eliminar</button>
-                <button type="button" class="btn btn-sm btn-primary w-50 btn-apply-filter">Aplicar</button>
+            <input type="text" class="form-control form-control-sm mb-2"
+                id="filter_val_${field}" value="${escapeHtml(currentVal)}" placeholder="Límite o valor...">
+            <div class="d-flex gap-2 mb-3">
+                <button type="button" class="btn btn-sm btn-outline-danger w-50 btn-clear-bd">Borrar BD</button>
+                <button type="button" class="btn btn-sm btn-warning w-50 btn-apply-bd">Aplicar BD</button>
+            </div>
+            <hr class="my-2">
+            <div class="text-muted small fw-semibold mb-2 d-flex align-items-center gap-1">
+                <i class="bi bi-funnel-fill"></i> Selección Local
+            </div>
+            <input type="text" class="form-control form-control-sm mb-2 rxn-local-search"
+                placeholder="Buscar en lista...">
+            <div class="d-flex justify-content-between mb-1 small">
+                <a href="#" class="btn-mark-all text-primary text-decoration-none">Marcar Todo</a>
+                <a href="#" class="btn-mark-none text-primary text-decoration-none">Ninguno</a>
+            </div>
+            <div class="rxn-local-list border rounded px-2 py-1"
+                style="max-height: 160px; overflow-y: auto; margin-bottom: 0.6rem;"></div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary w-50 btn-clear-local">Limpiar Local</button>
+                <button type="button" class="btn btn-sm btn-primary w-50 btn-apply-local">Aplicar Local</button>
             </div>
         `;
 
-        icon.onclick = (e) => {
-            e.stopPropagation(); // Prevent column sorting
-            document.querySelectorAll('.rxn-filter-popover.show').forEach(el => {
-                if (el !== popover) el.classList.remove('show');
-            });
-            popover.classList.toggle('show');
-            if (popover.classList.contains('show')) {
-                // Inteligencia espacial basada en el contenedor (para evitar overflow hidden del table-responsive)
-                const tableContainer = th.closest('.table-responsive');
-                const thRect = th.getBoundingClientRect();
-                let isNearLeftEdge = false;
+        // === Motor BD: eventos ===
+        const bdInput = popover.querySelector(`#filter_val_${field}`);
 
-                if (tableContainer) {
-                    const containerRect = tableContainer.getBoundingClientRect();
-                    const distLeft = thRect.left - containerRect.left;
-                    isNearLeftEdge = distLeft < 250;
-                } else {
-                    isNearLeftEdge = thRect.left < 250; // Fallback
-                }
-
-                if (isNearLeftEdge) {
-                    // Si esta muy a la izquierda, que nazca hacia la derecha
-                    popover.style.right = 'auto';
-                    popover.style.left = '0';
-                } else {
-                    // Sigue naciendo hacia la izquierda (comportamiento normal)
-                    popover.style.right = '0';
-                    popover.style.left = 'auto';
-                }
-                popover.querySelector('input').focus();
-            }
-        };
-
-        // Eventos Apply/Clear
-        popover.querySelector('.btn-clear-filter').onclick = () => {
+        popover.querySelector('.btn-clear-bd').onclick = () => {
             const params = new URLSearchParams(window.location.search);
             params.delete(`f[${field}][op]`);
             params.delete(`f[${field}][val]`);
             params.delete('page');
-
-            let hasFilters = false;
-            for (const key of params.keys()) {
-                if (key.startsWith('f[')) {
-                    hasFilters = true;
-                    break;
-                }
-            }
-            if (!hasFilters) {
-                params.set('reset_filters', '1');
-            }
-
+            if (![...params.keys()].some(k => k.startsWith('f['))) params.set('reset_filters', '1');
             window.location.search = params.toString();
         };
 
-        popover.querySelector('.btn-apply-filter').onclick = () => {
-            const op = popover.querySelector(`#filter_op_${field}`).value;
-            const val = popover.querySelector(`#filter_val_${field}`).value;
-            
+        popover.querySelector('.btn-apply-bd').onclick = () => {
+            const op  = popover.querySelector(`#filter_op_${field}`).value;
+            const val = bdInput.value.trim();
             const params = new URLSearchParams(window.location.search);
-
-            if (!val.trim()) {
+            if (!val) {
                 params.delete(`f[${field}][op]`);
                 params.delete(`f[${field}][val]`);
             } else {
                 params.set(`f[${field}][op]`, op);
                 params.set(`f[${field}][val]`, val);
             }
-            
             params.delete('page');
-
-            let hasFilters = false;
-            for (const key of params.keys()) {
-                if (key.startsWith('f[')) {
-                    hasFilters = true;
-                    break;
-                }
-            }
-            if (!hasFilters) {
-                params.set('reset_filters', '1');
-            }
-
+            if (![...params.keys()].some(k => k.startsWith('f['))) params.set('reset_filters', '1');
             window.location.search = params.toString();
         };
 
-        // Soporte tecla enter en input
-        popover.querySelector('input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                popover.querySelector('.btn-apply-filter').click();
-            }
+        bdInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); popover.querySelector('.btn-apply-bd').click(); }
         });
 
-        // En lugar de meterlo dentro del enlace (lo cual rompía el sort indicator y disparaba el click),
-        // Lo ponemos en el th directamente y le hacemos lugar.
-        icon.style.position = 'absolute';
-        icon.style.right = '5px';
-        icon.style.top = '50%';
-        icon.style.transform = 'translateY(-50%)';
-        icon.classList.remove('float-end', 'mt-1'); // Limpiamos las clases que molestaban
+        // === Selección Local: eventos ===
+        const localList   = popover.querySelector('.rxn-local-list');
+        const localSearch = popover.querySelector('.rxn-local-search');
 
+        const populateLocalList = () => {
+            const valueCounts = getColumnValues(colIndex);
+            const excluded    = getExcluded(field) || [];
+
+            const sorted = Object.entries(valueCounts).sort(([a], [b]) => {
+                if (a === '(Vacío)') return -1;
+                if (b === '(Vacío)') return 1;
+                return a.localeCompare(b, 'es');
+            });
+
+            localList.innerHTML = '';
+            sorted.forEach(([value, count]) => {
+                const label      = document.createElement('label');
+                const isChecked  = !excluded.includes(value);
+                const safe       = escapeHtml(value);
+                label.innerHTML  = `
+                    <input type="checkbox" class="form-check-input flex-shrink-0"
+                        value="${safe}" ${isChecked ? 'checked' : ''}>
+                    <span class="val-text">${safe}</span>
+                    <span class="val-count">(${count})</span>
+                `;
+                localList.appendChild(label);
+            });
+
+            localSearch.value = '';
+            localSearch.oninput = () => {
+                const q = localSearch.value.toLowerCase();
+                localList.querySelectorAll('label').forEach(lbl => {
+                    const text = lbl.querySelector('.val-text').textContent.toLowerCase();
+                    lbl.style.display = text.includes(q) ? '' : 'none';
+                });
+            };
+        };
+
+        popover.querySelector('.btn-mark-all').onclick = (e) => {
+            e.preventDefault();
+            localList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        };
+
+        popover.querySelector('.btn-mark-none').onclick = (e) => {
+            e.preventDefault();
+            localList.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        };
+
+        popover.querySelector('.btn-apply-local').onclick = () => {
+            const excluded = [...localList.querySelectorAll('input[type="checkbox"]:not(:checked)')]
+                .map(cb => cb.value);
+            saveExcluded(field, excluded);
+            applyLocalFilter(field, colIndex, excluded);
+            icon.className = `bi bi-funnel${(isBdActive || excluded.length > 0) ? '-fill active' : ''} rxn-filter-icon`;
+            popover.classList.remove('show');
+        };
+
+        popover.querySelector('.btn-clear-local').onclick = () => {
+            clearLocalFilter(field);
+            icon.className = `bi bi-funnel${isBdActive ? '-fill active' : ''} rxn-filter-icon`;
+            popover.classList.remove('show');
+        };
+
+        // === Abrir/cerrar popover ===
+        icon.onclick = (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.rxn-filter-popover.show').forEach(el => {
+                if (el !== popover) el.classList.remove('show');
+            });
+            popover.classList.toggle('show');
+            if (popover.classList.contains('show')) {
+                // Inteligencia espacial para evitar overflow
+                const tableContainer = th.closest('.table-responsive');
+                const thRect = th.getBoundingClientRect();
+                let isNearLeftEdge = false;
+                if (tableContainer) {
+                    const containerRect = tableContainer.getBoundingClientRect();
+                    isNearLeftEdge = (thRect.left - containerRect.left) < 280;
+                } else {
+                    isNearLeftEdge = thRect.left < 280;
+                }
+                popover.style.right = isNearLeftEdge ? 'auto' : '0';
+                popover.style.left  = isNearLeftEdge ? '0'    : 'auto';
+                populateLocalList();
+                bdInput.focus();
+            }
+        };
+
+        // Espacio para el link de sort
         const aLink = th.querySelector('a');
         if (aLink) {
             aLink.style.paddingRight = '20px';
@@ -201,5 +327,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         th.appendChild(icon);
         th.appendChild(popover);
+
+        // Reaplicar filtro local persistido al cargar la página
+        if (isLocalActive) {
+            applyLocalFilter(field, colIndex, excludedFromStorage);
+        }
     });
 });

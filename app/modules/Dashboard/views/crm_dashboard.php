@@ -93,6 +93,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-graph-up-arrow"></i>',
         'link' => '/rxn_live?from=crm',
     ],
+    'rxn_sync' => [
+        'title' => 'RXN Sync',
+        'desc' => 'Auditoría y control de sincronización de Entidades hacia Tango (Push/Pull).',
+        'icon' => '<i class="bi bi-arrow-left-right"></i>',
+        'link' => '/mi-empresa/crm/rxn-sync',
+    ],
 ];
 
 if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmNotasAccess()) {

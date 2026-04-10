@@ -30,6 +30,21 @@ class CommercialCatalogRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function findFirstByType(int $empresaId, string $type): ?array
+    {
+        $stmt = $this->db->prepare('SELECT id, tipo, codigo, descripcion, id_interno, payload_json, fecha_ultima_sync
+            FROM crm_catalogo_comercial_items
+            WHERE empresa_id = :empresa_id AND tipo = :tipo
+            ORDER BY descripcion ASC, codigo ASC LIMIT 1');
+        $stmt->execute([
+            ':empresa_id' => $empresaId,
+            ':tipo' => $type,
+        ]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public function findOption(int $empresaId, string $type, ?string $code): ?array
     {
         $code = trim((string) $code);

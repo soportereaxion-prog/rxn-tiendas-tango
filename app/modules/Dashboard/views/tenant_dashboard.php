@@ -69,6 +69,12 @@ $defaultCards = [
         'desc' => 'Evolución transaccional y métricas detalladas.', 
         'icon' => '<i class="bi bi-graph-up-arrow"></i>', 
         'link' => '/rxn_live?from=tiendas'
+    ],
+    'rxn_sync' => [
+        'title' => 'RXN Sync',
+        'desc' => 'Auditoría y control de sincronización de Entidades hacia Tango (Push/Pull).',
+        'icon' => '<i class="bi bi-arrow-left-right"></i>',
+        'link' => '/mi-empresa/rxn-sync'
     ]
 ];
 

@@ -74,6 +74,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/rxn-confirm-modal.js"></script>
     <script src="/js/rxn-row-links.js"></script>
+    <script src="/js/rxn-spotlight.js?v=<?= time() ?>"></script>
     <?= $extraScripts ?? '' ?>
     <script src="/js/rxn-shortcuts.js"></script>
 </body>

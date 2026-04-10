@@ -16,7 +16,7 @@ class CrmLlamadaRepository
         $this->db = Database::getConnection();
     }
 
-    public function findAllWithSearch(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false): array
+    public function findAllWithSearch(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false, array $advancedFilters = []): array
     {
         $delCond = $onlyDeleted ? 'l.deleted_at IS NOT NULL' : 'l.deleted_at IS NULL';
         
@@ -30,6 +30,24 @@ class CrmLlamadaRepository
             WHERE l.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
+
+        // Filtros avanzados
+        $grabacionExpr = "CASE WHEN l.mp3 IS NOT NULL AND l.mp3 != '' THEN 'Con audio' WHEN l.evento_link IS NOT NULL AND l.evento_link != '' THEN l.evento_link ELSE 'Sin audio' END";
+        $filterMap = [
+            'fecha' => 'l.fecha',
+            'numero_origen' => 'l.numero_origen',
+            'destino' => 'l.destino',
+            'interno' => 'l.interno',
+            'usuario_nombre' => 'u.nombre',
+            'cliente_nombre' => 'IFNULL(NULLIF(cc.razon_social, \'\'), CONCAT(cc.nombre, \' \', cc.apellido))',
+            'grabacion_estado' => $grabacionExpr
+        ];
+
+        [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
+        if ($advFilterSql !== '') {
+            $sql .= " AND (" . $advFilterSql . ")";
+            $params = array_merge($params, $advParams);
+        }
 
         if ($search !== '') {
             $sql .= " AND (l.numero_origen LIKE :search1 OR l.destino LIKE :search2 OR l.interno LIKE :search3 OR l.atendio LIKE :search4 OR u.nombre LIKE :search5)";
@@ -62,16 +80,34 @@ class CrmLlamadaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function countAll(int $empresaId, string $search = '', bool $onlyDeleted = false): int
+    public function countAll(int $empresaId, string $search = '', bool $onlyDeleted = false, array $advancedFilters = []): int
     {
         $delCond = $onlyDeleted ? 'l.deleted_at IS NOT NULL' : 'l.deleted_at IS NULL';
         $sql = "
             SELECT COUNT(*) 
             FROM crm_llamadas l
             LEFT JOIN usuarios u ON l.usuario_id = u.id
+            LEFT JOIN crm_clientes cc ON l.cliente_id = cc.id
             WHERE l.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
+
+        $grabacionExpr = "CASE WHEN l.mp3 IS NOT NULL AND l.mp3 != '' THEN 'Con audio' WHEN l.evento_link IS NOT NULL AND l.evento_link != '' THEN l.evento_link ELSE 'Sin audio' END";
+        $filterMap = [
+            'fecha' => 'l.fecha',
+            'numero_origen' => 'l.numero_origen',
+            'destino' => 'l.destino',
+            'interno' => 'l.interno',
+            'usuario_nombre' => 'u.nombre',
+            'cliente_nombre' => 'IFNULL(NULLIF(cc.razon_social, \'\'), CONCAT(cc.nombre, \' \', cc.apellido))',
+            'grabacion_estado' => $grabacionExpr
+        ];
+
+        [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
+        if ($advFilterSql !== '') {
+            $sql .= " AND (" . $advFilterSql . ")";
+            $params = array_merge($params, $advParams);
+        }
 
         if ($search !== '') {
             $sql .= " AND (l.numero_origen LIKE :search1 OR l.destino LIKE :search2 OR l.interno LIKE :search3 OR l.atendio LIKE :search4 OR u.nombre LIKE :search5)";

@@ -110,7 +110,10 @@ class MailService
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body    = $body;
-            $mail->AltBody = strip_tags($body);
+            
+            // Limpiar <style> y <script> enteros antes de sacar tags HTML para el AltBody (evita filtrado CSS crudo)
+            $cleanBody = preg_replace('/<(style|script)\b[^>]*>.*?<\/\1>/is', '', $body);
+            $mail->AltBody = strip_tags((string)$cleanBody);
 
             foreach ($attachments as $att) {
                 if (is_string($att) && file_exists($att)) {

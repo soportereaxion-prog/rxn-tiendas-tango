@@ -175,109 +175,158 @@ class EmpresaConfigController extends Controller
                 echo json_encode(['success' => false, 'message' => 'Credenciales inválidas o servidor inalcanzable.'], JSON_INVALID_UTF8_SUBSTITUTE);
             }
         } catch (\Throwable $e) {
+            file_put_contents(BASE_PATH . '/logs/test_tango_error.log', "ERROR: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
             echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
     }
 
     /**
-     * Proveedor AJAX de Metadata (Empresas, Listas y Depósitos) para los Selects
+     * Helper privado: construye el TangoApiClient a partir del POST o config guardada.
+     * Todos los endpoints atómicos lo reutilizan.
+     * @return \App\Modules\Tango\TangoApiClient
+     * @throws \RuntimeException si faltan credenciales mínimas
+     */
+    private function buildTangoClientFromPost(): \App\Modules\Tango\TangoApiClient
+    {
+        $service  = $this->resolveService($this->resolveArea());
+        $repoConf = $service->getConfig();
+
+        $apiUrl    = trim($_POST['tango_api_url'] ?? '')          ?: trim((string)($repoConf->tango_api_url ?? ''));
+        $clientKey = trim($_POST['tango_connect_key'] ?? '')       ?: trim((string)($repoConf->tango_connect_key ?? ''));
+        $token     = trim($_POST['tango_connect_token'] ?? '')     ?: trim((string)($repoConf->tango_connect_token ?? ''));
+        $companyId = trim($_POST['tango_connect_company_id'] ?? '') ?: (string)($repoConf->tango_connect_company_id ?? '');
+
+        if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
+            throw new \RuntimeException('Faltan parámetros mínimos. Informá Token y al menos una Llave o URL base.');
+        }
+
+        $finalUrl = '';
+        if (!empty($apiUrl) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+            $finalUrl = rtrim($apiUrl, '/');
+        } elseif (!empty($clientKey)) {
+            $finalUrl = rtrim(sprintf('https://%s.connect.axoft.com/Api', str_replace('/', '-', $clientKey)), '/');
+        }
+
+        return new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey);
+    }
+
+    /**
+     * AJAX atómico: devuelve solo Empresas.
+     * Separado del endpoint monolítico para no superar el Apache TimeOut (60s).
+     */
+    public function getTangoEmpresas(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(30);
+        try {
+            $client     = $this->buildTangoClientFromPost();
+            $raw        = $client->getMaestroEmpresas();
+            $empresas   = [];
+            foreach ($raw as $id => $desc) {
+                $empresas[] = ['id' => $id, 'descripcion' => $desc];
+            }
+            echo json_encode(['success' => true, 'data' => $empresas], JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX atómico: devuelve solo Listas de Precio.
+     */
+    public function getTangoListas(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(30);
+        try {
+            $client = $this->buildTangoClientFromPost();
+            $raw    = $client->getMaestroListasPrecio();
+            $listas = [];
+            foreach ($raw as $id => $desc) {
+                $listas[] = ['id' => $id, 'descripcion' => $desc];
+            }
+            echo json_encode(['success' => true, 'data' => $listas], JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX atómico: devuelve solo Depósitos.
+     */
+    public function getTangoDepositos(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(30);
+        try {
+            $client    = $this->buildTangoClientFromPost();
+            $raw       = $client->getMaestroDepositos();
+            $depositos = [];
+            foreach ($raw as $id => $desc) {
+                $depositos[] = ['id' => $id, 'descripcion' => $desc];
+            }
+            echo json_encode(['success' => true, 'data' => $depositos], JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX atómico: devuelve solo Perfiles de Pedidos.
+     */
+    public function getTangoPerfiles(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(30);
+        try {
+            $client   = $this->buildTangoClientFromPost();
+            $perfiles = $client->getPerfilesPedidos();
+            echo json_encode(['success' => true, 'data' => $perfiles], JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * @deprecated Mantenido para compatibilidad. Usar los 4 endpoints atómicos.
+     * Proveedor AJAX de Metadata (Empresas, Listas y Depósitos) para los Selects.
      */
     public function getConnectTangoMetadata(): void
     {
         AuthService::requireLogin();
         header('Content-Type: application/json');
-
+        set_time_limit(120);
         try {
-            $service = $this->resolveService($this->resolveArea());
-
-            $apiUrl = trim($_POST['tango_api_url'] ?? '');
-            $companyId = trim($_POST['tango_connect_company_id'] ?? '');
-            $clientKey = trim($_POST['tango_connect_key'] ?? '');
-            $token = trim($_POST['tango_connect_token'] ?? '');
-            $repoConf = $service->getConfig();
-
-            if (empty($token)) {
-                $token = $repoConf->tango_connect_token ?? '';
-            }
-
-            if (empty($clientKey)) {
-                $clientKey = trim((string) ($repoConf->tango_connect_key ?? ''));
-            }
-
-            if (empty($apiUrl)) {
-                $apiUrl = trim((string) ($repoConf->tango_api_url ?? ''));
-            }
-
-            if ($companyId === '') {
-                $companyId = (string) ($repoConf->tango_connect_company_id ?? '');
-            }
-
-            if (empty($token) || (empty($apiUrl) && empty($clientKey))) {
-                echo json_encode(['success' => false, 'message' => 'Faltan parámetros mínimos. Debes informar Token y al menos una Llave o URL base.']);
-                exit;
-            }
-
-            // Prioritize user-provided API URL, fallback to guessing from clientKey if empty
-            $finalUrl = '';
-            if (!empty($apiUrl) && filter_var($apiUrl, FILTER_VALIDATE_URL)) {
-                $finalUrl = rtrim($apiUrl, '/');
-            } elseif (!empty($clientKey)) {
-                $tangoKeyParsed = str_replace('/', '-', $clientKey);
-                $finalUrl = rtrim(sprintf("https://%s.connect.axoft.com/Api", $tangoKeyParsed), '/');
-            }
-
-            $client = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey);
-            
-            $empresasObj = $client->getMaestroEmpresas();
-            $perfilesObj = $client->getPerfilesPedidos();
-            
+            $client          = $this->buildTangoClientFromPost();
+            $empresasObj     = $client->getMaestroEmpresas();
+            $perfilesObj     = $client->getPerfilesPedidos();
             $listasPreciosObj = count($empresasObj) > 0 ? $client->getMaestroListasPrecio() : [];
-            $depositosObj = count($empresasObj) > 0 ? $client->getMaestroDepositos() : [];
-
-            $debugDump = [
-                'FECHA' => date('Y-m-d H:i:s'),
-                'HTTP_REQUEST_TRACE' => $client->debugLastHttpRequest ?? 'Inaccesible',
-                'EMPRESAS_API_RAW' => $client->debugLastRawEmpresas ?? 'No capturado',
-                'EMPRESAS_NORMALIZADAS' => [],
-            ];
-
-            foreach ($empresasObj as $id => $desc) {
-                $debugDump['EMPRESAS_NORMALIZADAS'][] = [
-                    'id' => $id,
-                    'descripcion' => $desc
-                ];
-            }
-
-            try {
-                $logDir = BASE_PATH . '/logs';
-                if (!is_dir($logDir)) { mkdir($logDir, 0777, true); }
-                file_put_contents($logDir . '/debug_selectores_connect.json', json_encode($debugDump, JSON_PRETTY_PRINT));
-            } catch (\Exception $ed) { }
+            $depositosObj    = count($empresasObj) > 0 ? $client->getMaestroDepositos() : [];
 
             $empresas = [];
-            foreach($empresasObj as $id => $desc) {
-                $empresas[] = ['id' => $id, 'descripcion' => $desc];
-            }
-            
+            foreach ($empresasObj as $id => $desc) { $empresas[] = ['id' => $id, 'descripcion' => $desc]; }
             $listasPrecios = [];
-            foreach($listasPreciosObj as $id => $desc) {
-                $listasPrecios[] = ['id' => $id, 'descripcion' => $desc];
-            }
-
+            foreach ($listasPreciosObj as $id => $desc) { $listasPrecios[] = ['id' => $id, 'descripcion' => $desc]; }
             $depositos = [];
-            foreach($depositosObj as $id => $desc) {
-                $depositos[] = ['id' => $id, 'descripcion' => $desc];
-            }
+            foreach ($depositosObj as $id => $desc) { $depositos[] = ['id' => $id, 'descripcion' => $desc]; }
 
             echo json_encode([
                 'success' => true,
-                'data' => [
-                    'empresas' => $empresas,
+                'data'    => [
+                    'empresas'        => $empresas,
                     'perfiles_pedidos' => $perfilesObj,
-                    'listas_precios' => $listasPrecios,
-                    'depositos' => $depositos
-                ]
+                    'listas_precios'  => $listasPrecios,
+                    'depositos'       => $depositos,
+                ],
             ], JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Throwable $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
