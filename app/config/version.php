@@ -1,9 +1,22 @@
 <?php
 
 return [
-    'current_version' => '1.3.3',
-    'current_build' => '20260410.2',
+    'current_version' => '1.3.4',
+    'current_build' => '20260410.3',
     'history' => [
+        [
+            'version' => '1.3.4',
+            'build' => '20260410.3',
+            'released_at' => '2026-04-10',
+            'title' => 'RxnSync: Persistencia de filtros por solapa y mejoras de UX',
+            'summary' => 'Los filtros del módulo RxnSync ahora persisten al cambiar entre las solapas Clientes y Artículos: el filtro Motor BD (server-side), los embudos de columna (client-side) y los inputs de búsqueda se restauran automáticamente al volver a una solapa. SyncPrecios y SyncStock redirigen de vuelta a RXN-Sync con detalle de stats. Se eliminó el botón redundante Sync Artículos.',
+            'items' => [
+                'Persistencia de filtros Motor BD por solapa: los URLSearchParams del tab saliente se guardan en memoria y se restauran al volver, recargando los datos filtrados via AJAX.',
+                'Persistencia de embudos client-side: los filtros de columna (op + valor) y el estado del input de búsqueda sobreviven cambios de solapa.',
+                'SyncPrecios y SyncStock redirigen de vuelta a RXN-Sync en lugar de Artículos, mostrando el detalle de la sincronización (recibidos, insertados, actualizados, omitidos).',
+                'Botón Sync Artículos eliminado del circuito de RxnSync — la Auditoría del tab activo cumple la misma función sin salir del módulo.',
+            ],
+        ],
         [
             'version' => '1.3.3',
             'build' => '20260410.2',
