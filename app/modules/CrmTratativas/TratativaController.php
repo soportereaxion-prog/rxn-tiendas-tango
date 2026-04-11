@@ -315,11 +315,9 @@ class TratativaController extends \App\Core\Controller
         $empresaId = (int) Context::getEmpresaId();
         $term = trim((string) ($_GET['q'] ?? ''));
 
-        if (mb_strlen($term) < 2) {
-            echo json_encode(['success' => true, 'data' => []]);
-            exit;
-        }
-
+        // Sin guard de longitud mínima: al abrir el Spotlight Modal con Enter, el frontend
+        // hace fetch con q='' y esperamos que el backend devuelva los primeros resultados
+        // (comportamiento alineado con PedidoServicioController::clientSuggestions).
         $rows = $this->clienteRepository->findSuggestions($empresaId, $term, 'all', 10);
         $data = array_map(static function (array $row): array {
             $label = trim((string) ($row['razon_social'] ?? ''));

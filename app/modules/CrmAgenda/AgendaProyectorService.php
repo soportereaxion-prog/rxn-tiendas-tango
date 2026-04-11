@@ -128,24 +128,28 @@ class AgendaProyectorService
     }
 
     /**
-     * Hook disparado por TratativaRepository cuando se crea o actualiza una tratativa
-     * que tiene fecha_cierre_estimado definida.
+     * Hook disparado por TratativaRepository cuando se crea o actualiza una tratativa.
      * Proyecta la tratativa como un evento all-day en el calendario.
+     *
+     * Fallback de fechas: fecha_cierre_estimado → fecha_apertura → created_at → hoy.
+     * De esta forma TODA tratativa tiene representación en el calendario,
+     * independientemente de qué campos haya completado el operador.
      */
     public function onTratativaSaved(array $tratativa): void
     {
         try {
             $tratativaId = (int) ($tratativa['id'] ?? 0);
             $empresaId = (int) ($tratativa['empresa_id'] ?? 0);
-            $fechaCierre = (string) ($tratativa['fecha_cierre_estimado'] ?? '');
 
-            if ($tratativaId <= 0 || $empresaId <= 0 || $fechaCierre === '') {
-                // Si no hay fecha de cierre, no hay evento proyectado. Si existia uno, lo borramos.
-                if ($tratativaId > 0 && $empresaId > 0) {
-                    $this->softDeleteAndMaybeRemote('tratativa', $tratativaId, $empresaId);
-                }
+            if ($tratativaId <= 0 || $empresaId <= 0) {
                 return;
             }
+
+            $fecha = $this->firstValidDate([
+                $tratativa['fecha_cierre_estimado'] ?? null,
+                $tratativa['fecha_apertura'] ?? null,
+                $tratativa['created_at'] ?? null,
+            ]) ?? (new \DateTimeImmutable())->format('Y-m-d');
 
             $titulo = 'Tratativa #' . (int) ($tratativa['numero'] ?? 0) . ' — ' . (string) ($tratativa['titulo'] ?? '');
             $descripcion = (string) ($tratativa['descripcion'] ?? '') . "\n\nCliente: " . (string) ($tratativa['cliente_nombre'] ?? 'Sin cliente') . "\nProbabilidad: " . (int) ($tratativa['probabilidad'] ?? 0) . '%';
@@ -163,8 +167,8 @@ class AgendaProyectorService
                 'usuario_nombre' => $tratativa['usuario_nombre'] ?? null,
                 'titulo' => $titulo,
                 'descripcion' => $descripcion,
-                'inicio' => $fechaCierre . ' 09:00:00',
-                'fin' => $fechaCierre . ' 10:00:00',
+                'inicio' => $fecha . ' 09:00:00',
+                'fin' => $fecha . ' 10:00:00',
                 'all_day' => 1,
                 'origen_tipo' => 'tratativa',
                 'origen_id' => $tratativaId,
@@ -172,6 +176,26 @@ class AgendaProyectorService
                 'estado' => $estado,
             ]);
         } catch (\Throwable) {}
+    }
+
+    /**
+     * Devuelve la primera fecha válida (formato Y-m-d) de una lista de candidatos.
+     * Ignora nulls, strings vacíos, '0000-00-00' y fechas inválidas.
+     */
+    private function firstValidDate(array $candidates): ?string
+    {
+        foreach ($candidates as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value === '' || $value === '0000-00-00' || str_starts_with($value, '0000-00-00')) {
+                continue;
+            }
+            try {
+                return (new \DateTimeImmutable($value))->format('Y-m-d');
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+        return null;
     }
 
     public function onTratativaDeleted(int $tratativaId, int $empresaId): void

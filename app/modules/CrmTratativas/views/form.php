@@ -70,17 +70,25 @@ ob_start();
         </div>
 
         <div class="card bg-dark text-light border-0 shadow-sm mb-4">
-            <div class="card-header border-bottom border-secondary border-opacity-25">
+            <div class="card-header border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold"><i class="bi bi-person-vcard"></i> Cliente</h5>
+                <span class="small text-muted">Presioná <kbd>Enter</kbd> o <kbd>F3</kbd> en el campo para abrir el buscador</span>
             </div>
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-10 position-relative">
+                    <div class="col-md-10 position-relative" data-picker-url="<?= htmlspecialchars($basePath) ?>/clientes/sugerencias">
                         <label class="form-label small text-muted">Cliente (opcional)</label>
-                        <input type="text" id="cliente_search" class="form-control bg-dark text-light border-secondary <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['cliente_nombre']) ?>" placeholder="Buscar cliente por razón social, código Tango, documento o email..." autocomplete="off">
-                        <input type="hidden" name="cliente_id" id="cliente_id" value="<?= htmlspecialchars((string) $tratativa['cliente_id']) ?>">
+                        <input
+                            type="text"
+                            id="cliente_search"
+                            data-picker-input
+                            class="form-control bg-dark text-light border-secondary <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>"
+                            value="<?= htmlspecialchars((string) $tratativa['cliente_nombre']) ?>"
+                            placeholder="Buscar cliente por razón social, código Tango, documento o email (Enter / F3 / doble click)"
+                            autocomplete="off"
+                        >
+                        <input type="hidden" name="cliente_id" data-picker-hidden value="<?= htmlspecialchars((string) $tratativa['cliente_id']) ?>">
                         <input type="hidden" name="cliente_nombre" id="cliente_nombre_hidden" value="<?= htmlspecialchars((string) $tratativa['cliente_nombre']) ?>">
-                        <div id="cliente_suggestions" class="dropdown-menu w-100 bg-dark border-secondary" style="max-height:240px;overflow-y:auto;"></div>
                         <?= $fieldError('cliente_id') ?>
                     </div>
                     <div class="col-md-2">
@@ -159,80 +167,38 @@ $content = ob_get_clean();
 ob_start();
 ?>
 <script>
+    // El spotlight global (rxn-spotlight.js cargado en admin_layout.php) maneja
+    // la búsqueda de cliente vía el wrapper [data-picker-url] + input [data-picker-input]
+    // + hidden [data-picker-hidden]. Acá solo enganchamos el botón "Limpiar" y
+    // mantenemos sincronizado el hidden legacy cliente_nombre_hidden con el visible.
     (function () {
         const searchInput = document.getElementById('cliente_search');
-        const suggestionsDiv = document.getElementById('cliente_suggestions');
-        const hiddenId = document.getElementById('cliente_id');
         const hiddenName = document.getElementById('cliente_nombre_hidden');
         const btnClear = document.getElementById('clear-cliente');
+        const hiddenIdEl = document.querySelector('[data-picker-hidden][name="cliente_id"]');
 
         if (!searchInput) { return; }
 
-        let searchTimeout;
-        let currentFocus = -1;
-
-        function loadSuggestions(q) {
-            fetch('<?= htmlspecialchars($basePath) ?>/clientes/sugerencias?q=' + encodeURIComponent(q))
-                .then(res => res.json())
-                .then(data => {
-                    suggestionsDiv.innerHTML = '';
-                    currentFocus = -1;
-                    if (data.success && data.data.length > 0) {
-                        suggestionsDiv.innerHTML = data.data.map(item =>
-                            '<a href="#" class="dropdown-item text-light suggestion-item px-3 py-2 border-bottom border-light border-opacity-10" data-id="' + item.id + '" data-label="' + item.label.replace(/"/g, '&quot;') + '">' +
-                                '<div class="fw-bold">' + item.label + '</div>' +
-                                '<div class="small text-muted">' + item.caption + '</div>' +
-                            '</a>'
-                        ).join('');
-                        suggestionsDiv.classList.add('show');
-                    } else {
-                        suggestionsDiv.innerHTML = '<div class="dropdown-item text-muted disabled py-2">Sin resultados</div>';
-                        suggestionsDiv.classList.add('show');
-                    }
-                })
-                .catch(err => console.error(err));
-        }
-
-        searchInput.addEventListener('input', (e) => {
-            const q = e.target.value.trim();
-            hiddenId.value = '';
-            hiddenName.value = '';
-            clearTimeout(searchTimeout);
-            if (q.length < 2) {
-                suggestionsDiv.classList.remove('show');
-                return;
-            }
-            searchTimeout = setTimeout(() => loadSuggestions(q), 250);
-        });
-
-        searchInput.addEventListener('focus', () => {
-            const q = searchInput.value.trim();
-            if (q.length >= 2) {
-                loadSuggestions(q);
+        // Cuando el spotlight selecciona un item, dispara "picker-selected" en el input.
+        // Aprovechamos para mantener el snapshot legacy de cliente_nombre sincronizado.
+        searchInput.addEventListener('picker-selected', (ev) => {
+            const data = ev.detail || {};
+            if (hiddenName) {
+                hiddenName.value = data.label || data.value || searchInput.value || '';
             }
         });
 
-        document.addEventListener('click', (e) => {
-            if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
-                suggestionsDiv.classList.remove('show');
-            }
-        });
-
-        suggestionsDiv.addEventListener('click', (e) => {
-            const item = e.target.closest('.suggestion-item');
-            if (!item) { return; }
-            e.preventDefault();
-            hiddenId.value = item.dataset.id;
-            hiddenName.value = item.dataset.label;
-            searchInput.value = item.dataset.label;
-            suggestionsDiv.classList.remove('show');
+        // Si el operador escribe a mano (sin elegir del modal), desvinculamos el id
+        // para que el backend no persista un vínculo con un cliente que no existe.
+        searchInput.addEventListener('input', () => {
+            if (hiddenIdEl) { hiddenIdEl.value = ''; }
+            if (hiddenName) { hiddenName.value = ''; }
         });
 
         btnClear && btnClear.addEventListener('click', () => {
             searchInput.value = '';
-            hiddenId.value = '';
-            hiddenName.value = '';
-            suggestionsDiv.classList.remove('show');
+            if (hiddenIdEl) { hiddenIdEl.value = ''; }
+            if (hiddenName) { hiddenName.value = ''; }
             searchInput.focus();
         });
     })();
