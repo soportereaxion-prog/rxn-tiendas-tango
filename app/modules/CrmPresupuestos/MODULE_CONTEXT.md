@@ -44,6 +44,7 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 ## Reglas operativas del módulo
 - La estructura de guardado suele ser atómica. Guardar la cabecera e iterar y salvar los renglones (artículos).
 - Un presupuesto enviado a Tango con éxito usualmente bloquea sus ediciones locales de cantidades/precios para no divergir de lo declarado en AFIP/Ventas (lógica de estado).
+- **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 
 ## Tipo de cambios permitidos
 - Agregar columnas de cálculo, subtotales o lógica de impuestos (IVA, IIBB percibidos) visualmente en el DOM y en los resúmenes PDF.

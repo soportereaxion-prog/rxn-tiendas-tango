@@ -190,6 +190,7 @@ Ninguna integración externa. Este módulo es local-first sin sincronización co
 5. **Cache invalidado en cada mutación**: `clearStoreCache()` limpia FileCache de catálogo y categorías.
 6. **Sugerencias requieren mínimo 2 caracteres**: retorna vacío sin consultar DB si no se cumple.
 7. **Conteo de artículos via JOIN**: el conteo en listado y en Store usa JOIN con `articulo_categoria_map` + `articulos` con collation explícita.
+8. **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 
 ---
 

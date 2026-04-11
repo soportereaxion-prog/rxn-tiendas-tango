@@ -196,6 +196,7 @@ Guard: `AuthService::requireLogin()` + `Context::getEmpresaId()`.
 5. **Precio snapshot**: los renglones guardan `precio_unitario` y `nombre_articulo` al momento de la creación (snapshot inmutable).
 6. **Payload y respuesta persistidos**: todo envío a Tango registra el payload enviado y la respuesta recibida para auditoría.
 7. **Sin límite de reintentos**: `intentos_envio_tango` se incrementa pero no bloquea reenvíos.
+8. **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 
 ---
 

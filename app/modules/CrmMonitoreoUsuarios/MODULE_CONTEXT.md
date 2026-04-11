@@ -42,6 +42,7 @@ Proveer una vista general del equipo de operadores, vendedores y administradores
 
 ## Reglas operativas del módulo
 - El listado busca mostrar la totalidad del equipo, por lo tanto omite intencionalmente la paginación estándar que usa `UsuarioService`, invocando en su lugar al repositorio o limitando en un límite alto (`1000`).
+- **Búsqueda client-side, sin persistencia global**: el input de búsqueda de este módulo (`data-search-input` + `rxn-searchable-item`) filtra las tarjetas en el DOM vía JS local (`data-search-content`). NO submite ni mueve query string, por lo que la persistencia global de filtros (`rxn-filter-persistence.js`) no aplica acá — y está bien que no aplique: el estado "qué operador busco" es efímero y se reinicia en cada visita.
 
 ## Tipo de cambios permitidos
 - Agregar métricas adicionales en vivo (si está online, total de presupuestos cargados en el día).

@@ -45,6 +45,7 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 ## Reglas operativas del módulo
 - Durante la importación de Excel, si el "Código Tango" no matchea ningún cliente en la base local de la empresa, la nota se crea igualmente pero de forma huérfana (sin `cliente_id`).
 - La exportación vuelca toda la visualización de la grilla (incluyendo resolución del nombre del cliente) aplicando los filtros vigentes del Datatable.
+- **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 
 ## Tipo de cambios permitidos
 - Agregar adjuntos o imágenes a las notas.

@@ -36,10 +36,15 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?php if ($empresaId): ?>
+    <meta name="rxn-empresa-id" content="<?= (int) $empresaId ?>">
+    <?php endif; ?>
     <title><?= htmlspecialchars($finalPageTitle) ?></title>
     <?php if ($faviconUrl): ?>
         <link rel="icon" href="<?= htmlspecialchars($faviconUrl) ?>">
     <?php endif; ?>
+    <!-- Persistencia global de filtros de listado (corre antes del render para evitar flash) -->
+    <script src="/js/rxn-filter-persistence.js?v=<?= time() ?>"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">

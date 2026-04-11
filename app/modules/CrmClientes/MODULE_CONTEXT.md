@@ -49,6 +49,7 @@ Proveer una caché local (Local-First) de los clientes provenientes de Tango Con
 ## Reglas operativas del módulo
 - TODO CRUD y lectura en base TIENE que usar filtros estrictos de `empresa_id` de forma preventiva. La mezcla de tenants es catastrófica.
 - Los campos pre-cacheables de Tango (`id_gva23_tango`, etc.) se guardan usando validaciones defensivas de casteo (ej: `nullableInt`) para evitar roturas locales frente a payloads extraños de JSON nativo.
+- **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 
 ## Tipo de cambios permitidos
 - Agregar visuales y mejoras UX al Datatable.

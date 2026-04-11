@@ -152,6 +152,7 @@ La sincronización itera en paginación completa (do-while con páginas de 500 r
 - **Match Suave**: Si un registro local no tiene `tango_id` en el pivot, busca por `codigo_externo` (artículo) o `codigo_tango` (cliente).
 - **Time Limits largos**: Procesos masivos usan `set_time_limit(180)` y `120` por latencia de Connect.
 - **Pagesize independiente**: precios y stock usan `pageSize = 500`, no `syncAmount`.
+- **Persistencia de filtros (caso especial)**: RxnSync **está explícitamente excluido** de la persistencia global de filtros (`public/js/rxn-filter-persistence.js`) porque gestiona su propio estado en variables JS de outer scope (`tabColFilters`, `tabSearchState`, `tabBdParams`) que viven mientras dura la página y se sincronizan con los tabs AJAX. El script global verifica `EXCLUDED_PATH_PREFIXES` con `/mi-empresa/rxn-sync` y `/mi-empresa/crm/rxn-sync` al inicio y sale sin tocar nada — así evita pisar los filtros que el módulo maneja por su cuenta. Si se mueven las rutas del módulo, actualizar también la lista de exclusión en el JS.
 
 ## Seguridad
 

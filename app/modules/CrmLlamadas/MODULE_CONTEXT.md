@@ -44,6 +44,8 @@ Registrar y listar el historial de llamadas de la empresa, y proveer una interfa
 ## Reglas operativas del módulo
 - El Soft-Delete utiliza el campo `status=papelera`. Las llamadas borradas no desaparecen físicamente a menos que se invoque `forceDelete`.
 - Todo cambio de vinculación debe actualizar la asociación del número a nivel tenant.
+- **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
+- **Flujo "Generar PDS"**: el botón (visible cuando `evento_link === 'HANGUP'`) redirige a `/mi-empresa/crm/pedidos-servicio/crear?diagnostico=...&inicio=...&fin=...&cliente_id=...`. `PedidoServicioController::defaultFormState()` lee `inicio`/`fin` del query string y el form suprime el tick() de auto-hora cuando `inicio` viene por URL, así queda registrada la ventana real de la llamada.
 
 ## Tipo de cambios permitidos
 - Agregar visualizaciones adicionales de la llamada (duración, grabación si existiese).
