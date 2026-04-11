@@ -414,13 +414,13 @@ ob_start();
     <?php endif; ?>
 
     <script src="/js/crm-pedidos-servicio-form.js?v=<?= time() ?>"></script>
-    <?php if ($formMode === 'create' && empty($errors)): ?>
+    <?php if ($formMode === 'create' && empty($errors) && !isset($_GET['inicio'])): ?>
     <script>
         (function() {
             const fechaInput = document.getElementById('fecha_inicio');
             if (!fechaInput) return;
             let holdsFocus = false;
-            
+
             fechaInput.addEventListener('focus', () => holdsFocus = true);
             fechaInput.addEventListener('change', () => holdsFocus = true);
 
@@ -431,7 +431,7 @@ ob_start();
                 const localISOTime = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
                 fechaInput.value = localISOTime;
             };
-            
+
             tick();
         })();
     </script>
