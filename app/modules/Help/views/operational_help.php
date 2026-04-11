@@ -137,6 +137,8 @@ ob_start();
                         <li><strong>Tiempo bruto / neto:</strong> el sistema los calcula automáticamente.</li>
                         <li><strong>Diagnostico y Motivo:</strong> escribí con claridad técnica acá.</li>
                         <li><strong>Atajo rápido:</strong> Apretá <code>ALT + P</code> mientras estés editando para enviarlo directamente a Tango.</li>
+                        <li><strong>Navegación por teclado en selectores:</strong> Cliente, Artículo y Clasificación se abren con <kbd>Enter</kbd> mostrando los primeros resultados sin necesidad de escribir. Navegás con las flechas ↑ ↓, confirmás con <kbd>Enter</kbd> y <kbd>Tab</kbd> te lleva limpio al siguiente campo del formulario.</li>
+                        <li><strong>Salida segura con Escape:</strong> Al apretar <kbd>Esc</kbd> dentro del pedido, el sistema te pide confirmación antes de abandonar sin guardar — evita salidas accidentales que te hagan perder los cambios.</li>
                         <li><strong>Seguridad de enviado:</strong> Cuando se envía a Tango exitosamente, asume el Número Oficial y se <strong>bloquea</strong> (ya nadie lo puede modificar, para cuidar la consistencia). Si hay rechazo dirá <code>ERROR API</code> y sí te dejará reintentar.</li>
                     </ul>
                     <div class="help-highlight">
@@ -151,6 +153,7 @@ ob_start();
                     <p class="text-muted">Este módulo te permite armar propuestas comerciales ágiles para tus clientes y prospectos.</p>
                     <ul class="help-list-tight mb-4">
                         <li><strong>Carga ágil por teclado:</strong> Puedes cargar renglones enteros casi sin usar el ratón. En el buscador escribes el material, confirmas con <kbd>Enter</kbd> (o seleccionas de la lista), luego usas <kbd>TAB</kbd> para pasear por Cantidad, Precio y Bonificación, y presionas de nuevo <kbd>Enter</kbd> para agregar el renglón al cuerpo.</li>
+                        <li><strong>Apertura rápida de selectores con Enter:</strong> Al apretar <kbd>Enter</kbd> sobre los buscadores de Cliente o Artículo aparecen directamente los primeros resultados sin necesidad de escribir. Navegás con ↑ ↓ y confirmás con <kbd>Enter</kbd>.</li>
                         <li><strong>Botón Sync Catálogos:</strong> Está en las opciones del presupuesto. Úsalo para actualizar rápido de Tango las Listas de Precios, Vendedores, Condiciones de Venta y Transporte. El sistema asume tu última elección.</li>
                         <li><strong>Resolución de precio:</strong> Si el artículo que buscaste tiene precio en la lista de precios seleccionada, la barra de carga te lo autocompleta al instante. Si no, queda en "0" para edición manual.</li>
                     </ul>

@@ -9,6 +9,7 @@
         var requestToken = 0;
         var activeIndex = -1;
         var items = [];
+        var debounceTimer = null;
 
         if (!input || !results || !hidden) {
             return;
@@ -79,6 +80,7 @@
             payload.forEach(function (item, index) {
                 var button = document.createElement('button');
                 button.type = 'button';
+                button.tabIndex = -1; // No capturar Tab: el foco salta limpio al siguiente input del form
                 button.className = 'rxn-search-suggestion';
                 button.innerHTML = '<strong>' + (item.label || item.value || 'Sin titulo') + '</strong>'
                     + '<small class="text-muted">' + (item.caption || 'Sin datos extra') + '</small>';
@@ -135,7 +137,10 @@
             if (!allowManual) {
                 hidden.value = '';
             }
-            load(false);
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
+            debounceTimer = window.setTimeout(function () { load(false); }, 120);
         });
 
         input.addEventListener('click', function () {
@@ -146,6 +151,11 @@
         });
 
         input.addEventListener('focus', function () {
+            // Si el Spotlight Modal acaba de seleccionar un item y está restaurando el foco,
+            // no re-abrimos la lista inline (el flag lo limpia el spotlight con setTimeout).
+            if (root.dataset.suppressNextFocus === '1') {
+                return;
+            }
             if (results.classList.contains('d-none')) {
                 input.select();
                 load(true);
@@ -155,6 +165,8 @@
         input.addEventListener('keydown', function (event) {
             if (!items.length) {
                 if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
                     closeResults();
                 }
                 return;
@@ -170,12 +182,17 @@
                 setActive(activeIndex - 1);
             }
 
-            if (event.key === 'Enter' && activeIndex >= 0) {
+            if (event.key === 'Enter') {
                 event.preventDefault();
+                if (activeIndex < 0) {
+                    setActive(0);
+                }
                 items[activeIndex].dispatchEvent(new MouseEvent('mousedown'));
             }
 
             if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
                 closeResults();
             }
         });
@@ -184,6 +201,11 @@
             if (!root.contains(event.target)) {
                 closeResults();
             }
+        });
+
+        // Escuchar el evento emitido por Spotlight Modal (compatibilidad con el flujo de Presupuestos)
+        input.addEventListener('picker-selected', function (event) {
+            applyItem(event.detail);
         });
 
         if (allowManual && input.value.trim() !== '') {
@@ -368,11 +390,11 @@
     function setupDirtyCheckAndEmailControl() {
         var mainForm = document.getElementById('crm-pedido-servicio-form');
         var emailForms = document.querySelectorAll('form[action$="/enviar-correo"]');
-        
-        if (!mainForm || emailForms.length === 0) return;
+
+        if (!mainForm) return;
 
         var isDirty = false;
-        
+
         // Registrar cualquier cambio en inputs, selects, textareas
         mainForm.addEventListener('input', function() {
             isDirty = true;
@@ -382,18 +404,54 @@
         });
 
         // Interceptar el clic en el botón de enviar por correo ANTES de que se lance el confirm nativo
-        emailForms.forEach(function(form) {
-            var btn = form.querySelector('button[type="submit"]');
-            if (btn) {
-                btn.addEventListener('click', function(e) {
-                    if (isDirty) {
-                        e.preventDefault();
-                        e.stopImmediatePropagation();
-                        (window.rxnAlert || alert)('Has modificado datos en este pedido.\n\nPor favor, hacé clic en el botón azul "Guardar" antes de enviarlo por correo para asegurarte de que el cliente reciba la información actualizada.', 'warning', 'Atención: Cambios sin guardar');
-                    }
-                }, true); // Capture phase para ganar prioridad
+        if (emailForms.length > 0) {
+            emailForms.forEach(function(form) {
+                var btn = form.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.addEventListener('click', function(e) {
+                        if (isDirty) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            (window.rxnAlert || alert)('Has modificado datos en este pedido.\n\nPor favor, hacé clic en el botón azul "Guardar" antes de enviarlo por correo para asegurarte de que el cliente reciba la información actualizada.', 'warning', 'Atención: Cambios sin guardar');
+                        }
+                    }, true); // Capture phase para ganar prioridad
+                }
+            });
+        }
+
+        // Interceptar Escape globalmente para mostrar modal de confirmación antes de salir.
+        // Alineado con el comportamiento de crm-presupuestos-form.js: evita que Escape dispare
+        // una salida accidental del formulario con cambios sin guardar.
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Ignorar si hay un modal Bootstrap activo (ej: un confirm, una alerta)
+                if (document.querySelector('.modal.show')) return;
+                // Ignorar si el Spotlight Modal está abierto (tiene su propio manejo de Escape)
+                if (document.querySelector('.rxn-spotlight-dialog.show')) return;
+
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (window.rxnConfirm) {
+                    window.rxnConfirm({
+                        title: 'Confirmar salida',
+                        message: '¿Querés salir del proceso sin guardar?',
+                        type: 'warning',
+                        okText: 'Sí, salir',
+                        cancelText: 'Cancelar',
+                        onConfirm: function() {
+                            // Navegar directo al href del botón "Volver al listado"
+                            var backBtn = document.querySelector('.rxn-module-actions a.btn-outline-secondary') ||
+                                          document.querySelector('a.btn-outline-secondary[href*="/mi-empresa"]');
+                            if (backBtn && backBtn.href) {
+                                window.location.href = backBtn.href;
+                            } else {
+                                window.history.back();
+                            }
+                        }
+                    });
+                }
             }
-        });
+        }, true);
     }
 
     document.addEventListener('DOMContentLoaded', function () {

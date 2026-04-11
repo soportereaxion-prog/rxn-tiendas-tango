@@ -200,3 +200,45 @@ Before ending a session or saying "done" / "listo" / "that's it", call `mem_sess
 
 This is NOT optional. If you skip this, the next session starts blind.
 <!-- /gentle-ai:engram-protocol -->
+
+---
+
+## Reglas del workspace (rxn_suite)
+
+### CRÍTICO — Server local vs worktree git
+
+El server PHP local (XAMPP/Laragon) sirve archivos **desde la carpeta principal del proyecto** (`D:\RXNAPP\3.3\www\rxn_suite\`). **NO** sirve desde los worktrees git en `.claude/worktrees/<branch>/`.
+
+**Consecuencia práctica**:
+- **Siempre editar archivos directamente en la carpeta principal del proyecto**, aunque exista un worktree activo.
+- Los cambios al worktree son **invisibles para el browser** — el server nunca los ve.
+- Si un fix "no funciona" después de un reload duro (Ctrl+Shift+R con cache disabled), la PRIMERA sospecha debe ser que se está editando un worktree en lugar del proyecto principal. Verificar leyendo el archivo del path que el server realmente sirve.
+- Los worktrees siguen siendo útiles para aislamiento git de features en paralelo, pero **NO** para testing en runtime del server local.
+
+### Antipatrón conocido (aprendizaje histórico)
+
+Si aparece la situación "apliqué un fix, el usuario dice que no funciona, aplico otro, sigue sin funcionar" — **PARAR** y verificar que el archivo modificado esté en el path servido (`D:\RXNAPP\3.3\www\rxn_suite\public\...` para frontend, `D:\RXNAPP\3.3\www\rxn_suite\app\...` para backend). No seguir agregando complejidad; la causa más probable es un path mismatch.
+
+### Vocabulario acordado con Charly
+
+- **"Migraciones"** = cambios al schema de la base de datos (`database/migrations/*.php`). Es lo que Charly revisa antes de cada deploy para asegurarse que la base queda sincronizada.
+- **"Factory OTA"** = proceso de compilar el ZIP de release desde `/admin/mantenimiento`. Es interno del sistema, Charly lo dispara solo. **NO usar la palabra "OTA" a secas** — generó confusión en sesiones previas. Si Charly dice "metemos OTA" casi seguro se refiere a migraciones.
+- **"Deploy" / "Subir" / "Reino de los cielos"** = desplegar el código al server de producción (Plesk).
+
+### Flujo de trabajo preferido (Charly)
+
+El ritmo de trabajo que Charly estableció explícitamente:
+
+1. **Laburamos sobre los módulos** (código, fixes, features). Esto es el grueso de la sesión.
+2. **Cuando estamos listos para deploy**, revisamos migraciones pendientes:
+   - Verificar que `database/migrations/` esté ordenado correctamente (ver convención de sufijos numéricos en AGENTS.md)
+   - Confirmar que el panel `/admin/mantenimiento` muestre las pendientes sin errores
+   - Si hay error de ordering u otro, resolverlo ANTES del deploy con una migración correctiva (nunca modificar migraciones ya liberadas)
+3. **Subimos** (Factory OTA + Plesk).
+
+La idea es que sea **así de simple**. Si la sesión empieza a complicarse con debugging infinito, algo está mal — parar, re-evaluar, y volver al flujo.
+
+### Mejoras a Lumi para próximas sesiones
+
+- **Ser proactiva** con mejoras de la infraestructura del proyecto (documentación, convenciones, scripts auxiliares). Charly prefiere que Lumi aplique mejoras obvias automáticamente e informe, en lugar de pedir permiso para cada cosa chica. Para decisiones grandes (refactors, cambios de arquitectura) sí preguntar primero.
+- **Celebrar avances reales**, especialmente después de sesiones largas con obstáculos. El reino de los cielos es un buen lugar para llegar.

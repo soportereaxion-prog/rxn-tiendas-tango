@@ -204,13 +204,18 @@ function closeSpotlight(restoreFocus = true) {
     if (!spotlightDialog) return;
     spotlightBackdrop.classList.remove('show');
     spotlightDialog.classList.remove('show');
-    
+
+    // Restaurar el foco INMEDIATAMENTE (no dentro del setTimeout) para que un Tab rápido
+    // del usuario encuentre el foco ya en el input original del form, no en el spotlightInput
+    // que todavía está visible durante la animación de cierre. Sin este adelanto, los 200ms
+    // de setTimeout son suficientes para que el usuario tabee antes y termine en el toolbar.
+    if (restoreFocus && currentTargetInput) {
+        currentTargetInput.focus();
+    }
+
     setTimeout(() => {
         spotlightBackdrop.style.display = 'none';
         spotlightDialog.style.display = 'none';
-        if (restoreFocus && currentTargetInput) {
-            currentTargetInput.focus();
-        }
     }, 200);
 }
 
@@ -330,15 +335,18 @@ function renderResults(items) {
 
 function handleSelection(itemEl) {
     if (!currentTargetInput) return;
-    
+
     const itemData = JSON.parse(itemEl.dataset.json);
-    
+    let wrapRef = null;
+
     if (spotlightDialog.dataset.mode === 'select') {
         currentTargetInput.value = itemData.id;
         currentTargetInput.dispatchEvent(new Event('change', { bubbles: true }));
     } else {
         const wrap = currentTargetInput.closest('[data-picker-url]');
         if (wrap) {
+            wrapRef = wrap;
+
             const hiddenInfo = wrap.querySelector('[data-picker-hidden]');
             if (hiddenInfo) {
                 hiddenInfo.value = itemData.id || itemData.model_code || '';
@@ -349,14 +357,27 @@ function handleSelection(itemEl) {
             if (extraHiddenInfo) {
                 extraHiddenInfo.value = itemData.extraId != null ? itemData.extraId : '';
             }
-            
+
             currentTargetInput.value = itemData.value || itemData.label || itemData.nombre || itemData.text || itemData.id || '';
-            
+
+            // Marcar el wrap para que cuando closeSpotlight(true) restaure el foco al input,
+            // el listener 'focus' del crm-picker NO reabra la lista inline de sugerencias.
+            wrap.dataset.suppressNextFocus = '1';
+
         // Custom events / callbacks just like rxn_picker.js
             const event = new CustomEvent('picker-selected', { bubbles: true, detail: itemData });
             currentTargetInput.dispatchEvent(event);
         }
     }
-    
-    closeSpotlight(false);
+
+    // Cerrar restaurando el foco al input original: así Tab navega limpio al siguiente campo
+    // en lugar de caer en document.body y saltar al primer botón del toolbar.
+    closeSpotlight(true);
+
+    // Limpiar el flag después de que el foco se haya restaurado
+    if (wrapRef) {
+        setTimeout(function () {
+            delete wrapRef.dataset.suppressNextFocus;
+        }, 400);
+    }
 }

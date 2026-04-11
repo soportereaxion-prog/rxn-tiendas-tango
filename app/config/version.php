@@ -1,9 +1,43 @@
 <?php
 
 return [
-    'current_version' => '1.3.6',
-    'current_build' => '20260410.5',
+    'current_version' => '1.3.8',
+    'current_build' => '20260411.1',
     'history' => [
+        [
+            'version' => '1.3.8',
+            'build' => '20260411.1',
+            'released_at' => '2026-04-11',
+            'title' => 'Listados: persistencia global de filtros F3 + fix fecha PDS desde llamadas + fix multi-destinatario en mails',
+            'summary' => 'Tres bugs cazados en una sesión, sin migraciones de DB. (1) Los filtros de los listados del backoffice ahora persisten automáticamente al navegar entre módulos via localStorage scopeado por pathname + empresa_id, cubriendo el input de búsqueda F3, el selector de campo, la cantidad por página, el filtro de estado, el filtro de categoría y los filtros Motor BD. (2) Al generar un PDS desde una llamada (botón "Generar PDS" en CrmLlamadas), la fecha_inicio ya no se machaca con la hora actual — respeta la ventana temporal real de la llamada que llega por query string. (3) El envío de correos (PDS, Presupuestos, welcome, verificación, recuperación de clave) ahora soporta múltiples destinatarios separados por coma, punto y coma o espacio, validando cada email antes de agregarlo. Fix centralizado en MailService, cubre todos los flujos sin tocar callers.',
+            'items' => [
+                'Nuevo public/js/rxn-filter-persistence.js: persistencia global de filtros de listado en localStorage con scope por pathname + empresa_id. Se carga inline en <head> del admin_layout.php para correr antes del render y evitar flash.',
+                'FILTER_KEYS ampliable sin tocar lógica: search, field, limit, estado, categoria_id y los f[campo][op|val] del Motor BD. Excluye por diseño status (navegación), sort, dir, area y page (se reinicia en 1 al restaurar).',
+                'RxnSync queda excluido explícitamente (EXCLUDED_PATH_PREFIXES) porque ya maneja su persistencia de filtros con variables JS de outer scope en tabs AJAX. CrmMonitoreoUsuarios queda fuera porque su buscador es client-side (filtra cards en el DOM). Store queda fuera porque usa views/layout.php propio, no hereda admin_layout.php.',
+                'API pública window.rxnFilterPersistence.clear(path?) y .clearAll() para limpieza programática. Integración con ?reset_filters=1 que ya enviaba rxn-advanced-filters.js al borrar filtros BD: limpia los f[...] del storage y preserva search/field/etc.',
+                'app/modules/CrmPedidosServicio/views/form.php: el script inline de tick() que pisaba fecha_inicio con new Date() al cargar queda condicionado a !isset($_GET[\'inicio\']). Cualquier origen que precargue la fecha por URL (hoy: botón "Generar PDS" en CrmLlamadas/views/index.php:199) queda respetado tal cual llega.',
+                'app/core/Services/MailService.php: nuevo método privado parseRecipients() que splittea el string de destinatarios por [,;\\s]+, trimea, valida con FILTER_VALIDATE_EMAIL y descarta los malformados. send() rechaza temprano si no hay destinatarios válidos y itera addAddress() por cada uno. Cubre ASOPROFARMA y cualquier cliente con múltiples correos en el campo email.',
+                'Convención de persistencia de filtros documentada en 13 MODULE_CONTEXT.md: Articulos, Categorias, CrmClientes, CrmLlamadas, CrmNotas, CrmPedidosServicio, CrmPresupuestos, Pedidos, Empresas, EmpresaConfig, Usuarios (nota estándar), RxnSync (nota de exclusión explícita), CrmMonitoreoUsuarios (aclaración de búsqueda client-side).',
+            ],
+        ],
+        [
+            'version' => '1.3.7',
+            'build' => '20260410.6',
+            'released_at' => '2026-04-10',
+            'title' => 'CRM Pedidos de Servicio: UX de selectores alineada con Presupuestos + fix de ordering de migraciones rxn_sync_status',
+            'summary' => 'Se unificó el comportamiento de los selectores (Cliente, Artículo, Clasificación) de Pedidos de Servicio con los de Presupuestos: Tab navega limpio al siguiente campo después de elegir desde el Spotlight Modal, el modal restaura el foco al input de origen al cerrarse, y los buscadores muestran los primeros resultados al abrirlos con Enter (sin exigir 2+ caracteres). También se agregó el manejador de Escape con confirmación de salida al formulario de PDS, replicando el comportamiento de Presupuestos para evitar salidas accidentales con cambios sin guardar. Se corrigió además un bug recurrente del MigrationRunner que hacía fallar la migración 2026_04_07_01_rxn_sync_consolidation.php con "Table rxn_sync_status doesn\'t exist" debido a un orden alfabético incorrecto entre las migraciones del 7 de abril.',
+            'items' => [
+                'rxn-spotlight.js: closeSpotlight() ahora restaura el foco al input original INMEDIATAMENTE (antes del setTimeout de 200ms), evitando que un Tab rápido del usuario caiga en document.body y salte al primer botón del toolbar.',
+                'rxn-spotlight.js: handleSelection() usa closeSpotlight(true) + marca el wrap con data-suppress-next-focus para que el listener de focus del crm-picker no reabra la lista inline cuando el modal restaura el foco.',
+                'crm-pedidos-servicio-form.js: setupPicker alineado con Presupuestos — button.tabIndex=-1 en las sugerencias, debounce de 120ms en input, Enter inteligente (auto-select del primer ítem), Escape con preventDefault+stopPropagation, listener de picker-selected, guard de suppressNextFocus en focus listener.',
+                'crm-pedidos-servicio-form.js: nuevo manejador global de Escape con window.rxnConfirm que pide "¿Querés salir del proceso sin guardar?" antes de navegar al listado. Ignora si hay un modal Bootstrap o el Spotlight Modal activo.',
+                'crm-presupuestos-form.js: button.tabIndex=-1 en las sugerencias del picker inline + guard de suppressNextFocus en focus listener para compatibilidad con el restore del Spotlight.',
+                'PresupuestoController::clientSuggestions y ::articleSuggestions: se eliminó el guard if (mb_strlen($term) < 2) return []; Ahora el backend devuelve los primeros resultados con query vacía, igual que PedidoServicioController. Esto habilita el comportamiento de "mostrar resultados al abrir el modal con Enter" en Presupuestos.',
+                'Nueva migración database/migrations/2026_04_07_00_ensure_rxn_sync_status.php: garantiza que la tabla rxn_sync_status y rxn_sync_log existan con el schema COMPLETO (incluyendo las columnas direccion_ultima_sync, resultado_ultima_sync, fecha_ultimo_push, fecha_ultimo_pull que agregaba la consolidation). Por el prefijo "00_" se ejecuta alfabéticamente ANTES que "2026_04_07_01_rxn_sync_consolidation.php" y destraba el error SQLSTATE[42S02] recurrente. Las otras dos migraciones del 7 de abril pasan a ser no-op gracias a IF NOT EXISTS + SHOW COLUMNS guards.',
+                'CLAUDE.md, AGENTS.md, README.md: documentada la regla crítica de trabajar siempre sobre la carpeta principal del proyecto y nunca sobre los worktrees git en .claude/worktrees/ (el server PHP local no sirve desde worktrees). Incluye el antipatrón conocido: si un fix no funciona después de Ctrl+Shift+R, sospechar path mismatch antes de agregar complejidad al debugging.',
+                'Help/operational_help.php: se agregaron bullets en las tarjetas de PDS y Presupuestos describiendo la nueva navegación por teclado en los selectores y la salida segura con Escape.',
+            ],
+        ],
         [
             'version' => '1.3.6',
             'build' => '20260410.5',

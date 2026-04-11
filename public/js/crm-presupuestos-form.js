@@ -100,6 +100,7 @@
             payload.forEach(function (item, index) {
                 var button = document.createElement('button');
                 button.type = 'button';
+                button.tabIndex = -1; // No capturar Tab: el foco salta limpio al siguiente input del form
                 button.className = 'rxn-search-suggestion';
                 button.innerHTML = '<strong>' + escapeHtml(item.label || item.value || 'Sin titulo') + '</strong>'
                     + '<small class="text-muted">' + escapeHtml(item.caption || 'Sin datos extra') + '</small>';
@@ -178,6 +179,11 @@
         });
 
         input.addEventListener('focus', function () {
+            // Si el Spotlight Modal acaba de seleccionar un item y está restaurando el foco,
+            // no re-abrimos la lista inline (el flag lo limpia el spotlight con setTimeout).
+            if (root.dataset.suppressNextFocus === '1') {
+                return;
+            }
             if (results.classList.contains('d-none')) {
                 input.select();
                 load(true);
