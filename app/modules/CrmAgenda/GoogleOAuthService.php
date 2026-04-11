@@ -45,6 +45,38 @@ class GoogleOAuthService
     }
 
     /**
+     * Devuelve true si las 3 variables de entorno de OAuth estan configuradas.
+     * Se usa en la UI para decidir si mostrar el boton "Conectar" o un banner
+     * explicativo de setup pendiente.
+     */
+    public function isConfigured(): bool
+    {
+        $vars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'];
+        foreach ($vars as $var) {
+            if (trim((string) (getenv($var) ?: '')) === '') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Devuelve los nombres de las variables de entorno faltantes, para mostrarlas
+     * en el banner de setup pendiente.
+     */
+    public function getMissingEnvVars(): array
+    {
+        $vars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'];
+        $missing = [];
+        foreach ($vars as $var) {
+            if (trim((string) (getenv($var) ?: '')) === '') {
+                $missing[] = $var;
+            }
+        }
+        return $missing;
+    }
+
+    /**
      * Construye la URL del consent screen de Google.
      * El `state` es opaco y se usa para identificar al usuario/empresa en el callback.
      */

@@ -62,21 +62,10 @@ ob_start();
         </div>
     </div>
 
-    <?php if (($flashSuccess = \App\Core\Flash::get('success')) !== null): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <?= htmlspecialchars($flashSuccess) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <?php endif; ?>
-    <?php if (($flashDanger = \App\Core\Flash::get('danger')) !== null): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <?= htmlspecialchars($flashDanger) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <?php endif; ?>
-    <?php if (($flashWarning = \App\Core\Flash::get('warning')) !== null): ?>
-        <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
-            <?= htmlspecialchars($flashWarning) ?>
+    <?php $flash = \App\Core\Flash::get(); ?>
+    <?php if ($flash): ?>
+        <div class="alert alert-<?= htmlspecialchars((string) $flash['type']) ?> alert-dismissible fade show shadow-sm" role="alert">
+            <?= htmlspecialchars((string) $flash['message']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <?php endif; ?>

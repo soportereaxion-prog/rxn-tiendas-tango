@@ -28,10 +28,14 @@ class AgendaController extends \App\Core\Controller
         $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
         $authMode = $this->oauthService->resolveAgendaMode($empresaId);
-        $authActive = $this->oauthService->getActiveAuth($empresaId, $usuarioId);
+        $authConfigured = $this->oauthService->isConfigured();
+        $missingEnvVars = $authConfigured ? [] : $this->oauthService->getMissingEnvVars();
+        $authActive = $authConfigured ? $this->oauthService->getActiveAuth($empresaId, $usuarioId) : null;
 
         View::render('app/modules/CrmAgenda/views/index.php', array_merge($this->buildUiContext(), [
             'authMode' => $authMode,
+            'authConfigured' => $authConfigured,
+            'missingEnvVars' => $missingEnvVars,
             'authActive' => $authActive,
         ]));
     }
@@ -243,6 +247,14 @@ class AgendaController extends \App\Core\Controller
         AuthService::requireLogin();
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+
+        // Guard temprano: si falta configuracion de OAuth, mensaje amigable en vez de stacktrace
+        if (!$this->oauthService->isConfigured()) {
+            $missing = implode(', ', $this->oauthService->getMissingEnvVars());
+            Flash::set('warning', 'Configuración de Google OAuth pendiente. Falta definir en .env: ' . $missing . '. Seguí los pasos del panel de configuración en la vista principal de Agenda.');
+            header('Location: /mi-empresa/crm/agenda');
+            exit;
+        }
 
         $mode = $this->oauthService->resolveAgendaMode($empresaId);
 

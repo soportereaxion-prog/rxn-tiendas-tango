@@ -4,6 +4,8 @@ use App\Core\View;
 $pageTitle = 'Agenda CRM - rxn_suite';
 $authMode = $authMode ?? 'usuario';
 $authActive = $authActive ?? null;
+$authConfigured = $authConfigured ?? false;
+$missingEnvVars = $missingEnvVars ?? [];
 
 ob_start();
 ?>
@@ -20,21 +22,10 @@ ob_start();
         </div>
     </div>
 
-    <?php if (($flashSuccess = \App\Core\Flash::get('success')) !== null): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <?= htmlspecialchars($flashSuccess) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <?php endif; ?>
-    <?php if (($flashDanger = \App\Core\Flash::get('danger')) !== null): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <?= htmlspecialchars($flashDanger) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <?php endif; ?>
-    <?php if (($flashWarning = \App\Core\Flash::get('warning')) !== null): ?>
-        <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
-            <?= htmlspecialchars($flashWarning) ?>
+    <?php $flash = \App\Core\Flash::get(); ?>
+    <?php if ($flash): ?>
+        <div class="alert alert-<?= htmlspecialchars((string) $flash['type']) ?> alert-dismissible fade show shadow-sm" role="alert">
+            <?= htmlspecialchars((string) $flash['message']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <?php endif; ?>
@@ -92,7 +83,25 @@ ob_start();
                     <h5 class="mb-0 fw-bold"><i class="bi bi-google"></i> Google Calendar</h5>
                 </div>
                 <div class="card-body">
-                    <?php if ($authActive !== null): ?>
+                    <?php if (!$authConfigured): ?>
+                        <div class="alert alert-warning small p-2 mb-2 border-0">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Setup pendiente</strong>
+                        </div>
+                        <p class="small text-muted mb-2">Faltan variables de entorno para habilitar el sync con Google Calendar:</p>
+                        <ul class="small text-muted mb-2 ps-3">
+                            <?php foreach ($missingEnvVars as $var): ?>
+                                <li><code><?= htmlspecialchars((string) $var) ?></code></li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <p class="small text-muted mb-1"><strong>Pasos:</strong></p>
+                        <ol class="small text-muted ps-3 mb-0">
+                            <li>Crear un proyecto en <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" class="text-info">Google Cloud Console</a></li>
+                            <li>Habilitar <em>Google Calendar API</em></li>
+                            <li>Crear <em>OAuth 2.0 Client ID</em> tipo Web application</li>
+                            <li>Agregar redirect URI: <code>https://tudominio/mi-empresa/crm/agenda/google/callback</code></li>
+                            <li>Copiar client ID y secret al <code>.env</code> y reiniciar</li>
+                        </ol>
+                    <?php elseif ($authActive !== null): ?>
                         <p class="mb-2">
                             <span class="badge bg-success"><i class="bi bi-check-circle"></i> Conectado</span>
                         </p>
@@ -110,9 +119,7 @@ ob_start();
                     <?php else: ?>
                         <p class="small text-muted mb-3">Conectá tu cuenta de Google para que los eventos del CRM aparezcan en tu Google Calendar automáticamente (sync push-only).</p>
                         <a href="<?= htmlspecialchars($basePath) ?>/google/connect" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-link-45deg"></i> Conectar con Google</a>
-                        <p class="small text-muted mt-2 mb-0">
-                            Requiere configurar <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code> y <code>GOOGLE_REDIRECT_URI</code> en el <code>.env</code>.
-                        </p>
+                        <p class="small text-muted mt-2 mb-0">Modo activo: <strong><?= htmlspecialchars($authMode) ?></strong></p>
                     <?php endif; ?>
                 </div>
             </div>
