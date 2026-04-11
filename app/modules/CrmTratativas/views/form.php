@@ -26,7 +26,7 @@ ob_start();
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1">
-                <i class="bi bi-handshake"></i>
+                <i class="bi bi-briefcase-fill"></i>
                 <?= $formMode === 'edit' ? 'Editar Tratativa #' . (int) $tratativa['numero'] : 'Nueva Tratativa (Preview #' . (int) $tratativa['numero'] . ')' ?>
             </h1>
             <p class="text-muted small mb-0">Agrupá un cliente, un estado comercial y vinculá tus PDS y Presupuestos bajo un mismo caso.</p>

@@ -222,7 +222,7 @@ ob_start();
                     <fieldset <?= !empty($pedido['nro_pedido']) ? 'disabled' : '' ?> class="border-0 p-0 m-0">
                     <?php if (!empty($pedido['tratativa_id'])): ?>
                         <div class="alert alert-info border-0 small mb-3">
-                            <i class="bi bi-handshake"></i> Este PDS forma parte de la
+                            <i class="bi bi-briefcase-fill"></i> Este PDS forma parte de la
                             <a href="/mi-empresa/crm/tratativas/<?= (int) $pedido['tratativa_id'] ?>" class="alert-link">Tratativa #<?= (int) $pedido['tratativa_id'] ?></a>.
                             Al guardar volverás al detalle de la tratativa.
                         </div>

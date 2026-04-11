@@ -52,7 +52,7 @@ ob_start();
 <main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1400px;">
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
-            <h1 class="h3 fw-bold mb-1"><i class="bi bi-handshake"></i> Tratativas CRM</h1>
+            <h1 class="h3 fw-bold mb-1"><i class="bi bi-briefcase-fill"></i> Tratativas CRM</h1>
         </div>
         <div class="d-flex gap-2">
             <a href="<?= htmlspecialchars($dashboardPath ?? '/') ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>

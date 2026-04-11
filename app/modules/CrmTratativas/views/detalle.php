@@ -48,7 +48,7 @@ ob_start();
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1">
-                <i class="bi bi-handshake"></i>
+                <i class="bi bi-briefcase-fill"></i>
                 Tratativa #<?= (int) ($tratativa['numero'] ?? 0) ?>
                 <span class="badge <?= $badgeClass ?> ms-2 fs-6"><?= htmlspecialchars($estadoLabel) ?></span>
             </h1>

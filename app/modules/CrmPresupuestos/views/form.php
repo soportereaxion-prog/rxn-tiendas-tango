@@ -335,7 +335,7 @@ ob_start();
             <?php if (!empty($presupuesto['tratativa_id'])): ?>
                 <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $presupuesto['tratativa_id']) ?>">
                 <div class="alert alert-info border-0 small mb-3">
-                    <i class="bi bi-handshake"></i> Este presupuesto forma parte de la
+                    <i class="bi bi-briefcase-fill"></i> Este presupuesto forma parte de la
                     <a href="/mi-empresa/crm/tratativas/<?= (int) $presupuesto['tratativa_id'] ?>" class="alert-link">Tratativa #<?= (int) $presupuesto['tratativa_id'] ?></a>.
                     Al guardar volverás al detalle de la tratativa.
                 </div>
