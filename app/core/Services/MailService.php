@@ -93,19 +93,47 @@ class MailService
         return $mail;
     }
 
+    /**
+     * Parsea un string de destinatarios separados por coma, punto y coma o espacio
+     * y devuelve un array de emails válidos (saltando vacíos y malformados).
+     */
+    private function parseRecipients(string $raw): array
+    {
+        $parts = preg_split('/[,;\s]+/', $raw) ?: [];
+        $valid = [];
+        foreach ($parts as $candidate) {
+            $candidate = trim($candidate);
+            if ($candidate === '') {
+                continue;
+            }
+            if (filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+                $valid[] = $candidate;
+            }
+        }
+        return $valid;
+    }
+
     public function send(string $to, string $subject, string $body, int $empresaId, array $attachments = []): bool
     {
         $config = $this->resolveMailerConfig($empresaId);
-        
+
         if (empty($config['host'])) {
             error_log("MailService: Falló resolución SMTP para enviar a $to. Default Host missing.");
+            return false;
+        }
+
+        $recipients = $this->parseRecipients($to);
+        if (empty($recipients)) {
+            error_log("MailService: No hay destinatarios válidos en '$to'.");
             return false;
         }
 
         try {
             $mail = $this->buildMailer($config);
             $mail->setFrom($config['from_email'], $config['from_name']);
-            $mail->addAddress($to);
+            foreach ($recipients as $recipient) {
+                $mail->addAddress($recipient);
+            }
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
