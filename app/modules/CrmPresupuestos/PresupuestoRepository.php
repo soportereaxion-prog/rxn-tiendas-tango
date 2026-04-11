@@ -251,7 +251,7 @@ class PresupuestoRepository
                 $numero = $this->previewNextNumero((int) $data['empresa_id']);
 
                 $stmt = $this->db->prepare('INSERT INTO crm_presupuestos (
-                        empresa_id, numero, fecha, cliente_id, cliente_nombre_snapshot, cliente_documento_snapshot,
+                        empresa_id, tratativa_id, numero, fecha, cliente_id, cliente_nombre_snapshot, cliente_documento_snapshot,
                         deposito_codigo, deposito_nombre_snapshot,
                         condicion_codigo, condicion_nombre_snapshot, condicion_id_interno,
                         transporte_codigo, transporte_nombre_snapshot, transporte_id_interno,
@@ -260,7 +260,7 @@ class PresupuestoRepository
                         clasificacion_codigo, clasificacion_id_tango,
                         subtotal, descuento_total, impuestos_total, total, estado, usuario_id, usuario_nombre, created_at, updated_at
                     ) VALUES (
-                        :empresa_id, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
+                        :empresa_id, :tratativa_id, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
                         :deposito_codigo, :deposito_nombre_snapshot,
                         :condicion_codigo, :condicion_nombre_snapshot, :condicion_id_interno,
                         :transporte_codigo, :transporte_nombre_snapshot, :transporte_id_interno,
@@ -298,6 +298,7 @@ class PresupuestoRepository
 
         try {
             $stmt = $this->db->prepare('UPDATE crm_presupuestos SET
+                    tratativa_id = :tratativa_id,
                     fecha = :fecha,
                     cliente_id = :cliente_id,
                     cliente_nombre_snapshot = :cliente_nombre_snapshot,
@@ -432,6 +433,7 @@ class PresupuestoRepository
     {
         return [
             ':empresa_id' => (int) ($data['empresa_id'] ?? 0),
+            ':tratativa_id' => !empty($data['tratativa_id']) ? (int) $data['tratativa_id'] : null,
             ':fecha' => (string) ($data['fecha'] ?? ''),
             ':cliente_id' => (int) ($data['cliente_id'] ?? 0),
             ':cliente_nombre_snapshot' => (string) ($data['cliente_nombre_snapshot'] ?? ''),

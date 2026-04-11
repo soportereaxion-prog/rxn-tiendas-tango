@@ -307,6 +307,22 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/presupuestos/{id}/imprimir', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'printPreview', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/enviar-correo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'sendEmail', $requireCrm));
 
+    // --- MODULO CRM TRATATIVAS (agregador comercial: agrupa PDS + Presupuestos) ---
+    $router->get('/mi-empresa/crm/tratativas', $action(\App\Modules\CrmTratativas\TratativaController::class, 'index', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/eliminar-masivo', $action(\App\Modules\CrmTratativas\TratativaController::class, 'eliminarMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/restore-masivo', $action(\App\Modules\CrmTratativas\TratativaController::class, 'restoreMasivo', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/force-delete-masivo', $action(\App\Modules\CrmTratativas\TratativaController::class, 'forceDeleteMasivo', $requireCrm));
+    $router->get('/mi-empresa/crm/tratativas/sugerencias', $action(\App\Modules\CrmTratativas\TratativaController::class, 'suggestions', $requireCrm));
+    $router->get('/mi-empresa/crm/tratativas/clientes/sugerencias', $action(\App\Modules\CrmTratativas\TratativaController::class, 'clientSuggestions', $requireCrm));
+    $router->get('/mi-empresa/crm/tratativas/crear', $action(\App\Modules\CrmTratativas\TratativaController::class, 'create', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas', $action(\App\Modules\CrmTratativas\TratativaController::class, 'store', $requireCrm));
+    $router->get('/mi-empresa/crm/tratativas/{id}/editar', $action(\App\Modules\CrmTratativas\TratativaController::class, 'edit', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/{id}/eliminar', $action(\App\Modules\CrmTratativas\TratativaController::class, 'eliminar', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/{id}/restore', $action(\App\Modules\CrmTratativas\TratativaController::class, 'restore', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/{id}/force-delete', $action(\App\Modules\CrmTratativas\TratativaController::class, 'forceDelete', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/{id}', $action(\App\Modules\CrmTratativas\TratativaController::class, 'update', $requireCrm));
+    $router->get('/mi-empresa/crm/tratativas/{id}', $action(\App\Modules\CrmTratativas\TratativaController::class, 'show', $requireCrm));
+
     // --- MODULO CRM PRE-IMPRESION ---
     $router->get('/mi-empresa/crm/formularios-impresion', $action(\App\Modules\PrintForms\PrintFormController::class, 'index', $requireCrm));
     $router->get('/mi-empresa/crm/formularios-impresion/{documentKey}', $action(\App\Modules\PrintForms\PrintFormController::class, 'edit', $requireCrm));

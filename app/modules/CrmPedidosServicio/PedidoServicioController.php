@@ -239,8 +239,8 @@ class PedidoServicioController extends \App\Core\Controller
             } else {
                 Flash::set('success', 'Pedido de servicio creado correctamente.');
             }
-            
-            header('Location: /mi-empresa/crm/pedidos-servicio/' . $pedidoId . '/editar');
+
+            header('Location: ' . $this->resolveReturnPath($pedidoId, (int) ($payload['tratativa_id'] ?? 0)));
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
@@ -303,8 +303,8 @@ class PedidoServicioController extends \App\Core\Controller
             } else {
                 Flash::set('success', 'Pedido de servicio actualizado correctamente.');
             }
-            
-            header('Location: /mi-empresa/crm/pedidos-servicio/' . (int) $id . '/editar');
+
+            header('Location: ' . $this->resolveReturnPath((int) $id, (int) ($payload['tratativa_id'] ?? 0)));
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
@@ -635,6 +635,21 @@ class PedidoServicioController extends \App\Core\Controller
     private function validateRequest(array $input, int $empresaId, ?array $pedidoActual, string $action = ''): array
     {
         $errors = [];
+        // Tratativa vinculada (opcional): viene desde query param o como hidden del form
+        $tratativaIdInput = (int) ($input['tratativa_id'] ?? 0);
+        if ($tratativaIdInput <= 0 && $pedidoActual !== null) {
+            $tratativaIdInput = (int) ($pedidoActual['tratativa_id'] ?? 0);
+        }
+        $tratativaIdFinal = null;
+        if ($tratativaIdInput > 0) {
+            $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+            if ($tratativaRepo->existsActiveForEmpresa($tratativaIdInput, $empresaId)) {
+                $tratativaIdFinal = $tratativaIdInput;
+            }
+            // Si la tratativa no existe o no pertenece a la empresa, se ignora silenciosamente
+            // (no bloqueamos el guardado del PDS por un vinculo opcional).
+        }
+
         $fechaInicioInput = trim((string) ($input['fecha_inicio'] ?? ''));
         $fechaFinalizadoInput = trim((string) ($input['fecha_finalizado'] ?? ''));
         $solicito = trim((string) ($input['solicito'] ?? ''));
@@ -740,6 +755,7 @@ class PedidoServicioController extends \App\Core\Controller
 
         return [
             'empresa_id' => $empresaId,
+            'tratativa_id' => $tratativaIdFinal,
             'usuario_id' => isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
             'usuario_nombre' => $_SESSION['user_name'] ?? 'Usuario',
             'fecha_inicio' => $fechaInicio?->format('Y-m-d H:i:s'),
@@ -776,6 +792,18 @@ class PedidoServicioController extends \App\Core\Controller
         ];
     }
 
+    /**
+     * Si el PDS vive bajo una tratativa, al guardar volvemos al detalle de la tratativa.
+     * En caso contrario, caemos al editar del propio PDS como siempre.
+     */
+    private function resolveReturnPath(int $pedidoId, int $tratativaId): string
+    {
+        if ($tratativaId > 0) {
+            return '/mi-empresa/crm/tratativas/' . $tratativaId;
+        }
+        return '/mi-empresa/crm/pedidos-servicio/' . $pedidoId . '/editar';
+    }
+
     private function normalizeSearchField(string $field): string
     {
         return in_array($field, self::SEARCH_FIELDS, true) ? $field : 'all';
@@ -796,9 +824,19 @@ class PedidoServicioController extends \App\Core\Controller
             }
         }
 
+        // Tratativa vinculada desde query param (patron identico a Llamadas -> PDS con ?inicio=)
+        $tratativaId = '';
+        if (!empty($_GET['tratativa_id'])) {
+            $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+            if ($tratativaRepo->existsActiveForEmpresa((int) $_GET['tratativa_id'], $empresaId)) {
+                $tratativaId = (string) (int) $_GET['tratativa_id'];
+            }
+        }
+
         return [
             'id' => null,
             'numero' => $this->repository->previewNextNumero($empresaId),
+            'tratativa_id' => $tratativaId,
             'fecha_inicio' => isset($_GET['inicio']) ? trim($_GET['inicio']) : $now->format('Y-m-d\TH:i:s'),
             'fecha_finalizado' => isset($_GET['fin']) ? trim($_GET['fin']) : '',
             'cliente_id' => $clienteId,
@@ -826,6 +864,7 @@ class PedidoServicioController extends \App\Core\Controller
         return [
             'id' => (int) ($pedido['id'] ?? 0),
             'numero' => (int) ($pedido['numero'] ?? 0),
+            'tratativa_id' => (string) ($pedido['tratativa_id'] ?? ''),
             'fecha_inicio' => $this->formatDateTimeForInput($pedido['fecha_inicio'] ?? null),
             'fecha_finalizado' => $this->formatDateTimeForInput($pedido['fecha_finalizado'] ?? null),
             'cliente_id' => (string) ($pedido['cliente_id'] ?? ''),
@@ -859,6 +898,7 @@ class PedidoServicioController extends \App\Core\Controller
     private function buildFormStateFromPost(array $input, int $empresaId, ?array $pedidoActual = null): array
     {
         $state = $pedidoActual !== null ? $this->hydrateFormState($pedidoActual) : $this->defaultFormState($empresaId);
+        $state['tratativa_id'] = trim((string) ($input['tratativa_id'] ?? $state['tratativa_id'] ?? ''));
         $state['fecha_inicio'] = trim((string) ($input['fecha_inicio'] ?? $state['fecha_inicio']));
         $state['fecha_finalizado'] = trim((string) ($input['fecha_finalizado'] ?? $state['fecha_finalizado']));
         $state['cliente_id'] = trim((string) ($input['cliente_id'] ?? $state['cliente_id']));

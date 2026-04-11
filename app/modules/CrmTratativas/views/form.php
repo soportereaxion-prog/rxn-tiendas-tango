@@ -1,0 +1,243 @@
+<?php
+use App\Core\View;
+
+$pageTitle = ($formMode === 'edit' ? 'Editar' : 'Nueva') . ' Tratativa - rxn_suite';
+$tratativa = $tratativa ?? [];
+$errors = $errors ?? [];
+$formAction = $formAction ?? '/mi-empresa/crm/tratativas';
+$formMode = $formMode ?? 'create';
+
+$fieldError = static function (string $field) use ($errors): string {
+    return isset($errors[$field]) ? '<div class="invalid-feedback d-block">' . htmlspecialchars((string) $errors[$field]) . '</div>' : '';
+};
+
+$estadoOpciones = [
+    'nueva' => 'Nueva',
+    'en_curso' => 'En curso',
+    'ganada' => 'Ganada',
+    'perdida' => 'Perdida',
+    'pausada' => 'Pausada',
+];
+
+ob_start();
+?>
+
+<main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1100px;">
+    <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-handshake"></i>
+                <?= $formMode === 'edit' ? 'Editar Tratativa #' . (int) $tratativa['numero'] : 'Nueva Tratativa (Preview #' . (int) $tratativa['numero'] . ')' ?>
+            </h1>
+            <p class="text-muted small mb-0">Agrupá un cliente, un estado comercial y vinculá tus PDS y Presupuestos bajo un mismo caso.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al listado</a>
+        </div>
+    </div>
+
+    <?php if ($errors !== []): ?>
+        <div class="alert alert-danger shadow-sm"><i class="bi bi-exclamation-triangle"></i> Revisá los errores en el formulario antes de guardar.</div>
+    <?php endif; ?>
+
+    <form action="<?= htmlspecialchars($formAction) ?>" method="POST" id="tratativa-form" autocomplete="off">
+        <div class="card bg-dark text-light border-0 shadow-sm mb-4">
+            <div class="card-header border-bottom border-secondary border-opacity-25">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-info-circle"></i> Datos generales</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label small text-muted">Título *</label>
+                        <input type="text" name="titulo" class="form-control bg-dark text-light border-secondary <?= isset($errors['titulo']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['titulo']) ?>" maxlength="200" required>
+                        <?= $fieldError('titulo') ?>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Estado *</label>
+                        <select name="estado" class="form-select bg-dark text-light border-secondary <?= isset($errors['estado']) ? 'is-invalid' : '' ?>" required>
+                            <?php foreach ($estadoOpciones as $value => $label): ?>
+                                <option value="<?= htmlspecialchars($value) ?>" <?= $tratativa['estado'] === $value ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?= $fieldError('estado') ?>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small text-muted">Descripción</label>
+                        <textarea name="descripcion" class="form-control bg-dark text-light border-secondary" rows="3" placeholder="Contexto del caso: cómo surgió, qué necesita el cliente, quién lo originó..."><?= htmlspecialchars((string) $tratativa['descripcion']) ?></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-dark text-light border-0 shadow-sm mb-4">
+            <div class="card-header border-bottom border-secondary border-opacity-25">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-person-vcard"></i> Cliente</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-10 position-relative">
+                        <label class="form-label small text-muted">Cliente (opcional)</label>
+                        <input type="text" id="cliente_search" class="form-control bg-dark text-light border-secondary <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['cliente_nombre']) ?>" placeholder="Buscar cliente por razón social, código Tango, documento o email..." autocomplete="off">
+                        <input type="hidden" name="cliente_id" id="cliente_id" value="<?= htmlspecialchars((string) $tratativa['cliente_id']) ?>">
+                        <input type="hidden" name="cliente_nombre" id="cliente_nombre_hidden" value="<?= htmlspecialchars((string) $tratativa['cliente_nombre']) ?>">
+                        <div id="cliente_suggestions" class="dropdown-menu w-100 bg-dark border-secondary" style="max-height:240px;overflow-y:auto;"></div>
+                        <?= $fieldError('cliente_id') ?>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" id="clear-cliente" class="btn btn-outline-secondary w-100"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-dark text-light border-0 shadow-sm mb-4">
+            <div class="card-header border-bottom border-secondary border-opacity-25">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart"></i> Valor y pronóstico</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Probabilidad (%)</label>
+                        <input type="number" name="probabilidad" class="form-control bg-dark text-light border-secondary <?= isset($errors['probabilidad']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['probabilidad']) ?>" min="0" max="100" step="5">
+                        <?= $fieldError('probabilidad') ?>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Valor estimado</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark text-light border-secondary">$</span>
+                            <input type="number" name="valor_estimado" class="form-control bg-dark text-light border-secondary <?= isset($errors['valor_estimado']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['valor_estimado']) ?>" min="0" step="0.01">
+                        </div>
+                        <?= $fieldError('valor_estimado') ?>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Responsable</label>
+                        <input type="text" class="form-control bg-dark text-muted border-secondary" value="<?= htmlspecialchars((string) $tratativa['usuario_nombre']) ?>" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-dark text-light border-0 shadow-sm mb-4">
+            <div class="card-header border-bottom border-secondary border-opacity-25">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-event"></i> Fechas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Apertura</label>
+                        <input type="date" name="fecha_apertura" class="form-control bg-dark text-light border-secondary <?= isset($errors['fecha_apertura']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['fecha_apertura']) ?>">
+                        <?= $fieldError('fecha_apertura') ?>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Cierre estimado</label>
+                        <input type="date" name="fecha_cierre_estimado" class="form-control bg-dark text-light border-secondary <?= isset($errors['fecha_cierre_estimado']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['fecha_cierre_estimado']) ?>">
+                        <?= $fieldError('fecha_cierre_estimado') ?>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Cierre real</label>
+                        <input type="date" name="fecha_cierre_real" class="form-control bg-dark text-light border-secondary <?= isset($errors['fecha_cierre_real']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $tratativa['fecha_cierre_real']) ?>">
+                        <?= $fieldError('fecha_cierre_real') ?>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small text-muted">Motivo de cierre (obligatorio si estado es Ganada / Perdida)</label>
+                        <textarea name="motivo_cierre" class="form-control bg-dark text-light border-secondary <?= isset($errors['motivo_cierre']) ? 'is-invalid' : '' ?>" rows="2"><?= htmlspecialchars((string) $tratativa['motivo_cierre']) ?></textarea>
+                        <?= $fieldError('motivo_cierre') ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</a>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> <?= $formMode === 'edit' ? 'Guardar cambios' : 'Crear tratativa' ?></button>
+        </div>
+    </form>
+</main>
+
+<?php
+$content = ob_get_clean();
+ob_start();
+?>
+<script>
+    (function () {
+        const searchInput = document.getElementById('cliente_search');
+        const suggestionsDiv = document.getElementById('cliente_suggestions');
+        const hiddenId = document.getElementById('cliente_id');
+        const hiddenName = document.getElementById('cliente_nombre_hidden');
+        const btnClear = document.getElementById('clear-cliente');
+
+        if (!searchInput) { return; }
+
+        let searchTimeout;
+        let currentFocus = -1;
+
+        function loadSuggestions(q) {
+            fetch('<?= htmlspecialchars($basePath) ?>/clientes/sugerencias?q=' + encodeURIComponent(q))
+                .then(res => res.json())
+                .then(data => {
+                    suggestionsDiv.innerHTML = '';
+                    currentFocus = -1;
+                    if (data.success && data.data.length > 0) {
+                        suggestionsDiv.innerHTML = data.data.map(item =>
+                            '<a href="#" class="dropdown-item text-light suggestion-item px-3 py-2 border-bottom border-light border-opacity-10" data-id="' + item.id + '" data-label="' + item.label.replace(/"/g, '&quot;') + '">' +
+                                '<div class="fw-bold">' + item.label + '</div>' +
+                                '<div class="small text-muted">' + item.caption + '</div>' +
+                            '</a>'
+                        ).join('');
+                        suggestionsDiv.classList.add('show');
+                    } else {
+                        suggestionsDiv.innerHTML = '<div class="dropdown-item text-muted disabled py-2">Sin resultados</div>';
+                        suggestionsDiv.classList.add('show');
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const q = e.target.value.trim();
+            hiddenId.value = '';
+            hiddenName.value = '';
+            clearTimeout(searchTimeout);
+            if (q.length < 2) {
+                suggestionsDiv.classList.remove('show');
+                return;
+            }
+            searchTimeout = setTimeout(() => loadSuggestions(q), 250);
+        });
+
+        searchInput.addEventListener('focus', () => {
+            const q = searchInput.value.trim();
+            if (q.length >= 2) {
+                loadSuggestions(q);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+                suggestionsDiv.classList.remove('show');
+            }
+        });
+
+        suggestionsDiv.addEventListener('click', (e) => {
+            const item = e.target.closest('.suggestion-item');
+            if (!item) { return; }
+            e.preventDefault();
+            hiddenId.value = item.dataset.id;
+            hiddenName.value = item.dataset.label;
+            searchInput.value = item.dataset.label;
+            suggestionsDiv.classList.remove('show');
+        });
+
+        btnClear && btnClear.addEventListener('click', () => {
+            searchInput.value = '';
+            hiddenId.value = '';
+            hiddenName.value = '';
+            suggestionsDiv.classList.remove('show');
+            searchInput.focus();
+        });
+    })();
+</script>
+<?php
+$extraScripts = ob_get_clean();
+require BASE_PATH . '/app/shared/views/admin_layout.php';
+?>

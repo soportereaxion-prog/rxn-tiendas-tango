@@ -39,6 +39,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-people"></i>',
         'link' => '/mi-empresa/crm/clientes',
     ],
+    'tratativas' => [
+        'title' => 'Tratativas',
+        'desc' => 'Oportunidades comerciales que agrupan PDS y Presupuestos bajo un mismo caso de negociación.',
+        'icon' => '<i class="bi bi-handshake"></i>',
+        'link' => '/mi-empresa/crm/tratativas',
+    ],
     'pedidos_servicio' => [
         'title' => 'Pedidos de Servicio',
         'desc' => 'Alta, seguimiento y calculo de tiempos operativos para el circuito tecnico/comercial de CRM.',

@@ -139,7 +139,7 @@ class PresupuestoController extends \App\Core\Controller
             $payload = $this->validateRequest($_POST, $empresaId, null);
             $presupuestoId = $this->repository->create($payload);
             Flash::set('success', 'Presupuesto CRM guardado correctamente.');
-            header('Location: /mi-empresa/crm/presupuestos/' . $presupuestoId . '/editar');
+            header('Location: ' . $this->resolveReturnPath($presupuestoId, (int) ($payload['tratativa_id'] ?? 0)));
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
@@ -196,7 +196,7 @@ class PresupuestoController extends \App\Core\Controller
             $payload = $this->validateRequest($_POST, $empresaId, $presupuestoActual);
             $this->repository->update((int) $id, $empresaId, $payload);
             Flash::set('success', 'Presupuesto CRM actualizado correctamente.');
-            header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+            header('Location: ' . $this->resolveReturnPath((int) $id, (int) ($payload['tratativa_id'] ?? 0)));
             exit;
         } catch (ValidationException $e) {
             http_response_code(422);
@@ -705,6 +705,18 @@ class PresupuestoController extends \App\Core\Controller
         ];
     }
 
+    /**
+     * Si el Presupuesto vive bajo una tratativa, al guardar volvemos al detalle de la tratativa.
+     * En caso contrario, caemos al editar del propio Presupuesto como siempre.
+     */
+    private function resolveReturnPath(int $presupuestoId, int $tratativaId): string
+    {
+        if ($tratativaId > 0) {
+            return '/mi-empresa/crm/tratativas/' . $tratativaId;
+        }
+        return '/mi-empresa/crm/presupuestos/' . $presupuestoId . '/editar';
+    }
+
     private function loadCatalogData(int $empresaId): array
     {
         $warning = null;
@@ -805,13 +817,35 @@ class PresupuestoController extends \App\Core\Controller
         $now = new DateTimeImmutable();
         $defaults = $this->loadUserTangoProfileDefaults($empresaId);
 
+        // Tratativa vinculada desde query param (patron identico a Llamadas -> PDS con ?inicio=)
+        $tratativaId = '';
+        if (!empty($_GET['tratativa_id'])) {
+            $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+            if ($tratativaRepo->existsActiveForEmpresa((int) $_GET['tratativa_id'], $empresaId)) {
+                $tratativaId = (string) (int) $_GET['tratativa_id'];
+            }
+        }
+
+        // Cliente precargado desde query param (tipico al crear desde detalle de tratativa)
+        $clienteIdPreload = '';
+        $clienteNombrePreload = '';
+        if (!empty($_GET['cliente_id'])) {
+            $cli = $this->clienteRepository->findById((int) $_GET['cliente_id'], $empresaId);
+            if ($cli) {
+                $clienteIdPreload = (string) $cli['id'];
+                $razon = trim((string) ($cli['razon_social'] ?? ''));
+                $clienteNombrePreload = $razon !== '' ? $razon : trim(((string) ($cli['nombre'] ?? '')) . ' ' . ((string) ($cli['apellido'] ?? '')));
+            }
+        }
+
         return [
             'id' => null,
             'numero' => $this->repository->previewNextNumero($empresaId),
+            'tratativa_id' => $tratativaId,
             'fecha' => $now->format('Y-m-d\TH:i'),
             'estado' => 'borrador',
-            'cliente_id' => '',
-            'cliente_nombre' => '',
+            'cliente_id' => $clienteIdPreload,
+            'cliente_nombre' => $clienteNombrePreload,
             'cliente_documento' => '',
             'deposito_codigo' => $defaults['deposito_codigo'] ?? '',
             'condicion_codigo' => $defaults['condicion_codigo'] ?? '',
@@ -837,6 +871,7 @@ class PresupuestoController extends \App\Core\Controller
         return [
             'id' => (int) ($presupuesto['id'] ?? 0),
             'numero' => (int) ($presupuesto['numero'] ?? 0),
+            'tratativa_id' => (string) ($presupuesto['tratativa_id'] ?? ''),
             'fecha' => $this->formatDateTimeForInput($presupuesto['fecha'] ?? null),
             'estado' => (string) ($presupuesto['estado'] ?? 'borrador'),
             'cliente_id' => (string) ($presupuesto['cliente_id'] ?? ''),
@@ -889,6 +924,7 @@ class PresupuestoController extends \App\Core\Controller
             ? $this->hydrateFormState($presupuestoActual, $this->repository->findItemsByPresupuestoId((int) $presupuestoActual['id'], $empresaId))
             : $this->defaultFormState($empresaId);
 
+        $state['tratativa_id'] = trim((string) ($input['tratativa_id'] ?? $state['tratativa_id'] ?? ''));
         $state['fecha'] = trim((string) ($input['fecha'] ?? $state['fecha']));
         $state['estado'] = $this->normalizeEstado((string) ($input['estado'] ?? $state['estado']));
         $state['cliente_id'] = trim((string) ($input['cliente_id'] ?? $state['cliente_id']));
@@ -916,6 +952,20 @@ class PresupuestoController extends \App\Core\Controller
     private function validateRequest(array $input, int $empresaId, ?array $presupuestoActual): array
     {
         $errors = [];
+
+        // Tratativa vinculada (opcional): viene desde query param o como hidden del form
+        $tratativaIdInput = (int) ($input['tratativa_id'] ?? 0);
+        if ($tratativaIdInput <= 0 && $presupuestoActual !== null) {
+            $tratativaIdInput = (int) ($presupuestoActual['tratativa_id'] ?? 0);
+        }
+        $tratativaIdFinal = null;
+        if ($tratativaIdInput > 0) {
+            $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+            if ($tratativaRepo->existsActiveForEmpresa($tratativaIdInput, $empresaId)) {
+                $tratativaIdFinal = $tratativaIdInput;
+            }
+        }
+
         $fechaInput = trim((string) ($input['fecha'] ?? ''));
         $fecha = $this->parseDateTimeInput($fechaInput);
         if ($fecha === null) {
@@ -986,6 +1036,7 @@ class PresupuestoController extends \App\Core\Controller
 
         return [
             'empresa_id' => $empresaId,
+            'tratativa_id' => $tratativaIdFinal,
             'usuario_id' => isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
             'usuario_nombre' => $_SESSION['user_name'] ?? 'Usuario',
             'fecha' => $fecha?->format('Y-m-d H:i:s'),

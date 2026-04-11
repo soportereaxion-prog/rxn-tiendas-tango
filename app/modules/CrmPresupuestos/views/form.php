@@ -332,6 +332,14 @@ ob_start();
         <?php endif; ?>
 
         <form id="crm-presupuesto-form" class="crm-budget-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate>
+            <?php if (!empty($presupuesto['tratativa_id'])): ?>
+                <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $presupuesto['tratativa_id']) ?>">
+                <div class="alert alert-info border-0 small mb-3">
+                    <i class="bi bi-handshake"></i> Este presupuesto forma parte de la
+                    <a href="/mi-empresa/crm/tratativas/<?= (int) $presupuesto['tratativa_id'] ?>" class="alert-link">Tratativa #<?= (int) $presupuesto['tratativa_id'] ?></a>.
+                    Al guardar volverás al detalle de la tratativa.
+                </div>
+            <?php endif; ?>
             <fieldset <?= ($presupuesto['estado'] ?? '') === 'emitido' ? 'disabled' : '' ?>>
             <div class="card rxn-form-card mb-3">
                 <div class="card-body">

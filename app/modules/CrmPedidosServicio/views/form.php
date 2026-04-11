@@ -216,7 +216,17 @@ ob_start();
         <div class="card rxn-form-card crm-service-form">
             <div class="card-body">
                 <form id="crm-pedido-servicio-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate>
+                    <?php if (!empty($pedido['tratativa_id'])): ?>
+                        <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $pedido['tratativa_id']) ?>">
+                    <?php endif; ?>
                     <fieldset <?= !empty($pedido['nro_pedido']) ? 'disabled' : '' ?> class="border-0 p-0 m-0">
+                    <?php if (!empty($pedido['tratativa_id'])): ?>
+                        <div class="alert alert-info border-0 small mb-3">
+                            <i class="bi bi-handshake"></i> Este PDS forma parte de la
+                            <a href="/mi-empresa/crm/tratativas/<?= (int) $pedido['tratativa_id'] ?>" class="alert-link">Tratativa #<?= (int) $pedido['tratativa_id'] ?></a>.
+                            Al guardar volverás al detalle de la tratativa.
+                        </div>
+                    <?php endif; ?>
                     <div class="rxn-form-section mb-2">
                         <div class="rxn-form-section-title">Encabezado operativo</div>
                         <div class="crm-sheet-grid">

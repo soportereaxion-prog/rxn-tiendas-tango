@@ -202,6 +202,7 @@ class PedidoServicioRepository
 
                 $stmt = $this->db->prepare('INSERT INTO crm_pedidos_servicio (
                     empresa_id,
+                    tratativa_id,
                     usuario_id,
                     usuario_nombre,
                     numero,
@@ -230,6 +231,7 @@ class PedidoServicioRepository
                     updated_at
                 ) VALUES (
                     :empresa_id,
+                    :tratativa_id,
                     :usuario_id,
                     :usuario_nombre,
                     :numero,
@@ -282,6 +284,7 @@ class PedidoServicioRepository
         $data['empresa_id'] = $empresaId;
 
         $stmt = $this->db->prepare('UPDATE crm_pedidos_servicio SET
+                tratativa_id = :tratativa_id,
                 fecha_inicio = :fecha_inicio,
                 fecha_finalizado = :fecha_finalizado,
                 cliente_id = :cliente_id,
@@ -609,6 +612,7 @@ class PedidoServicioRepository
     {
         return [
             ':empresa_id' => (int) $data['empresa_id'],
+            ':tratativa_id' => !empty($data['tratativa_id']) ? (int) $data['tratativa_id'] : null,
             ':usuario_id' => $data['usuario_id'] ?? null,
             ':usuario_nombre' => $data['usuario_nombre'] ?? null,
             ':numero' => (int) ($data['numero'] ?? 0),
