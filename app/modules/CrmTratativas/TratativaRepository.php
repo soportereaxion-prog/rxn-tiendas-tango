@@ -229,6 +229,15 @@ class TratativaRepository
                 $id = (int) $this->db->lastInsertId();
                 $this->db->commit();
 
+                // Hook explícito: proyectar la tratativa como evento en la agenda
+                // (solo si tiene fecha_cierre_estimado, el proyector ya lo valida).
+                try {
+                    $row = $data;
+                    $row['id'] = $id;
+                    $row['numero'] = $numero;
+                    (new \App\Modules\CrmAgenda\AgendaProyectorService())->onTratativaSaved($row);
+                } catch (\Throwable) {}
+
                 return $id;
             } catch (\Throwable $e) {
                 if ($this->db->inTransaction()) {
@@ -267,7 +276,16 @@ class TratativaRepository
         unset($payload[':numero'], $payload[':usuario_id'], $payload[':usuario_nombre']);
         $payload[':id'] = $id;
 
-        return $stmt->execute($payload);
+        $ok = $stmt->execute($payload);
+
+        // Hook explícito: re-proyectar la tratativa en la agenda.
+        try {
+            $row = $data;
+            $row['id'] = $id;
+            (new \App\Modules\CrmAgenda\AgendaProyectorService())->onTratativaSaved($row);
+        } catch (\Throwable) {}
+
+        return $ok;
     }
 
     public function deleteByIds(array $ids, int $empresaId): int
@@ -280,6 +298,14 @@ class TratativaRepository
         $sql = 'UPDATE crm_tratativas SET deleted_at = NOW() WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
         $stmt = $this->db->prepare($sql);
         $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
+
+        // Hook explícito: eliminar los eventos proyectados de estas tratativas en la agenda.
+        try {
+            $proyector = new \App\Modules\CrmAgenda\AgendaProyectorService();
+            foreach ($ids as $trId) {
+                $proyector->onTratativaDeleted((int) $trId, $empresaId);
+            }
+        } catch (\Throwable) {}
 
         return $stmt->rowCount();
     }

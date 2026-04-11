@@ -307,6 +307,18 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/presupuestos/{id}/imprimir', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'printPreview', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/enviar-correo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'sendEmail', $requireCrm));
 
+    // --- MODULO CRM AGENDA (calendario unificado + sync push a Google Calendar) ---
+    $router->get('/mi-empresa/crm/agenda', $action(\App\Modules\CrmAgenda\AgendaController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/agenda/events', $action(\App\Modules\CrmAgenda\AgendaController::class, 'eventsFeed', $requireCrm));
+    $router->get('/mi-empresa/crm/agenda/crear', $action(\App\Modules\CrmAgenda\AgendaController::class, 'create', $requireCrm));
+    $router->post('/mi-empresa/crm/agenda', $action(\App\Modules\CrmAgenda\AgendaController::class, 'store', $requireCrm));
+    $router->get('/mi-empresa/crm/agenda/google/connect', $action(\App\Modules\CrmAgenda\AgendaController::class, 'googleConnect', $requireCrm));
+    $router->get('/mi-empresa/crm/agenda/google/callback', $action(\App\Modules\CrmAgenda\AgendaController::class, 'googleCallback', $requireCrm));
+    $router->post('/mi-empresa/crm/agenda/google/disconnect', $action(\App\Modules\CrmAgenda\AgendaController::class, 'googleDisconnect', $requireCrm));
+    $router->get('/mi-empresa/crm/agenda/{id}/editar', $action(\App\Modules\CrmAgenda\AgendaController::class, 'edit', $requireCrm));
+    $router->post('/mi-empresa/crm/agenda/{id}/eliminar', $action(\App\Modules\CrmAgenda\AgendaController::class, 'eliminar', $requireCrm));
+    $router->post('/mi-empresa/crm/agenda/{id}', $action(\App\Modules\CrmAgenda\AgendaController::class, 'update', $requireCrm));
+
     // --- MODULO CRM TRATATIVAS (agregador comercial: agrupa PDS + Presupuestos) ---
     $router->get('/mi-empresa/crm/tratativas', $action(\App\Modules\CrmTratativas\TratativaController::class, 'index', $requireCrm));
     $router->post('/mi-empresa/crm/tratativas/eliminar-masivo', $action(\App\Modules\CrmTratativas\TratativaController::class, 'eliminarMasivo', $requireCrm));

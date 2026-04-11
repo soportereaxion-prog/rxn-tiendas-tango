@@ -45,6 +45,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-briefcase-fill"></i>',
         'link' => '/mi-empresa/crm/tratativas',
     ],
+    'agenda' => [
+        'title' => 'Agenda CRM',
+        'desc' => 'Calendario unificado con eventos de PDS, Presupuestos y Tratativas, con sync a Google Calendar.',
+        'icon' => '<i class="bi bi-calendar-event"></i>',
+        'link' => '/mi-empresa/crm/agenda',
+    ],
     'pedidos_servicio' => [
         'title' => 'Pedidos de Servicio',
         'desc' => 'Alta, seguimiento y calculo de tiempos operativos para el circuito tecnico/comercial de CRM.',

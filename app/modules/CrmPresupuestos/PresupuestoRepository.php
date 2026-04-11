@@ -151,6 +151,15 @@ class PresupuestoRepository
         $stmt = $this->db->prepare($sql);
         $params = array_merge($ids, [$empresaId]);
         $stmt->execute($params);
+
+        // Hook explícito: eliminar los eventos proyectados de estos presupuestos en la agenda.
+        try {
+            $proyector = new \App\Modules\CrmAgenda\AgendaProyectorService();
+            foreach ($ids as $presId) {
+                $proyector->onPresupuestoDeleted((int) $presId, $empresaId);
+            }
+        } catch (\Throwable) {}
+
         return $stmt->rowCount();
     }
 
@@ -277,6 +286,16 @@ class PresupuestoRepository
                 $this->insertItems($presupuestoId, (int) $data['empresa_id'], $data['items'] ?? []);
                 $this->db->commit();
 
+                // Hook explícito: proyectar el presupuesto como evento en la agenda CRM.
+                try {
+                    $row = $data;
+                    $row['id'] = $presupuestoId;
+                    $row['numero'] = $numero;
+                    // Normalizar snapshot de cliente para el proyector
+                    $row['cliente_nombre_snapshot'] = $row['cliente_nombre_snapshot'] ?? ($row['cliente_nombre'] ?? '');
+                    (new \App\Modules\CrmAgenda\AgendaProyectorService())->onPresupuestoSaved($row);
+                } catch (\Throwable) {}
+
                 return $presupuestoId;
             } catch (\Throwable $e) {
                 if ($this->db->inTransaction()) {
@@ -341,6 +360,14 @@ class PresupuestoRepository
 
             $this->insertItems($id, $empresaId, $data['items'] ?? []);
             $this->db->commit();
+
+            // Hook explícito: re-proyectar el presupuesto actualizado en la agenda.
+            try {
+                $row = $data;
+                $row['id'] = $id;
+                $row['cliente_nombre_snapshot'] = $row['cliente_nombre_snapshot'] ?? ($row['cliente_nombre'] ?? '');
+                (new \App\Modules\CrmAgenda\AgendaProyectorService())->onPresupuestoSaved($row);
+            } catch (\Throwable) {}
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();

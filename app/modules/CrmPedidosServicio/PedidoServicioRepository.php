@@ -264,6 +264,14 @@ class PedidoServicioRepository
                 $id = (int) $this->db->lastInsertId();
                 $this->db->commit();
 
+                // Hook explícito: proyectar el PDS como evento en la agenda CRM.
+                // Silencioso: cualquier fallo no bloquea el save del PDS.
+                try {
+                    $pdsRow = $data;
+                    $pdsRow['id'] = $id;
+                    (new \App\Modules\CrmAgenda\AgendaProyectorService())->onPdsSaved($pdsRow);
+                } catch (\Throwable) {}
+
                 return $id;
             } catch (\Throwable $e) {
                 if ($this->db->inTransaction()) {
@@ -313,7 +321,16 @@ class PedidoServicioRepository
         unset($payload[':numero'], $payload[':usuario_id'], $payload[':usuario_nombre']);
         $payload[':id'] = $id;
 
-        return $stmt->execute($payload);
+        $ok = $stmt->execute($payload);
+
+        // Hook explícito: proyectar el PDS actualizado como evento en la agenda.
+        try {
+            $pdsRow = $data;
+            $pdsRow['id'] = $id;
+            (new \App\Modules\CrmAgenda\AgendaProyectorService())->onPdsSaved($pdsRow);
+        } catch (\Throwable) {}
+
+        return $ok;
     }
 
     public function deleteByIds(array $ids, int $empresaId): int
@@ -326,6 +343,14 @@ class PedidoServicioRepository
         $sql = 'UPDATE crm_pedidos_servicio SET deleted_at = NOW() WHERE empresa_id = ? AND nro_pedido IS NULL AND id IN (' . $placeholders . ')';
         $stmt = $this->db->prepare($sql);
         $stmt->execute(array_merge([$empresaId], array_map('intval', $ids)));
+
+        // Hook explícito: eliminar los eventos proyectados de estos PDS en la agenda.
+        try {
+            $proyector = new \App\Modules\CrmAgenda\AgendaProyectorService();
+            foreach ($ids as $pdsId) {
+                $proyector->onPdsDeleted((int) $pdsId, $empresaId);
+            }
+        } catch (\Throwable) {}
 
         return $stmt->rowCount();
     }
