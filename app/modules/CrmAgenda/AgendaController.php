@@ -312,40 +312,56 @@ class AgendaController extends \App\Core\Controller
 
         $proyector = new AgendaProyectorService();
         $db = \App\Core\Database::getConnection();
-        $counts = ['pds' => 0, 'presupuestos' => 0, 'tratativas' => 0];
 
-        // 1. PDS activos
-        $stmt = $db->prepare('SELECT * FROM crm_pedidos_servicio WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
-        $stmt->execute([':empresa_id' => $empresaId]);
-        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
-            try {
-                $proyector->onPdsSaved($row);
-                $counts['pds']++;
-            } catch (\Throwable) {}
+        // Leer qué módulos están tickeados en los filtros de la UI.
+        // Si no viene nada, barre todo (compat con comportamiento anterior).
+        $origenes = isset($_POST['origenes']) && is_array($_POST['origenes']) ? $_POST['origenes'] : ['pds', 'presupuesto', 'tratativa', 'llamada'];
+        $counts = [];
+
+        // PDS
+        if (in_array('pds', $origenes, true)) {
+            $counts['pds'] = 0;
+            $stmt = $db->prepare('SELECT * FROM crm_pedidos_servicio WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
+            $stmt->execute([':empresa_id' => $empresaId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+                try { $proyector->onPdsSaved($row); $counts['pds']++; } catch (\Throwable) {}
+            }
         }
 
-        // 2. Presupuestos activos
-        $stmt = $db->prepare('SELECT * FROM crm_presupuestos WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
-        $stmt->execute([':empresa_id' => $empresaId]);
-        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
-            try {
-                $proyector->onPresupuestoSaved($row);
-                $counts['presupuestos']++;
-            } catch (\Throwable) {}
+        // Presupuestos
+        if (in_array('presupuesto', $origenes, true)) {
+            $counts['presupuestos'] = 0;
+            $stmt = $db->prepare('SELECT * FROM crm_presupuestos WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
+            $stmt->execute([':empresa_id' => $empresaId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+                try { $proyector->onPresupuestoSaved($row); $counts['presupuestos']++; } catch (\Throwable) {}
+            }
         }
 
-        // 3. Tratativas activas
-        $stmt = $db->prepare('SELECT * FROM crm_tratativas WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
-        $stmt->execute([':empresa_id' => $empresaId]);
-        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
-            try {
-                $proyector->onTratativaSaved($row);
-                $counts['tratativas']++;
-            } catch (\Throwable) {}
+        // Tratativas
+        if (in_array('tratativa', $origenes, true)) {
+            $counts['tratativas'] = 0;
+            $stmt = $db->prepare('SELECT * FROM crm_tratativas WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
+            $stmt->execute([':empresa_id' => $empresaId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+                try { $proyector->onTratativaSaved($row); $counts['tratativas']++; } catch (\Throwable) {}
+            }
         }
 
-        $total = $counts['pds'] + $counts['presupuestos'] + $counts['tratativas'];
-        Flash::set('success', "Rescan completado: {$counts['pds']} PDS, {$counts['presupuestos']} presupuestos, {$counts['tratativas']} tratativas proyectadas ({$total} total).");
+        // Llamadas
+        if (in_array('llamada', $origenes, true)) {
+            $counts['llamadas'] = 0;
+            $stmt = $db->prepare('SELECT l.*, u.nombre AS usuario_nombre FROM crm_llamadas l LEFT JOIN usuarios u ON u.id = l.usuario_id WHERE l.empresa_id = :empresa_id AND l.deleted_at IS NULL');
+            $stmt->execute([':empresa_id' => $empresaId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+                try { $proyector->onLlamadaSaved($row); $counts['llamadas']++; } catch (\Throwable) {}
+            }
+        }
+
+        $parts = [];
+        foreach ($counts as $key => $val) { $parts[] = "$val $key"; }
+        $total = array_sum($counts);
+        Flash::set('success', "Rescan completado: " . implode(', ', $parts) . " ({$total} total).");
 
         header('Location: /mi-empresa/crm/agenda');
         exit;

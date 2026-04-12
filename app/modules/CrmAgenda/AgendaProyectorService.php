@@ -120,6 +120,59 @@ class AgendaProyectorService
         } catch (\Throwable) {}
     }
 
+    /**
+     * Hook para llamadas de la central telefonica.
+     * Proyecta llamadas con duracion > 0 (las que fueron atendidas/completadas).
+     */
+    public function onLlamadaSaved(array $llamada): void
+    {
+        try {
+            $llamadaId = (int) ($llamada['id'] ?? 0);
+            $empresaId = (int) ($llamada['empresa_id'] ?? 0);
+            if ($llamadaId <= 0 || $empresaId <= 0 || empty($llamada['fecha'])) {
+                return;
+            }
+
+            $duracion = (int) ($llamada['duracion'] ?? 0);
+            $origen = trim((string) ($llamada['numero_origen'] ?? $llamada['origen'] ?? ''));
+            $destino = trim((string) ($llamada['destino'] ?? ''));
+            $clienteNombre = trim((string) ($llamada['cliente_nombre'] ?? ''));
+
+            $titulo = 'Llamada' . ($origen !== '' ? ' de ' . $origen : '') . ($clienteNombre !== '' ? ' — ' . $clienteNombre : '');
+            $descripcion = 'Destino: ' . ($destino !== '' ? $destino : '-');
+            if ($duracion > 0) {
+                $h = intdiv($duracion, 3600);
+                $m = intdiv($duracion % 3600, 60);
+                $s = $duracion % 60;
+                $descripcion .= "\nDuración: " . sprintf('%02d:%02d:%02d', $h, $m, $s);
+            }
+
+            $inicio = (string) $llamada['fecha'];
+            $fin = (new \DateTimeImmutable($inicio))->modify('+' . max(60, $duracion) . ' seconds')->format('Y-m-d H:i:s');
+
+            $this->upsertEvent([
+                'empresa_id' => $empresaId,
+                'usuario_id' => $llamada['usuario_id'] ?? null,
+                'usuario_nombre' => $llamada['usuario_nombre'] ?? ($llamada['atendio'] ?? null),
+                'titulo' => $titulo,
+                'descripcion' => $descripcion,
+                'inicio' => $inicio,
+                'fin' => $fin,
+                'origen_tipo' => 'llamada',
+                'origen_id' => $llamadaId,
+                'color' => AgendaRepository::defaultColorFor('llamada'),
+                'estado' => 'completado',
+            ]);
+        } catch (\Throwable) {}
+    }
+
+    public function onLlamadaDeleted(int $llamadaId, int $empresaId): void
+    {
+        try {
+            $this->softDeleteAndMaybeRemote('llamada', $llamadaId, $empresaId);
+        } catch (\Throwable) {}
+    }
+
     public function onPresupuestoDeleted(int $presId, int $empresaId): void
     {
         try {

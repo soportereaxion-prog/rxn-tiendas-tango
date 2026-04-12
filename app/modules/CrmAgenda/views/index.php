@@ -174,7 +174,7 @@ ob_start();
     </div>
 
     <div class="d-flex justify-content-end mb-2">
-        <form action="<?= htmlspecialchars($basePath) ?>/rescan" method="POST" class="rxn-confirm-form" data-msg="¿Escanear PDS, Presupuestos y Tratativas existentes para proyectarlos en la Agenda? Puede tardar unos segundos.">
+        <form id="rescan-form" action="<?= htmlspecialchars($basePath) ?>/rescan" method="POST" class="rxn-confirm-form" data-msg="¿Escanear los módulos seleccionados en los filtros y proyectarlos en la Agenda? Puede tardar unos segundos.">
             <button type="submit" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-repeat"></i> Rescan histórico</button>
         </form>
     </div>
@@ -373,6 +373,20 @@ ob_start();
         setTimeout(() => calendar.updateSize(), 100);
     }
     if (btnFs) { btnFs.addEventListener('click', toggleFullscreen); }
+
+    // Rescan selectivo: inyectar filtros activos antes del submit
+    const rescanForm = document.getElementById('rescan-form');
+    if (rescanForm) {
+        rescanForm.addEventListener('submit', () => {
+            // Limpiar hiddens previos
+            rescanForm.querySelectorAll('input[name="origenes[]"]').forEach(el => el.remove());
+            activeOrigenes().forEach(o => {
+                const h = document.createElement('input');
+                h.type = 'hidden'; h.name = 'origenes[]'; h.value = o;
+                rescanForm.appendChild(h);
+            });
+        });
+    }
 
     // Alt+A shortcut
     document.addEventListener('keydown', (e) => {
