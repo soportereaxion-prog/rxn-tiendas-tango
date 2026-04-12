@@ -488,6 +488,50 @@ ob_start();
                     </div>
                 </div>
             </div>
+            <?php if (isset($area) && $area === 'crm'): ?>
+            <div class="card rxn-form-card shadow-sm mb-4">
+                <div class="card-header border-bottom-0 pt-4 pb-0">
+                    <h5 class="fw-bold text-primary mb-0"><i class="bi bi-calendar-event"></i> Google Calendar (Agenda CRM)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info border-0 rounded-3 mb-3 bg-opacity-10 shadow-sm small">
+                        Configurá las credenciales OAuth para que los operadores puedan sincronizar la agenda del CRM con Google Calendar.
+                        Obtené las credenciales desde <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>.
+                    </div>
+                    <div class="row gx-4 gy-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Client ID</label>
+                            <input type="text" class="form-control" name="google_oauth_client_id"
+                                value="<?= htmlspecialchars($old['google_oauth_client_id'] ?? ($config->google_oauth_client_id ?? '')) ?>"
+                                placeholder="xxxxx.apps.googleusercontent.com">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Client Secret</label>
+                            <input type="password" class="form-control" name="google_oauth_client_secret"
+                                placeholder="<?= !empty($config->google_oauth_client_secret) ? 'Guardado. Dejá vacío para mantener.' : 'GOCSPX-xxxx' ?>">
+                            <div class="form-text"><small>Se almacena encriptado. Solo completá si necesitás cambiarla.</small></div>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Redirect URI</label>
+                            <input type="text" class="form-control" name="google_oauth_redirect_uri"
+                                value="<?= htmlspecialchars($old['google_oauth_redirect_uri'] ?? ($config->google_oauth_redirect_uri ?? '')) ?>"
+                                placeholder="https://tudominio.com/mi-empresa/crm/agenda/google/callback">
+                            <div class="form-text"><small>Debe coincidir exactamente con la configurada en Google Cloud Console.</small></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Modo de sincronización</label>
+                            <select class="form-select" name="agenda_google_auth_mode">
+                                <?php $currentMode = $old['agenda_google_auth_mode'] ?? ($config->agenda_google_auth_mode ?? 'usuario'); ?>
+                                <option value="usuario" <?= $currentMode === 'usuario' ? 'selected' : '' ?>>Por usuario (cada operador conecta su cuenta)</option>
+                                <option value="empresa" <?= $currentMode === 'empresa' ? 'selected' : '' ?>>Por empresa (un calendario compartido)</option>
+                                <option value="ambos" <?= $currentMode === 'ambos' ? 'selected' : '' ?>>Ambos (empresa + cada usuario)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="rxn-form-actions mt-4 mb-5 pb-2">
                 <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-light">Cancelar</a>
                 <button type="submit" class="btn btn-success px-5 fw-bold shadow-sm">💾 Guardar Cambios Reales</button>

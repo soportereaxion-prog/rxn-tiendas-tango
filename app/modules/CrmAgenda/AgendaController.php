@@ -27,17 +27,52 @@ class AgendaController extends \App\Core\Controller
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
-        $authMode = $this->oauthService->resolveAgendaMode($empresaId);
-        $authConfigured = $this->oauthService->isConfigured();
-        $missingEnvVars = $authConfigured ? [] : $this->oauthService->getMissingEnvVars();
+        $empresaConfig = $this->oauthService->loadEmpresaConfig($empresaId);
+        $authMode = $empresaConfig['auth_mode'];
+        $authConfigured = $this->oauthService->isConfigured($empresaId);
+        $missingFields = $authConfigured ? [] : $this->oauthService->getMissingConfigFields($empresaId);
         $authActive = $authConfigured ? $this->oauthService->getActiveAuth($empresaId, $usuarioId) : null;
+
+        // En modo 'ambos', mostramos tambien el auth empresa-wide por separado
+        $authEmpresa = null;
+        if ($authMode === 'ambos' && $authConfigured) {
+            $authEmpresa = $this->oauthService->findAuth($empresaId, null);
+        }
 
         View::render('app/modules/CrmAgenda/views/index.php', array_merge($this->buildUiContext(), [
             'authMode' => $authMode,
             'authConfigured' => $authConfigured,
-            'missingEnvVars' => $missingEnvVars,
+            'missingFields' => $missingFields,
             'authActive' => $authActive,
+            'authEmpresa' => $authEmpresa,
+            'empresaConfig' => $empresaConfig,
         ]));
+    }
+
+    /**
+     * POST /mi-empresa/crm/agenda/google/config
+     * Guarda las credenciales OAuth de Google Calendar para la empresa.
+     */
+    public function googleConfig(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /mi-empresa/crm/agenda');
+            exit;
+        }
+
+        $clientId = trim((string) ($_POST['google_oauth_client_id'] ?? ''));
+        $clientSecret = trim((string) ($_POST['google_oauth_client_secret'] ?? ''));
+        $redirectUri = trim((string) ($_POST['google_oauth_redirect_uri'] ?? ''));
+        $authMode = trim((string) ($_POST['agenda_google_auth_mode'] ?? 'usuario'));
+
+        $this->oauthService->saveEmpresaConfig($empresaId, $clientId, $clientSecret, $redirectUri, $authMode);
+
+        Flash::set('success', 'Configuración de Google Calendar guardada correctamente.');
+        header('Location: /mi-empresa/crm/agenda');
+        exit;
     }
 
     /**
@@ -249,9 +284,9 @@ class AgendaController extends \App\Core\Controller
         $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
         // Guard temprano: si falta configuracion de OAuth, mensaje amigable en vez de stacktrace
-        if (!$this->oauthService->isConfigured()) {
-            $missing = implode(', ', $this->oauthService->getMissingEnvVars());
-            Flash::set('warning', 'Configuración de Google OAuth pendiente. Falta definir en .env: ' . $missing . '. Seguí los pasos del panel de configuración en la vista principal de Agenda.');
+        if (!$this->oauthService->isConfigured($empresaId)) {
+            $missing = implode(', ', $this->oauthService->getMissingConfigFields($empresaId));
+            Flash::set('warning', 'Configuración de Google OAuth pendiente. Faltan: ' . $missing . '. Completá los datos en Configuración CRM o en el panel de esta Agenda.');
             header('Location: /mi-empresa/crm/agenda');
             exit;
         }

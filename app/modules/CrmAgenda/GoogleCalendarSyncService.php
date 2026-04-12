@@ -8,17 +8,12 @@ use DateTimeZone;
 use RuntimeException;
 
 /**
- * Push-only sync de eventos de la agenda al Google Calendar del usuario (o empresa).
- * Cliente HTTP cURL nativo, sin dependencias.
+ * Push-only sync de eventos de la agenda al Google Calendar.
+ * Soporta multi-auth (modo 'ambos'): un evento puede replicarse a
+ * multiples Google Calendars simultaneamente (empresa-wide + usuario personal).
  *
- * Fase 2 scope:
- *   - create: inserta un evento en Google Calendar y guarda el google_event_id en la tabla local.
- *   - update: actualiza un evento existente por google_event_id.
- *   - delete: borra el evento remoto cuando se hace soft-delete local.
- *
- * NO implementado (fase 3):
- *   - pull / bidireccional / sync tokens / webhooks
- *   - batch requests
+ * El tracking de sincronizaciones multiples se guarda en la columna JSON
+ * google_syncs de crm_agenda_eventos.
  */
 class GoogleCalendarSyncService
 {
@@ -34,88 +29,174 @@ class GoogleCalendarSyncService
     }
 
     /**
-     * Sincroniza un evento local hacia Google.
-     *   - Si no tiene google_event_id, lo crea.
-     *   - Si ya tiene google_event_id, lo actualiza.
-     * Retorna true si fue sincronizado, false si no hay auth activo (se omite silenciosamente).
+     * Push multi-auth: sincroniza un evento local a TODOS los Google Calendars
+     * activos segun el modo de la empresa (usuario, empresa, ambos).
      */
-    public function push(array $event): bool
+    public function pushMulti(array $event): bool
     {
         $empresaId = (int) $event['empresa_id'];
         $usuarioId = isset($event['usuario_id']) && $event['usuario_id'] !== null ? (int) $event['usuario_id'] : null;
 
-        $auth = $this->oauth->getActiveAuth($empresaId, $usuarioId);
-        if ($auth === null) {
-            return false;
+        $auths = $this->oauth->getActiveAuths($empresaId, $usuarioId);
+        if ($auths === []) {
+            return false; // Sin auth activo, skip silencioso
         }
 
-        try {
-            $accessToken = $this->oauth->getValidAccessToken($auth);
-            $calendarId = (string) ($auth['calendar_id'] ?? 'primary');
-            $payload = $this->buildEventPayload($event);
+        $payload = $this->buildEventPayload($event);
+        $eventId = (int) $event['id'];
 
-            if (!empty($event['google_event_id'])) {
-                $this->httpRequest(
-                    'PUT',
-                    self::API_BASE . '/calendars/' . rawurlencode($calendarId) . '/events/' . rawurlencode((string) $event['google_event_id']),
-                    $accessToken,
-                    $payload
-                );
-                $this->repository->markSynced((int) $event['id'], $empresaId, (string) $event['google_event_id'], $calendarId);
-            } else {
-                $response = $this->httpRequest(
-                    'POST',
-                    self::API_BASE . '/calendars/' . rawurlencode($calendarId) . '/events',
-                    $accessToken,
-                    $payload
-                );
-                $googleEventId = (string) ($response['id'] ?? '');
-                if ($googleEventId !== '') {
-                    $this->repository->markSynced((int) $event['id'], $empresaId, $googleEventId, $calendarId);
+        // Leer syncs existentes
+        $existingSyncs = $this->loadSyncs($event);
+        $newSyncs = [];
+        $anySuccess = false;
+
+        foreach ($auths as $auth) {
+            $authId = (int) $auth['id'];
+            $calendarId = (string) ($auth['calendar_id'] ?? 'primary');
+
+            // Buscar si ya hay un sync previo para este auth
+            $existingGoogleEventId = null;
+            foreach ($existingSyncs as $sync) {
+                if ((int) ($sync['auth_id'] ?? 0) === $authId) {
+                    $existingGoogleEventId = $sync['google_event_id'] ?? null;
+                    break;
                 }
             }
 
-            return true;
-        } catch (\Throwable $e) {
-            $this->repository->markSyncError((int) $event['id'], $empresaId, $e->getMessage());
-            return false;
+            try {
+                $accessToken = $this->oauth->getValidAccessToken($auth);
+
+                if ($existingGoogleEventId) {
+                    // Actualizar evento existente
+                    $this->httpRequest(
+                        'PUT',
+                        self::API_BASE . '/calendars/' . rawurlencode($calendarId) . '/events/' . rawurlencode($existingGoogleEventId),
+                        $accessToken,
+                        $payload
+                    );
+                    $newSyncs[] = [
+                        'auth_id' => $authId,
+                        'google_event_id' => $existingGoogleEventId,
+                        'calendar_id' => $calendarId,
+                        'synced_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+                    ];
+                } else {
+                    // Crear evento nuevo
+                    $response = $this->httpRequest(
+                        'POST',
+                        self::API_BASE . '/calendars/' . rawurlencode($calendarId) . '/events',
+                        $accessToken,
+                        $payload
+                    );
+                    $googleEventId = (string) ($response['id'] ?? '');
+                    $newSyncs[] = [
+                        'auth_id' => $authId,
+                        'google_event_id' => $googleEventId,
+                        'calendar_id' => $calendarId,
+                        'synced_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+                    ];
+                }
+
+                $anySuccess = true;
+            } catch (\Throwable $e) {
+                // Registrar el error para este auth pero seguir con los demas
+                $newSyncs[] = [
+                    'auth_id' => $authId,
+                    'google_event_id' => $existingGoogleEventId,
+                    'calendar_id' => $calendarId,
+                    'synced_at' => null,
+                    'error' => $e->getMessage(),
+                ];
+            }
         }
+
+        // Persistir el tracking JSON + actualizar los campos legacy (primer sync exitoso)
+        $this->repository->updateGoogleSyncs($eventId, $empresaId, $newSyncs);
+
+        // Actualizar los campos legacy con el primer sync exitoso (para compat)
+        foreach ($newSyncs as $sync) {
+            if (!empty($sync['google_event_id']) && !empty($sync['synced_at'])) {
+                $this->repository->markSynced($eventId, $empresaId, $sync['google_event_id'], $sync['calendar_id']);
+                break;
+            }
+        }
+
+        return $anySuccess;
     }
 
     /**
-     * Borra un evento remoto en Google Calendar.
-     * Se invoca desde AgendaProyectorService cuando el evento local entra en papelera.
+     * Push single-auth (compat con la API anterior).
+     */
+    public function push(array $event): bool
+    {
+        return $this->pushMulti($event);
+    }
+
+    /**
+     * Borra un evento remoto de TODOS los Google Calendars donde fue sincronizado.
      */
     public function deleteRemote(array $event): bool
     {
-        if (empty($event['google_event_id'])) {
-            return true; // nada que borrar
-        }
-
         $empresaId = (int) $event['empresa_id'];
-        $usuarioId = isset($event['usuario_id']) && $event['usuario_id'] !== null ? (int) $event['usuario_id'] : null;
+        $syncs = $this->loadSyncs($event);
+        $anySuccess = false;
 
-        $auth = $this->oauth->getActiveAuth($empresaId, $usuarioId);
-        if ($auth === null) {
-            return false;
+        foreach ($syncs as $sync) {
+            $googleEventId = $sync['google_event_id'] ?? null;
+            if (empty($googleEventId)) continue;
+
+            $authId = (int) ($sync['auth_id'] ?? 0);
+            if ($authId <= 0) continue;
+
+            // Buscar el auth por ID para obtener el access_token
+            $stmt = \App\Core\Database::getConnection()->prepare('SELECT * FROM crm_google_auth WHERE id = :id AND empresa_id = :empresa_id LIMIT 1');
+            $stmt->execute([':id' => $authId, ':empresa_id' => $empresaId]);
+            $auth = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$auth) continue;
+
+            try {
+                $accessToken = $this->oauth->getValidAccessToken($auth);
+                $calendarId = $sync['calendar_id'] ?? 'primary';
+                $this->httpRequest(
+                    'DELETE',
+                    self::API_BASE . '/calendars/' . rawurlencode($calendarId) . '/events/' . rawurlencode($googleEventId),
+                    $accessToken,
+                    null
+                );
+                $anySuccess = true;
+            } catch (\Throwable) {
+                // 404/410 = ya no existe en Google, tratamos como exito silencioso
+            }
         }
 
-        try {
-            $accessToken = $this->oauth->getValidAccessToken($auth);
-            $calendarId = (string) ($auth['calendar_id'] ?? 'primary');
-
-            $this->httpRequest(
-                'DELETE',
-                self::API_BASE . '/calendars/' . rawurlencode($calendarId) . '/events/' . rawurlencode((string) $event['google_event_id']),
-                $accessToken,
-                null
-            );
-            return true;
-        } catch (\Throwable $e) {
-            // No re-lanzamos. Si Google devuelve 404 (evento ya no existe) o 410 (gone),
-            // lo tratamos como exito silencioso para no frenar el borrado local.
-            return false;
+        // Fallback: si no habia syncs JSON pero habia google_event_id legacy
+        if ($syncs === [] && !empty($event['google_event_id'])) {
+            $usuarioId = isset($event['usuario_id']) ? (int) $event['usuario_id'] : null;
+            $auth = $this->oauth->getActiveAuth($empresaId, $usuarioId);
+            if ($auth) {
+                try {
+                    $accessToken = $this->oauth->getValidAccessToken($auth);
+                    $calendarId = $auth['calendar_id'] ?? 'primary';
+                    $this->httpRequest(
+                        'DELETE',
+                        self::API_BASE . '/calendars/' . rawurlencode($calendarId) . '/events/' . rawurlencode((string) $event['google_event_id']),
+                        $accessToken,
+                        null
+                    );
+                    $anySuccess = true;
+                } catch (\Throwable) {}
+            }
         }
+
+        return $anySuccess;
+    }
+
+    private function loadSyncs(array $event): array
+    {
+        $raw = $event['google_syncs'] ?? null;
+        if ($raw === null || $raw === '') return [];
+        $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
+        return is_array($decoded) ? $decoded : [];
     }
 
     private function buildEventPayload(array $event): array
@@ -148,7 +229,6 @@ class GoogleCalendarSyncService
             ];
         }
 
-        // Marca visible en Google con el tipo de origen, para que el operador identifique el evento
         $origen = (string) ($event['origen_tipo'] ?? 'manual');
         $payload['extendedProperties'] = [
             'private' => [
@@ -193,7 +273,6 @@ class GoogleCalendarSyncService
             throw new RuntimeException('Error cURL al contactar Google Calendar: ' . $curlErr);
         }
 
-        // DELETE devuelve 204 sin body
         if ($method === 'DELETE' && $httpCode >= 200 && $httpCode < 300) {
             return [];
         }

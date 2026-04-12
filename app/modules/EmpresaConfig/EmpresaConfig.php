@@ -54,6 +54,12 @@ class EmpresaConfig
     public ?string $smtp_from_email = null;
     public ?string $smtp_from_name = null;
 
+    // Google Calendar OAuth (per-empresa, no .env)
+    public ?string $google_oauth_client_id = null;
+    public ?string $google_oauth_client_secret = null;
+    public ?string $google_oauth_redirect_uri = null;
+    public ?string $agenda_google_auth_mode = 'usuario';
+
     public ?string $created_at = null;
     public ?string $updated_at = null;
 }

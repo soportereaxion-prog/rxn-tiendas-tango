@@ -4,8 +4,10 @@ use App\Core\View;
 $pageTitle = 'Agenda CRM - rxn_suite';
 $authMode = $authMode ?? 'usuario';
 $authActive = $authActive ?? null;
+$authEmpresa = $authEmpresa ?? null;
 $authConfigured = $authConfigured ?? false;
-$missingEnvVars = $missingEnvVars ?? [];
+$missingFields = $missingFields ?? [];
+$empresaConfig = $empresaConfig ?? ['client_id' => '', 'redirect_uri' => '', 'auth_mode' => 'usuario'];
 
 ob_start();
 ?>
@@ -78,48 +80,76 @@ ob_start();
         </div>
 
         <div class="col-lg-4">
-            <div class="card bg-dark text-light border-0 shadow-sm h-100">
-                <div class="card-header border-bottom border-secondary border-opacity-25">
+            <div class="card bg-dark text-light border-0 shadow-sm mb-3">
+                <div class="card-header border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold"><i class="bi bi-google"></i> Google Calendar</h5>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#googleConfigPanel">
+                        <i class="bi bi-gear"></i>
+                    </button>
                 </div>
+
+                <div class="collapse <?= !$authConfigured ? 'show' : '' ?>" id="googleConfigPanel">
+                    <div class="card-body border-bottom border-secondary border-opacity-25">
+                        <form action="<?= htmlspecialchars($basePath) ?>/google/config" method="POST">
+                            <p class="small text-muted mb-2">Credenciales OAuth de <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" class="text-info">Google Cloud Console</a>:</p>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-0">Client ID</label>
+                                <input type="text" name="google_oauth_client_id" class="form-control form-control-sm bg-dark text-light border-secondary"
+                                    value="<?= htmlspecialchars($empresaConfig['client_id']) ?>"
+                                    placeholder="xxxxx.apps.googleusercontent.com">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-0">Client Secret</label>
+                                <input type="password" name="google_oauth_client_secret" class="form-control form-control-sm bg-dark text-light border-secondary"
+                                    placeholder="<?= $empresaConfig['client_secret'] !== '' ? 'Guardado. Dejá vacío para mantener.' : 'GOCSPX-xxxx' ?>">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-0">Redirect URI</label>
+                                <input type="text" name="google_oauth_redirect_uri" class="form-control form-control-sm bg-dark text-light border-secondary"
+                                    value="<?= htmlspecialchars($empresaConfig['redirect_uri']) ?>"
+                                    placeholder="https://tudominio/mi-empresa/crm/agenda/google/callback">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted mb-0">Modo de sync</label>
+                                <select name="agenda_google_auth_mode" class="form-select form-select-sm bg-dark text-light border-secondary">
+                                    <option value="usuario" <?= $authMode === 'usuario' ? 'selected' : '' ?>>Por usuario (cada operador conecta su cuenta)</option>
+                                    <option value="empresa" <?= $authMode === 'empresa' ? 'selected' : '' ?>>Por empresa (un calendario compartido)</option>
+                                    <option value="ambos" <?= $authMode === 'ambos' ? 'selected' : '' ?>>Ambos (empresa + cada usuario)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check-lg"></i> Guardar configuración</button>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="card-body">
                     <?php if (!$authConfigured): ?>
                         <div class="alert alert-warning small p-2 mb-2 border-0">
-                            <i class="bi bi-exclamation-triangle"></i> <strong>Setup pendiente</strong>
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Configuración pendiente</strong>
                         </div>
-                        <p class="small text-muted mb-2">Faltan variables de entorno para habilitar el sync con Google Calendar:</p>
-                        <ul class="small text-muted mb-2 ps-3">
-                            <?php foreach ($missingEnvVars as $var): ?>
-                                <li><code><?= htmlspecialchars((string) $var) ?></code></li>
-                            <?php endforeach; ?>
-                        </ul>
-                        <p class="small text-muted mb-1"><strong>Pasos:</strong></p>
-                        <ol class="small text-muted ps-3 mb-0">
-                            <li>Crear un proyecto en <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" class="text-info">Google Cloud Console</a></li>
-                            <li>Habilitar <em>Google Calendar API</em></li>
-                            <li>Crear <em>OAuth 2.0 Client ID</em> tipo Web application</li>
-                            <li>Agregar redirect URI: <code>https://tudominio/mi-empresa/crm/agenda/google/callback</code></li>
-                            <li>Copiar client ID y secret al <code>.env</code> y reiniciar</li>
-                        </ol>
+                        <p class="small text-muted mb-0">Completá las credenciales de Google OAuth arriba (click en <i class="bi bi-gear"></i>) para habilitar el sync.</p>
                     <?php elseif ($authActive !== null): ?>
                         <p class="mb-2">
                             <span class="badge bg-success"><i class="bi bi-check-circle"></i> Conectado</span>
+                            <span class="badge bg-secondary ms-1"><?= htmlspecialchars($authMode) ?></span>
                         </p>
                         <p class="small text-muted mb-1">Cuenta: <strong><?= htmlspecialchars((string) ($authActive['google_email'] ?? '-')) ?></strong></p>
-                        <p class="small text-muted mb-1">Modo: <strong><?= htmlspecialchars($authMode) ?></strong></p>
                         <?php if (!empty($authActive['last_sync_at'])): ?>
                             <p class="small text-muted mb-2">Último push: <?= htmlspecialchars((string) $authActive['last_sync_at']) ?></p>
                         <?php endif; ?>
                         <?php if (!empty($authActive['last_error'])): ?>
-                            <div class="alert alert-warning small p-2 mb-2"><i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars((string) $authActive['last_error']) ?></div>
+                            <div class="alert alert-warning small p-2 mb-2 border-0"><i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars((string) $authActive['last_error']) ?></div>
                         <?php endif; ?>
-                        <form action="<?= htmlspecialchars($basePath) ?>/google/disconnect" method="POST" class="rxn-confirm-form" data-msg="¿Desconectar Google Calendar? Los eventos ya sincronizados NO se borran.">
-                            <button type="submit" class="btn btn-sm btn-outline-danger w-100"><i class="bi bi-box-arrow-right"></i> Desconectar</button>
+                        <form action="<?= htmlspecialchars($basePath) ?>/google/disconnect" method="POST" class="rxn-confirm-form" data-msg="¿Desconectar tu cuenta de Google Calendar? Los eventos ya sincronizados NO se borran de Google.">
+                            <button type="submit" class="btn btn-sm btn-outline-danger w-100"><i class="bi bi-box-arrow-right"></i> Desconectar mi cuenta</button>
                         </form>
+                        <?php if ($authMode === 'ambos' && $authEmpresa !== null): ?>
+                            <hr class="border-secondary my-2">
+                            <p class="small text-muted mb-1"><i class="bi bi-building"></i> Empresa: <strong><?= htmlspecialchars((string) ($authEmpresa['google_email'] ?? '-')) ?></strong></p>
+                        <?php endif; ?>
                     <?php else: ?>
-                        <p class="small text-muted mb-3">Conectá tu cuenta de Google para que los eventos del CRM aparezcan en tu Google Calendar automáticamente (sync push-only).</p>
+                        <p class="small text-muted mb-3">Conectá tu cuenta para que los eventos del CRM aparezcan en tu Google Calendar (sync push-only).</p>
                         <a href="<?= htmlspecialchars($basePath) ?>/google/connect" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-link-45deg"></i> Conectar con Google</a>
-                        <p class="small text-muted mt-2 mb-0">Modo activo: <strong><?= htmlspecialchars($authMode) ?></strong></p>
                     <?php endif; ?>
                 </div>
             </div>

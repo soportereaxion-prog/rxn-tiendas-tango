@@ -227,6 +227,22 @@ class AgendaRepository
         ]);
     }
 
+    /**
+     * Persiste el JSON de multi-sync tracking en la columna google_syncs.
+     */
+    public function updateGoogleSyncs(int $id, int $empresaId, array $syncs): bool
+    {
+        $stmt = $this->db->prepare('UPDATE crm_agenda_eventos
+            SET google_syncs = :syncs,
+                updated_at = NOW()
+            WHERE id = :id AND empresa_id = :empresa_id');
+        return $stmt->execute([
+            ':id' => $id,
+            ':empresa_id' => $empresaId,
+            ':syncs' => json_encode($syncs, JSON_UNESCAPED_UNICODE),
+        ]);
+    }
+
     public function markSyncError(int $id, int $empresaId, string $errorMessage): bool
     {
         $stmt = $this->db->prepare('UPDATE crm_agenda_eventos

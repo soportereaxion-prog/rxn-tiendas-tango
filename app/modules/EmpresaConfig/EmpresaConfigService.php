@@ -123,6 +123,24 @@ class EmpresaConfigService
                 $config->smtp_pass = trim($data['smtp_pass']);
         }
 
+        // --- GOOGLE CALENDAR OAUTH (per-empresa, solo CRM) ---
+        $config->google_oauth_client_id = !empty($data['google_oauth_client_id']) ? trim($data['google_oauth_client_id']) : ($config->google_oauth_client_id ?? null);
+        $config->google_oauth_redirect_uri = !empty($data['google_oauth_redirect_uri']) ? trim($data['google_oauth_redirect_uri']) : ($config->google_oauth_redirect_uri ?? null);
+        $config->agenda_google_auth_mode = !empty($data['agenda_google_auth_mode']) && in_array($data['agenda_google_auth_mode'], ['usuario', 'empresa', 'ambos'], true)
+            ? trim($data['agenda_google_auth_mode'])
+            : ($config->agenda_google_auth_mode ?? 'usuario');
+
+        // El client_secret se encripta al guardar. Si viene vacio, se preserva el existente.
+        if (isset($data['google_oauth_client_secret']) && trim($data['google_oauth_client_secret']) !== '') {
+            try {
+                $oauthSvc = new \App\Modules\CrmAgenda\GoogleOAuthService();
+                $config->google_oauth_client_secret = $oauthSvc->encrypt(trim($data['google_oauth_client_secret']), $empresaId);
+            } catch (\Throwable) {
+                // Si falla encriptacion (APP_KEY no definida), guardar en texto plano como fallback
+                $config->google_oauth_client_secret = trim($data['google_oauth_client_secret']);
+            }
+        }
+
         // --- MÓDULO IMAGEN FALLBACK ---
         if (isset($_FILES['imagen_default']) && $_FILES['imagen_default']['error'] === UPLOAD_ERR_OK) {
             $tmpName = $_FILES['imagen_default']['tmp_name'];

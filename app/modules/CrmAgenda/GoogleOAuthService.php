@@ -11,24 +11,18 @@ use RuntimeException;
 /**
  * Servicio de autenticacion OAuth2 con Google Calendar — cliente cURL nativo.
  *
- * Implementa el flujo completo:
- *   1. getAuthUrl()            -> URL para redirigir al consent screen de Google
- *   2. handleCallback(code)    -> cambia el code por access_token + refresh_token y persiste
- *   3. getActiveAuth()         -> recupera el auth activo segun el modo configurado (usuario|empresa)
- *   4. refreshTokenIfNeeded()  -> refresca el access_token si esta proximo a expirar
- *   5. disconnect()            -> borra la conexion
+ * Las credenciales OAuth (client_id, client_secret, redirect_uri) se leen de
+ * la tabla empresa_config_crm POR EMPRESA, no de .env. De esta forma cada
+ * tenant puede autogestionar su integracion con Google sin editar archivos
+ * del servidor ni reiniciar nada.
  *
- * No depende de google/apiclient. Toda la interaccion con Google se hace con cURL nativo.
+ * La unica variable de entorno que se necesita a nivel sistema es APP_KEY,
+ * usada para encriptar tokens y el client_secret en la base de datos.
  *
- * Variables de entorno requeridas (en .env):
- *   GOOGLE_CLIENT_ID
- *   GOOGLE_CLIENT_SECRET
- *   GOOGLE_REDIRECT_URI     (ej: https://crm.tudominio.com/mi-empresa/crm/agenda/google/callback)
- *
- * Seguridad:
- *  - access_token y refresh_token se encriptan con openssl_encrypt usando clave derivada
- *    de APP_KEY + empresa_id. Si alguien roba la base, no se roba las sesiones.
- *  - Todos los errores de red/HTTP se loguean en crm_google_auth.last_error (nunca a disco).
+ * Modos de autenticacion (empresa_config_crm.agenda_google_auth_mode):
+ *   - 'usuario'  -> cada operador conecta su propia cuenta Google
+ *   - 'empresa'  -> una sola conexion compartida (calendar corporativo)
+ *   - 'ambos'    -> empresa-wide + cada usuario que quiera conectar lo suyo
  */
 class GoogleOAuthService
 {
@@ -44,46 +38,124 @@ class GoogleOAuthService
         $this->db = Database::getConnection();
     }
 
+    // ---- Configuracion per-empresa ----
+
     /**
-     * Devuelve true si las 3 variables de entorno de OAuth estan configuradas.
-     * Se usa en la UI para decidir si mostrar el boton "Conectar" o un banner
-     * explicativo de setup pendiente.
+     * Lee la configuracion OAuth de la empresa desde empresa_config_crm.
+     * Desencripta el client_secret al vuelo.
      */
-    public function isConfigured(): bool
+    public function loadEmpresaConfig(int $empresaId): array
     {
-        $vars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'];
-        foreach ($vars as $var) {
-            if (trim((string) (getenv($var) ?: '')) === '') {
-                return false;
+        $stmt = $this->db->prepare('SELECT
+                google_oauth_client_id,
+                google_oauth_client_secret,
+                google_oauth_redirect_uri,
+                agenda_google_auth_mode
+            FROM empresa_config_crm
+            WHERE empresa_id = :empresa_id LIMIT 1');
+        $stmt->execute([':empresa_id' => $empresaId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            return [
+                'client_id' => '',
+                'client_secret' => '',
+                'redirect_uri' => '',
+                'auth_mode' => 'usuario',
+            ];
+        }
+
+        $secret = '';
+        $rawSecret = trim((string) ($row['google_oauth_client_secret'] ?? ''));
+        if ($rawSecret !== '') {
+            try {
+                $secret = $this->decrypt($rawSecret, $empresaId);
+            } catch (\Throwable) {
+                $secret = ''; // Desencriptacion fallo (APP_KEY cambio?)
             }
         }
-        return true;
+
+        return [
+            'client_id' => trim((string) ($row['google_oauth_client_id'] ?? '')),
+            'client_secret' => $secret,
+            'redirect_uri' => trim((string) ($row['google_oauth_redirect_uri'] ?? '')),
+            'auth_mode' => in_array($row['agenda_google_auth_mode'] ?? 'usuario', ['usuario', 'empresa', 'ambos'], true)
+                ? $row['agenda_google_auth_mode']
+                : 'usuario',
+        ];
     }
 
     /**
-     * Devuelve los nombres de las variables de entorno faltantes, para mostrarlas
-     * en el banner de setup pendiente.
+     * Devuelve true si las 3 credenciales OAuth estan configuradas para la empresa.
      */
-    public function getMissingEnvVars(): array
+    public function isConfigured(int $empresaId): bool
     {
-        $vars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'];
+        $config = $this->loadEmpresaConfig($empresaId);
+        return $config['client_id'] !== ''
+            && $config['client_secret'] !== ''
+            && $config['redirect_uri'] !== '';
+    }
+
+    /**
+     * Devuelve los nombres de los campos faltantes para la empresa.
+     */
+    public function getMissingConfigFields(int $empresaId): array
+    {
+        $config = $this->loadEmpresaConfig($empresaId);
         $missing = [];
-        foreach ($vars as $var) {
-            if (trim((string) (getenv($var) ?: '')) === '') {
-                $missing[] = $var;
-            }
-        }
+        if ($config['client_id'] === '') $missing[] = 'Client ID';
+        if ($config['client_secret'] === '') $missing[] = 'Client Secret';
+        if ($config['redirect_uri'] === '') $missing[] = 'Redirect URI';
         return $missing;
     }
 
     /**
-     * Construye la URL del consent screen de Google.
-     * El `state` es opaco y se usa para identificar al usuario/empresa en el callback.
+     * Guarda/actualiza las credenciales OAuth para una empresa.
+     * El client_secret se encripta antes de persistir.
+     * Si el secret viene vacío, se preserva el existente.
      */
+    public function saveEmpresaConfig(int $empresaId, string $clientId, string $clientSecret, string $redirectUri, string $authMode): void
+    {
+        $authMode = in_array($authMode, ['usuario', 'empresa', 'ambos'], true) ? $authMode : 'usuario';
+
+        // Si el secret viene vacio, preservar el existente
+        $encSecret = null;
+        if (trim($clientSecret) !== '') {
+            $encSecret = $this->encrypt(trim($clientSecret), $empresaId);
+        }
+
+        $stmt = $this->db->prepare('SELECT id, google_oauth_client_secret FROM empresa_config_crm WHERE empresa_id = :empresa_id LIMIT 1');
+        $stmt->execute([':empresa_id' => $empresaId]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            $secretToStore = $encSecret ?? ($existing['google_oauth_client_secret'] ?? null);
+            $stmt = $this->db->prepare('UPDATE empresa_config_crm SET
+                    google_oauth_client_id = :client_id,
+                    google_oauth_client_secret = :client_secret,
+                    google_oauth_redirect_uri = :redirect_uri,
+                    agenda_google_auth_mode = :auth_mode
+                WHERE empresa_id = :empresa_id');
+            $stmt->execute([
+                ':client_id' => trim($clientId) !== '' ? trim($clientId) : null,
+                ':client_secret' => $secretToStore,
+                ':redirect_uri' => trim($redirectUri) !== '' ? trim($redirectUri) : null,
+                ':auth_mode' => $authMode,
+                ':empresa_id' => $empresaId,
+            ]);
+        }
+        // Si no existe registro en empresa_config_crm, no hacemos insert.
+        // El registro lo crea EmpresaConfigService cuando se guarda la config por primera vez.
+    }
+
+    // ---- OAuth flow ----
+
     public function getAuthUrl(int $empresaId, ?int $usuarioId, string $mode): string
     {
-        $clientId = $this->requireEnv('GOOGLE_CLIENT_ID');
-        $redirectUri = $this->requireEnv('GOOGLE_REDIRECT_URI');
+        $config = $this->loadEmpresaConfig($empresaId);
+        if ($config['client_id'] === '' || $config['redirect_uri'] === '') {
+            throw new RuntimeException('Credenciales OAuth de Google no configuradas para esta empresa. Completá los datos en Configuración CRM.');
+        }
 
         $state = $this->encodeState([
             'empresa_id' => $empresaId,
@@ -93,8 +165,8 @@ class GoogleOAuthService
         ]);
 
         $params = [
-            'client_id' => $clientId,
-            'redirect_uri' => $redirectUri,
+            'client_id' => $config['client_id'],
+            'redirect_uri' => $config['redirect_uri'],
             'response_type' => 'code',
             'scope' => self::SCOPE,
             'access_type' => 'offline',
@@ -106,10 +178,6 @@ class GoogleOAuthService
         return self::AUTH_URL . '?' . http_build_query($params);
     }
 
-    /**
-     * Procesa el callback OAuth: intercambia el code por tokens, obtiene el email del usuario,
-     * y guarda la conexion en crm_google_auth (encriptada).
-     */
     public function handleCallback(string $code, string $state): array
     {
         $stateData = $this->decodeState($state);
@@ -121,19 +189,19 @@ class GoogleOAuthService
         $usuarioId = isset($stateData['usuario_id']) && $stateData['usuario_id'] !== null ? (int) $stateData['usuario_id'] : null;
         $mode = (string) ($stateData['mode'] ?? 'usuario');
         if ($mode === 'empresa') {
-            $usuarioId = null; // conexion empresa-wide
+            $usuarioId = null;
         }
 
-        $clientId = $this->requireEnv('GOOGLE_CLIENT_ID');
-        $clientSecret = $this->requireEnv('GOOGLE_CLIENT_SECRET');
-        $redirectUri = $this->requireEnv('GOOGLE_REDIRECT_URI');
+        $config = $this->loadEmpresaConfig($empresaId);
+        if ($config['client_id'] === '' || $config['client_secret'] === '' || $config['redirect_uri'] === '') {
+            throw new RuntimeException('Credenciales OAuth incompletas para esta empresa. Verificá la configuración CRM.');
+        }
 
-        // 1. Intercambiar el code por tokens
         $response = $this->httpPost(self::TOKEN_URL, [
             'code' => $code,
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'redirect_uri' => $redirectUri,
+            'client_id' => $config['client_id'],
+            'client_secret' => $config['client_secret'],
+            'redirect_uri' => $config['redirect_uri'],
             'grant_type' => 'authorization_code',
         ]);
 
@@ -141,11 +209,9 @@ class GoogleOAuthService
             throw new RuntimeException('Google no devolvio los tokens esperados: ' . json_encode($response));
         }
 
-        // 2. Obtener el email del usuario autenticado
         $userInfo = $this->httpGet(self::USERINFO_URL, $response['access_token']);
         $googleEmail = (string) ($userInfo['email'] ?? 'unknown@google');
 
-        // 3. Calcular fecha de expiracion y persistir encriptado
         $expiresIn = (int) ($response['expires_in'] ?? 3600);
         $expiry = (new DateTimeImmutable())->modify('+' . $expiresIn . ' seconds')->format('Y-m-d H:i:s');
 
@@ -153,7 +219,6 @@ class GoogleOAuthService
         $refreshEnc = $this->encrypt((string) $response['refresh_token'], $empresaId);
         $scope = (string) ($response['scope'] ?? self::SCOPE);
 
-        // UPSERT segun (empresa_id, usuario_id)
         $existing = $this->findAuth($empresaId, $usuarioId);
         if ($existing !== null) {
             $stmt = $this->db->prepare('UPDATE crm_google_auth SET
@@ -196,12 +261,10 @@ class GoogleOAuthService
         ];
     }
 
+    // ---- Multi-auth: resolver todos los destinos de sync ----
+
     /**
-     * Devuelve el auth activo para una operacion, resolviendo automaticamente segun el modo
-     * configurado en empresa_config_crm.agenda_google_auth_mode.
-     *
-     * - modo 'usuario' -> busca el auth del usuario. Si no tiene, retorna null.
-     * - modo 'empresa' -> busca el auth empresa-wide (usuario_id IS NULL).
+     * Devuelve el auth activo para UNA operacion (compat con Fase 2 original).
      */
     public function getActiveAuth(int $empresaId, ?int $usuarioId): ?array
     {
@@ -218,18 +281,45 @@ class GoogleOAuthService
         return $this->findAuth($empresaId, $usuarioId);
     }
 
+    /**
+     * Devuelve TODOS los auths a los que hay que pushear un evento (modo 'ambos').
+     * Para modo 'usuario' devuelve solo el del usuario, para 'empresa' solo el global.
+     */
+    public function getActiveAuths(int $empresaId, ?int $usuarioId): array
+    {
+        $mode = $this->resolveAgendaMode($empresaId);
+        $auths = [];
+
+        // Auth empresa-wide
+        if ($mode === 'empresa' || $mode === 'ambos') {
+            $empresaAuth = $this->findAuth($empresaId, null);
+            if ($empresaAuth !== null) {
+                $auths[] = $empresaAuth;
+            }
+        }
+
+        // Auth del usuario
+        if (($mode === 'usuario' || $mode === 'ambos') && $usuarioId !== null) {
+            $userAuth = $this->findAuth($empresaId, $usuarioId);
+            if ($userAuth !== null) {
+                $auths[] = $userAuth;
+            }
+        }
+
+        return $auths;
+    }
+
     public function resolveAgendaMode(int $empresaId): string
     {
         $stmt = $this->db->prepare('SELECT agenda_google_auth_mode FROM empresa_config_crm WHERE empresa_id = :empresa_id LIMIT 1');
         $stmt->execute([':empresa_id' => $empresaId]);
         $mode = (string) ($stmt->fetchColumn() ?: 'usuario');
 
-        return in_array($mode, ['usuario', 'empresa'], true) ? $mode : 'usuario';
+        return in_array($mode, ['usuario', 'empresa', 'ambos'], true) ? $mode : 'usuario';
     }
 
     /**
      * Devuelve el access_token desencriptado y refrescado si es necesario.
-     * Si el refresh falla, loguea el error y lanza excepcion.
      */
     public function getValidAccessToken(array $auth): string
     {
@@ -237,20 +327,21 @@ class GoogleOAuthService
         $expiry = new DateTimeImmutable((string) $auth['token_expiry']);
         $now = new DateTimeImmutable();
 
-        // Si expira en menos de 2 minutos, refrescamos
         if ($expiry->getTimestamp() - $now->getTimestamp() > 120) {
             return $this->decrypt((string) $auth['access_token'], $empresaId);
         }
 
         $refreshToken = $this->decrypt((string) $auth['refresh_token'], $empresaId);
+        $config = $this->loadEmpresaConfig($empresaId);
 
-        $clientId = $this->requireEnv('GOOGLE_CLIENT_ID');
-        $clientSecret = $this->requireEnv('GOOGLE_CLIENT_SECRET');
+        if ($config['client_id'] === '' || $config['client_secret'] === '') {
+            throw new RuntimeException('Credenciales OAuth de Google incompletas para refresh — empresa ' . $empresaId);
+        }
 
         try {
             $response = $this->httpPost(self::TOKEN_URL, [
-                'client_id' => $clientId,
-                'client_secret' => $clientSecret,
+                'client_id' => $config['client_id'],
+                'client_secret' => $config['client_secret'],
                 'refresh_token' => $refreshToken,
                 'grant_type' => 'refresh_token',
             ]);
@@ -374,7 +465,7 @@ class GoogleOAuthService
 
     // ---- Criptografia y state ----
 
-    private function encrypt(string $plain, int $empresaId): string
+    public function encrypt(string $plain, int $empresaId): string
     {
         $key = $this->deriveKey($empresaId);
         $iv = random_bytes(16);
@@ -385,7 +476,7 @@ class GoogleOAuthService
         return base64_encode($iv . $cipher);
     }
 
-    private function decrypt(string $encoded, int $empresaId): string
+    public function decrypt(string $encoded, int $empresaId): string
     {
         $raw = base64_decode($encoded, true);
         if ($raw === false || strlen($raw) < 17) {
@@ -422,14 +513,5 @@ class GoogleOAuthService
         }
         $data = json_decode((string) $json, true);
         return is_array($data) ? $data : null;
-    }
-
-    private function requireEnv(string $name): string
-    {
-        $value = (string) (getenv($name) ?: '');
-        if ($value === '') {
-            throw new RuntimeException("Variable de entorno $name no configurada. Agregar en .env y definir la app en Google Cloud Console.");
-        }
-        return $value;
     }
 }
