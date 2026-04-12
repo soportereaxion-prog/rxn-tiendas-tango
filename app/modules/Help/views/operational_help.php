@@ -84,7 +84,11 @@ ob_start();
                     <a href="#modulo-usuarios" class="help-anchor"><strong>Administrar Cuentas</strong><br><small class="text-muted">Altas, permisos y accesos internos.</small></a>
                     <a href="#modulo-notas" class="help-anchor"><strong>Notas (Bitácora)</strong><br><small class="text-muted">Cuaderno operativo de seguimiento interno.</small></a>
                     <a href="#modulo-anura" class="help-anchor"><strong>Telefonía (Anura)</strong><br><small class="text-muted">Historial y llamadas entrantes automáticas.</small></a>
-                    <a href="#modulo-configuracion" class="help-anchor"><strong>Configuracion</strong><br><small class="text-muted"><?= $isCrm ? 'Parametros operativos propios de CRM, SMTP y Tango.' : 'Slug, branding, SMTP y Tango.' ?></small></a>
+                    <?php if ($isCrm): ?>
+                        <a href="#modulo-tratativas" class="help-anchor"><strong>Tratativas</strong><br><small class="text-muted">Oportunidades comerciales, estados, cliente y vínculo con PDS/Presupuestos.</small></a>
+                        <a href="#modulo-agenda" class="help-anchor"><strong>Agenda CRM</strong><br><small class="text-muted">Calendario unificado, filtros, fullscreen, Google Calendar y colores.</small></a>
+                    <?php endif; ?>
+                    <a href="#modulo-configuracion" class="help-anchor"><strong>Configuracion</strong><br><small class="text-muted"><?= $isCrm ? 'Parametros operativos propios de CRM, SMTP, Tango y Google Calendar.' : 'Slug, branding, SMTP y Tango.' ?></small></a>
                     <a href="#modulo-orden-tarjetas" class="help-anchor"><strong>Orden de Tarjetas</strong><br><small class="text-muted">Como acomodar el menu sin afectar otros entornos.</small></a>
                     <a href="#modulo-buscadores" class="help-anchor"><strong>Buscadores y Atajos</strong><br><small class="text-muted">Como buscar bien sin perder tiempo usando el teclado.</small></a>
                     <a href="#novedades" class="help-anchor"><strong>Novedades</strong><br><small class="text-muted">Multi-empresa, seguridad, zoom e impresión.</small></a>
@@ -241,7 +245,92 @@ ob_start();
             </div>
         </div>
 
-        <div class="card rxn-form-card help-card" id="modulo-configuracion" data-help-item data-help-text="configuracion empresa slug branding smtp tango connect mail tienda url publica identidad logo colores">
+        <?php if ($isCrm): ?>
+        <div class="card rxn-form-card help-card" id="modulo-tratativas" data-help-item data-help-text="tratativas tratativa oportunidad deal negociacion caso comercial cliente pds presupuesto vincular estado ganada perdida pausada probabilidad valor cierre">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Tratativas (Oportunidades Comerciales)</h2>
+                <p class="text-muted">Una tratativa agrupa bajo un mismo caso comercial los PDS y Presupuestos que hacen a una negociacion con un cliente.</p>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Crear tratativa:</strong> Desde el dashboard CRM, click en <em>Tratativas</em> y luego <em>Nueva Tratativa</em>. Titulo obligatorio, cliente opcional.</li>
+                    <li><strong>Vincular PDS o Presupuestos:</strong> Desde el <em>detalle</em> de una tratativa, usa los botones <em>Nuevo PDS</em> o <em>Nuevo Presupuesto</em>. Se crean ya vinculados y al guardar volves al detalle.</li>
+                    <li><strong>Estados:</strong> Nueva, En curso, Ganada, Perdida, Pausada. Si cerras como <em>ganada</em> o <em>perdida</em>, el sistema te pide un motivo de cierre obligatorio.</li>
+                    <li><strong>Probabilidad y valor:</strong> Campos opcionales que te ayudan a priorizar. La probabilidad va de 0 a 100%.</li>
+                    <li><strong>Papelera:</strong> Al eliminar una tratativa definitivamente, los PDS y Presupuestos vinculados NO se borran, solo se desvinculan (quedan con tratativa_id = null).</li>
+                    <li><strong>Buscar cliente:</strong> En el formulario de tratativa, presiona <kbd>Enter</kbd>, <kbd>F3</kbd> o hace doble click en el campo Cliente para abrir el buscador Spotlight.</li>
+                    <li><strong>Filtros:</strong> El listado tiene tabs por estado (Nueva, En curso, etc.) y papelera, ademas del buscador F3 universal. Los filtros persisten al navegar.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card rxn-form-card help-card" id="modulo-agenda" data-help-item data-help-text="agenda calendario fullcalendar eventos google calendar oauth sync sincronizar color usuario operador filtro pds presupuesto tratativa manual rescan historico pantalla completa fullscreen alt a">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Agenda CRM</h2>
+                <p class="text-muted">Calendario visual que muestra todos los eventos del CRM en un solo lugar, con sync push a Google Calendar.</p>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Uso basico</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Ver eventos:</strong> El calendario muestra automaticamente los PDS (azul), Presupuestos (verde), Tratativas (amarillo) y eventos manuales (gris). Cada uno se proyecta al crear o editar desde su modulo.</li>
+                    <li><strong>Click en un evento:</strong> Si es PDS, Presupuesto o Tratativa, te lleva al modulo de origen. Si es manual, te lleva a editarlo.</li>
+                    <li><strong>Click en un dia vacio:</strong> Abre el formulario de evento manual con la fecha precargada.</li>
+                    <li><strong>Nuevo Evento:</strong> Boton en la esquina superior derecha para crear un evento manual con titulo, descripcion, ubicacion, color y rango de fechas.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Filtros</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Por tipo de origen:</strong> Las pills de colores (PDS, Presupuestos, Tratativas, Llamadas, Manuales) filtran que tipos de eventos se ven.</li>
+                    <li><strong>Por operador:</strong> Las pills con nombre y color de cada usuario te permiten ver solo la agenda de un vendedor o equipo especifico.</li>
+                    <li><strong>Persistencia:</strong> Los filtros se guardan en tu navegador (localStorage) y se restauran al volver a la agenda.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Colores de eventos</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Fondo del evento:</strong> El color del operador asignado (configurable desde <em>Mi Perfil</em> > <em>Color de calendario</em>).</li>
+                    <li><strong>Borde izquierdo:</strong> El color del tipo de origen (azul=PDS, verde=Presupuesto, amarillo=Tratativa, violeta=Llamada, gris=Manual).</li>
+                    <li><strong>Para elegir tu color:</strong> Ve a <em>Mi Perfil</em> desde cualquier entorno y busca la seccion <em>Agenda CRM</em>.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Atajos de teclado</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Alt + A:</strong> Activa/desactiva la vista en pantalla completa del calendario.</li>
+                    <li><strong>Escape:</strong> Sale de pantalla completa si esta activa.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Rescan historico</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Boton "Rescan historico":</strong> Escanea todos los PDS, Presupuestos y Tratativas existentes y los proyecta como eventos en la agenda. Util al activar la agenda por primera vez en una empresa que ya operaba.</li>
+                    <li>Es idempotente: podes darlo varias veces sin duplicar eventos.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Google Calendar</h3>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Configurar credenciales:</strong> Desde <em>Configuracion CRM</em> o desde el panel de Google Calendar en la Agenda (icono de engranaje). Necesitas un <em>Client ID</em>, <em>Client Secret</em> y <em>Redirect URI</em> de <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>.</li>
+                    <li><strong>Pasos en Google Cloud Console:</strong>
+                        <ol class="mt-1 mb-1">
+                            <li>Crear un proyecto (o reusar uno existente).</li>
+                            <li>Menu <em>APIs & Services</em> > <em>Library</em> > buscar <em>Google Calendar API</em> > <em>Enable</em>.</li>
+                            <li>Menu <em>APIs & Services</em> > <em>OAuth consent screen</em> > configurar nombre de app, email de soporte, y agregar scope <code>calendar.events</code>.</li>
+                            <li>Menu <em>APIs & Services</em> > <em>Credentials</em> > <em>Create Credentials</em> > <em>OAuth 2.0 Client ID</em> > tipo <em>Web application</em>.</li>
+                            <li>En <em>Authorized redirect URIs</em> agregar exactamente: <code>https://tudominio.com/mi-empresa/crm/agenda/google/callback</code> (reemplaza <code>tudominio.com</code> por tu dominio real). Para desarrollo local: <code>http://localhost:9021/mi-empresa/crm/agenda/google/callback</code>.</li>
+                            <li>Google te muestra el <em>Client ID</em> (formato <code>xxxxx.apps.googleusercontent.com</code>) y el <em>Client Secret</em> (formato <code>GOCSPX-xxxx</code>). Copialos al formulario de configuracion en rxn_suite.</li>
+                        </ol>
+                    </li>
+                    <li><strong>Conectar:</strong> Una vez configuradas las credenciales, click en <em>Conectar con Google</em>. Google te pide autorizacion y al confirmar tu cuenta queda vinculada.</li>
+                    <li><strong>Modos de sync:</strong>
+                        <ul class="mt-1">
+                            <li><em>Por usuario</em>: cada operador conecta su propia cuenta Google y ve sus eventos en su calendario personal.</li>
+                            <li><em>Por empresa</em>: una sola cuenta Google compartida por toda la empresa.</li>
+                            <li><em>Ambos</em>: los eventos se replican al calendario personal del operador Y al calendario corporativo simultaneamente.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Sync push-only:</strong> Los eventos se envian del CRM a Google Calendar cuando se crean o editan. Los cambios que hagas directamente en Google NO vuelven al CRM (sincronizacion unidireccional).</li>
+                    <li><strong>Categorias en Google:</strong> Cada tipo de evento aparece con un color distinto en Google Calendar (PDS azul, Presupuesto verde, Tratativa amarillo, etc.) para diferenciarlos visualmente.</li>
+                    <li><strong>Desconectar:</strong> En cualquier momento podes desconectar tu cuenta de Google desde la Agenda. Los eventos ya sincronizados en Google NO se borran.</li>
+                </ul>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <div class="card rxn-form-card help-card" id="modulo-configuracion" data-help-item data-help-text="configuracion empresa slug branding smtp tango connect mail tienda url publica identidad logo colores google calendar oauth">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Configuracion de la Empresa</h2>
                 <p class="text-muted"><?= $isCrm ? 'Esta pantalla controla parametros propios del entorno CRM. Aunque muchos campos se parecen a Tiendas, CRM guarda su configuracion en un origen separado.' : 'Esta pantalla controla la identidad visible y varias conexiones importantes del entorno.' ?></p>
