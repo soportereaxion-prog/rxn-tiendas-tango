@@ -8,6 +8,7 @@ $authEmpresa = $authEmpresa ?? null;
 $authConfigured = $authConfigured ?? false;
 $missingFields = $missingFields ?? [];
 $empresaConfig = $empresaConfig ?? ['client_id' => '', 'redirect_uri' => '', 'auth_mode' => 'usuario'];
+$usuariosCrm = $usuariosCrm ?? [];
 
 ob_start();
 ?>
@@ -75,6 +76,21 @@ ob_start();
                         </div>
                         <button type="button" id="btn-refresh" class="btn btn-sm btn-outline-info ms-auto"><i class="bi bi-arrow-clockwise"></i> Refrescar</button>
                     </div>
+
+                    <?php if ($usuariosCrm !== []): ?>
+                        <hr class="border-secondary my-3">
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <span class="small text-muted me-1"><i class="bi bi-people"></i> Operadores:</span>
+                            <?php foreach ($usuariosCrm as $usr): ?>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input usuario-filter" type="checkbox" value="<?= (int) $usr['id'] ?>" id="filter_user_<?= (int) $usr['id'] ?>" checked>
+                                    <label class="form-check-label" for="filter_user_<?= (int) $usr['id'] ?>">
+                                        <span class="badge rounded-pill" style="background:<?= htmlspecialchars($usr['color_calendario'] ?? '#007bff') ?>;color:#fff;"><?= htmlspecialchars($usr['nombre'] ?? 'Usuario') ?></span>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -201,10 +217,8 @@ ob_start();
         return;
     }
 
-    const activeOrigenes = () => {
-        const boxes = document.querySelectorAll('.origen-filter:checked');
-        return Array.from(boxes).map(b => b.value);
-    };
+    const activeOrigenes = () => Array.from(document.querySelectorAll('.origen-filter:checked')).map(b => b.value);
+    const activeUsuarios = () => Array.from(document.querySelectorAll('.usuario-filter:checked')).map(b => b.value);
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
@@ -229,6 +243,7 @@ ob_start();
                 end: fetchInfo.endStr,
             });
             activeOrigenes().forEach(o => params.append('origenes[]', o));
+            activeUsuarios().forEach(u => params.append('usuarios[]', u));
 
             fetch('<?= htmlspecialchars($basePath) ?>/events?' + params.toString())
                 .then(r => r.json())
@@ -264,13 +279,19 @@ ob_start();
         eventDidMount: function (info) {
             const props = info.event.extendedProps || {};
             const syncMark = props.sync === 'synced' ? ' ☁' : '';
-            info.el.title = (props.descripcion || '') + '\n' + (props.usuario_nombre || '') + syncMark;
+            const tipo = (props.origen_tipo || 'manual').toUpperCase();
+            info.el.title = tipo + ' | ' + (props.usuario_nombre || 'Sin asignar') + syncMark + '\n' + (props.descripcion || '');
+
+            // Reforzar el borde izquierdo grueso con el color del tipo de origen
+            if (props.color_tipo && info.el) {
+                info.el.style.borderLeft = '4px solid ' + props.color_tipo;
+            }
         }
     });
 
     calendar.render();
 
-    document.querySelectorAll('.origen-filter').forEach(cb => {
+    document.querySelectorAll('.origen-filter, .usuario-filter').forEach(cb => {
         cb.addEventListener('change', () => calendar.refetchEvents());
     });
 

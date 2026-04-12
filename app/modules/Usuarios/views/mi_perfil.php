@@ -53,6 +53,20 @@ ob_start();
                     </div>
                 </div>
 
+                <div class="rxn-form-section mt-4">
+                    <div class="rxn-form-section-title">Agenda CRM</div>
+                    <div class="rxn-form-section-text">Color con el que tus eventos aparecerán en el calendario compartido del CRM.</div>
+                    <div class="rxn-form-grid">
+                        <div class="rxn-form-span-6">
+                            <label class="form-label fw-medium text-dark">Color de calendario</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="color" name="color_calendario" class="form-control form-control-color border-0 shadow-sm" value="<?= htmlspecialchars($usuario['color_calendario'] ?? '#007bff') ?>" title="Elegí tu color para la agenda">
+                                <span class="badge rounded-pill px-3 py-2 shadow-sm" style="background: <?= htmlspecialchars($usuario['color_calendario'] ?? '#007bff') ?>; color: #fff; font-size: 0.85rem;" id="color-preview"><?= htmlspecialchars($usuario['nombre'] ?? 'Tu nombre') ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="alert alert-info py-2 small mb-4 mt-4">
                     Solo afecta tu experiencia dentro del panel administrativo. No impacta en la portada pública.
                 </div>
@@ -70,6 +84,15 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
+<script>
+    (function () {
+        const picker = document.querySelector('input[name="color_calendario"]');
+        const preview = document.getElementById('color-preview');
+        if (picker && preview) {
+            picker.addEventListener('input', (e) => { preview.style.background = e.target.value; });
+        }
+    })();
+</script>
 <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();

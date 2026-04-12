@@ -32,6 +32,7 @@ class Usuario
     // Theming B2B Admin
     public string $preferencia_tema = 'light';
     public string $preferencia_fuente = 'md';
+    public ?string $color_calendario = '#007bff';
     public ?string $avatar_url = null;
     
     // Dashboard State Arrays

@@ -35,22 +35,39 @@ class AgendaRepository
     /**
      * Retorna eventos en un rango de fechas para el calendario (FullCalendar events feed).
      */
-    public function findInRange(int $empresaId, string $startIso, string $endIso, ?int $usuarioIdFilter = null, ?array $origenesFilter = null): array
+    /**
+     * Retorna eventos en un rango de fechas para el calendario (FullCalendar events feed).
+     * Hace JOIN con usuarios para traer el color_calendario del operador asignado.
+     */
+    /**
+     * @param int|int[]|null $usuarioIdFilter — un solo ID, array de IDs, o null (sin filtro)
+     */
+    public function findInRange(int $empresaId, string $startIso, string $endIso, int|array|null $usuarioIdFilter = null, ?array $origenesFilter = null): array
     {
-        $sql = 'SELECT * FROM crm_agenda_eventos
-            WHERE empresa_id = :empresa_id
-              AND deleted_at IS NULL
-              AND inicio < :end_iso
-              AND fin >= :start_iso';
+        $sql = 'SELECT e.*, u.color_calendario AS color_usuario
+            FROM crm_agenda_eventos e
+            LEFT JOIN usuarios u ON u.id = e.usuario_id
+            WHERE e.empresa_id = :empresa_id
+              AND e.deleted_at IS NULL
+              AND e.inicio < :end_iso
+              AND e.fin >= :start_iso';
         $params = [
             ':empresa_id' => $empresaId,
             ':start_iso' => $startIso,
             ':end_iso' => $endIso,
         ];
 
-        if ($usuarioIdFilter !== null && $usuarioIdFilter > 0) {
-            $sql .= ' AND usuario_id = :usuario_id';
+        if (is_int($usuarioIdFilter) && $usuarioIdFilter > 0) {
+            $sql .= ' AND e.usuario_id = :usuario_id';
             $params[':usuario_id'] = $usuarioIdFilter;
+        } elseif (is_array($usuarioIdFilter) && $usuarioIdFilter !== []) {
+            $uPlaceholders = [];
+            foreach ($usuarioIdFilter as $i => $uid) {
+                $key = ':uid_' . $i;
+                $uPlaceholders[] = $key;
+                $params[$key] = (int) $uid;
+            }
+            $sql .= ' AND e.usuario_id IN (' . implode(',', $uPlaceholders) . ')';
         }
 
         if ($origenesFilter !== null && $origenesFilter !== []) {
@@ -60,10 +77,10 @@ class AgendaRepository
                 $placeholders[] = $key;
                 $params[$key] = $origen;
             }
-            $sql .= ' AND origen_tipo IN (' . implode(',', $placeholders) . ')';
+            $sql .= ' AND e.origen_tipo IN (' . implode(',', $placeholders) . ')';
         }
 
-        $sql .= ' ORDER BY inicio ASC';
+        $sql .= ' ORDER BY e.inicio ASC';
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -269,6 +286,21 @@ class AgendaRepository
         $stmt->bindValue(':usuario_id', $usuarioId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Retorna la lista de usuarios activos de la empresa con su color de calendario.
+     * Usado para renderizar las pills de filtro por usuario en la vista de la Agenda.
+     */
+    public function findUsuariosConColor(int $empresaId): array
+    {
+        $stmt = $this->db->prepare('SELECT id, nombre, color_calendario
+            FROM usuarios
+            WHERE empresa_id = :empresa_id AND activo = 1 AND deleted_at IS NULL
+            ORDER BY nombre ASC');
+        $stmt->execute([':empresa_id' => $empresaId]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }

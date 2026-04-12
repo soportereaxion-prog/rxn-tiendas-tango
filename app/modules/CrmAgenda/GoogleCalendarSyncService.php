@@ -19,6 +19,17 @@ class GoogleCalendarSyncService
 {
     private const API_BASE = 'https://www.googleapis.com/calendar/v3';
 
+    // Google Calendar colorId mapping (1-11, predefined by Google).
+    // Estos colores aparecen como "categoría" visual en el Google Calendar del usuario.
+    private const GOOGLE_COLOR_IDS = [
+        'pds' => '9',        // Blueberry (azul oscuro)
+        'presupuesto' => '2', // Sage (verde)
+        'tratativa' => '5',   // Banana (amarillo)
+        'llamada' => '3',     // Grape (violeta)
+        'manual' => '8',      // Graphite (gris)
+        'tratativa_accion' => '6', // Tangerine (naranja)
+    ];
+
     private AgendaRepository $repository;
     private GoogleOAuthService $oauth;
 
@@ -229,7 +240,11 @@ class GoogleCalendarSyncService
             ];
         }
 
+        // Asignar colorId de Google según tipo de origen (aparece como categoría visual en Google Calendar)
         $origen = (string) ($event['origen_tipo'] ?? 'manual');
+        $googleColorId = self::GOOGLE_COLOR_IDS[$origen] ?? self::GOOGLE_COLOR_IDS['manual'];
+        $payload['colorId'] = $googleColorId;
+
         $payload['extendedProperties'] = [
             'private' => [
                 'rxn_suite_origen' => $origen,

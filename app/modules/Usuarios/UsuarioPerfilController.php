@@ -44,14 +44,21 @@ class UsuarioPerfilController
 
         $tema = $_POST['preferencia_tema'] ?? 'light';
         $fuente = $_POST['preferencia_fuente'] ?? 'md';
-        
+        $colorCalendario = $_POST['color_calendario'] ?? '#007bff';
+
+        // Validar color hex
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $colorCalendario)) {
+            $colorCalendario = '#007bff';
+        }
+
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("UPDATE usuarios SET preferencia_tema = ?, preferencia_fuente = ? WHERE id = ?");
-        $stmt->execute([$tema, $fuente, $_SESSION['user_id']]);
+        $stmt = $pdo->prepare("UPDATE usuarios SET preferencia_tema = ?, preferencia_fuente = ?, color_calendario = ? WHERE id = ?");
+        $stmt->execute([$tema, $fuente, $colorCalendario, $_SESSION['user_id']]);
 
         // Actualizar caché de sesión en vivo
         $_SESSION['pref_theme'] = $tema;
         $_SESSION['pref_font'] = $fuente;
+        $_SESSION['color_calendario'] = $colorCalendario;
 
         $redirect = OperationalAreaService::profilePath($area);
         $separator = str_contains($redirect, '?') ? '&' : '?';

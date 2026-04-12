@@ -39,6 +39,8 @@ class AgendaController extends \App\Core\Controller
             $authEmpresa = $this->oauthService->findAuth($empresaId, null);
         }
 
+        $usuariosCrm = $this->repository->findUsuariosConColor($empresaId);
+
         View::render('app/modules/CrmAgenda/views/index.php', array_merge($this->buildUiContext(), [
             'authMode' => $authMode,
             'authConfigured' => $authConfigured,
@@ -46,6 +48,7 @@ class AgendaController extends \App\Core\Controller
             'authActive' => $authActive,
             'authEmpresa' => $authEmpresa,
             'empresaConfig' => $empresaConfig,
+            'usuariosCrm' => $usuariosCrm,
         ]));
     }
 
@@ -91,29 +94,45 @@ class AgendaController extends \App\Core\Controller
         $start = $this->normalizeDateParam($startParam) ?? (new DateTimeImmutable('-1 month'))->format('Y-m-d H:i:s');
         $end = $this->normalizeDateParam($endParam) ?? (new DateTimeImmutable('+3 months'))->format('Y-m-d H:i:s');
 
-        $usuarioFilter = isset($_GET['usuario_id']) && $_GET['usuario_id'] !== '' ? (int) $_GET['usuario_id'] : null;
+        // Filtros de usuario: acepta usuario_id=X (single) o usuarios[]=X&usuarios[]=Y (array)
+        $usuarioFilter = null;
+        if (isset($_GET['usuarios']) && is_array($_GET['usuarios'])) {
+            $usuarioFilter = array_map('intval', $_GET['usuarios']);
+        } elseif (isset($_GET['usuario_id']) && $_GET['usuario_id'] !== '') {
+            $usuarioFilter = (int) $_GET['usuario_id'];
+        }
         $origenesFilter = isset($_GET['origenes']) && is_array($_GET['origenes']) ? $_GET['origenes'] : null;
 
         $rows = $this->repository->findInRange($empresaId, $start, $end, $usuarioFilter, $origenesFilter);
 
         $events = array_map(static function (array $row): array {
             $allDay = (bool) $row['all_day'];
+            $origenTipo = (string) ($row['origen_tipo'] ?? 'manual');
+            $colorTipo = AgendaRepository::defaultColorFor($origenTipo);
+            // Color de fondo: el del usuario si existe, si no el del tipo de origen
+            $colorUsuario = !empty($row['color_usuario']) ? (string) $row['color_usuario'] : $colorTipo;
+
             return [
                 'id' => (int) $row['id'],
                 'title' => (string) $row['titulo'],
                 'start' => $allDay ? substr((string) $row['inicio'], 0, 10) : (string) str_replace(' ', 'T', (string) $row['inicio']),
                 'end' => $allDay ? substr((string) $row['fin'], 0, 10) : (string) str_replace(' ', 'T', (string) $row['fin']),
                 'allDay' => $allDay,
-                'backgroundColor' => (string) ($row['color'] ?? '#6c757d'),
-                'borderColor' => (string) ($row['color'] ?? '#6c757d'),
+                // Opción B: fondo = color del usuario, borde = color del tipo de origen
+                'backgroundColor' => $colorUsuario,
+                'borderColor' => $colorTipo,
+                'borderWidth' => 4,
                 'extendedProps' => [
                     'descripcion' => (string) ($row['descripcion'] ?? ''),
                     'ubicacion' => (string) ($row['ubicacion'] ?? ''),
                     'usuario_nombre' => (string) ($row['usuario_nombre'] ?? ''),
-                    'origen_tipo' => (string) ($row['origen_tipo'] ?? 'manual'),
+                    'usuario_id' => (int) ($row['usuario_id'] ?? 0),
+                    'origen_tipo' => $origenTipo,
                     'origen_id' => (int) ($row['origen_id'] ?? 0),
                     'estado' => (string) ($row['estado'] ?? 'programado'),
                     'sync' => !empty($row['google_event_id']) ? 'synced' : 'local',
+                    'color_tipo' => $colorTipo,
+                    'color_usuario' => $colorUsuario,
                 ],
             ];
         }, $rows);
