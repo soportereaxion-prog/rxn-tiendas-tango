@@ -1,9 +1,30 @@
 <?php
 
 return [
-    'current_version' => '1.3.8',
-    'current_build' => '20260411.1',
+    'current_version' => '1.4.0',
+    'current_build' => '20260412.1',
     'history' => [
+        [
+            'version' => '1.4.0',
+            'build' => '20260412.1',
+            'released_at' => '2026-04-12',
+            'title' => 'CRM Tratativas + Agenda con Google Calendar, colores por operador y rescan selectivo',
+            'summary' => 'Release mayor: dos módulos nuevos del CRM. (1) CrmTratativas — agregador de oportunidades comerciales que vincula PDS y Presupuestos bajo un caso de negociación con estado, probabilidad, valor y motivo de cierre. (2) CrmAgenda — calendario visual unificado con FullCalendar 6 que muestra eventos de PDS, Presupuestos, Tratativas, Llamadas y manuales, con sync push-only a Google Calendar vía OAuth2 (cliente cURL nativo, cero dependencias). Incluye colores por operador configurables desde Mi Perfil, filtros persistentes por tipo de origen y por usuario, fullscreen con Alt+A, rescan selectivo histórico y configuración de credenciales OAuth per-empresa desde la UI (sin editar .env). 7 migraciones, 14 commits.',
+            'items' => [
+                'Nuevo módulo CrmTratativas: ABM completo con papelera, filtros F3, spotlight de cliente, sub-grillas de PDS y Presupuestos vinculados en vista detalle. Botones "Nuevo PDS" / "Nuevo Presupuesto" redirigen al form del módulo correspondiente con ?tratativa_id=X precargado.',
+                'Nuevo módulo CrmAgenda: FullCalendar 6.1.11 vía CDN con dark theme, 5 vistas (mes/semana/día/lista), events feed JSON, ABM de eventos manuales con color picker y all-day toggle.',
+                'Proyección automática: hooks explícitos en PedidoServicioRepository, PresupuestoRepository, TratativaRepository disparan AgendaProyectorService al crear/editar/eliminar. Idempotente vía findByOrigen upsert.',
+                'Google Calendar OAuth2: flujo completo con cURL nativo (getAuthUrl, handleCallback, refreshToken, disconnect). Tokens encriptados con openssl_encrypt(aes-256-cbc) + clave derivada de APP_KEY por empresa.',
+                'Credenciales OAuth per-empresa: client_id, client_secret (encriptado) y redirect_uri viven en empresa_config_crm, configurables desde la UI de Agenda (panel colapsable) y desde Configuración CRM. Sin editar .env ni reiniciar el server.',
+                'Multi-auth (modo "ambos"): un evento puede sincronizarse al Google Calendar personal del operador Y al corporativo de la empresa simultáneamente. Tracking de múltiples syncs en columna JSON google_syncs.',
+                'Colores por operador: nueva columna usuarios.color_calendario con color picker en Mi Perfil. Los eventos en FullCalendar usan fondo = color del usuario, borde izquierdo = color del tipo de origen.',
+                'Filtros persistentes: checkboxes de tipo de origen + pills de operador se guardan en localStorage scopeado por empresa_id.',
+                'Fullscreen: botón en header + shortcut Alt+A para ver el calendario a pantalla completa. Escape para salir.',
+                'Rescan selectivo histórico: el botón "Rescan histórico" lee los filtros activos y solo barre los módulos tickeados (PDS, Presupuestos, Tratativas, Llamadas). Idempotente.',
+                'Google Calendar colorId: cada tipo de evento se pushea con un colorId de Google (PDS=Blueberry, Presupuesto=Sage, Tratativa=Banana, Llamada=Grape, Manual=Graphite).',
+                'Ayuda operacional actualizada con secciones completas de Tratativas y Agenda CRM, incluyendo guía paso a paso de configuración de Google Cloud Console.',
+            ],
+        ],
         [
             'version' => '1.3.8',
             'build' => '20260411.1',
