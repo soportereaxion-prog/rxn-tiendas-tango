@@ -237,6 +237,42 @@ ob_start();
         return;
     }
 
+    // ---- Persistencia de filtros en localStorage (scopeado por empresa_id) ----
+    const empresaId = '<?= htmlspecialchars((string) ($_SESSION['empresa_id'] ?? '')) ?>';
+    const STORAGE_KEY = 'rxn_agenda_filters::' + empresaId;
+
+    function loadSavedFilters() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+    }
+
+    function saveFilters() {
+        const state = {
+            origenes: Array.from(document.querySelectorAll('.origen-filter')).map(cb => ({ value: cb.value, checked: cb.checked })),
+            usuarios: Array.from(document.querySelectorAll('.usuario-filter')).map(cb => ({ value: cb.value, checked: cb.checked })),
+        };
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    }
+
+    // Restaurar estado guardado al cargar
+    const saved = loadSavedFilters();
+    if (saved) {
+        if (saved.origenes) {
+            saved.origenes.forEach(s => {
+                const cb = document.querySelector('.origen-filter[value="' + s.value + '"]');
+                if (cb) cb.checked = s.checked;
+            });
+        }
+        if (saved.usuarios) {
+            saved.usuarios.forEach(s => {
+                const cb = document.querySelector('.usuario-filter[value="' + s.value + '"]');
+                if (cb) cb.checked = s.checked;
+            });
+        }
+    }
+
     const activeOrigenes = () => Array.from(document.querySelectorAll('.origen-filter:checked')).map(b => b.value);
     const activeUsuarios = () => Array.from(document.querySelectorAll('.usuario-filter:checked')).map(b => b.value);
 
@@ -312,7 +348,10 @@ ob_start();
     calendar.render();
 
     document.querySelectorAll('.origen-filter, .usuario-filter').forEach(cb => {
-        cb.addEventListener('change', () => calendar.refetchEvents());
+        cb.addEventListener('change', () => {
+            saveFilters();
+            calendar.refetchEvents();
+        });
     });
 
     const refreshBtn = document.getElementById('btn-refresh');
