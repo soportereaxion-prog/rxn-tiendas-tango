@@ -294,6 +294,63 @@ class AgendaController extends \App\Core\Controller
         exit;
     }
 
+    /**
+     * POST /mi-empresa/crm/agenda/rescan
+     * Escanea PDS, Presupuestos y Tratativas existentes y los proyecta como eventos
+     * en la agenda. Útil para poblar el calendario con datos históricos previos a la
+     * activación del módulo de Agenda.
+     */
+    public function rescan(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /mi-empresa/crm/agenda');
+            exit;
+        }
+
+        $proyector = new AgendaProyectorService();
+        $db = \App\Core\Database::getConnection();
+        $counts = ['pds' => 0, 'presupuestos' => 0, 'tratativas' => 0];
+
+        // 1. PDS activos
+        $stmt = $db->prepare('SELECT * FROM crm_pedidos_servicio WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
+        $stmt->execute([':empresa_id' => $empresaId]);
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+            try {
+                $proyector->onPdsSaved($row);
+                $counts['pds']++;
+            } catch (\Throwable) {}
+        }
+
+        // 2. Presupuestos activos
+        $stmt = $db->prepare('SELECT * FROM crm_presupuestos WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
+        $stmt->execute([':empresa_id' => $empresaId]);
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+            try {
+                $proyector->onPresupuestoSaved($row);
+                $counts['presupuestos']++;
+            } catch (\Throwable) {}
+        }
+
+        // 3. Tratativas activas
+        $stmt = $db->prepare('SELECT * FROM crm_tratativas WHERE empresa_id = :empresa_id AND deleted_at IS NULL');
+        $stmt->execute([':empresa_id' => $empresaId]);
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+            try {
+                $proyector->onTratativaSaved($row);
+                $counts['tratativas']++;
+            } catch (\Throwable) {}
+        }
+
+        $total = $counts['pds'] + $counts['presupuestos'] + $counts['tratativas'];
+        Flash::set('success', "Rescan completado: {$counts['pds']} PDS, {$counts['presupuestos']} presupuestos, {$counts['tratativas']} tratativas proyectadas ({$total} total).");
+
+        header('Location: /mi-empresa/crm/agenda');
+        exit;
+    }
+
     // ---- Google OAuth endpoints ----
 
     public function googleConnect(): void

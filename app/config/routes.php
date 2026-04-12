@@ -312,6 +312,7 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/agenda/events', $action(\App\Modules\CrmAgenda\AgendaController::class, 'eventsFeed', $requireCrm));
     $router->get('/mi-empresa/crm/agenda/crear', $action(\App\Modules\CrmAgenda\AgendaController::class, 'create', $requireCrm));
     $router->post('/mi-empresa/crm/agenda', $action(\App\Modules\CrmAgenda\AgendaController::class, 'store', $requireCrm));
+    $router->post('/mi-empresa/crm/agenda/rescan', $action(\App\Modules\CrmAgenda\AgendaController::class, 'rescan', $requireCrm));
     $router->post('/mi-empresa/crm/agenda/google/config', $action(\App\Modules\CrmAgenda\AgendaController::class, 'googleConfig', $requireCrm));
     $router->get('/mi-empresa/crm/agenda/google/connect', $action(\App\Modules\CrmAgenda\AgendaController::class, 'googleConnect', $requireCrm));
     $router->get('/mi-empresa/crm/agenda/google/callback', $action(\App\Modules\CrmAgenda\AgendaController::class, 'googleCallback', $requireCrm));

@@ -21,6 +21,7 @@ ob_start();
         </div>
         <div class="d-flex gap-2">
             <a href="<?= htmlspecialchars($dashboardPath ?? '/') ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+            <button type="button" id="btn-fullscreen" class="btn btn-outline-info" title="Pantalla completa (Alt+A)"><i class="bi bi-arrows-fullscreen"></i></button>
             <a href="<?= htmlspecialchars($basePath) ?>/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nuevo Evento</a>
         </div>
     </div>
@@ -172,7 +173,13 @@ ob_start();
         </div>
     </div>
 
-    <div class="card bg-dark text-light border-0 shadow-sm">
+    <div class="d-flex justify-content-end mb-2">
+        <form action="<?= htmlspecialchars($basePath) ?>/rescan" method="POST" class="rxn-confirm-form" data-msg="¿Escanear PDS, Presupuestos y Tratativas existentes para proyectarlos en la Agenda? Puede tardar unos segundos.">
+            <button type="submit" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-repeat"></i> Rescan histórico</button>
+        </form>
+    </div>
+
+    <div class="card bg-dark text-light border-0 shadow-sm" id="calendar-container">
         <div class="card-body p-3">
             <div id="rxn-agenda-calendar"></div>
         </div>
@@ -185,6 +192,19 @@ $content = ob_get_clean();
 ob_start();
 ?>
 <style>
+    /* Fullscreen mode */
+    .agenda-fullscreen {
+        position: fixed !important;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 9999;
+        background: var(--bg-color, #121212);
+        overflow-y: auto;
+        padding: 1rem;
+        border-radius: 0 !important;
+    }
+    .agenda-fullscreen .card-body { padding: 1rem !important; }
+    .agenda-fullscreen-active { overflow: hidden; } /* body */
+
     /* FullCalendar dark theme touches */
     #rxn-agenda-calendar { color: #f8f9fa; }
     #rxn-agenda-calendar .fc {
@@ -299,6 +319,34 @@ ob_start();
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => calendar.refetchEvents());
     }
+
+    // Fullscreen toggle
+    const container = document.getElementById('calendar-container');
+    const btnFs = document.getElementById('btn-fullscreen');
+    function toggleFullscreen() {
+        if (!container) return;
+        const isFs = container.classList.toggle('agenda-fullscreen');
+        document.body.classList.toggle('agenda-fullscreen-active', isFs);
+        if (btnFs) {
+            btnFs.innerHTML = isFs ? '<i class="bi bi-fullscreen-exit"></i>' : '<i class="bi bi-arrows-fullscreen"></i>';
+        }
+        // FullCalendar necesita recalcular tamaño
+        setTimeout(() => calendar.updateSize(), 100);
+    }
+    if (btnFs) { btnFs.addEventListener('click', toggleFullscreen); }
+
+    // Alt+A shortcut
+    document.addEventListener('keydown', (e) => {
+        if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+        // Escape sale del fullscreen
+        if (e.key === 'Escape' && container && container.classList.contains('agenda-fullscreen')) {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
 })();
 </script>
 <?php
