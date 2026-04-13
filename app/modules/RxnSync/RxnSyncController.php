@@ -32,7 +32,12 @@ class RxnSyncController extends Controller
             return ($row['estado'] ?? '') === 'vinculado' && !empty($row['tango_id']);
         }));
 
-        $listasReady = !empty($config->lista_precio_1) || !empty($config->lista_precio_2);
+        if ($area === 'crm') {
+            $catalogRepo = new \App\Modules\CrmPresupuestos\CommercialCatalogRepository();
+            $listasReady = $catalogRepo->countByType((int) $empresaId, 'lista_precio') > 0;
+        } else {
+            $listasReady = !empty($config->lista_precio_1) || !empty($config->lista_precio_2);
+        }
         $depositoReady = !empty($config->deposito_codigo);
 
         View::render('app/modules/RxnSync/views/index.php', [

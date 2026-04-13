@@ -630,6 +630,43 @@ class PresupuestoRepository
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
     }
 
+    /**
+     * Mapa SKU (codigo_externo) → articulo_id para cruzar precios de Tango.
+     * @return array<string, int>  ['SKU123' => 45, ...]
+     */
+    public function buildSkuToIdMap(int $empresaId): array
+    {
+        $stmt = $this->db->prepare("SELECT id, codigo_externo FROM crm_articulos WHERE empresa_id = :empresa_id AND codigo_externo != '' AND codigo_externo IS NOT NULL");
+        $stmt->execute([':empresa_id' => $empresaId]);
+
+        $map = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $sku = trim((string) $row['codigo_externo']);
+            if ($sku !== '') {
+                $map[$sku] = (int) $row['id'];
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Upsert de precio por artículo+lista en la tabla normalizada crm_articulo_precios.
+     */
+    public function upsertArticuloPrecio(int $empresaId, int $articuloId, string $listaCodigo, float $precio): void
+    {
+        $stmt = $this->db->prepare('INSERT INTO crm_articulo_precios (empresa_id, articulo_id, lista_codigo, precio, fecha_ultima_sync, created_at, updated_at)
+            VALUES (:empresa_id, :articulo_id, :lista_codigo, :precio, NOW(), NOW(), NOW())
+            ON DUPLICATE KEY UPDATE precio = VALUES(precio), fecha_ultima_sync = NOW(), updated_at = NOW()');
+
+        $stmt->execute([
+            ':empresa_id' => $empresaId,
+            ':articulo_id' => $articuloId,
+            ':lista_codigo' => $listaCodigo,
+            ':precio' => $precio,
+        ]);
+    }
+
     private function nullableString(mixed $value): ?string
     {
         if ($value === null) {

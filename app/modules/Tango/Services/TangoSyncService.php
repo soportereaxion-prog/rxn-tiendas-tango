@@ -179,8 +179,13 @@ class TangoSyncService
             throw new \RuntimeException("Sincronización abortada: Sin empresa activa en sesión.");
         }
 
-        $config = $this->getEmpresaConfig();
+        // CRM: sync completo contra catálogo comercial → crm_articulo_precios
+        if ($this->area === 'crm') {
+            return $this->syncPreciosCatalogoCrm((int) $empresaId);
+        }
 
+        // Tiendas: flujo existente con 2 listas planas
+        $config = $this->getEmpresaConfig();
         return $this->syncPreciosWithConfig((int) $empresaId, $config);
     }
 
@@ -206,7 +211,8 @@ class TangoSyncService
         $config = $this->getEmpresaConfig();
 
         $articulos = $this->syncArticulos();
-        $precios = $this->syncPreciosWithConfig((int) $empresaId, $config);
+        // syncPrecios() ya bifurca: CRM → catálogo completo, Tiendas → 2 listas planas
+        $precios = $this->syncPrecios();
         $stock = $this->syncStockWithConfig((int) $empresaId, $config);
 
         return [
@@ -299,6 +305,103 @@ class TangoSyncService
 
             $this->logRepo->endLog($logId, $stats, 'SUCCESS');
             $this->clearAreaCaches((int) $empresaId);
+            return $stats;
+
+        } catch (\Exception $e) {
+            $this->logRepo->endLog($logId, $stats, 'ERROR', $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Sync de precios CRM: puebla crm_articulo_precios para TODAS las listas
+     * conocidas en el catálogo comercial.
+     */
+    private function syncPreciosCatalogoCrm(int $empresaId): array
+    {
+        $catalogRepo = new \App\Modules\CrmPresupuestos\CommercialCatalogRepository();
+        $presupuestoRepo = new \App\Modules\CrmPresupuestos\PresupuestoRepository();
+
+        // 1. Listas conocidas del catálogo comercial
+        $listasRaw = $catalogRepo->findAllByType($empresaId, 'lista_precio');
+        $listaCodigos = [];
+        foreach ($listasRaw as $lista) {
+            $codigo = trim((string) ($lista['codigo'] ?? ''));
+            if ($codigo !== '') {
+                $listaCodigos[$codigo] = true;
+            }
+        }
+
+        if ($listaCodigos === []) {
+            throw new \RuntimeException('Sincronización abortada: No hay listas de precios en el catálogo comercial CRM. Ejecute "Sync Catálogos" primero.');
+        }
+
+        // 2. Mapa SKU → articulo_id (una sola query)
+        $skuMap = $presupuestoRepo->buildSkuToIdMap($empresaId);
+
+        if ($skuMap === []) {
+            throw new \RuntimeException('Sincronización abortada: No hay artículos CRM con código externo. Sincronice artículos primero.');
+        }
+
+        $logId = $this->logRepo->startLog($empresaId, 'PRECIOS_CATALOGO_CRM');
+        $stats = ['recibidos' => 0, 'actualizados' => 0, 'omitidos' => 0, 'sin_match' => 0];
+
+        try {
+            $page = 1;
+            do {
+                $dto = $this->tangoService->fetchPrecios($page, 500);
+
+                if (!$dto->isSuccess) {
+                    throw new \App\Infrastructure\Exceptions\HttpException('Respuesta fallida desde Tango Process 20091: ' . $dto->errorMessage);
+                }
+
+                $items = is_array($dto->payload) ? $dto->payload : [];
+                if (isset($items['resultData']['list']) && is_array($items['resultData']['list'])) {
+                    $items = $items['resultData']['list'];
+                } elseif (isset($items['Data']) && is_array($items['Data'])) {
+                    $items = $items['Data'];
+                } elseif (isset($items['data']) && is_array($items['data'])) {
+                    $items = $items['data'];
+                }
+
+                $count = count($items);
+                $stats['recibidos'] += $count;
+
+                foreach ($items as $item) {
+                    if (!is_array($item)) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    $sku      = (string) ($item['COD_STA11'] ?? '');
+                    $nroLista = trim((string) ($item['NRO_DE_LIS'] ?? ''));
+                    $precio   = $item['PRECIO'] ?? null;
+
+                    if ($sku === '' || $nroLista === '' || !is_numeric($precio)) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    // Solo listas que existen en el catálogo comercial
+                    if (!isset($listaCodigos[$nroLista])) {
+                        $stats['omitidos']++;
+                        continue;
+                    }
+
+                    // Solo artículos que existen localmente
+                    if (!isset($skuMap[$sku])) {
+                        $stats['sin_match']++;
+                        continue;
+                    }
+
+                    $presupuestoRepo->upsertArticuloPrecio($empresaId, $skuMap[$sku], $nroLista, (float) $precio);
+                    $stats['actualizados']++;
+                }
+
+                $page++;
+            } while ($count > 0 && $page < 100);
+
+            $this->logRepo->endLog($logId, $stats, 'SUCCESS');
             return $stats;
 
         } catch (\Exception $e) {

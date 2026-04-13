@@ -411,6 +411,50 @@
             }
         }
 
+        // --- Header lock: bloquea cabecera cuando hay artículos cargados ---
+        var headerFieldSelectors = [
+            '#presupuesto-fecha',
+            '#presupuesto-estado',
+            '#presupuesto-deposito',
+            '#presupuesto-condicion',
+            '[data-lista-select]',
+            '#presupuesto-vendedor',
+            '#clasificacion_codigo',
+            '#presupuesto-transporte'
+        ];
+
+        function hasItems() {
+            return itemsBody.querySelectorAll('[data-item-row]').length > 0;
+        }
+
+        function lockHeader() {
+            headerFieldSelectors.forEach(function(sel) {
+                var el = form.querySelector(sel);
+                if (el) el.disabled = true;
+            });
+            // Cliente: deshabilitar picker input + hidden
+            if (clientRoot) {
+                var ci = clientRoot.querySelector('[data-picker-input]');
+                if (ci) ci.disabled = true;
+            }
+        }
+
+        function unlockHeader() {
+            headerFieldSelectors.forEach(function(sel) {
+                var el = form.querySelector(sel);
+                if (el) el.disabled = false;
+            });
+            if (clientRoot) {
+                var ci = clientRoot.querySelector('[data-picker-input]');
+                if (ci) ci.disabled = false;
+            }
+        }
+
+        // Re-habilitar antes del submit para que los valores viajen en el POST
+        form.addEventListener('submit', function() {
+            unlockHeader();
+        });
+
         function appendItem(item) {
             var emptyRow = itemsBody.querySelector('[data-empty-row]');
             if (emptyRow) {
@@ -420,6 +464,7 @@
             itemsBody.appendChild(createItemRow(item));
             reindexRows();
             recalculate();
+            if (hasItems()) lockHeader();
         }
 
         function applyClientContext(data, input, hidden, updateMeta) {
@@ -636,6 +681,7 @@
                 reindexRows();
                 updateEmptyState();
                 recalculate();
+                if (!hasItems()) unlockHeader();
             }
         });
 
@@ -648,6 +694,9 @@
         updateEmptyState();
         reindexRows();
         recalculate();
+
+        // Lock inicial: si ya hay items cargados (modo edición), bloquear cabecera
+        if (hasItems()) lockHeader();
     }
 
     function setupDirtyCheckAndEmailControl() {
