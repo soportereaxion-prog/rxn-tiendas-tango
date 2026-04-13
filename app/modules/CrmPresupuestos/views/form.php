@@ -288,9 +288,6 @@ ob_start();
                     <a href="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/imprimir" class="btn btn-outline-dark shadow-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-printer"></i> Imprimir</a>
                 <?php endif; ?>
                 <a href="/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
-                <form action="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" method="POST" class="d-inline-block m-0 p-0">
-                    <button type="submit" class="btn btn-outline-warning" data-rxn-confirm="¿Sincronizar catalogos comerciales CRM antes de seguir trabajando?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Sync Catalogos</button>
-                </form>
                 <?php if (($presupuesto['estado'] ?? '') !== 'emitido'): ?>
                     <button type="submit" form="crm-presupuesto-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar</button>
                 <?php endif; ?>
@@ -483,6 +480,11 @@ ob_start();
                             <input type="number" step="0.0001" min="0" class="form-control text-end" id="inline-price" value="0" tabindex="0">
                         </div>
 
+                        <div style="width: 90px;">
+                            <label class="form-label crm-budget-chip-title mb-1">STOCK</label>
+                            <input type="text" class="form-control text-end" id="inline-stock" value="—" readonly tabindex="-1" style="background-color: #f8f9fa !important; color: #000 !important; border-color: var(--bs-border-color-translucent);">
+                        </div>
+
                         <div style="width: 80px;">
                             <label class="form-label crm-budget-chip-title mb-1">% BONIF</label>
                             <input type="number" step="0.0001" min="0" max="100" class="form-control text-end" id="inline-bonus" value="0" tabindex="0">
@@ -508,10 +510,11 @@ ob_start();
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 165px;">Codigo</th>
-                                        <th style="min-width: 280px;">Descripcion</th>
-                                        <th style="width: 110px;">Cantidad</th>
-                                        <th style="width: 145px;">Precio</th>
-                                        <th style="width: 120px;">Bonif %</th>
+                                        <th style="min-width: 260px;">Descripcion</th>
+                                        <th style="width: 100px;">Cantidad</th>
+                                        <th style="width: 90px;">Stock</th>
+                                        <th style="width: 135px;">Precio</th>
+                                        <th style="width: 110px;">Bonif %</th>
                                         <th style="width: 135px;">Importe</th>
                                         <th style="width: 70px;"></th>
                                     </tr>
@@ -519,7 +522,7 @@ ob_start();
                                 <tbody data-items-body>
                                     <?php if (($presupuesto['items'] ?? []) === []): ?>
                                         <tr data-empty-row>
-                                            <td colspan="7" class="crm-budget-empty-lines">Todavia no hay renglones. Busca un articulo para empezar a armar el presupuesto.</td>
+                                            <td colspan="8" class="crm-budget-empty-lines">Todavia no hay renglones. Busca un articulo para empezar a armar el presupuesto.</td>
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach (($presupuesto['items'] ?? []) as $index => $item): ?>
@@ -535,6 +538,7 @@ ob_start();
                                                     <div class="form-text mt-1">Origen: <span data-item-origin-label><?= htmlspecialchars((string) strtoupper((string) ($item['precio_origen'] ?? 'manual'))) ?></span></div>
                                                 </td>
                                                 <td><input type="number" step="0.0001" min="0" class="form-control form-control-sm" name="items[<?= $index ?>][cantidad]" value="<?= htmlspecialchars((string) ($item['cantidad'] ?? 1)) ?>" data-item-field="cantidad"></td>
+                                                <td><input type="text" class="form-control form-control-sm text-end text-muted" value="—" readonly tabindex="-1" data-item-stock style="background: transparent; border-color: transparent;"></td>
                                                 <td><input type="number" step="0.0001" min="0" class="form-control form-control-sm" name="items[<?= $index ?>][precio_unitario]" value="<?= htmlspecialchars((string) ($item['precio_unitario'] ?? 0)) ?>" data-item-field="precio_unitario"></td>
                                                 <td><input type="number" step="0.0001" min="0" max="100" class="form-control form-control-sm" name="items[<?= $index ?>][bonificacion_porcentaje]" value="<?= htmlspecialchars((string) ($item['bonificacion_porcentaje'] ?? 0)) ?>" data-item-field="bonificacion_porcentaje"></td>
                                                 <td>

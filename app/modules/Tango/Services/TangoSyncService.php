@@ -419,7 +419,16 @@ class TangoSyncService
         }
 
         $logId = $this->logRepo->startLog((int)$empresaId, 'STOCK');
-        $stats = ['recibidos' => 0, 'actualizados' => 0, 'omitidos' => 0, 'sin_match' => 0];
+        $stats = ['recibidos' => 0, 'actualizados' => 0, 'omitidos' => 0, 'sin_match' => 0, 'stocks_deposito' => 0];
+
+        // CRM: guardar stock por depósito en tabla normalizada crm_articulo_stocks
+        $isCrm = $this->area === 'crm';
+        $crmRepo = null;
+        $skuMap = [];
+        if ($isCrm) {
+            $crmRepo = new \App\Modules\CrmPresupuestos\PresupuestoRepository();
+            $skuMap = $crmRepo->buildSkuToIdMap($empresaId);
+        }
 
         try {
             $page = 1;
@@ -457,11 +466,15 @@ class TangoSyncService
                         continue;
                     }
 
-                    // Macheo por depósito: comparamos ambos lados normalizados.
-                    // EJ: ID_STA22 = "1" y deposito_codigo = "1" → match.
+                    // CRM: guardar stock de TODOS los depósitos en crm_articulo_stocks
+                    if ($isCrm && $crmRepo !== null && isset($skuMap[$sku])) {
+                        $crmRepo->upsertArticuloStock($empresaId, $skuMap[$sku], $depositoId, (float)$saldo);
+                        $stats['stocks_deposito']++;
+                    }
+
+                    // Depósito principal: actualizar stock_actual en tabla de artículos (backward compat)
                     if ($depositoId !== trim((string)$deposito)) {
-                        $stats['omitidos']++;
-                        continue; // Stock de otro depósito — se ignora para esta empresa
+                        continue; // Stock de otro depósito — no actualiza stock_actual
                     }
 
                     $affected = $this->articuloRepo->updateStock($sku, (float)$saldo, (int)$empresaId);

@@ -377,21 +377,27 @@ class PresupuestoRepository
         }
     }
 
-    public function findArticleContext(int $empresaId, int $articuloId, ?string $listaCodigo): ?array
+    public function findArticleContext(int $empresaId, int $articuloId, ?string $listaCodigo, ?string $depositoCodigo = null): ?array
     {
         $stmt = $this->db->prepare('SELECT a.id, a.codigo_externo, a.nombre, a.descripcion, a.precio, a.precio_lista_1, a.precio_lista_2,
-                ap.precio AS precio_catalogo
+                ap.precio AS precio_catalogo,
+                ast.stock_actual AS stock_deposito
             FROM crm_articulos a
             LEFT JOIN crm_articulo_precios ap
                 ON ap.empresa_id = a.empresa_id
                 AND ap.articulo_id = a.id
                 AND ap.lista_codigo = :lista_codigo
+            LEFT JOIN crm_articulo_stocks ast
+                ON ast.empresa_id = a.empresa_id
+                AND ast.articulo_id = a.id
+                AND ast.deposito_codigo = :deposito_codigo
             WHERE a.empresa_id = :empresa_id AND a.id = :id
             LIMIT 1');
         $stmt->execute([
             ':empresa_id' => $empresaId,
             ':id' => $articuloId,
             ':lista_codigo' => trim((string) $listaCodigo) !== '' ? trim((string) $listaCodigo) : '__sin_lista__',
+            ':deposito_codigo' => trim((string) $depositoCodigo) !== '' ? trim((string) $depositoCodigo) : '__sin_deposito__',
         ]);
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -420,6 +426,7 @@ class PresupuestoRepository
             'descripcion' => trim((string) ($row['descripcion'] ?? '')),
             'precio_unitario' => $price,
             'precio_origen' => $priceOrigin,
+            'stock_deposito' => $row['stock_deposito'] !== null ? round((float) $row['stock_deposito'], 4) : null,
         ];
     }
 
@@ -628,6 +635,19 @@ class PresupuestoRepository
             UNIQUE KEY uk_crm_articulo_precios_empresa_articulo_lista (empresa_id, articulo_id, lista_codigo),
             KEY idx_crm_articulo_precios_empresa_lista (empresa_id, lista_codigo)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+        $this->db->exec('CREATE TABLE IF NOT EXISTS crm_articulo_stocks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            empresa_id INT NOT NULL,
+            articulo_id INT NOT NULL,
+            deposito_codigo VARCHAR(50) NOT NULL,
+            stock_actual DECIMAL(15,4) NOT NULL DEFAULT 0,
+            fecha_ultima_sync DATETIME NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_crm_articulo_stocks_empresa_articulo_deposito (empresa_id, articulo_id, deposito_codigo),
+            KEY idx_crm_articulo_stocks_empresa_deposito (empresa_id, deposito_codigo)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
     }
 
     /**
@@ -664,6 +684,23 @@ class PresupuestoRepository
             ':articulo_id' => $articuloId,
             ':lista_codigo' => $listaCodigo,
             ':precio' => $precio,
+        ]);
+    }
+
+    /**
+     * Upsert de stock por artículo+depósito en la tabla normalizada crm_articulo_stocks.
+     */
+    public function upsertArticuloStock(int $empresaId, int $articuloId, string $depositoCodigo, float $stock): void
+    {
+        $stmt = $this->db->prepare('INSERT INTO crm_articulo_stocks (empresa_id, articulo_id, deposito_codigo, stock_actual, fecha_ultima_sync, created_at, updated_at)
+            VALUES (:empresa_id, :articulo_id, :deposito_codigo, :stock, NOW(), NOW(), NOW())
+            ON DUPLICATE KEY UPDATE stock_actual = VALUES(stock_actual), fecha_ultima_sync = NOW(), updated_at = NOW()');
+
+        $stmt->execute([
+            ':empresa_id' => $empresaId,
+            ':articulo_id' => $articuloId,
+            ':deposito_codigo' => $depositoCodigo,
+            ':stock' => $stock,
         ]);
     }
 

@@ -668,13 +668,14 @@ class PresupuestoController extends \App\Core\Controller
         $empresaId = (int) Context::getEmpresaId();
         $articuloId = (int) ($_GET['id'] ?? 0);
         $listaCodigo = trim((string) ($_GET['lista_codigo'] ?? ''));
+        $depositoCodigo = trim((string) ($_GET['deposito_codigo'] ?? ''));
 
         if ($articuloId <= 0) {
             echo json_encode(['success' => false, 'message' => 'Articulo invalido.', 'data' => []]);
             exit;
         }
 
-        $articulo = $this->repository->findArticleContext($empresaId, $articuloId, $listaCodigo);
+        $articulo = $this->repository->findArticleContext($empresaId, $articuloId, $listaCodigo, $depositoCodigo !== '' ? $depositoCodigo : null);
         if ($articulo === null) {
             echo json_encode(['success' => false, 'message' => 'El articulo seleccionado ya no existe en CRM.', 'data' => []]);
             exit;
@@ -688,6 +689,7 @@ class PresupuestoController extends \App\Core\Controller
             'precio_unitario' => $articulo['precio_unitario'] !== null ? round((float) $articulo['precio_unitario'], 4) : null,
             'precio_origen' => (string) ($articulo['precio_origen'] ?? 'manual'),
             'lista_codigo_aplicada' => $listaCodigo !== '' ? $listaCodigo : null,
+            'stock_deposito' => $articulo['stock_deposito'],
         ]]);
         exit;
     }

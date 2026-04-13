@@ -281,6 +281,7 @@
         var clientDocumentoHidden = form.querySelector('[data-cliente-documento-hidden]');
         var clientIdPill = form.querySelector('[data-client-id-pill]');
         var listaSelect = form.querySelector('[data-lista-select]');
+        var depositoSelect = form.querySelector('#presupuesto-deposito');
         var itemsBody = form.querySelector('[data-items-body]');
         var summaryTotal = form.querySelector('[data-summary-total]');
         var totalSubtotal = form.querySelector('[data-total-subtotal]');
@@ -312,7 +313,7 @@
         }
 
         function emptyRowTemplate() {
-            return '<tr data-empty-row><td colspan="7" class="crm-budget-empty-lines">Todavia no hay renglones. Busca un articulo para empezar a armar el presupuesto.</td></tr>';
+            return '<tr data-empty-row><td colspan="8" class="crm-budget-empty-lines">Todavia no hay renglones. Busca un articulo para empezar a armar el presupuesto.</td></tr>';
         }
 
         function updateEmptyState() {
@@ -326,6 +327,13 @@
             if (rows.length && emptyRow) {
                 emptyRow.remove();
             }
+        }
+
+        function formatStock(val) {
+            if (val === null || val === undefined || val === '') return '—';
+            var n = parseFloat(val);
+            if (isNaN(n)) return '—';
+            return n % 1 === 0 ? String(Math.floor(n)) : n.toFixed(2);
         }
 
         function createItemRow(item) {
@@ -343,6 +351,7 @@
                 '  <div class="form-text mt-1">Origen: <span data-item-origin-label>' + escapeHtml(String(item.precio_origen || 'manual').toUpperCase()) + '</span></div>',
                 '</td>',
                 '<td><input type="number" step="0.0001" min="0" class="form-control form-control-sm" value="' + escapeHtml(item.cantidad || 1) + '" data-item-field="cantidad"></td>',
+                '<td><input type="text" class="form-control form-control-sm text-end text-muted" value="' + escapeHtml(formatStock(item.stock_deposito)) + '" readonly tabindex="-1" data-item-stock style="background: transparent; border-color: transparent;"></td>',
                 '<td><input type="number" step="0.0001" min="0" class="form-control form-control-sm" value="' + escapeHtml(item.precio_unitario || 0) + '" data-item-field="precio_unitario"></td>',
                 '<td><input type="number" step="0.0001" min="0" max="100" class="form-control form-control-sm" value="' + escapeHtml(item.bonificacion_porcentaje || 0) + '" data-item-field="bonificacion_porcentaje"></td>',
                 '<td>',
@@ -546,6 +555,7 @@
 
         var inlineQty = document.getElementById('inline-qty');
         var inlinePrice = document.getElementById('inline-price');
+        var inlineStock = document.getElementById('inline-stock');
         var inlineBonus = document.getElementById('inline-bonus');
         var inlineTempTotal = document.getElementById('inline-temp-total');
         var inlineAddBtn = document.getElementById('inline-add-btn');
@@ -576,6 +586,7 @@
             inlinePrecioOrigen.value = 'manual';
             inlineQty.value = '1';
             inlinePrice.value = '0';
+            if (inlineStock) inlineStock.value = '—';
             inlineBonus.value = '0';
             inlinePickerInput.value = '';
             var pickerHidden = articleRoot ? articleRoot.querySelector('.crm-picker-hidden') : null;
@@ -592,6 +603,7 @@
                 return;
             }
 
+            var stockVal = inlineStock ? inlineStock.value : null;
             var newItem = {
                 articulo_id: artId,
                 articulo_codigo: inlineArticuloCodigo.value,
@@ -601,7 +613,8 @@
                 cantidad: parseNumber(inlineQty.value),
                 precio_unitario: parseNumber(inlinePrice.value),
                 bonificacion_porcentaje: parseNumber(inlineBonus.value),
-                importe_neto: parseNumber(inlineTempTotal.value.replace(/[^0-9,-]+/g,"").replace(",", "."))
+                importe_neto: parseNumber(inlineTempTotal.value.replace(/[^0-9,-]+/g,"").replace(",", ".")),
+                stock_deposito: (stockVal && stockVal !== '—') ? parseFloat(stockVal) : null
             };
 
             appendItem(newItem);
@@ -617,7 +630,8 @@
 
                 try {
                     var listaCodigo = listaSelect ? listaSelect.value : '';
-                    var query = '?id=' + encodeURIComponent(item.id) + '&lista_codigo=' + encodeURIComponent(listaCodigo);
+                    var depCodigo = depositoSelect ? depositoSelect.value : '';
+                    var query = '?id=' + encodeURIComponent(item.id) + '&lista_codigo=' + encodeURIComponent(listaCodigo) + '&deposito_codigo=' + encodeURIComponent(depCodigo);
                     var payload = await fetchJson(contextUrl + query);
 
                     if (!payload.success) {
@@ -630,11 +644,12 @@
                     inlineArticuloCodigo.value = artData.articulo_codigo || '';
                     inlineArticuloDescripcion.value = artData.articulo_descripcion || '';
                     inlinePrecioOrigen.value = artData.precio_origen || 'manual';
-                    
+
                     inlineQty.value = '1';
                     inlinePrice.value = artData.precio_unitario !== null ? artData.precio_unitario : 0;
+                    if (inlineStock) inlineStock.value = formatStock(artData.stock_deposito);
                     inlineBonus.value = '0';
-                    
+
                     recalcInlineTotal();
                     
                     // Foco inmediato al input de cantidad para fluidez con TAB / Teclado
