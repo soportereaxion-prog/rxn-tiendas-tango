@@ -57,6 +57,24 @@ class App
             } else {
                 // Renovar actividad
                 $_SESSION['backoffice_last_activity'] = $now;
+
+                // --- Presencia online (para CRM Monitoreo de Operadores) ---
+                // Actualiza usuarios.ultimo_acceso con throttle de 60s para no martillar la DB:
+                // si en la última actualización ya escribimos dentro del último minuto,
+                // no volvemos a escribir. Suficiente granularidad para el indicador de "en línea".
+                $heartbeatThrottle = 60; // segundos
+                $lastDbTouch = $_SESSION['backoffice_last_db_touch'] ?? 0;
+                if (($now - $lastDbTouch) >= $heartbeatThrottle) {
+                    try {
+                        $pdo = Database::getConnection();
+                        $stmt = $pdo->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = :id");
+                        $stmt->execute([':id' => $_SESSION['user_id']]);
+                        $_SESSION['backoffice_last_db_touch'] = $now;
+                    } catch (\Throwable $e) {
+                        // Silencioso a propósito: si la columna todavía no existe (migración pendiente)
+                        // o hay un glitch de DB, NO queremos tumbar todo el request por heartbeat.
+                    }
+                }
             }
         }
 

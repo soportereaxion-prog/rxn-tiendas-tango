@@ -80,7 +80,18 @@ ob_start();
                     </div>
                 </div>
             </div>
-            
+
+            <div class="col-sm-6 col-lg-4">
+                <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
+                        <div class="rxn-module-icon text-info"><i class="bi bi-collection-fill"></i></div>
+                        <h5 class="fw-bold mb-2">Vistas RXN Live (Admin)</h5>
+                        <p class="text-muted small px-2">Listar, exportar, importar y eliminar vistas guardadas cross-user.</p>
+                        <a href="/admin/rxn_live/vistas" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <?php if ($canViewRelease): ?>

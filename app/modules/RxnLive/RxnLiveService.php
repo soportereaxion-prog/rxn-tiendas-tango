@@ -261,6 +261,132 @@ class RxnLiveService
         }
     }
 
+    /**
+     * Elimina una vista del usuario actual.
+     * Guard de ownership: solo borra si `usuario_id` matchea al user que pidió el delete.
+     * Para delete cross-user (admin), usar `deleteVistaAdmin()`.
+     */
+    public function deleteUserView(int $userId, int $viewId): bool {
+        try {
+            $db = \App\Core\Database::getConnection();
+            $stmt = $db->prepare("DELETE FROM rxn_live_vistas WHERE id = ? AND usuario_id = ?");
+            $stmt->execute([$viewId, $userId]);
+            return $stmt->rowCount() > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * [ADMIN] Lista todas las vistas de todos los usuarios, con datos del dueño.
+     */
+    public function getAllVistasAdmin(): array {
+        try {
+            $db = \App\Core\Database::getConnection();
+            $sql = "SELECT v.id, v.usuario_id, v.dataset, v.nombre, v.config, v.created_at,
+                           u.nombre AS usuario_nombre, u.email AS usuario_email, u.empresa_id
+                      FROM rxn_live_vistas v
+                      LEFT JOIN usuarios u ON u.id = v.usuario_id
+                  ORDER BY v.dataset ASC, v.created_at DESC";
+            $res = $db->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($res as &$row) {
+                // Dejamos el config como string crudo — el admin lo muestra formateado en el front.
+                // Si se querés el array, usá json_decode donde corresponda.
+                $row['config_preview'] = json_decode($row['config'], true);
+            }
+            return $res;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * [ADMIN] Obtiene una vista por ID (sin filtrar por usuario).
+     */
+    public function getVistaByIdAdmin(int $viewId): ?array {
+        try {
+            $db = \App\Core\Database::getConnection();
+            $stmt = $db->prepare("SELECT v.id, v.usuario_id, v.dataset, v.nombre, v.config, v.created_at,
+                                         u.nombre AS usuario_nombre, u.email AS usuario_email
+                                    FROM rxn_live_vistas v
+                               LEFT JOIN usuarios u ON u.id = v.usuario_id
+                                   WHERE v.id = ? LIMIT 1");
+            $stmt->execute([$viewId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * [ADMIN] Elimina una vista por ID (sin filtrar por usuario).
+     * Pensado para destrabar configs rotos que tumban la UI.
+     */
+    public function deleteVistaAdmin(int $viewId): bool {
+        try {
+            $db = \App\Core\Database::getConnection();
+            $stmt = $db->prepare("DELETE FROM rxn_live_vistas WHERE id = ?");
+            $stmt->execute([$viewId]);
+            return $stmt->rowCount() > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * [ADMIN] Importa una vista desde un array. El array debe tener las claves
+     * `dataset`, `nombre`, `config`. Devuelve el ID insertado, o lanza Exception.
+     * Si `usuarioId` es null, usa el usuario actual como dueño.
+     */
+    public function importVistaAdmin(array $vista, int $usuarioId): int {
+        if (empty($vista['dataset']) || !is_string($vista['dataset'])) {
+            throw new \InvalidArgumentException("Vista inválida: falta 'dataset'.");
+        }
+        if (empty($vista['nombre']) || !is_string($vista['nombre'])) {
+            throw new \InvalidArgumentException("Vista inválida: falta 'nombre'.");
+        }
+        if (!isset($vista['config'])) {
+            throw new \InvalidArgumentException("Vista inválida: falta 'config'.");
+        }
+
+        // Normalizamos config: aceptamos tanto un array como un string JSON.
+        if (is_array($vista['config'])) {
+            $configJson = json_encode($vista['config']);
+        } elseif (is_string($vista['config'])) {
+            // Validamos que sea JSON parseable
+            $decoded = json_decode($vista['config'], true);
+            if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+                throw new \InvalidArgumentException("Vista inválida: 'config' no es JSON válido.");
+            }
+            $configJson = $vista['config'];
+        } else {
+            throw new \InvalidArgumentException("Vista inválida: 'config' debe ser array o string JSON.");
+        }
+
+        if (!$this->isValidDataset($vista['dataset'])) {
+            throw new \InvalidArgumentException("Dataset desconocido: '{$vista['dataset']}'.");
+        }
+
+        $db = \App\Core\Database::getConnection();
+        // Asegurar que la tabla existe — mismo patrón que saveUserView()
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS rxn_live_vistas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT NOT NULL,
+                dataset VARCHAR(100) NOT NULL,
+                nombre VARCHAR(150) NOT NULL,
+                config JSON NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                KEY idx_usuario_dataset (usuario_id, dataset)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+
+        $stmt = $db->prepare("INSERT INTO rxn_live_vistas (usuario_id, dataset, nombre, config) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$usuarioId, $vista['dataset'], $vista['nombre'], $configJson]);
+        return (int)$db->lastInsertId();
+    }
+
     public function saveUserView(int $userId, string $datasetKey, string $nombre, array $config, ?int $viewId = null): int {
         $db = \App\Core\Database::getConnection();
         

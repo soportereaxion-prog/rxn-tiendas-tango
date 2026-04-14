@@ -12,6 +12,13 @@ use App\Modules\Usuarios\UsuarioService;
 class CrmMonitoreoUsuariosController extends Controller
 {
     /**
+     * Umbral en segundos para considerar que un usuario está "en línea".
+     * Debe ser mayor al throttle del heartbeat (App.php = 60s) + margen de request.
+     * 5 minutos es el estándar UX estilo Slack/Discord.
+     */
+    private const ONLINE_THRESHOLD_SECONDS = 300;
+
+    /**
      * Muestra la pantalla principal de Monitoreo de Usuarios en el CRM
      */
     public function index(): void
@@ -42,8 +49,10 @@ class CrmMonitoreoUsuariosController extends Controller
 
         // Decoramos los datos para la vista
         $currentUserId = $_SESSION['user_id'] ?? null;
-        
-        $usuariosDecorados = array_map(function($u) use ($currentUserId) {
+        $nowTs = time();
+        $onlineThreshold = self::ONLINE_THRESHOLD_SECONDS;
+
+        $usuariosDecorados = array_map(function($u) use ($currentUserId, $nowTs, $onlineThreshold) {
             // Generar Iniciales para el Avatar
             $nombres = explode(' ', trim($u->nombre));
             $iniciales = '';
@@ -65,6 +74,19 @@ class CrmMonitoreoUsuariosController extends Controller
                 $rol = 'Administrador de Empresa';
             }
 
+            // --- Presencia online ---
+            // ultimo_acceso se actualiza en App.php con throttle 60s. Si la columna
+            // todavía no existe (migración pendiente) o nunca se escribió, queda como
+            // offline — failure mode seguro.
+            $ultimoAcceso = $u->ultimo_acceso ?? null;
+            $ultimoAccesoTs = $ultimoAcceso ? strtotime((string)$ultimoAcceso) : null;
+            $segundosDesdeActividad = $ultimoAccesoTs ? ($nowTs - $ultimoAccesoTs) : null;
+            $isOnline = $segundosDesdeActividad !== null && $segundosDesdeActividad <= $onlineThreshold;
+            // "Hace X" human-friendly — la vista lo usa en el tooltip
+            $tiempoDesde = $segundosDesdeActividad === null
+                ? 'Nunca ingresó'
+                : $this->humanizeSeconds($segundosDesdeActividad);
+
             return [
                 'id' => $u->id,
                 'nombre' => $u->nombre,
@@ -76,12 +98,41 @@ class CrmMonitoreoUsuariosController extends Controller
                 'is_current_user' => ($currentUserId && (int)$currentUserId === (int)$u->id),
                 'anura_interno' => $u->anura_interno ?: 'Sin Asignar',
                 'tango_perfil' => $u->tango_perfil_pedido_codigo ? "({$u->tango_perfil_pedido_codigo}) {$u->tango_perfil_pedido_nombre}" : 'Sin Vincular',
+                'online' => $isOnline,
+                'ultimo_acceso' => $ultimoAcceso,
+                'ultimo_acceso_desde' => $tiempoDesde,
             ];
         }, $usuarios);
 
+        // Ordenar: online primero, luego por ultimo_acceso DESC (los que se vieron hace menos),
+        // y al final los que nunca ingresaron.
+        usort($usuariosDecorados, function ($a, $b) {
+            if ($a['online'] !== $b['online']) return $a['online'] ? -1 : 1;
+            $ta = $a['ultimo_acceso'] ? strtotime((string)$a['ultimo_acceso']) : 0;
+            $tb = $b['ultimo_acceso'] ? strtotime((string)$b['ultimo_acceso']) : 0;
+            return $tb <=> $ta;
+        });
+
+        $onlineCount = count(array_filter($usuariosDecorados, fn($u) => $u['online']));
+
         View::render('app/modules/CrmMonitoreoUsuarios/views/index.php', [
             'usuarios' => $usuariosDecorados,
-            'basePath' => '/mi-empresa/crm'
+            'basePath' => '/mi-empresa/crm',
+            'onlineCount' => $onlineCount,
+            'totalCount' => count($usuariosDecorados),
         ]);
+    }
+
+    /**
+     * Convierte una cantidad de segundos en una frase human-friendly en castellano.
+     * Ej: 45 → "Hace un momento", 180 → "Hace 3 min", 7200 → "Hace 2 hs".
+     */
+    private function humanizeSeconds(int $seconds): string
+    {
+        if ($seconds < 60)    return 'Hace un momento';
+        if ($seconds < 3600)  return 'Hace ' . (int)floor($seconds / 60) . ' min';
+        if ($seconds < 86400) return 'Hace ' . (int)floor($seconds / 3600) . ' hs';
+        $dias = (int)floor($seconds / 86400);
+        return 'Hace ' . $dias . ($dias === 1 ? ' día' : ' días');
     }
 }

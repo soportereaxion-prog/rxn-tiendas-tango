@@ -1,9 +1,30 @@
 <?php
 
 return [
-    'current_version' => '1.4.0',
-    'current_build' => '20260412.1',
+    'current_version' => '1.5.0',
+    'current_build' => '20260414.1',
     'history' => [
+        [
+            'version' => '1.5.0',
+            'build' => '20260414.1',
+            'released_at' => '2026-04-14',
+            'title' => 'RXN Live: Safe Mode, gestión admin de vistas, Excel theme-aware + CRM: presencia online real de operadores',
+            'summary' => 'Release que destraba un bug de producción y entrega infraestructura duradera para que no vuelva a pasar. Una vista guardada con config corrupto dejaba el dataset de RXN Live titilando sin respuesta y sin poder siquiera Ctrl+F5 (porque la URL rota quedaba cacheada en sesión). Se entregó un paquete completo: (1) Safe Mode — escape hatch ?safe_mode=1 que limpia el last_url cacheado e ignora vistas/filtros al entrar, con ícono de acceso visible en cada card del index. (2) Herramienta admin cross-user en /admin/rxn_live/vistas para listar, inspeccionar el JSON, eliminar, exportar y importar vistas de cualquier usuario — resuelve el caso "vista corrupta creada por otro user que no puedo borrar". (3) Eliminar vista propia desde el dataset con modal de confirmación y guard de ownership. (4) Export a Excel ahora aplica estilos según el tema (dark/light) — header, filas y bordes con paletas contrastadas. (5) Hardening de applyViewConfig con validación estricta por sub-estructura, try/catch en cascada con banner de fallback, y watchdog global que suprime loops de dispatchEvent("resize") mayores a 40/seg. Además: presencia online real en CRM Monitoreo de Operadores con columna usuarios.ultimo_acceso actualizada por middleware con throttle 60s.',
+            'items' => [
+                'RXN Live Safe Mode: ?safe_mode=1 en /rxn_live/dataset limpia $_SESSION["rxn_live_last_url"] cacheado, descarta filtros GET, fuerza vista base. Banner amarillo con CTA "Salir", ícono de escudo accesible desde cada card del index.',
+                'Admin tool /admin/rxn_live/vistas (requireRxnAdmin): listado cross-user con JOIN a usuarios para mostrar dueño, filtro por dataset, modal inspector de JSON config, eliminar, exportar JSON (bulk/individual/por-dataset) e importar. Card de acceso directo desde admin_dashboard.',
+                'Export/Import JSON con schema versionado: { version:1, exported_at, source, count, vistas:[] }. Import acepta también vista plana (objeto con dataset/nombre/config en la raíz). Override opcional de owner_id al importar — permite reasignar dueños.',
+                'Eliminar Vista (user común): botón condicional en el btn-group del dataset, habilitado solo con vista de usuario seleccionada. Modal rxnConfirm tipo danger. Backend con guard de ownership WHERE usuario_id = ?.',
+                'Excel theme-aware: nuevo método buildXlsxThemeStyles($theme) en RxnLiveController. Paleta dark (default, matchea UI) — header #343A40/blanco, filas #2C3034/#F8F9FA, bordes #495057. Paleta light — header #E7F1FF/#0D6EFD, filas blanco/#212529, bordes #DEE2E6. Bordes vía 4 BorderPart (TOP/BOTTOM/LEFT/RIGHT) con SOLID THIN.',
+                'Hardening applyViewConfig: validación por tipo y sub-estructura de flatFilters, flatDiscreteFilters, hiddenCols, orderedCols, urlFilters, chartConfig y pivotState. Keys/values no-string rechazados en urlFilters para evitar inyección de objetos en la URL. Try/catch en cascada en loadSelectedView con fallback entre volatile/data-config/renderPlana mínimo.',
+                'Watchdog de resize: wrap global de window.dispatchEvent que suprime eventos "resize" por 3 segundos si detecta más de 40 en una ventana de 1 segundo. Protege contra ResizeObserver loops futuros sin tocar los call sites conocidos.',
+                'showViewConfigError(err, viewId): banner rojo idempotente con link directo a Safe Mode, insertado al top de la página cuando applyViewConfig explota. Reemplaza el console.error silencioso que dejaba la UI muerta.',
+                'CRM Monitoreo de Operadores: indicador online real. Nueva columna usuarios.ultimo_acceso TIMESTAMP NULL con índice idx_usuarios_ultimo_acceso. Middleware en App.php actualiza con throttle 60s vía $_SESSION["backoffice_last_db_touch"], try/catch silencioso para no tumbar requests si la migración no corrió todavía.',
+                'Vista de monitoreo rediseñada: 3 estados del dot (online verde pulsante, offline gris, suspended rojo si activo=0), cards online con borde verde sutil, badge "N en línea de M" arriba, mini-label "En línea / Hace X min" debajo del rol, orden automático online-first luego por ultimo_acceso DESC.',
+                'Helper privado humanizeSeconds() en CrmMonitoreoUsuariosController: <60s → "Hace un momento", <1h → "Hace N min", <24h → "Hace N hs", >=24h → "Hace N día(s)". Threshold online configurable vía constante ONLINE_THRESHOLD_SECONDS=300 (5min).',
+                'Nueva migración 2026_04_14_add_ultimo_acceso_to_usuarios.php: ALTER TABLE idempotente con SHOW COLUMNS/SHOW INDEX guards. Se ubica después de 2026_04_12_add_color_calendario_to_usuarios (ultimo_acceso AFTER color_calendario).',
+            ],
+        ],
         [
             'version' => '1.4.0',
             'build' => '20260412.1',

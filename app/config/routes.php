@@ -111,6 +111,13 @@ return function (Router $router): void {
     $router->post('/admin/notas-modulos', [\App\Modules\Admin\Controllers\ModuleNotesController::class, 'store']);
     $router->get('/api/admin/bitacora/sync', [\App\Modules\Admin\Controllers\ModuleNotesController::class, 'syncExport']);
 
+    // --- ADMIN: Gestión cross-user de vistas RXN Live (destrabar configs rotos) ---
+    $router->get('/admin/rxn_live/vistas', [\App\Modules\Admin\Controllers\RxnLiveVistasController::class, 'index']);
+    $router->get('/admin/rxn_live/vistas/ver', [\App\Modules\Admin\Controllers\RxnLiveVistasController::class, 'ver']);
+    $router->post('/admin/rxn_live/vistas/eliminar', [\App\Modules\Admin\Controllers\RxnLiveVistasController::class, 'eliminar']);
+    $router->get('/admin/rxn_live/vistas/exportar', [\App\Modules\Admin\Controllers\RxnLiveVistasController::class, 'exportar']);
+    $router->post('/admin/rxn_live/vistas/importar', [\App\Modules\Admin\Controllers\RxnLiveVistasController::class, 'importar']);
+
     // --- MODULO AUTH ---
     $router->get('/login', [\App\Modules\Auth\AuthController::class, 'showLogin']);
     $router->post('/login', [\App\Modules\Auth\AuthController::class, 'processLogin']);
@@ -407,6 +414,7 @@ return function (Router $router): void {
     $router->get('/rxn_live/dataset', $action(\App\Modules\RxnLive\RxnLiveController::class, 'dataset', $requireRxnLive));
     $router->post('/rxn_live/dataset', $action(\App\Modules\RxnLive\RxnLiveController::class, 'dataset', $requireRxnLive));
     $router->post('/rxn_live/guardar-vista', $action(\App\Modules\RxnLive\RxnLiveController::class, 'guardarVista', $requireRxnLive));
+    $router->post('/rxn_live/eliminar-vista', $action(\App\Modules\RxnLive\RxnLiveController::class, 'eliminarVista', $requireRxnLive));
     $router->post('/rxn_live/exportar', $action(\App\Modules\RxnLive\RxnLiveController::class, 'exportar', $requireRxnLive));
 
     // TEMPORAL - test render de vista. Eliminar cuando haya vista real.

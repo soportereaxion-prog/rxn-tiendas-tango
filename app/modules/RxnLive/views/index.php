@@ -19,6 +19,14 @@ $pageHeaderBackLabel = $_SESSION['rxn_live_back_label'] ?? 'Volver a Suite';
             <?php foreach ($datasets as $key => $ds): ?>
                 <div class="col-sm-6 col-lg-4 rxn-sortable-col" data-id="<?= htmlspecialchars($key) ?>">
                     <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
+                        <!-- Safe Mode escape hatch: si una vista rota tumba el dataset, abrir desde acá -->
+                        <a href="/rxn_live/dataset?dataset=<?= htmlspecialchars($key) ?>&safe_mode=1"
+                           class="position-absolute top-0 end-0 p-2 text-warning opacity-50 hover-opacity-100"
+                           style="z-index: 2; font-size: 0.85rem;"
+                           title="Abrir en Safe Mode (ignora vistas y filtros guardados — útil si el dataset queda titilando)"
+                           data-bs-toggle="tooltip">
+                            <i class="bi bi-shield-exclamation"></i>
+                        </a>
                         <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                             <div class="rxn-module-icon text-primary"><i class="bi bi-database fs-4"></i></div>
                             <h5 class="fw-bold mb-2"><?= htmlspecialchars($ds['name']) ?></h5>

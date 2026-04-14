@@ -29,6 +29,9 @@ class Usuario
     public ?string $created_at = null;
     public ?string $updated_at = null;
 
+    // Presencia online (actualizado por App.php con throttle 60s en cada request autenticado)
+    public ?string $ultimo_acceso = null;
+
     // Theming B2B Admin
     public string $preferencia_tema = 'light';
     public string $preferencia_fuente = 'md';

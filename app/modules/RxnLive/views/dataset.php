@@ -5,6 +5,17 @@ $groupableFields = array_filter($pivotMetadata, fn($m) => !empty($m['groupable']
 $aggregatableFields = array_filter($pivotMetadata, fn($m) => !empty($m['aggregatable']));
 ob_start();
 ?>
+<?php if (!empty($safeMode)): ?>
+<div class="alert alert-warning d-flex align-items-center justify-content-between mb-3 py-2" role="alert">
+    <div>
+        <i class="bi bi-shield-exclamation me-2"></i>
+        <strong>Safe Mode activo</strong> &mdash; ignorando vistas guardadas y filtros. Usar para destrabar un dataset con config corrupto.
+    </div>
+    <a href="/rxn_live/dataset?dataset=<?= urlencode($datasetKey) ?>" class="btn btn-sm btn-outline-dark">
+        <i class="bi bi-arrow-clockwise"></i> Salir de Safe Mode
+    </a>
+</div>
+<?php endif; ?>
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
         <a href="/rxn_live" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left"></i> Volver a Datasets</a>
@@ -37,6 +48,9 @@ ob_start();
             </button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="promptSaveView()" title="Guardar como nueva vista">
                 <i class="bi bi-plus-lg"></i> Nueva Vista
+            </button>
+            <button type="button" id="btnDeleteView" class="btn btn-outline-danger btn-sm" onclick="promptDeleteView()" title="Eliminar vista seleccionada" style="display: none;">
+                <i class="bi bi-trash"></i> Eliminar
             </button>
         </div>
 
@@ -279,6 +293,9 @@ ob_start();
 <script>
 const rawDatasetRows = <?= json_encode($datasetRows ?? []) ?>;
 const pivotMetadata = <?= json_encode($pivotMetadata ?? []) ?>;
+// Safe Mode flag: si está activo, el front salta hidratación de sessionStorage
+// y no aplica view_id cacheado. Es el escape hatch ante vistas/filtros que rompen la UI.
+window.rxnSafeMode = <?= !empty($safeMode) ? 'true' : 'false' ?>;
 
 let filteredDatasetRows = [...rawDatasetRows];
 
@@ -957,7 +974,10 @@ function renderPlana() {
 
 document.addEventListener('DOMContentLoaded', () => {
     buildColumnSelector();
-    
+
+    // Toggle inicial del botón Eliminar Vista según la opción pre-seleccionada del dropdown
+    toggleDeleteViewButton();
+
     let u = new URL(window.location.href);
     let viewIdParam = u.searchParams.get('view_id');
     let dropdown = document.getElementById('savedViewsDropdown');
@@ -982,6 +1002,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
+    // SAFE MODE: si está activo, saltamos toda hidratación de vistas/sessionStorage
+    // y renderizamos directo el dataset base limpio. Además limpiamos el sessionStorage
+    // del dataset para que no vuelva a contaminar la próxima carga normal.
+    if (window.rxnSafeMode) {
+        try {
+            sessionStorage.removeItem('rxn_live_volatile_<?= htmlspecialchars($datasetKey) ?>');
+        } catch(e) {}
+        renderPlana();
+        return;
+    }
+
     if (viewIdParam && dropdown) {
         let optExists = Array.from(dropdown.options).some(o => strEquals(o.value, viewIdParam));
         if (optExists) {
@@ -990,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
     }
-    
+
     // --- RUTA: Sin view_id en URL (Vista Base o regreso navegación) ---
     let volatileBaseStr = sessionStorage.getItem('rxn_live_volatile_<?= htmlspecialchars($datasetKey) ?>');
     let volatileBase = null;
@@ -1590,6 +1621,70 @@ function saveVolatileState(overrideParams = null) {
 
 let viewSaveModalInstance = null;
 
+/**
+ * Muestra/oculta el botón Eliminar según la vista seleccionada en el dropdown.
+ * Solo visible cuando hay vista de USUARIO seleccionada (no Vista Base, no system defaults "default_*").
+ * Llamado al cargar y cada vez que cambia el dropdown.
+ */
+function toggleDeleteViewButton() {
+    const btn = document.getElementById('btnDeleteView');
+    if (!btn) return;
+    const dropdown = document.getElementById('savedViewsDropdown');
+    if (!dropdown) { btn.style.display = 'none'; return; }
+    const val = dropdown.value;
+    const isUserView = val && !String(val).startsWith('default_');
+    btn.style.display = isUserView ? '' : 'none';
+}
+
+function promptDeleteView() {
+    const dropdown = document.getElementById('savedViewsDropdown');
+    if (!dropdown || !dropdown.value) return;
+    const viewId = dropdown.value;
+    if (String(viewId).startsWith('default_')) {
+        (window.rxnAlert || alert)('No se pueden eliminar las vistas del sistema.', 'warning', 'Atención');
+        return;
+    }
+    const option = dropdown.options[dropdown.selectedIndex];
+    const nombre = option ? option.getAttribute('data-nombre') || 'Vista sin nombre' : 'Vista sin nombre';
+
+    const doDelete = () => {
+        const fd = new FormData();
+        fd.append('view_id', viewId);
+        fetch('/rxn_live/eliminar-vista', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    // Limpiar sessionStorage del dataset (la vista borrada podía tener state cacheado)
+                    try { sessionStorage.removeItem('rxn_live_volatile_<?= htmlspecialchars($datasetKey) ?>'); } catch(e) {}
+                    // Redirigir al dataset limpio, sin view_id
+                    const u = new URL(window.location.href);
+                    u.searchParams.delete('view_id');
+                    window.location.href = u.toString();
+                } else {
+                    (window.rxnAlert || alert)('No se pudo eliminar: ' + (res.message || 'error'), 'danger', 'Error');
+                }
+            })
+            .catch(e => {
+                console.error(e);
+                (window.rxnAlert || alert)('Error de red al eliminar la vista.', 'danger', 'Error de red');
+            });
+    };
+
+    const msg = `Se va a eliminar la vista "${nombre}". Esta acción no se puede deshacer.`;
+    if (window.rxnConfirm) {
+        window.rxnConfirm({
+            title: 'Atención',
+            message: msg,
+            type: 'danger',
+            okText: 'Eliminar',
+            okClass: 'btn-danger',
+            onConfirm: doDelete,
+        });
+    } else if (confirm(msg)) {
+        doDelete();
+    }
+}
+
 function saveCurrentView() {
     let dropdown = document.getElementById('savedViewsDropdown');
     if (!dropdown || !dropdown.value || String(dropdown.value).startsWith('default_')) {
@@ -1754,40 +1849,73 @@ function hydratePivotSlots(type, items) {
     });
 }
 
+/**
+ * Muestra un banner de fallback cuando applyViewConfig() explota.
+ * Da al usuario un CTA claro para salir con Safe Mode sin que tenga que recordar la URL.
+ */
+function showViewConfigError(err, viewId) {
+    try { console.error('[RxnLive] applyViewConfig falló:', err); } catch(e) {}
+    const existing = document.getElementById('rxnViewConfigErrorBanner');
+    if (existing) return; // Ya se mostró, no duplicar
+    const banner = document.createElement('div');
+    banner.id = 'rxnViewConfigErrorBanner';
+    banner.className = 'alert alert-danger d-flex align-items-center justify-content-between mb-3';
+    banner.setAttribute('role', 'alert');
+    const safeUrl = `/rxn_live/dataset?dataset=<?= urlencode($datasetKey) ?>&safe_mode=1`;
+    banner.innerHTML = `
+        <div>
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>La vista seleccionada tiene un config corrupto.</strong>
+            Se cargó una configuración vacía para evitar que la pantalla quede titilando.
+            ${viewId ? ` <span class="text-muted small">(view_id: ${viewId})</span>` : ''}
+        </div>
+        <a href="${safeUrl}" class="btn btn-sm btn-outline-dark ms-3">
+            <i class="bi bi-shield-exclamation"></i> Abrir en Safe Mode
+        </a>
+    `;
+    const container = document.querySelector('.container, main, body');
+    if (container) container.insertBefore(banner, container.firstChild);
+}
+
 function applyViewConfig(config, isVolatile = false) {
-    flatSortCol = config.flatSortCol || null;
-    flatSortAsc = config.flatSortAsc !== undefined ? config.flatSortAsc : true;
-    
-    if (config.flatFilters && typeof config.flatFilters === 'object') {
+    // Guard: si config no es objeto, cargar vista base vacía.
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+        config = {};
+    }
+
+    flatSortCol = (typeof config.flatSortCol === 'string' || config.flatSortCol === null) ? config.flatSortCol : null;
+    flatSortAsc = config.flatSortAsc !== undefined ? !!config.flatSortAsc : true;
+
+    if (config.flatFilters && typeof config.flatFilters === 'object' && !Array.isArray(config.flatFilters)) {
         flatFilters = config.flatFilters;
     } else {
         flatFilters = {};
     }
-    
-    if (config.flatDiscreteFilters && typeof config.flatDiscreteFilters === 'object') {
+
+    if (config.flatDiscreteFilters && typeof config.flatDiscreteFilters === 'object' && !Array.isArray(config.flatDiscreteFilters)) {
         flatDiscreteFilters = config.flatDiscreteFilters;
     } else {
         flatDiscreteFilters = {};
     }
-    
-    if (config.globalDateFormat) {
+
+    if (typeof config.globalDateFormat === 'string' && config.globalDateFormat) {
         globalDateFormat = config.globalDateFormat;
         let dfSel = document.getElementById('globalDateFormatSelect');
         if (dfSel) dfSel.value = globalDateFormat;
     }
-    
-    if (config.hiddenCols && Array.isArray(config.hiddenCols)) {
-        hiddenCols = config.hiddenCols;
+
+    if (Array.isArray(config.hiddenCols)) {
+        hiddenCols = config.hiddenCols.filter(c => typeof c === 'string');
     } else {
         hiddenCols = [];
     }
 
-    if (config.orderedCols && Array.isArray(config.orderedCols)) {
-        orderedCols = config.orderedCols;
+    if (Array.isArray(config.orderedCols)) {
+        orderedCols = config.orderedCols.filter(c => typeof c === 'string');
     } else {
         orderedCols = [];
     }
-    buildColumnSelector(); 
+    buildColumnSelector();
     
     if (config.chartVisible !== undefined) chartVisible = !!config.chartVisible;
     else chartVisible = true;
@@ -1799,7 +1927,8 @@ function applyViewConfig(config, isVolatile = false) {
     let stateChanged = false;
     
     // Solo forzar recargas por urlFilters en las vistas guardadas (no volátil)
-    if (!isVolatile && config.urlFilters !== undefined) {
+    if (!isVolatile && config.urlFilters !== undefined &&
+        config.urlFilters && typeof config.urlFilters === 'object' && !Array.isArray(config.urlFilters)) {
         let keysToDelete = [];
         for (let [k, v] of currentUrlObj.searchParams.entries()) {
             if (k.startsWith('f[') || k === 'b_query' || k === 'query' || k === 'estado' || k === 'razon_social') {
@@ -1810,10 +1939,13 @@ function applyViewConfig(config, isVolatile = false) {
             currentUrlObj.searchParams.delete(k);
             stateChanged = true;
         });
-        
+
         for (let k in config.urlFilters) {
-            if (currentUrlObj.searchParams.get(k) !== config.urlFilters[k]) {
-                currentUrlObj.searchParams.set(k, config.urlFilters[k]);
+            // Rechazamos keys/values no-string — evita que un config corrupto inyecte objetos en la URL
+            const val = config.urlFilters[k];
+            if (typeof k !== 'string' || typeof val !== 'string') continue;
+            if (currentUrlObj.searchParams.get(k) !== val) {
+                currentUrlObj.searchParams.set(k, val);
                 stateChanged = true;
             }
         }
@@ -1834,27 +1966,29 @@ function applyViewConfig(config, isVolatile = false) {
         window.history.replaceState(null, '', currentUrlObj.toString());
     }
     
-    if (config.chartConfig) {
-        chartConfig = config.chartConfig;
+    if (config.chartConfig && typeof config.chartConfig === 'object' && !Array.isArray(config.chartConfig)) {
+        chartConfig = Object.assign({}, chartConfig, config.chartConfig);
         populateChartSelectors();
         renderDynamicChart();
     } else {
-        // Sin config guardado: igualmente poblar selectors y dibujar con defaults
+        // Sin config guardado (o inválido): igualmente poblar selectors y dibujar con defaults
         populateChartSelectors();
         renderDynamicChart();
     }
 
-    if (config.pivotOptions) {
+    if (config.pivotOptions && typeof config.pivotOptions === 'object') {
         if (document.getElementById('pivotSortDesc')) document.getElementById('pivotSortDesc').checked = !!config.pivotOptions.sortDesc;
         if (document.getElementById('pivotRowTot')) document.getElementById('pivotRowTot').checked = !!config.pivotOptions.rowTot;
         if (document.getElementById('pivotColTot')) document.getElementById('pivotColTot').checked = !!config.pivotOptions.colTot;
     }
 
-    if (config.pivotState) {
-        hydratePivotSlots('row', config.pivotState.rows || []);
-        hydratePivotSlots('col', config.pivotState.cols || []);
-        hydratePivotSlots('val', config.pivotState.vals || []);
-        // generatePivotArray() is called by renderPivot() anyways, but hydrate calls addPivotSlot which interacts with DOM
+    if (config.pivotState && typeof config.pivotState === 'object') {
+        const rows = Array.isArray(config.pivotState.rows) ? config.pivotState.rows : [];
+        const cols = Array.isArray(config.pivotState.cols) ? config.pivotState.cols : [];
+        const vals = Array.isArray(config.pivotState.vals) ? config.pivotState.vals : [];
+        hydratePivotSlots('row', rows);
+        hydratePivotSlots('col', cols);
+        hydratePivotSlots('val', vals);
     }
 
     applyViewVisibility();
@@ -1875,7 +2009,10 @@ function applyViewConfig(config, isVolatile = false) {
 
 function loadSelectedView() {
     let dropdown = document.getElementById('savedViewsDropdown');
-    
+
+    // Toggle Eliminar según la vista seleccionada
+    toggleDeleteViewButton();
+
     let currentUrl = new URL(window.location.href);
     if (currentUrl.searchParams.get('reset_view') == '1') {
         sessionStorage.removeItem('rxn_live_volatile_<?= htmlspecialchars($datasetKey) ?>');
@@ -1890,7 +2027,14 @@ function loadSelectedView() {
 
     if (!dropdown || !dropdown.value || String(dropdown.value).startsWith('default_')) {
         if (vState && (!vState.view_id || String(vState.view_id).startsWith('default_') || vState.view_id === '')) {
-            applyViewConfig(vState, true);
+            try {
+                applyViewConfig(vState, true);
+            } catch (err) {
+                // vState corrupto en sessionStorage — limpiar y mostrar banner
+                try { sessionStorage.removeItem('rxn_live_volatile_<?= htmlspecialchars($datasetKey) ?>'); } catch(e) {}
+                showViewConfigError(err, null);
+                renderPlana();
+            }
             return;
         }
         
@@ -1916,7 +2060,20 @@ function loadSelectedView() {
 
     // Si existe memoria volatil y pertenece A ESTA vista (coincide view_id), preferimos la memoria volatil
     if (vState && String(vState.view_id) === String(dropdown.value)) {
-        applyViewConfig(vState, true);
+        try {
+            applyViewConfig(vState, true);
+        } catch (err) {
+            // vState corrupto → limpiar sessionStorage y reintentar cargando desde data-config.
+            // Si también falla, cae en el catch del bloque siguiente.
+            try { sessionStorage.removeItem('rxn_live_volatile_<?= htmlspecialchars($datasetKey) ?>'); } catch(e) {}
+            try {
+                const fallbackCfg = JSON.parse(dropdown.options[dropdown.selectedIndex].getAttribute('data-config') || '{}');
+                applyViewConfig(fallbackCfg, false);
+            } catch (err2) {
+                showViewConfigError(err2, dropdown.value);
+                renderPlana();
+            }
+        }
         return; // Fin de la recarga. No forzamos un window.location.href para evitar loop infinito
     }
 
@@ -1952,9 +2109,55 @@ function loadSelectedView() {
 
         applyViewConfig(config, false);
     } catch (e) {
-        console.error('Error parseando vista', e);
+        // Vista con config corrupto: mostramos banner con CTA a Safe Mode en vez de dejar la UI muerta.
+        showViewConfigError(e, dropdown ? dropdown.value : null);
+        // Intentar render mínimo para que al menos se vean los datos base
+        try { renderPlana(); } catch (e2) {}
     }
 }
+
+/**
+ * Watchdog contra loops de resize. Algunos configs rotos de Chart.js pueden disparar
+ * ResizeObserver en cascada que congela el event loop del browser. Si detectamos que
+ * window.dispatchEvent(new Event('resize')) se dispara más de N veces por segundo,
+ * suprimimos dispatches adicionales durante un rato y loggeamos.
+ */
+(function installResizeWatchdog() {
+    if (!window.dispatchEvent) return;
+    const THRESHOLD = 40;   // eventos en la ventana
+    const WINDOW_MS = 1000; // tamaño de la ventana
+    const SUPPRESS_MS = 3000; // tiempo de supresión tras disparar
+
+    let timestamps = [];
+    let suppressedUntil = 0;
+    const original = window.dispatchEvent.bind(window);
+
+    window.dispatchEvent = function(ev) {
+        try {
+            if (ev && ev.type === 'resize') {
+                const now = Date.now();
+                if (now < suppressedUntil) {
+                    // Descartamos dispatches de resize mientras estamos en modo supresión
+                    return true;
+                }
+                timestamps.push(now);
+                // Mantener solo los últimos WINDOW_MS
+                while (timestamps.length && timestamps[0] < now - WINDOW_MS) timestamps.shift();
+                if (timestamps.length > THRESHOLD) {
+                    suppressedUntil = now + SUPPRESS_MS;
+                    timestamps = [];
+                    try {
+                        console.warn(`[RxnLive] Watchdog: ${THRESHOLD}+ resize dispatches en <${WINDOW_MS}ms, suprimiendo por ${SUPPRESS_MS}ms.`);
+                    } catch(e) {}
+                    return true;
+                }
+            }
+        } catch (e) {
+            // Nunca dejamos que el watchdog tire dispatches legítimos por un bug suyo
+        }
+        return original(ev);
+    };
+})();
 </script>
 
 <?php
