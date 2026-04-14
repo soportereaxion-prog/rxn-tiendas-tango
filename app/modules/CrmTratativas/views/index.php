@@ -152,14 +152,14 @@ ob_start();
                     ?>
                     <tr>
                         <th style="width: 40px;"><input type="checkbox" id="checkAll" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                        <th style="width: 80px;" class="rxn-filter-col" data-filter-field="numero"><?= $sortLink('numero', '#') ?></th>
+                        <th style="width: 80px;" class="rxn-filter-col rxn-hide-mobile" data-filter-field="numero"><?= $sortLink('numero', '#') ?></th>
                         <th class="rxn-filter-col" data-filter-field="titulo"><?= $sortLink('titulo', 'Título') ?></th>
                         <th class="rxn-filter-col" data-filter-field="cliente_nombre"><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
                         <th class="rxn-filter-col" data-filter-field="estado"><?= $sortLink('estado', 'Estado') ?></th>
-                        <th class="rxn-filter-col" data-filter-field="probabilidad"><?= $sortLink('probabilidad', 'Prob.') ?></th>
-                        <th class="rxn-filter-col" data-filter-field="valor_estimado" class="text-end"><?= $sortLink('valor_estimado', 'Valor Est.') ?></th>
-                        <th>Vínculos</th>
-                        <th class="rxn-filter-col" data-filter-field="usuario_nombre"><?= $sortLink('usuario_nombre', 'Responsable') ?></th>
+                        <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="probabilidad"><?= $sortLink('probabilidad', 'Prob.') ?></th>
+                        <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="valor_estimado" class="text-end"><?= $sortLink('valor_estimado', 'Valor Est.') ?></th>
+                        <th class="rxn-hide-mobile">Vínculos</th>
+                        <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="usuario_nombre"><?= $sortLink('usuario_nombre', 'Responsable') ?></th>
                         <th style="width: 120px;" class="text-end">Acciones</th>
                     </tr>
                 </thead>
@@ -176,7 +176,7 @@ ob_start();
                             ?>
                             <tr class="rxn-hover-bg" data-row-link="<?= htmlspecialchars($basePath) ?>/<?= (int) $item['id'] ?>">
                                 <td data-row-link-ignore><input type="checkbox" name="ids[]" value="<?= (int) $item['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk"></td>
-                                <td class="fw-bold">#<?= (int) ($item['numero'] ?? 0) ?></td>
+                                <td class="fw-bold rxn-hide-mobile">#<?= (int) ($item['numero'] ?? 0) ?></td>
                                 <td>
                                     <div class="fw-bold"><?= htmlspecialchars((string) ($item['titulo'] ?? '')) ?></div>
                                     <?php if (!empty($item['descripcion'])): ?>
@@ -191,21 +191,21 @@ ob_start();
                                     <?php endif; ?>
                                 </td>
                                 <td><span class="badge <?= $badgeClass ?>"><?= htmlspecialchars($estadoLabel) ?></span></td>
-                                <td>
+                                <td class="rxn-hide-mobile">
                                     <span class="badge bg-dark border border-secondary"><?= (int) ($item['probabilidad'] ?? 0) ?>%</span>
                                 </td>
-                                <td class="text-end">
+                                <td class="text-end rxn-hide-mobile">
                                     <?php if ((float) ($item['valor_estimado'] ?? 0) > 0): ?>
                                         $ <?= number_format((float) $item['valor_estimado'], 2, ',', '.') ?>
                                     <?php else: ?>
                                         <span class="text-muted small">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="rxn-hide-mobile">
                                     <span class="badge bg-secondary me-1" title="PDS asociados"><i class="bi bi-tools"></i> <?= $pdsCount ?></span>
                                     <span class="badge bg-secondary" title="Presupuestos asociados"><i class="bi bi-file-earmark-spreadsheet"></i> <?= $presupuestosCount ?></span>
                                 </td>
-                                <td class="small"><?= htmlspecialchars((string) ($item['usuario_nombre'] ?? '-')) ?></td>
+                                <td class="small rxn-hide-mobile"><?= htmlspecialchars((string) ($item['usuario_nombre'] ?? '-')) ?></td>
                                 <td class="text-end">
                                     <div class="btn-group" data-row-link-ignore>
                                         <?php if (!$isPapelera): ?>

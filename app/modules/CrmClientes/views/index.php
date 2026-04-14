@@ -143,13 +143,13 @@ ob_start();
                                 ?>
                                 <tr>
                                     <th style="width: 40px;"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                                    <th class="rxn-filter-col" data-filter-field="codigo_tango"><?= $sortLink('codigo_tango', 'Codigo Tango') ?></th>
+                                    <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="codigo_tango"><?= $sortLink('codigo_tango', 'Codigo Tango') ?></th>
                                     <th class="rxn-filter-col" data-filter-field="razon_social"><?= $sortLink('razon_social', 'Razon Social') ?></th>
-                                    <th class="rxn-filter-col" data-filter-field="documento"><?= $sortLink('documento', 'CUIT / Doc') ?></th>
-                                    <th class="rxn-filter-col" data-filter-field="email"><?= $sortLink('email', 'Email') ?></th>
-                                    <th class="rxn-filter-col" data-filter-field="telefono"><?= $sortLink('telefono', 'Telefono') ?></th>
+                                    <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="documento"><?= $sortLink('documento', 'CUIT / Doc') ?></th>
+                                    <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="email"><?= $sortLink('email', 'Email') ?></th>
+                                    <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="telefono"><?= $sortLink('telefono', 'Telefono') ?></th>
                                     <th><?= $sortLink('activo', 'Estado') ?></th>
-                                    <th><?= $sortLink('fecha_ultima_sync', 'Ultima Sync') ?></th>
+                                    <th class="rxn-hide-mobile"><?= $sortLink('fecha_ultima_sync', 'Ultima Sync') ?></th>
                                     <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -166,14 +166,14 @@ ob_start();
                                     <?php foreach ($clientes as $cliente): ?>
                                         <tr data-row-link="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $cliente['id'] ?>">
                                             <td><input type="checkbox" name="ids[]" value="<?= (int) $cliente['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk" data-row-link-ignore></td>
-                                            <td class="text-nowrap"><span class="badge bg-secondary text-start" style="white-space: pre; font-family: monospace; font-size: 0.85rem;"><?= htmlspecialchars((string) ($cliente['codigo_tango'] ?? '')) ?></span></td>
+                                            <td class="text-nowrap rxn-hide-mobile"><span class="badge bg-secondary text-start" style="white-space: pre; font-family: monospace; font-size: 0.85rem;"><?= htmlspecialchars((string) ($cliente['codigo_tango'] ?? '')) ?></span></td>
                                             <td class="fw-bold text-dark text-wrap" style="max-width: 260px;">
                                                 <?= htmlspecialchars((string) ($cliente['razon_social'] ?? 'Cliente')) ?>
                                                 <div class="small text-muted">ID GVA14: <?= htmlspecialchars((string) ($cliente['id_gva14_tango'] ?? '--')) ?></div>
                                             </td>
-                                            <td><?= htmlspecialchars((string) ($cliente['documento'] ?? '--')) ?></td>
-                                            <td><?= htmlspecialchars((string) ($cliente['email'] ?? '--')) ?></td>
-                                            <td><?= htmlspecialchars((string) ($cliente['telefono'] ?? '--')) ?></td>
+                                            <td class="rxn-hide-mobile"><?= htmlspecialchars((string) ($cliente['documento'] ?? '--')) ?></td>
+                                            <td class="rxn-hide-mobile"><?= htmlspecialchars((string) ($cliente['email'] ?? '--')) ?></td>
+                                            <td class="rxn-hide-mobile"><?= htmlspecialchars((string) ($cliente['telefono'] ?? '--')) ?></td>
                                             <td>
                                                 <?php if (!empty($cliente['activo'])): ?>
                                                     <span class="badge bg-success bg-opacity-75">Activo</span>
@@ -181,7 +181,7 @@ ob_start();
                                                     <span class="badge bg-danger bg-opacity-75">Inactivo</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="text-nowrap"><small class="text-secondary"><?= htmlspecialchars((string) ($cliente['fecha_ultima_sync'] ?? '--')) ?></small></td>
+                                            <td class="text-nowrap rxn-hide-mobile"><small class="text-secondary"><?= htmlspecialchars((string) ($cliente['fecha_ultima_sync'] ?? '--')) ?></small></td>
                                             <td class="text-end text-nowrap">
                                                 <div class="btn-group" data-row-link-ignore>
                                                      <?php if (!$isPapelera): ?>

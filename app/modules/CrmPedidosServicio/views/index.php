@@ -136,14 +136,14 @@ ob_start();
                                     <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="document.querySelectorAll('.row-checkbox').forEach(e => e.checked = this.checked);">
                                 </th>
                                 <th class="rxn-filter-col" data-filter-field="numero"><?= $sortLink('numero', 'Numero') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="fecha_inicio"><?= $sortLink('fecha_inicio', 'Inicio') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="fecha_finalizado"><?= $sortLink('fecha_finalizado', 'Finalizado') ?></th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="fecha_inicio"><?= $sortLink('fecha_inicio', 'Inicio') ?></th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="fecha_finalizado"><?= $sortLink('fecha_finalizado', 'Finalizado') ?></th>
                                 <th class="rxn-filter-col" data-filter-field="cliente_nombre"><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="solicito">Solicito</th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="solicito">Solicito</th>
                                 <th class="rxn-filter-col" data-filter-field="articulo_nombre"><?= $sortLink('articulo_nombre', 'Articulo') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="clasificacion_codigo"><?= $sortLink('clasificacion_codigo', 'Clasificacion') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="usuario_nombre">Usuario</th>
-                                <th><?= $sortLink('duracion_neta_segundos', 'Tiempo neto') ?></th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="clasificacion_codigo"><?= $sortLink('clasificacion_codigo', 'Clasificacion') ?></th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="usuario_nombre">Usuario</th>
+                                <th class="rxn-hide-mobile"><?= $sortLink('duracion_neta_segundos', 'Tiempo neto') ?></th>
                                 <th class="rxn-filter-col" data-filter-field="estado_codigo">Estado</th>
                                 <th class="rxn-row-chevron-col"></th>
                             </tr>
@@ -168,18 +168,18 @@ ob_start();
                                                 <br><span class="badge bg-success fw-normal mt-1" title="Pedido Tango" style="font-size: 0.75rem;"><i class="bi bi-box-seam"></i> <?= htmlspecialchars((string)$pedido['nro_pedido']) ?></span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-nowrap"><small><?= htmlspecialchars((string) $pedido['fecha_inicio']) ?></small></td>
-                                        <td class="text-nowrap"><small><?= htmlspecialchars((string) ($pedido['fecha_finalizado'] ?? '--')) ?></small></td>
+                                        <td class="text-nowrap rxn-hide-mobile"><small><?= htmlspecialchars((string) $pedido['fecha_inicio']) ?></small></td>
+                                        <td class="text-nowrap rxn-hide-mobile"><small><?= htmlspecialchars((string) ($pedido['fecha_finalizado'] ?? '--')) ?></small></td>
                                         <td class="text-wrap" style="max-width: 210px;"><?= htmlspecialchars((string) $pedido['cliente_nombre']) ?></td>
-                                        <td><?= htmlspecialchars((string) $pedido['solicito']) ?></td>
+                                        <td class="rxn-hide-mobile"><?= htmlspecialchars((string) $pedido['solicito']) ?></td>
                                         <td class="text-wrap" style="max-width: 220px;"><?= htmlspecialchars((string) $pedido['articulo_nombre']) ?></td>
-                                        <td>
+                                        <td class="rxn-hide-mobile">
                                             <span class="badge bg-light text-dark border"><?= htmlspecialchars((string) ($pedido['clasificacion_codigo'] ?: 'Sin clasificar')) ?></span>
                                         </td>
-                                        <td>
+                                        <td class="rxn-hide-mobile">
                                             <small class="text-muted"><i class="bi bi-person"></i> <?= htmlspecialchars((string) ($pedido['usuario_nombre'] ?? '--')) ?></small>
                                         </td>
-                                        <td>
+                                        <td class="rxn-hide-mobile">
                                             <div class="fw-semibold text-success"><?= htmlspecialchars((string) sprintf('%02d:%02d:%02d', intdiv((int) ($pedido['duracion_neta_segundos'] ?? 0), 3600), intdiv(((int) ($pedido['duracion_neta_segundos'] ?? 0) % 3600), 60), ((int) ($pedido['duracion_neta_segundos'] ?? 0) % 60))) ?></div>
                                             <small class="text-muted">Bruto: <?= htmlspecialchars((string) sprintf('%02d:%02d:%02d', intdiv((int) ($pedido['duracion_bruta_segundos'] ?? 0), 3600), intdiv(((int) ($pedido['duracion_bruta_segundos'] ?? 0) % 3600), 60), ((int) ($pedido['duracion_bruta_segundos'] ?? 0) % 60))) ?></small>
                                         </td>

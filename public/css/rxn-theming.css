@@ -914,3 +914,206 @@ html[data-theme="dark"] .rxn-spotlight-header,
 html[data-theme="dark"] .rxn-spotlight-result-item {
     border-color: #333;
 }
+
+/* ===================================================================
+   MOBILE RESPONSIVE ENHANCEMENTS
+   =================================================================== */
+
+/* --- Mobile Navigation Offcanvas --- */
+.rxn-mobile-nav {
+    width: 280px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border-right-color: var(--border-color);
+}
+
+.rxn-mobile-nav .offcanvas-header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 1.25rem;
+}
+
+.rxn-mobile-nav .offcanvas-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+html[data-theme="dark"] .rxn-mobile-nav .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.rxn-mobile-nav-heading {
+    padding: 0.75rem 1.25rem 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.rxn-mobile-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 1.25rem;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background-color 0.15s ease;
+    min-height: 44px;
+}
+
+.rxn-mobile-nav-item:hover,
+.rxn-mobile-nav-item:focus-visible {
+    background-color: var(--surface-hover);
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.rxn-mobile-nav-item i {
+    width: 1.25rem;
+    text-align: center;
+    font-size: 1rem;
+    opacity: 0.7;
+}
+
+.rxn-mobile-nav-item.text-danger {
+    color: #dc3545 !important;
+}
+
+/* --- Mobile utility classes --- */
+.rxn-hide-mobile {
+    /* Hidden on screens < 768px */
+}
+
+/* --- Table responsive scroll indicator --- */
+.rxn-table-responsive {
+    position: relative;
+}
+
+.rxn-table-responsive::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, var(--bg-color));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.rxn-table-responsive.is-scrollable::after {
+    opacity: 1;
+}
+
+/* --- Modal mobile fullscreen --- */
+@media (max-width: 575.98px) {
+    .modal .modal-dialog {
+        margin: 0.5rem;
+        max-height: calc(100vh - 1rem);
+    }
+    .modal .modal-content {
+        max-height: calc(100vh - 1rem);
+    }
+    .modal .modal-body {
+        overflow-y: auto;
+    }
+}
+
+/* --- Responsive breakpoints enhancements --- */
+@media (max-width: 991.98px) {
+    /* Offcanvas dark mode overrides already handled by .rxn-mobile-nav */
+
+    /* Main content slightly tighter on tablets */
+    main.container-fluid {
+        padding-left: 1.25rem !important;
+        padding-right: 1.25rem !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    /* Hide secondary table columns */
+    .rxn-hide-mobile {
+        display: none !important;
+    }
+
+    /* Touch-friendly action buttons in tables */
+    .rxn-crud-table .btn-group .btn,
+    .rxn-crud-table .rxn-row-link-action {
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+        padding: 0.35rem 0.5rem;
+    }
+
+    /* Better table row chevron */
+    .rxn-row-chevron-col {
+        width: 36px;
+    }
+
+    /* Spotlight fullscreen on mobile */
+    .rxn-spotlight-dialog {
+        width: calc(100vw - 2rem) !important;
+        max-width: none;
+        left: 1rem !important;
+        right: 1rem !important;
+    }
+
+    /* Banner compaction */
+    .rxn-user-menu {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    /* Form actions stacking */
+    .rxn-form-actions {
+        flex-direction: column;
+    }
+
+    .rxn-form-actions .btn {
+        justify-content: center;
+    }
+
+    /* Filter form — full width inputs with better stacking */
+    .rxn-filter-form {
+        gap: 0.5rem;
+    }
+
+    .rxn-search-field-wrap {
+        width: 100%;
+        min-width: unset;
+    }
+
+    /* Typography refinements */
+    .rxn-form-section-title {
+        font-size: 0.95rem;
+    }
+
+    .rxn-form-section-text {
+        font-size: 0.85rem;
+    }
+
+    /* Pagination scroll on mobile */
+    .rxn-pagination-wrap .pagination .page-link {
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Empty state compact */
+    .rxn-empty-state {
+        padding: 2rem 1rem;
+    }
+
+    /* Module cards compact grid on small phones */
+    .rxn-module-card {
+        min-height: 120px;
+    }
+
+    .rxn-module-icon {
+        font-size: 2rem;
+    }
+}

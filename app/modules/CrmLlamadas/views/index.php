@@ -116,10 +116,10 @@ ob_start();
                         ?>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="checkAll" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                            <th style="width: 150px;" class="rxn-filter-col" data-filter-field="fecha"><?= $sortLink('fecha', 'Fecha y Hora') ?></th>
+                            <th style="width: 150px;" class="rxn-filter-col rxn-hide-mobile" data-filter-field="fecha"><?= $sortLink('fecha', 'Fecha y Hora') ?></th>
                             <th class="rxn-filter-col" data-filter-field="numero_origen"><?= $sortLink('numero_origen', 'Origen') ?></th>
-                            <th class="rxn-filter-col" data-filter-field="destino"><?= $sortLink('destino', 'Destino') ?></th>
-                            <th class="rxn-filter-col" data-filter-field="usuario_nombre"><?= $sortLink('usuario_nombre', 'Interno (Usuario)') ?></th>
+                            <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="destino"><?= $sortLink('destino', 'Destino') ?></th>
+                            <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="usuario_nombre"><?= $sortLink('usuario_nombre', 'Interno (Usuario)') ?></th>
                             <th class="rxn-filter-col" data-filter-field="duracion"><?= $sortLink('duracion', 'Duración') ?></th>
                             <th class="rxn-filter-col" data-filter-field="grabacion_estado">Grabación</th>
                             <th style="width: 80px;" class="text-end">Acciones</th>
@@ -132,7 +132,7 @@ ob_start();
                             <?php foreach ($llamadas as $item): ?>
                                 <tr class="rxn-hover-bg" data-row-link="">
                                     <td data-row-link-ignore><input type="checkbox" name="ids[]" value="<?= (int) $item['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk"></td>
-                                    <td class="small fw-bold">
+                                    <td class="small fw-bold rxn-hide-mobile">
                                         <?= date('d/m/Y H:i', strtotime($item['fecha'])) ?>
                                     </td>
                                     <td>
@@ -145,8 +145,8 @@ ob_start();
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= htmlspecialchars($item['destino'] ?? '-') ?></td>
-                                    <td>
+                                    <td class="rxn-hide-mobile"><?= htmlspecialchars($item['destino'] ?? '-') ?></td>
+                                    <td class="rxn-hide-mobile">
                                         <span class="badge bg-secondary me-1"><?= htmlspecialchars($item['interno'] ?? '-') ?></span>
                                         <span class="small fw-bold text-info"><?= htmlspecialchars($item['usuario_nombre'] ?? $item['atendio'] ?? 'Desconocido') ?></span>
                                     </td>

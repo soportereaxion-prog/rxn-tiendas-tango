@@ -7,18 +7,31 @@ $backofficeStoreUrl = $backofficeUserSummary['storeUrl'] ?? null;
 $backofficeStoreLabel = (string) ($backofficeUserSummary['storeLabel'] ?? '');
 $currentTheme = $_SESSION['pref_theme'] ?? 'light';
 $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
+
+// Determine available navigation sections for mobile offcanvas
+$isAdmin = \App\Modules\Auth\AuthService::hasAdminPrivileges();
+$isRxnAdmin = \App\Modules\Auth\AuthService::isRxnAdmin();
+$hasTiendas = \App\Modules\Empresas\EmpresaAccessService::hasTiendasAccess();
+$hasCrm = \App\Modules\Empresas\EmpresaAccessService::hasCrmAccess();
 ?>
-<div class="container-fluid px-4 d-flex justify-content-end align-items-center gap-2 mb-1" style="max-width: 1400px;">
-    <div id="topbar-left-zone" class="d-flex align-items-center">
-        <?= isset($topbarLeftHtml) ? $topbarLeftHtml : '' ?>
+<div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1" style="max-width: 1400px;">
+    <!-- Left zone: hamburger (mobile) + topbar left content -->
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-pill px-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#rxnMobileNav" aria-controls="rxnMobileNav" aria-label="Menú">
+            <i class="bi bi-list fs-5"></i>
+        </button>
+        <div id="topbar-left-zone" class="d-flex align-items-center">
+            <?= isset($topbarLeftHtml) ? $topbarLeftHtml : '' ?>
+        </div>
     </div>
+    <!-- Right zone: user menu -->
     <div class="d-flex align-items-center justify-content-end gap-2 flex-grow-0">
         <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 shadow-sm rxn-user-menu text-secondary">
         <button class="btn btn-sm btn-link p-0 text-decoration-none" id="backendThemeToggleBtn" title="Cambiar Tema" style="line-height:1; font-size:1.1rem; filter: grayscale(0.5);">
             <?= $oppositeThemeBtn ?>
         </button>
-        <div class="vr mx-1 opacity-25"></div>
-        <span class="small fw-semibold">
+        <div class="vr mx-1 opacity-25 d-none d-sm-block"></div>
+        <span class="small fw-semibold d-none d-sm-inline">
             <i class="bi bi-person-circle text-info"></i>
             Hola, <?= htmlspecialchars($backofficeUserName) ?>
             <?php if ($backofficeEmpresaNombre !== ''): ?>
@@ -30,7 +43,7 @@ $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
             <i class="bi bi-box-arrow-right fs-6"></i>
         </a>
     </div>
-    <div>
+    <div class="d-none d-md-block">
         <?php if (is_string($backofficeStoreUrl) && $backofficeStoreUrl !== ''): ?>
             <a href="<?= htmlspecialchars($backofficeStoreUrl) ?>" class="btn btn-sm btn-outline-info rounded-pill px-3" target="_blank" rel="noopener noreferrer">
                 <i class="bi bi-box-arrow-up-right"></i> Abrir tienda
@@ -38,7 +51,112 @@ $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
             <span class="small text-muted mb-0"><?= htmlspecialchars($backofficeStoreLabel) ?></span>
         <?php endif; ?>
     </div>
-    </div> <!-- Close the wrapper div added in previous step -->
+    </div>
+</div>
+
+<!-- Mobile Navigation Offcanvas -->
+<div class="offcanvas offcanvas-start rxn-mobile-nav" tabindex="-1" id="rxnMobileNav" aria-labelledby="rxnMobileNavLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="rxnMobileNavLabel">
+            <i class="bi bi-grid-3x3-gap-fill me-2"></i>Navegación
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body px-0">
+        <!-- User info (visible only in offcanvas on mobile) -->
+        <div class="px-3 pb-3 mb-2 border-bottom">
+            <div class="small text-muted">
+                <i class="bi bi-person-circle"></i> <?= htmlspecialchars($backofficeUserName) ?>
+                <?php if ($backofficeEmpresaNombre !== ''): ?>
+                    <br><span class="opacity-75"><?= htmlspecialchars($backofficeEmpresaNombre) ?></span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <nav class="rxn-mobile-nav-sections">
+            <!-- Home -->
+            <a href="/" class="rxn-mobile-nav-item">
+                <i class="bi bi-house-door"></i> Inicio
+            </a>
+
+            <?php if ($hasCrm): ?>
+            <!-- CRM Section -->
+            <div class="rxn-mobile-nav-heading">CRM</div>
+            <a href="/mi-empresa/crm/dashboard" class="rxn-mobile-nav-item">
+                <i class="bi bi-diagram-3"></i> Dashboard CRM
+            </a>
+            <a href="/mi-empresa/crm/clientes" class="rxn-mobile-nav-item">
+                <i class="bi bi-people"></i> Clientes
+            </a>
+            <a href="/mi-empresa/crm/presupuestos" class="rxn-mobile-nav-item">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Presupuestos
+            </a>
+            <a href="/mi-empresa/crm/pedidos-servicio" class="rxn-mobile-nav-item">
+                <i class="bi bi-tools"></i> Pedidos de Servicio
+            </a>
+            <a href="/mi-empresa/crm/tratativas" class="rxn-mobile-nav-item">
+                <i class="bi bi-briefcase-fill"></i> Tratativas
+            </a>
+            <a href="/mi-empresa/crm/agenda" class="rxn-mobile-nav-item">
+                <i class="bi bi-calendar-event"></i> Agenda
+            </a>
+            <a href="/mi-empresa/crm/notas" class="rxn-mobile-nav-item">
+                <i class="bi bi-journal-text"></i> Notas
+            </a>
+            <a href="/mi-empresa/crm/llamadas" class="rxn-mobile-nav-item">
+                <i class="bi bi-telephone-fill"></i> Llamadas
+            </a>
+            <?php endif; ?>
+
+            <?php if ($hasTiendas): ?>
+            <!-- Tiendas Section -->
+            <div class="rxn-mobile-nav-heading">Tiendas</div>
+            <a href="/mi-empresa/dashboard" class="rxn-mobile-nav-item">
+                <i class="bi bi-shop-window"></i> Dashboard Tiendas
+            </a>
+            <a href="/mi-empresa/articulos" class="rxn-mobile-nav-item">
+                <i class="bi bi-box-seam"></i> Artículos
+            </a>
+            <a href="/mi-empresa/categorias" class="rxn-mobile-nav-item">
+                <i class="bi bi-grid-3x3-gap"></i> Categorías
+            </a>
+            <a href="/mi-empresa/pedidos" class="rxn-mobile-nav-item">
+                <i class="bi bi-cart3"></i> Pedidos
+            </a>
+            <a href="/mi-empresa/clientes" class="rxn-mobile-nav-item">
+                <i class="bi bi-people"></i> Clientes Web
+            </a>
+            <?php endif; ?>
+
+            <?php if ($isRxnAdmin): ?>
+            <!-- Admin Section -->
+            <div class="rxn-mobile-nav-heading">Administración</div>
+            <a href="/admin/dashboard" class="rxn-mobile-nav-item">
+                <i class="bi bi-buildings"></i> Backoffice
+            </a>
+            <a href="/empresas" class="rxn-mobile-nav-item">
+                <i class="bi bi-building"></i> Empresas
+            </a>
+            <a href="/admin/mantenimiento" class="rxn-mobile-nav-item">
+                <i class="bi bi-tools"></i> Mantenimiento
+            </a>
+            <?php endif; ?>
+
+            <!-- Common -->
+            <div class="rxn-mobile-nav-heading">Cuenta</div>
+            <a href="/mi-perfil" class="rxn-mobile-nav-item">
+                <i class="bi bi-person-badge"></i> Mi Perfil
+            </a>
+            <?php if (is_string($backofficeStoreUrl) && $backofficeStoreUrl !== ''): ?>
+            <a href="<?= htmlspecialchars($backofficeStoreUrl) ?>" class="rxn-mobile-nav-item" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Abrir Tienda
+            </a>
+            <?php endif; ?>
+            <a href="/logout" class="rxn-mobile-nav-item text-danger">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+            </a>
+        </nav>
+    </div>
 </div>
 
 <script>

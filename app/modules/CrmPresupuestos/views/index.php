@@ -140,10 +140,10 @@ ob_start();
                             <tr>
                                 <th style="width: 40px;"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
                                 <th class="rxn-filter-col" data-filter-field="numero"><?= $sortLink('numero', 'Numero') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="fecha"><?= $sortLink('fecha', 'Fecha') ?></th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="fecha"><?= $sortLink('fecha', 'Fecha') ?></th>
                                 <th class="rxn-filter-col" data-filter-field="cliente_nombre_snapshot"><?= $sortLink('cliente_nombre_snapshot', 'Cliente') ?></th>
-                                <th>Usuario</th>
-                                <th>Items</th>
+                                <th class="rxn-hide-mobile">Usuario</th>
+                                <th class="rxn-hide-mobile">Items</th>
                                 <th class="rxn-filter-col" data-filter-field="total"><?= $sortLink('total', 'Total') ?></th>
                                 <th class="rxn-filter-col" data-filter-field="estado"><?= $sortLink('estado', 'Estado') ?></th>
                                 <th class="rxn-row-chevron-col"></th>
@@ -162,10 +162,10 @@ ob_start();
                                     <tr data-row-link="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" class="rxn-row-link" onclick="if(event.target.closest('.btn-group, .form-check-input') === null) { window.location.href = this.dataset.rowLink; }">
                                         <td><input type="checkbox" name="ids[]" value="<?= (int) $presupuesto['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk" data-row-link-ignore></td>
                                         <td class="fw-bold text-dark">#<?= (int) $presupuesto['numero'] ?></td>
-                                        <td class="text-nowrap"><small><?= htmlspecialchars((string) $presupuesto['fecha']) ?></small></td>
+                                        <td class="text-nowrap rxn-hide-mobile"><small><?= htmlspecialchars((string) $presupuesto['fecha']) ?></small></td>
                                         <td class="text-wrap" style="max-width: 260px;"><?= htmlspecialchars((string) ($presupuesto['cliente_nombre_snapshot'] ?? 'Sin cliente')) ?></td>
-                                        <td class="text-nowrap" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;"><small><?= htmlspecialchars((string) ($presupuesto['usuario_nombre'] ?? 'Sin asignar')) ?></small></td>
-                                        <td><span class="badge bg-light text-dark border"><?= (int) ($presupuesto['items_count'] ?? 0) ?> reng.</span></td>
+                                        <td class="text-nowrap rxn-hide-mobile" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;"><small><?= htmlspecialchars((string) ($presupuesto['usuario_nombre'] ?? 'Sin asignar')) ?></small></td>
+                                        <td class="rxn-hide-mobile"><span class="badge bg-light text-dark border"><?= (int) ($presupuesto['items_count'] ?? 0) ?> reng.</span></td>
                                         <td class="fw-semibold text-success">$<?= number_format((float) ($presupuesto['total'] ?? 0), 2, ',', '.') ?></td>
                                         <td>
                                             <?php $estadoActual = (string) ($presupuesto['estado'] ?? 'borrador'); ?>

@@ -177,15 +177,15 @@ ob_start();
                                 ?>
                                 <tr>
                                     <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all" onclick="document.querySelectorAll('.check-item').forEach(e => e.checked = this.checked);"></th>
-                                    <th class="rxn-filter-col" data-filter-field="codigo_externo"><?= $sortLink('codigo_externo', 'Codigo / SKU') ?></th>
+                                    <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="codigo_externo"><?= $sortLink('codigo_externo', 'Codigo / SKU') ?></th>
                                     <th class="rxn-filter-col" data-filter-field="nombre"><?= $sortLink('nombre', 'Descripcion') ?></th>
-                                    <?php if ($showCategories): ?><th class="rxn-filter-col" data-filter-field="categoria_nombre"><?= $sortLink('categoria_nombre', 'Categoria') ?></th><?php endif; ?>
-                                    <th>Descripcion Adicional</th>
-                                    <th class="text-nowrap rxn-filter-col" data-filter-field="precio_lista_1"><?= $sortLink('precio_lista_1', 'P. L1 ($)') ?></th>
-                                    <th class="text-nowrap rxn-filter-col" data-filter-field="precio_lista_2"><?= $sortLink('precio_lista_2', 'P. L2 ($)') ?></th>
+                                    <?php if ($showCategories): ?><th class="rxn-filter-col rxn-hide-mobile" data-filter-field="categoria_nombre"><?= $sortLink('categoria_nombre', 'Categoria') ?></th><?php endif; ?>
+                                    <th class="rxn-hide-mobile">Descripcion Adicional</th>
+                                    <th class="text-nowrap rxn-filter-col rxn-hide-mobile" data-filter-field="precio_lista_1"><?= $sortLink('precio_lista_1', 'P. L1 ($)') ?></th>
+                                    <th class="text-nowrap rxn-filter-col rxn-hide-mobile" data-filter-field="precio_lista_2"><?= $sortLink('precio_lista_2', 'P. L2 ($)') ?></th>
                                     <th class="rxn-filter-col" data-filter-field="stock_actual"><?= $sortLink('stock_actual', 'Stock') ?></th>
                                     <th class="rxn-filter-col" data-filter-field="activo"><?= $sortLink('activo', 'Estado') ?></th>
-                                    <th class="rxn-filter-col" data-filter-field="fecha_ultima_sync"><?= $sortLink('fecha_ultima_sync', 'Ultima Sincro') ?></th>
+                                    <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="fecha_ultima_sync"><?= $sortLink('fecha_ultima_sync', 'Ultima Sincro') ?></th>
                                     <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -202,10 +202,10 @@ ob_start();
                                     <?php foreach ($articulos as $art): ?>
                                         <tr data-row-link="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $art['id'] ?>">
                                             <td><input type="checkbox" name="ids[]" form="hiddenFormBulk" value="<?= (int) $art['id'] ?>" class="form-check-input check-item" data-row-link-ignore></td>
-                                            <td class="text-nowrap"><span class="badge bg-secondary text-start" style="white-space: pre; font-family: monospace; font-size: 0.85rem;"><?= htmlspecialchars((string) $art['codigo_externo']) ?></span></td>
+                                            <td class="text-nowrap rxn-hide-mobile"><span class="badge bg-secondary text-start" style="white-space: pre; font-family: monospace; font-size: 0.85rem;"><?= htmlspecialchars((string) $art['codigo_externo']) ?></span></td>
                                             <td class="fw-bold text-dark text-wrap" style="max-width: 250px;"><?= htmlspecialchars((string) $art['nombre']) ?></td>
                                             <?php if ($showCategories): ?>
-                                                <td>
+                                                <td class="rxn-hide-mobile">
                                                     <?php if (!empty($art['categoria_nombre'])): ?>
                                                         <span class="badge bg-light text-dark border"><?= htmlspecialchars((string) $art['categoria_nombre']) ?></span>
                                                     <?php else: ?>
@@ -213,9 +213,9 @@ ob_start();
                                                     <?php endif; ?>
                                                 </td>
                                             <?php endif; ?>
-                                            <td class="text-wrap" style="max-width: 200px;"><small class="text-muted"><?= htmlspecialchars((string) ($art['descripcion'] ?? '---')) ?></small></td>
-                                            <td class="fw-semibold text-primary text-nowrap">$<?= $art['precio_lista_1'] !== null ? number_format((float) $art['precio_lista_1'], 2, ',', '.') : '--' ?></td>
-                                            <td class="fw-semibold text-success text-nowrap">$<?= $art['precio_lista_2'] !== null ? number_format((float) $art['precio_lista_2'], 2, ',', '.') : '--' ?></td>
+                                            <td class="text-wrap rxn-hide-mobile" style="max-width: 200px;"><small class="text-muted"><?= htmlspecialchars((string) ($art['descripcion'] ?? '---')) ?></small></td>
+                                            <td class="fw-semibold text-primary text-nowrap rxn-hide-mobile">$<?= $art['precio_lista_1'] !== null ? number_format((float) $art['precio_lista_1'], 2, ',', '.') : '--' ?></td>
+                                            <td class="fw-semibold text-success text-nowrap rxn-hide-mobile">$<?= $art['precio_lista_2'] !== null ? number_format((float) $art['precio_lista_2'], 2, ',', '.') : '--' ?></td>
                                             <td class="fw-bold text-nowrap"><?= $art['stock_actual'] !== null ? (float) $art['stock_actual'] : '--' ?></td>
                                             <td>
                                                 <?php if ($art['activo']): ?>
@@ -224,7 +224,7 @@ ob_start();
                                                     <span class="badge bg-danger bg-opacity-75">Inactivo</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="text-nowrap"><small class="text-secondary"><?= htmlspecialchars((string) $art['fecha_ultima_sync']) ?></small></td>
+                                            <td class="text-nowrap rxn-hide-mobile"><small class="text-secondary"><?= htmlspecialchars((string) $art['fecha_ultima_sync']) ?></small></td>
                                             <td class="text-end text-nowrap">
                                                 <div class="btn-group" data-row-link-ignore>
                                                         <?php if (!$isPapelera): ?>

@@ -139,10 +139,10 @@ ob_start();
                                     <input type="checkbox" class="form-check-input" id="bulk-select-all" aria-label="Seleccionar todos" onclick="document.querySelectorAll('.rxn-bulk-checkbox').forEach(e => { e.checked = this.checked; e.dispatchEvent(new Event('change')); });">
                                 </th>
                                 <th class="rxn-filter-col" data-filter-field="id"><?= $sortLink('p.id', '# Orden') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="created_at"><?= $sortLink('p.created_at', 'Fecha') ?></th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="created_at"><?= $sortLink('p.created_at', 'Fecha') ?></th>
                                 <th class="rxn-filter-col" data-filter-field="cliente_nombre"><?= $sortLink('cliente_nombre', 'Cliente') ?></th>
-                                <th class="rxn-filter-col" data-filter-field="cliente_email">Email</th>
-                                <th>Cód. Tango Asignado</th>
+                                <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="cliente_email">Email</th>
+                                <th class="rxn-hide-mobile">Cód. Tango Asignado</th>
                                 <th class="text-nowrap rxn-filter-col" data-filter-field="total"><?= $sortLink('p.total', 'Total ($)') ?></th>
                                 <th class="rxn-filter-col" data-filter-field="estado_tango">Estado Integración</th>
                                 <th class="rxn-actions-col text-end">Acciones</th>
@@ -163,12 +163,12 @@ ob_start();
                                             <input class="form-check-input rxn-bulk-checkbox pedido-checkbox" type="checkbox" name="ids[]" value="<?= $p['id'] ?>" form="hiddenFormBulk" aria-label="Seleccionar fila" data-row-link-ignore>
                                         </td>
                                         <td class="fw-bold text-dark">#<?= $p['id'] ?></td>
-                                        <td class="text-nowrap"><small class="text-muted"><?= htmlspecialchars((string)$p['created_at']) ?></small></td>
+                                        <td class="text-nowrap rxn-hide-mobile"><small class="text-muted"><?= htmlspecialchars((string)$p['created_at']) ?></small></td>
                                         <td class="text-wrap" style="max-width: 200px;">
                                             <?= htmlspecialchars((string)trim($p['cliente_nombre'] . ' ' . $p['cliente_apellido'])) ?>
                                         </td>
-                                        <td><small><?= htmlspecialchars((string)$p['cliente_email']) ?></small></td>
-                                        <td>
+                                        <td class="rxn-hide-mobile"><small><?= htmlspecialchars((string)$p['cliente_email']) ?></small></td>
+                                        <td class="rxn-hide-mobile">
                                             <span class="badge bg-light text-dark border font-monospace">
                                                 <?= htmlspecialchars((string)($p['codigo_cliente_tango_usado'] ?: 'No Definido')) ?>
                                             </span>
