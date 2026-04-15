@@ -81,6 +81,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-telephone-fill"></i>',
         'link' => '/mi-empresa/crm/llamadas',
     ],
+    'mail_masivos' => [
+        'title' => 'Mail Masivos',
+        'desc' => 'Diseñar reportes de destinatarios, armar plantillas HTML y disparar envíos masivos procesados por n8n.',
+        'icon' => '<i class="bi bi-envelope-paper-fill"></i>',
+        'link' => '/mi-empresa/crm/mail-masivos',
+    ],
     'monitoreo' => [
         'title' => 'Monitoreo de Usuarios',
         'desc' => 'Supervisa al equipo de ventas y operadores operativos del sistema.',

@@ -221,22 +221,55 @@ Si aparece la situación "apliqué un fix, el usuario dice que no funciona, apli
 
 ### Vocabulario acordado con Charly
 
-- **"Migraciones"** = cambios al schema de la base de datos (`database/migrations/*.php`). Es lo que Charly revisa antes de cada deploy para asegurarse que la base queda sincronizada.
+- **"Migraciones"** = cambios al schema/data de la base de datos (`database/migrations/*.php`). Lumi las crea y ejecuta en local automáticamente cada vez que hay un cambio de DB. El `ReleaseBuilder` las empaqueta solo en el ZIP del OTA, y el módulo de Mantenimiento las aplica en prod al instalar.
 - **"Factory OTA"** = proceso de compilar el ZIP de release desde `/admin/mantenimiento`. Es interno del sistema, Charly lo dispara solo. **NO usar la palabra "OTA" a secas** — generó confusión en sesiones previas. Si Charly dice "metemos OTA" casi seguro se refiere a migraciones.
 - **"Deploy" / "Subir" / "Reino de los cielos"** = desplegar el código al server de producción (Plesk).
 
-### Flujo de trabajo preferido (Charly)
+### Flujo de trabajo preferido (Charly) — vigente desde 2026-04-14
 
-El ritmo de trabajo que Charly estableció explícitamente:
+Charly simplificó el ritmo de trabajo. La idea es que sea **así de simple**:
 
-1. **Laburamos sobre los módulos** (código, fixes, features). Esto es el grueso de la sesión.
-2. **Cuando estamos listos para deploy**, revisamos migraciones pendientes:
-   - Verificar que `database/migrations/` esté ordenado correctamente (ver convención de sufijos numéricos en AGENTS.md)
-   - Confirmar que el panel `/admin/mantenimiento` muestre las pendientes sin errores
-   - Si hay error de ordering u otro, resolverlo ANTES del deploy con una migración correctiva (nunca modificar migraciones ya liberadas)
-3. **Subimos** (Factory OTA + Plesk).
+1. **Hablamos** — Charly describe lo que quiere.
+2. **Lumi implementa** todo lo necesario en código y DB. Si hay cambios de schema/data:
+   - Crea la migración en `database/migrations/` con naming correcto.
+   - La **ejecuta inmediatamente en local** con `php tools/run_migrations.php`.
+   - Informa a Charly qué migración quedó creada y qué hace.
+3. **Factory OTA** — Charly compila el ZIP desde `/admin/mantenimiento`. El `ReleaseBuilder` ya incluye `database/migrations/` automáticamente (whitelist en el builder), así que nunca hay que acordarse de "agregar" la migración manualmente al paquete.
+4. **Subir al reino** — Charly sube el ZIP a Plesk. El módulo de Mantenimiento detecta las migraciones pendientes y las aplica usando `MigrationRunner::runPending()`. Sin intervención.
 
-La idea es que sea **así de simple**. Si la sesión empieza a complicarse con debugging infinito, algo está mal — parar, re-evaluar, y volver al flujo.
+**Charly NO quiere controlar migraciones pendientes antes del deploy.** La mecánica técnica es segura: el builder las incluye siempre, el runner las aplica idempotentemente. Si Lumi hizo bien su parte (crear + ejecutar local), el resto es automático.
+
+Si la sesión empieza a complicarse con debugging infinito, algo está mal — parar, re-evaluar, y volver al flujo.
+
+### Regla de pre-deploy: bumpear versión + log de release (2026-04-15)
+
+**Antes de cada commit que va a OTA**, sobre todo si es feature grande o release visible, Lumi tiene que hacer EN ESTE ORDEN sin esperar a que Charly lo pida:
+
+1. **Bumpear `app/config/version.php`**:
+   - `current_version` → la nueva release (semver: bump mayor para feature nueva grande, menor para feature incremental, patch para bugfix puro).
+   - `current_build` → `YYYYMMDD.N` del día del deploy.
+   - Agregar una nueva entry al principio del array `history` con `version`, `build`, `released_at`, `title`, `summary` (párrafo completo con todo lo que se hizo) e `items` (bulleted list de cambios concretos).
+   - `VersionService` lee de este archivo — si no se actualiza, el dashboard y el launcher siguen mostrando la release vieja.
+
+2. **Crear log de iteración en `docs/logs/`**:
+   - Naming: `YYYY-MM-DD_HHMM_release_X_Y_Z_titulo_corto.md` (ejemplo: `2026-04-15_0200_release_1_6_0_crm_mail_masivos.md`).
+   - Secciones estándar: Fecha y tema, Qué se hizo (por fase si aplica), Por qué, Impacto, Decisiones tomadas, Validación, Pendiente.
+   - Incluir **env vars nuevas** si el módulo las requiere — da la pista al momento del deploy.
+
+3. **Commit con conventional commits**:
+   - `feat(scope): título corto` para features. `fix(scope):` para bugs. `chore(scope):` para mantenimiento.
+   - Cuerpo del commit con resumen breve. Los detalles largos viven en el log de `docs/logs/`, no en el commit message.
+   - NUNCA agregar "Co-Authored-By" ni atribución AI (regla global de Charly).
+
+**Por qué esta regla existe**: Charly se dio cuenta de que el versionado visible queda desactualizado si Lumi no lo bumpea proactivamente. En v1.1.0 ya se formalizó la regla de que cada iteración relevante debe tocar `docs/logs` + `docs/estado/current.md` + `app/config/version.php`. Esta entrada la extiende con el ritual exacto del pre-deploy. Lumi no debería preguntar "¿bumpeamos versión?" — directamente lo hace como parte del cierre de feature.
+
+**Cuándo NO bumpear**: cambios puramente internos sin impacto funcional (refactor, tests, docs), hotfix ya cubierto por una release en curso que todavía no se subió. En esos casos el log de `docs/logs/` sigue siendo obligatorio, pero `version.php` puede esperar al siguiente push.
+
+### Antipatrón histórico — olvidarse de crear/ejecutar la migración
+
+El problema que generó líos en el pasado: hacer cambios de DB "a mano" durante el desarrollo (con HeidiSQL, phpMyAdmin, o un `ALTER` ad-hoc) y no crear la migración correspondiente. Eso dejaba el dev funcionando y el prod roto post-deploy.
+
+**Regla dura**: todo cambio de DB va por migración, sin excepciones. Si Lumi está tentada de ejecutar un `ALTER` directo en dev para "probar rápido", debe detenerse y crear la migración primero — porque esa misma migración es la que va a correr arriba.
 
 ### Mejoras a Lumi para próximas sesiones
 

@@ -78,6 +78,7 @@ return function (Router $router): void {
     $router->post('/mi-perfil', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardar']);
     $router->post('/mi-perfil/toggle-theme', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'toggleTheme']);
     $router->post('/mi-perfil/dashboard-order', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardarOrdenDashboard']);
+    $router->post('/mi-perfil/smtp/test', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'testSmtp']);
 
     // --- MODULO EMPRESAS ---
     $router->get('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'index']);
@@ -363,6 +364,44 @@ return function (Router $router): void {
 
     // --- MODULO CRM MONITOREO USUARIOS ---
     $router->get('/mi-empresa/crm/monitoreo-usuarios', $action(\App\Modules\CrmMonitoreoUsuarios\CrmMonitoreoUsuariosController::class, 'index', $requireCrmMonitoreo));
+
+    // --- MODULO CRM MAIL MASIVOS ---
+    $router->get('/mi-empresa/crm/mail-masivos', $action(\App\Modules\CrmMailMasivos\MailMasivosDashboardController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/reportes', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/reportes/crear', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'create', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/reportes', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'store', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/reportes/metamodel', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'metamodel', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/reportes/preview', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'preview', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/reportes/{id}/editar', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'edit', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/reportes/{id}', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'update', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/reportes/{id}/eliminar', $action(\App\Modules\CrmMailMasivos\ReportController::class, 'delete', $requireCrm));
+
+    // Plantillas HTML (Fase 3)
+    $router->get('/mi-empresa/crm/mail-masivos/plantillas', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/plantillas/crear', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'create', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/plantillas', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'store', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/plantillas/preview-render', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'previewRender', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/plantillas/available-vars/{reportId}', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'availableVars', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/plantillas/{id}/editar', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'edit', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/plantillas/{id}', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'update', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/plantillas/{id}/eliminar', $action(\App\Modules\CrmMailMasivos\TemplateController::class, 'delete', $requireCrm));
+
+    // Envíos Masivos (Fase 4)
+    $router->get('/mi-empresa/crm/mail-masivos/envios', $action(\App\Modules\CrmMailMasivos\JobController::class, 'index', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/envios/crear', $action(\App\Modules\CrmMailMasivos\JobController::class, 'create', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/envios', $action(\App\Modules\CrmMailMasivos\JobController::class, 'store', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/envios/preview-recipients', $action(\App\Modules\CrmMailMasivos\JobController::class, 'previewRecipients', $requireCrm));
+    // Callback de n8n (público, protegido con X-RXN-Token). NO lleva guard requireCrm.
+    $router->post('/mi-empresa/crm/mail-masivos/envios/callback', $action(\App\Modules\CrmMailMasivos\JobController::class, 'callback'));
+    // Procesador de batch (público, protegido con X-RXN-Token). Llamado por n8n en loop.
+    $router->post('/mi-empresa/crm/mail-masivos/envios/process-batch', $action(\App\Modules\CrmMailMasivos\JobController::class, 'processBatch'));
+    $router->get('/mi-empresa/crm/mail-masivos/envios/{id}', $action(\App\Modules\CrmMailMasivos\JobController::class, 'monitor', $requireCrm));
+    $router->get('/mi-empresa/crm/mail-masivos/envios/{id}/status', $action(\App\Modules\CrmMailMasivos\JobController::class, 'status', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/envios/{id}/cancelar', $action(\App\Modules\CrmMailMasivos\JobController::class, 'cancel', $requireCrm));
+
+    // Tracking público (Fase 5) — sin login, identificado por tracking_token único por item.
+    $router->get('/m/open/{token}', $action(\App\Modules\CrmMailMasivos\TrackingController::class, 'open'));
+    $router->get('/m/click/{token}', $action(\App\Modules\CrmMailMasivos\TrackingController::class, 'click'));
 
     // --- MODULO CATEGORIAS ---
     $router->get('/mi-empresa/categorias', $action(\App\Modules\Categorias\CategoriaController::class, 'index', $requireTiendas));

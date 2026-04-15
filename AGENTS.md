@@ -51,13 +51,35 @@ Toda implementación debe entregarse junto a un MD de control de cambio indicand
 
 REGLA OBLIGATORIA DE CAMBIOS EN BASE DE DATOS (MIGRACIONES):
 A partir de la implementación del motor de Backups y Mantenimiento, el manejo de Base de Datos persigue políticas estrictas:
+
 - **Ubicación y Formato:** Toda migración debe guardarse ÚNICAMENTE en la carpeta `database/migrations/` con prefijo cronológico (ej: `2026_04_04_nombre.php`). Debe usar estrictamente la sintaxis de clausura: `return function (): void { $db = \App\Core\Database::getConnection(); ... };`. (Archivos procedurales o en carpetas legacy como `deploy_db` están prohibidos).
+
 - **Convención de Naming para Ordering Determinístico:** El `MigrationRunner` usa `sort()` puro sobre los filenames (orden ASCII literal, NO cronológico). Para garantizar orden determinístico cuando hay múltiples migraciones del mismo día, SIEMPRE usar sufijo numérico de 2 dígitos después del prefijo de fecha: `2026_04_15_00_crear_tabla.php`, `2026_04_15_01_add_columns.php`, `2026_04_15_02_create_indexes.php`. **NUNCA mezclar prefijos numéricos con palabras** (`crear_`, `fix_`, `add_`) en el mismo día porque el orden ASCII pone los números antes que las letras y rompe dependencias (bug recurrente resuelto en 1.3.7 con `2026_04_07_00_ensure_rxn_sync_status.php`). Para migraciones únicas del día, también usar `_00_` por consistencia.
+
 - **Versionado Exclusivo:** Todo cambio de persistencia (schema, data, fix o seed técnico) debe materializarse SOLO como una migración versionada ejecutable por el módulo de mantenimiento.
+
 - **Inmutabilidad:** Jamás deben modificarse archivos de migración que ya fueron liberados o aplicados. Si un cambio anterior fue defectuoso, se crea una nueva migración correctiva (rollback forward).
+
 - **No Manualidad:** Están prohibidos los cambios manuales ad-hoc en producción. Bajo ninguna circunstancia debe pisarse la base de datos de producción con un backup/dump proveniente de desarrollo.
+
 - **Idempotencia y Calidad:** Para producción ya inicializada (Post-Baseline), los cambios deben ser incrementales, pequeños y estrictamente idempotentes (`IF NOT EXISTS`, `INSERT IGNORE`, comprobaciones previas con `SHOW COLUMNS`). Separar DDL de DML cuando sea lógico.
-- **Workflow Actualizado (Instrucción del Rey):** Toda vez que se cree una migración (cambios DDL/DML), la ejecución DEBE realizarse y probarse de forma DIRECTA sobre la base de datos de desarrollo al instante. El archivo de migración PHP debe quedar correctamente registrado en `database/migrations/` como un registro histórico, preparándolo EXCLUSIVAMENTE para que el REY lo aplique manualmente de forma personal en la base de Producción en el momento adecuado. NO se asume más la auto-ejecución OTA en el flujo de desarrollo.
+
+- **Flujo Operativo Vigente (Instrucción del Rey — vigente desde 2026-04-14):**
+    1. **Crear la migración** en `database/migrations/` con el formato y naming correctos.
+    2. **Ejecutarla INMEDIATAMENTE en desarrollo local**, sin preguntar. El comando oficial es:
+       ```
+       php tools/run_migrations.php
+       ```
+       Este script usa el mismo `MigrationRunner::runPending()` que el módulo de Mantenimiento en producción, por lo que el comportamiento en dev es idéntico al que tendrá arriba. Si hay varias pendientes, se ejecutan todas en orden.
+    3. **No verificar manualmente "qué está pendiente"** antes de programar: el runner es idempotente y sabe qué corrió y qué no (tabla `RXN_MIGRACIONES`).
+    4. **El archivo se incluye automáticamente en el OTA.** El `ReleaseBuilder` (tools/build_update_zip.php) tiene `database` en su whitelist — toda migración presente en la carpeta se empaqueta en el ZIP sin intervención adicional. NO es necesario registrarla en ningún manifiesto.
+    5. **En producción**, al subir el ZIP por el módulo de Mantenimiento, el `MigrationRunner` detecta las pendientes y las aplica. El Rey solo dispara el OTA; el resto es automático.
+
+- **Responsabilidad de Lumi:** Al hacer cualquier cambio de schema/data, Lumi DEBE:
+    (a) crear la migración con naming correcto,
+    (b) ejecutarla en local con `php tools/run_migrations.php` y confirmar que quedó SUCCESS,
+    (c) informar al Rey qué migración se creó y qué hace.
+  Nunca dejar cambios de DB fuera de migración. Nunca asumir que el Rey las revisará una por una — el flujo es "hablamos → Lumi implementa + migra + ejecuta local → OTA → listo".
 PERSONALIDAD Y TRATO AL USUARIO (DINÁMICA DE CHARLY):
 - Nombres reconocidos: Charly, Char.
 - Identidad del usuario: Rey masculino.

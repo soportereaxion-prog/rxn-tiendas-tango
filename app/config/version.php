@@ -1,9 +1,37 @@
 <?php
 
 return [
-    'current_version' => '1.5.0',
-    'current_build' => '20260414.1',
+    'current_version' => '1.6.0',
+    'current_build' => '20260415.1',
     'history' => [
+        [
+            'version' => '1.6.0',
+            'build' => '20260415.1',
+            'released_at' => '2026-04-15',
+            'title' => 'CRM Mail Masivos: módulo completo de envíos masivos (Reportes visuales + Plantillas HTML + Jobs n8n + Tracking)',
+            'summary' => 'Release mayor: módulo completo de envíos masivos de correo electrónico en el CRM. Cinco fases integradas end-to-end: (1) Infraestructura base — 6 tablas nuevas (crm_mail_reports, crm_mail_templates, crm_mail_smtp_configs, crm_mail_jobs, crm_mail_job_items, crm_mail_tracking_events) + SMTP por usuario configurable desde Mi Perfil con botón "Probar conexión" AJAX. (2) Query Builder seguro — metamodelo declarativo de entidades en config/entities.php, traductor JSON → SQL con validación estricta (sólo campos/operadores declarados alcanzables, placeholders únicos, inyección automática de empresa_id y soft_delete). Diseñador visual "Links" estilo n8n/Crystal Reports con nodos draggables, líneas SVG Bezier y filtros dinámicos por tipo. (3) Plantillas HTML — CRUD con editor side-by-side (textarea HTML ↔ iframe preview sandbox), botonera de variables extraídas del reporte asociado con click-to-insert, preview en vivo con debounce que renderiza con el primer registro real del reporte. (4) Envíos — pantalla de creación en 5 pasos (reporte/plantilla/SMTP/preview/confirmar), JobDispatcher valida contexto y crea job + items con tracking_token único, webhook a n8n que orquesta llamadas al endpoint process-batch del CRM en loop con pausas. BatchProcessor reutiliza conexión SMTP con keepalive, renderiza variables por destinatario, actualiza contadores atómicamente. Monitor con polling 3s, barra de progreso 3-color, 5 stats boxes, botón cancelar con cancel_flag chequeado entre batches. Worker CLI standalone tools/process_mail_job.php para testing sin n8n y fallback ante caída. (5) Tracking — pixel de apertura GET /m/open/{token}.gif + redirect GET /m/click/{token}?u=... (valida URL http/https, previene open-redirect). BatchProcessor reescribe <a> links e inyecta pixel antes del envío (respeta mailto:, tel:, #anchor). Analytics en el monitor: aperturas totales/únicas, clicks totales/únicos, open rate, click rate, columnas 👁/🔗 por item. Workflow n8n "CRM Mail Masivos — Dispatcher" creado via MCP y publicado en la instancia hstgr.cloud con webhook /webhook/crm-mail-masivos. Multi-tenant real: cada empresa usa su SMTP propio, aislamiento por empresa_id en todas las queries, cada job escaleable a múltiples empresas en paralelo sin colisión.',
+            'items' => [
+                'Tabla crm_mail_reports: diseños de destinatarios guardados con config_json (root_entity, relations, fields, filters, mail_field). Query Builder valida cada elemento contra el metamodelo antes de ejecutar — ninguna entidad/campo/operador no declarado es alcanzable.',
+                'Tabla crm_mail_templates: plantillas HTML con asunto + body_html + available_vars_json snapshot. Placeholder syntax {{Entity.field}} que se resuelve al alias Entity_field del row del reporte.',
+                'Tabla crm_mail_smtp_configs: SMTP por usuario (empresa_id, usuario_id) con max_per_batch, pause_seconds, activo. UNIQUE(empresa_id, usuario_id). Configurable desde Mi Perfil con test de conexión AJAX via PHPMailer.',
+                'Tabla crm_mail_jobs: cabecera de cada envío con estado (queued/running/paused/completed/cancelled/failed), cancel_flag, body_snapshot (para trazabilidad post-envío), contadores atómicos.',
+                'Tabla crm_mail_job_items: un row por destinatario con recipient_data_json (snapshot para n8n), tracking_token único (48 chars hex), estado individual.',
+                'Tabla crm_mail_tracking_events: eventos de open/click con ip, user_agent, url_clicked. Index compuesto (job_item_id, tipo) para GROUP BY rápido.',
+                'Módulo CrmMailMasivos: 4 controllers (Dashboard, Report, Template, Job) + 2 repositories (Report, Template, Job) + 3 services (ReportMetamodel, ReportQueryBuilder, JobDispatcher, BatchProcessor) + TrackingController público. Namespace App\\Modules\\CrmMailMasivos.',
+                'Diseñador visual Links: public/js/mail-masivos-designer.js (~550 líneas vanilla JS, SVG Bezier, drag, estado bidireccional JSON ↔ visual). public/css/mail-masivos-designer.css con CSS vars del proyecto (light/dark auto).',
+                'Editor de plantillas side-by-side: textarea HTML ↔ iframe sandbox (sin permisos, no ejecuta JS del usuario). Botonera de variables agrupadas por entidad con click-to-insert focus-aware (último input/textarea focus-ado). Preview debounced 500ms que reusa ReportQueryBuilder con LIMIT 1.',
+                'JobDispatcher: ejecuta reporte con MAX_RECIPIENTS=5000, dedup por lowercased email, filtra inválidos con filter_var(FILTER_VALIDATE_EMAIL), inserta job + items con bin2hex(random_bytes(24)) por token, POST webhook a n8n (si falla, job queda en queued con warning — reintentable).',
+                'BatchProcessor: abre 1 conexión SMTP por batch (SMTPKeepAlive=true), loop por item con renderTemplate + injectTracking, markItem sent/failed/skipped. Claim no-pesimista (OK para 1 worker). closeCompleted/closeCancelled atómico.',
+                'Workflow n8n creado via MCP: ID fTtS4GzJpxxqDDGp, publicado en https://n8n.srv1045108.hstgr.cloud/webhook/crm-mail-masivos. 3 nodos (Webhook POST responseNode, Respond 202 Accepted, Code node con loop hasta 500 iter llamando a /envios/process-batch con X-RXN-Token).',
+                'Tracking (Fase 5): reescritura de <a href="http(s)://..."> con /m/click/{token}?u=<encoded> + pixel 1x1 transparente (43 bytes base64) inyectado antes de </body>. Respeta mailto:, tel:, #anchor, data:, javascript:, relativos. Endpoint click valida URL con filter_var + whitelist de scheme para prevenir open-redirect.',
+                'Monitor de envío: polling cada 3s actualiza barra de progreso 3-color (enviados verde, fallidos rojo, saltados amarillo) + stats boxes + badge de estado sin reload. Se auto-detiene en estado final y hace 1 reload para traer items frescos. Botón cancelar con cancel_flag + modal de confirmación.',
+                'Worker CLI tools/process_mail_job.php: llamador standalone de BatchProcessor en loop con sleep(pause_seconds). Útil para testing sin n8n y para fallback ante caída de la instancia n8n.',
+                'Card "Mail Masivos" agregada al grid CRM con ícono bi-envelope-paper-fill. Ruta raíz /mi-empresa/crm/mail-masivos con guard requireCrm, 23 rutas totales bajo ese prefijo (reportes, plantillas, envíos, callbacks públicos con X-RXN-Token).',
+                'Env vars nuevas: APP_URL, N8N_MAIL_MASIVOS_WEBHOOK_URL, N8N_MAIL_MASIVOS_WEBHOOK_TOKEN, N8N_CALLBACK_TOKEN. Sin APP_URL el tracking se saltea gracefully sin romper el envío.',
+                '6 migraciones nuevas: 2026_04_14_00_create_crm_mail_reports.php, 01_templates, 02_smtp_configs, 03_jobs, 04_job_items, 05_tracking_events. Todas idempotentes con CREATE TABLE IF NOT EXISTS.',
+                'Script tools/run_migrations.php genérico: corre todas las migraciones pendientes en dev usando el mismo MigrationRunner que Mantenimiento usa en prod. Flujo de trabajo documentado en AGENTS.md y CLAUDE.md.',
+            ],
+        ],
         [
             'version' => '1.5.0',
             'build' => '20260414.1',

@@ -1,0 +1,157 @@
+/* ============================================================
+   Mail Masivos — Envíos (Fase 4)
+   Estilos del listado, creador y monitor de envíos.
+   Respeta CSS vars del proyecto para light/dark.
+   ============================================================ */
+
+.rxn-envios-smtp-card {
+    background: var(--surface-hover, #f8f9fa);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 0.5rem;
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.7;
+}
+
+.rxn-envios-smtp-card strong {
+    color: var(--text-muted, #6c757d);
+    font-weight: 600;
+    margin-right: 0.25rem;
+}
+
+/* ------------------------------------------------------------
+   Preview de destinatarios (pantalla de creación)
+   ------------------------------------------------------------ */
+
+.rxn-envios-preview-box {
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 0.5rem;
+    padding: 0.8rem 1rem;
+    background: var(--card-bg, #fff);
+}
+
+.rxn-envios-preview-count {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--bs-primary, #0d6efd);
+}
+
+.rxn-envios-preview-count-lbl {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #6c757d);
+    font-weight: 600;
+}
+
+.rxn-envios-preview-sample {
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #dee2e6);
+    padding-top: 0.5rem;
+}
+
+.rxn-envios-preview-sample-row {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.78rem;
+    border-bottom: 1px dashed var(--border-color, #eef0f2);
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.rxn-envios-preview-sample-row:last-child {
+    border-bottom: none;
+}
+
+.rxn-envios-preview-sample-row .email {
+    font-family: monospace;
+    color: var(--text-color, #212529);
+}
+
+.rxn-envios-preview-sample-row .name {
+    color: var(--text-muted, #6c757d);
+    font-style: italic;
+    text-align: right;
+}
+
+/* ------------------------------------------------------------
+   Listado: mini barra de progreso
+   ------------------------------------------------------------ */
+
+.rxn-envios-progress-mini {
+    min-width: 120px;
+}
+
+/* ------------------------------------------------------------
+   Monitor: stats boxes
+   ------------------------------------------------------------ */
+
+.rxn-envios-stat {
+    padding: 0.6rem 0.4rem;
+    background: var(--surface-hover, #f8f9fa);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color, #dee2e6);
+}
+
+.rxn-envios-stat .num {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.rxn-envios-stat .lbl {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #6c757d);
+    margin-top: 0.25rem;
+}
+
+/* ------------------------------------------------------------
+   Polling indicator
+   ------------------------------------------------------------ */
+
+.rxn-envios-poll-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bs-primary, #0d6efd);
+    margin-right: 0.3rem;
+    vertical-align: middle;
+    animation: rxnEnviosPulse 1.2s infinite;
+}
+
+.rxn-envios-poll-dot.is-idle {
+    background: var(--text-muted, #6c757d);
+    animation: none;
+    opacity: 0.4;
+}
+
+@keyframes rxnEnviosPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(1.35); }
+}
+
+/* ------------------------------------------------------------
+   Progress bar animation cuando está running
+   ------------------------------------------------------------ */
+
+.progress-bar.progress-bar-animated-local {
+    background-image: linear-gradient(
+        45deg,
+        rgba(255,255,255,0.15) 25%, transparent 25%,
+        transparent 50%, rgba(255,255,255,0.15) 50%,
+        rgba(255,255,255,0.15) 75%, transparent 75%, transparent
+    );
+    background-size: 1rem 1rem;
+    animation: progressStripes 1s linear infinite;
+}
+
+@keyframes progressStripes {
+    from { background-position: 1rem 0; }
+    to { background-position: 0 0; }
+}
