@@ -71,7 +71,7 @@
 - 6 migraciones a ejecutar en prod al aplicar el OTA.
 - **Env vars nuevas** requeridas en `.env` de prod:
   ```
-  APP_URL=https://suite.reaxion.com.ar
+  APP_URL=https://suite.reaxionsoluciones.com.ar
   N8N_MAIL_MASIVOS_WEBHOOK_URL=https://n8n.srv1045108.hstgr.cloud/webhook/crm-mail-masivos
   N8N_MAIL_MASIVOS_WEBHOOK_TOKEN=7a7534a36d20137e763151e102ec928856f3f157a699d203f7b40ed769d8ff15
   N8N_CALLBACK_TOKEN=7a7534a36d20137e763151e102ec928856f3f157a699d203f7b40ed769d8ff15

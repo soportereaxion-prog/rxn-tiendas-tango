@@ -1,9 +1,28 @@
 <?php
 
 return [
-    'current_version' => '1.6.0',
-    'current_build' => '20260415.1',
+    'current_version' => '1.6.1',
+    'current_build' => '20260415.2',
     'history' => [
+        [
+            'version' => '1.6.1',
+            'build' => '20260415.2',
+            'released_at' => '2026-04-15',
+            'title' => 'CRM Mail Masivos: fix cancel idempotente + reactivar envíos + tool destrabar zombies',
+            'summary' => 'Hotfix para el módulo CrmMailMasivos v1.6.0. Resuelve tres issues descubiertos al probar en producción: (1) Si el webhook a n8n fallaba (p. ej. URL pública mal configurada), el job quedaba en estado "queued" y el botón Cancelar solo seteaba cancel_flag=1 — el job quedaba zombie en "En cola + cancelación solicitada" sin cerrar nunca porque el BatchProcessor nunca arrancaba. Ahora el cancel es idempotente según estado: si queued → cierre inmediato con items marcados como skipped; si running → cancel_flag para que el BatchProcessor corte en el próximo batch. (2) Jobs cancelled/failed ahora son reactivables: nuevo botón "Reactivar envío" que resetea contadores, vuelve los items skipped-por-cancelación a pending, y re-dispara el webhook a n8n. Reutiliza el método triggerN8nWebhook del JobDispatcher via reflection. (3) Tool CLI nuevo tools/destrabar_jobs_zombies.php <empresa_id opcional> para limpiar en batch los jobs zombies pre-existentes — usado una vez después del deploy del 1.6.1 para resolver los envíos que habían quedado atascados con el dominio mal.',
+            'items' => [
+                'JobRepository::closeQueuedAsCancelled(jobId, empresaId, reason) — cierre directo: si el job está en queued, marca items pending como skipped con reason, incrementa total_skipped, pasa estado a cancelled con finished_at y mensaje_error. Idempotente (solo actúa si estado=queued).',
+                'JobRepository::destrabarZombies(empresaId=0, reason) — batch: detecta todos los jobs queued+cancel_flag=1 y los cierra con closeQueuedAsCancelled. Devuelve count de jobs destrabados.',
+                'JobRepository::reactivate(jobId, empresaId) — resetea: si el estado es cancelled o failed, vuelve a pending los items skipped que tienen error_msg con prefijo "Cancelado%" o "Destrabado%", resetea contadores (total_skipped -= items_reactivated), deja el job en queued con cancel_flag=0 y started_at/finished_at/mensaje_error en NULL. Idempotente (solo actúa si estado permitido).',
+                'JobController::cancel modificado — lógica por estado: queued → closeQueuedAsCancelled inmediato; running/paused → setCancelFlag (batch corta después); ya en final → flash warning sin action.',
+                'JobController::reactivate — llama repo.reactivate + re-dispara webhook n8n via reflection sobre JobDispatcher::triggerN8nWebhook. Si el webhook falla, el job queda en queued y Charly puede correr tools/process_mail_job.php <id> como fallback.',
+                'Vista monitor.php — botón dinámico según estado: queued+cancel_flag → "Destrabar y cerrar"; running → "Cancelar envío"; cancelled/failed → "Reactivar envío". Confirmaciones distintas por acción.',
+                'Ruta nueva POST /mi-empresa/crm/mail-masivos/envios/{id}/reactivar con guard requireCrm.',
+                'Workflow n8n "CRM Mail Masivos — Dispatcher" (ID fTtS4GzJpxxqDDGp) actualizado via MCP: el Code node ahora apunta al dominio correcto de producción (https://suite.reaxionsoluciones.com.ar), previamente estaba hardcodeado con dominio erróneo. Versión activa 61c8e147.',
+                'Tool CLI tools/destrabar_jobs_zombies.php — opcionalmente filtra por empresa_id. Pensado para correr UNA VEZ después del deploy del 1.6.1 para limpiar los jobs que habían quedado atascados antes. Idempotente: si no hay zombies, no hace nada.',
+                'Log de release 1.6.0 corregido: URL pública de prod es suite.reaxionsoluciones.com.ar (no suite.reaxion.com.ar como figuraba en el log y en la primera versión del workflow).',
+            ],
+        ],
         [
             'version' => '1.6.0',
             'build' => '20260415.1',

@@ -218,7 +218,14 @@ class JobController
     }
 
     /**
-     * POST — setea cancel_flag. El workflow n8n lo ve entre iteraciones.
+     * POST — cancela un job.
+     *
+     * Lógica:
+     * - Si el job está en 'queued' (nunca arrancó): cierre INMEDIATO — marca
+     *   todos los items pending como skipped y cierra como cancelled. Esto
+     *   cubre el caso "webhook a n8n falló y el job quedó zombie".
+     * - Si el job está en 'running': setea cancel_flag=1 y el próximo batch
+     *   del BatchProcessor corta la cadena.
      */
     public function cancel(string $id): void
     {
@@ -226,10 +233,66 @@ class JobController
         $empresaId = (int) Context::getEmpresaId();
         $jobId = (int) $id;
 
-        $ok = $this->repo->setCancelFlag($jobId, $empresaId);
-        Flash::set($ok ? 'success' : 'danger',
-            $ok ? 'Cancelación solicitada. n8n va a cortar en el próximo batch.'
-                : 'No se pudo solicitar la cancelación (¿ya estaba finalizado?).');
+        $job = $this->repo->findLiveStatusForEmpresa($jobId, $empresaId);
+        if (!$job) {
+            Flash::set('danger', 'Envío no encontrado.');
+            header('Location: /mi-empresa/crm/mail-masivos/envios');
+            exit;
+        }
+
+        $estado = (string) $job['estado'];
+
+        if ($estado === 'queued') {
+            $skipped = $this->repo->closeQueuedAsCancelled($jobId, $empresaId,
+                'Cancelado por el usuario antes de que n8n procesara');
+            Flash::set('success',
+                'Envío cancelado. ' . $skipped . ' destinatarios quedaron como saltados.');
+        } elseif ($estado === 'running' || $estado === 'paused') {
+            $ok = $this->repo->setCancelFlag($jobId, $empresaId);
+            Flash::set($ok ? 'success' : 'danger',
+                $ok ? 'Cancelación solicitada. n8n va a cortar en el próximo batch.'
+                    : 'No se pudo solicitar la cancelación.');
+        } else {
+            Flash::set('warning',
+                'El envío ya está en estado final (' . $estado . '). No hay nada que cancelar.');
+        }
+
+        header('Location: /mi-empresa/crm/mail-masivos/envios/' . $jobId);
+        exit;
+    }
+
+    /**
+     * POST — reactiva un job cancelled o failed: resetea contadores, vuelve
+     * los items skipped-por-cancelación a pending, y dispara el webhook de
+     * nuevo para que n8n (o el CLI worker) lo tome.
+     */
+    public function reactivate(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $jobId = (int) $id;
+
+        $result = $this->repo->reactivate($jobId, $empresaId);
+
+        if (!$result['success']) {
+            Flash::set('danger', $result['message']);
+            header('Location: /mi-empresa/crm/mail-masivos/envios/' . $jobId);
+            exit;
+        }
+
+        // Re-disparar webhook (reusa el dispatcher para la parte de webhook solo)
+        try {
+            $refl = new \ReflectionClass(JobDispatcher::class);
+            $dispatcher = new JobDispatcher($this->repo);
+            $method = $refl->getMethod('triggerN8nWebhook');
+            $method->setAccessible(true);
+            $method->invoke($dispatcher, $jobId);
+            Flash::set('success', $result['message'] . ' Webhook a n8n re-disparado.');
+        } catch (Throwable $e) {
+            Flash::set('warning', $result['message']
+                . ' Pero el webhook n8n no respondió: ' . $e->getMessage()
+                . '. Podés reintentar corriendo tools/process_mail_job.php ' . $jobId);
+        }
 
         header('Location: /mi-empresa/crm/mail-masivos/envios/' . $jobId);
         exit;

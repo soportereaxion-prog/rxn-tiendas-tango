@@ -47,9 +47,27 @@ $isFinal = in_array($job['estado'], ['completed', 'cancelled', 'failed'], true);
         <div class="rxn-module-actions">
             <a href="/mi-empresa/crm/mail-masivos/envios" class="btn btn-outline-secondary btn-sm">← Listado</a>
             <?php if (!$isFinal): ?>
+                <?php
+                    // Si está en queued con cancel_flag=1 → es un zombie (webhook falló,
+                    // user canceló, job esperando batch que nunca llega). El backend lo cierra
+                    // directo ahora con closeQueuedAsCancelled, sin esperar.
+                    $isZombie = ($job['estado'] === 'queued' && !empty($job['cancel_flag']));
+                ?>
                 <form method="post" action="/mi-empresa/crm/mail-masivos/envios/<?= (int) $job['id'] ?>/cancelar" class="d-inline" onsubmit="return confirm('¿Cancelar este envío? Los mails ya enviados quedan enviados; los pendientes se saltan.');">
-                    <button type="submit" class="btn btn-outline-danger btn-sm" <?= !empty($job['cancel_flag']) ? 'disabled' : '' ?>>
-                        <i class="bi bi-x-circle"></i> <?= !empty($job['cancel_flag']) ? 'Cancelando...' : 'Cancelar envío' ?>
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <?php if ($isZombie): ?>
+                            <i class="bi bi-x-octagon-fill"></i> Destrabar y cerrar
+                        <?php elseif (!empty($job['cancel_flag'])): ?>
+                            <i class="bi bi-hourglass-split"></i> Cancelando...
+                        <?php else: ?>
+                            <i class="bi bi-x-circle"></i> Cancelar envío
+                        <?php endif; ?>
+                    </button>
+                </form>
+            <?php elseif (in_array($job['estado'], ['cancelled', 'failed'], true)): ?>
+                <form method="post" action="/mi-empresa/crm/mail-masivos/envios/<?= (int) $job['id'] ?>/reactivar" class="d-inline" onsubmit="return confirm('¿Reactivar este envío? Los destinatarios que quedaron como saltados vuelven a pendientes y se intenta el envío de nuevo.');">
+                    <button type="submit" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Reactivar envío
                     </button>
                 </form>
             <?php endif; ?>

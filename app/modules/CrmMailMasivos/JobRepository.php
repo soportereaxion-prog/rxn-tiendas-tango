@@ -223,6 +223,137 @@ class JobRepository
     }
 
     /**
+     * Cierre inmediato de un job que NUNCA empezó a procesarse (estado queued).
+     * Útil cuando el webhook a n8n falló y el job quedó "zombie" esperando un
+     * batch que nunca va a llegar. Marca todos los items pending como skipped
+     * y cierra el job como cancelled.
+     *
+     * @return int cantidad de items skipped
+     */
+    public function closeQueuedAsCancelled(int $jobId, int $empresaId, string $reason = 'Cancelado antes de procesar'): int
+    {
+        // Verificar que sea queued (no pisar un job que está running)
+        $stmt = $this->db->prepare(
+            "SELECT estado FROM crm_mail_jobs
+             WHERE id = :id AND empresa_id = :emp LIMIT 1"
+        );
+        $stmt->execute([':id' => $jobId, ':emp' => $empresaId]);
+        $estado = $stmt->fetchColumn();
+        if ($estado !== 'queued') return 0;
+
+        $u1 = $this->db->prepare(
+            "UPDATE crm_mail_job_items
+             SET estado = 'skipped', error_msg = :reason
+             WHERE job_id = :j AND empresa_id = :emp AND estado = 'pending'"
+        );
+        $u1->execute([':reason' => $reason, ':j' => $jobId, ':emp' => $empresaId]);
+        $skipped = $u1->rowCount();
+
+        $this->db->prepare(
+            "UPDATE crm_mail_jobs
+             SET estado = 'cancelled',
+                 cancel_flag = 1,
+                 finished_at = NOW(),
+                 total_skipped = total_skipped + :n,
+                 mensaje_error = :msg
+             WHERE id = :id AND empresa_id = :emp"
+        )->execute([
+            ':n' => $skipped,
+            ':msg' => $reason,
+            ':id' => $jobId,
+            ':emp' => $empresaId,
+        ]);
+
+        return $skipped;
+    }
+
+    /**
+     * Destraba en batch todos los jobs de una empresa (o de todas si empresaId=0)
+     * que quedaron en estado zombie: queued + cancel_flag=1. Pensado para
+     * resolver el caso "webhook n8n falló, usuario canceló, job quedó esperando
+     * un batch que nunca va a llegar".
+     *
+     * @return int cantidad de jobs destrabados
+     */
+    public function destrabarZombies(int $empresaId = 0, string $reason = 'Destrabado: queued con cancel solicitado, webhook nunca arrancó'): int
+    {
+        $sql = "SELECT id, empresa_id FROM crm_mail_jobs
+                WHERE estado = 'queued' AND cancel_flag = 1";
+        $params = [];
+        if ($empresaId > 0) {
+            $sql .= " AND empresa_id = :emp";
+            $params[':emp'] = $empresaId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $zombies = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $count = 0;
+        foreach ($zombies as $z) {
+            $this->closeQueuedAsCancelled((int) $z['id'], (int) $z['empresa_id'], $reason);
+            $count++;
+        }
+        return $count;
+    }
+
+    /**
+     * Reactiva un job cancelled: saca cancel_flag, vuelve los items skipped
+     * (por motivo "Cancelado...") a pending, resetea contadores y deja el
+     * job en queued listo para disparar.
+     *
+     * @return array{success: bool, items_reactivated: int, message: string}
+     */
+    public function reactivate(int $jobId, int $empresaId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT estado FROM crm_mail_jobs
+             WHERE id = :id AND empresa_id = :emp LIMIT 1"
+        );
+        $stmt->execute([':id' => $jobId, ':emp' => $empresaId]);
+        $estado = $stmt->fetchColumn();
+
+        if ($estado !== 'cancelled' && $estado !== 'failed') {
+            return [
+                'success' => false,
+                'items_reactivated' => 0,
+                'message' => 'Solo se puede reactivar jobs cancelled o failed (estado actual: ' . $estado . ')',
+            ];
+        }
+
+        // Volver a pending los items que fueron skipped por cancelación
+        $u1 = $this->db->prepare(
+            "UPDATE crm_mail_job_items
+             SET estado = 'pending', error_msg = NULL
+             WHERE job_id = :j AND empresa_id = :emp AND estado = 'skipped'
+               AND (error_msg LIKE 'Cancelado%' OR error_msg LIKE 'Destrabado%')"
+        );
+        $u1->execute([':j' => $jobId, ':emp' => $empresaId]);
+        $reactivated = $u1->rowCount();
+
+        // Resetear el job: estado queued, cancel_flag=0, recalcular contadores
+        $this->db->prepare(
+            "UPDATE crm_mail_jobs
+             SET estado = 'queued',
+                 cancel_flag = 0,
+                 started_at = NULL,
+                 finished_at = NULL,
+                 mensaje_error = NULL,
+                 total_skipped = GREATEST(0, total_skipped - :n)
+             WHERE id = :id AND empresa_id = :emp"
+        )->execute([
+            ':n' => $reactivated,
+            ':id' => $jobId,
+            ':emp' => $empresaId,
+        ]);
+
+        return [
+            'success' => true,
+            'items_reactivated' => $reactivated,
+            'message' => $reactivated . ' items volvieron a pending. Job re-armado en queued.',
+        ];
+    }
+
+    /**
      * Update de estado desde callback de n8n (o admin). Se valida empresa_id
      * explícitamente porque el webhook de callback puede ser llamado externamente.
      *

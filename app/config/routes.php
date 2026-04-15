@@ -398,6 +398,7 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/mail-masivos/envios/{id}', $action(\App\Modules\CrmMailMasivos\JobController::class, 'monitor', $requireCrm));
     $router->get('/mi-empresa/crm/mail-masivos/envios/{id}/status', $action(\App\Modules\CrmMailMasivos\JobController::class, 'status', $requireCrm));
     $router->post('/mi-empresa/crm/mail-masivos/envios/{id}/cancelar', $action(\App\Modules\CrmMailMasivos\JobController::class, 'cancel', $requireCrm));
+    $router->post('/mi-empresa/crm/mail-masivos/envios/{id}/reactivar', $action(\App\Modules\CrmMailMasivos\JobController::class, 'reactivate', $requireCrm));
 
     // Tracking público (Fase 5) — sin login, identificado por tracking_token único por item.
     $router->get('/m/open/{token}', $action(\App\Modules\CrmMailMasivos\TrackingController::class, 'open'));
