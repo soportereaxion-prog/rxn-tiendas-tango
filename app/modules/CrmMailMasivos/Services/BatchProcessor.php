@@ -307,7 +307,10 @@ class BatchProcessor
         }
 
         $trackingBase = rtrim($trackingBase, '/');
-        $pixelUrl = $trackingBase . '/m/open/' . rawurlencode($token) . '.gif';
+        // NO agregar sufijo .gif a la URL — el Router del proyecto matchea
+        // {param} con [a-zA-Z0-9_-]+ y el punto queda afuera → 404. El browser
+        // carga la imagen igual porque el response lleva Content-Type: image/gif.
+        $pixelUrl = $trackingBase . '/m/open/' . rawurlencode($token);
         $clickUrlPrefix = $trackingBase . '/m/click/' . rawurlencode($token) . '?u=';
 
         // 1. Reescribir <a href="..."> — sólo si href tiene scheme http/https

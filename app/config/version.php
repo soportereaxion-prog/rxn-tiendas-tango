@@ -1,9 +1,21 @@
 <?php
 
 return [
-    'current_version' => '1.6.1',
-    'current_build' => '20260415.2',
+    'current_version' => '1.6.2',
+    'current_build' => '20260415.3',
     'history' => [
+        [
+            'version' => '1.6.2',
+            'build' => '20260415.3',
+            'released_at' => '2026-04-15',
+            'title' => 'CRM Mail Masivos: fix URL del pixel de tracking (incompatibilidad con regex del Router)',
+            'summary' => 'Hotfix puntual. La URL del pixel de apertura que inyectaba BatchProcessor::injectTracking tenía sufijo .gif (formato `/m/open/{token}.gif`). El Router del proyecto (app/core/Router.php línea 42) convierte {param} a regex `[a-zA-Z0-9_-]+` sin incluir el punto — entonces URLs con .gif al final NO matchean y devuelven 404 antes de llegar al TrackingController. Fix: sacar el sufijo .gif de la URL del pixel. El browser carga la imagen igual porque el response lleva Content-Type: image/gif. El TrackingController::open ya tenía preg_replace para limpiar .gif por si acaso — no hay que tocarlo (sigue compatible con mails viejos que tuvieran .gif si llegaran a matchear por otro medio).',
+            'items' => [
+                'BatchProcessor::injectTracking ahora inyecta <img src="{APP_URL}/m/open/{token}"> (sin .gif). El clickUrl sigue igual porque su formato no tenía puntos (/m/click/{token}?u=...).',
+                'Comentario en el código explicando el por qué del cambio — evitar que alguien lo revierta pensando que "falta la extensión".',
+                'Mails enviados con la URL vieja (con .gif) siguen sin funcionar para tracking porque esa URL sigue dando 404 por el mismo motivo. Solo afecta a mails enviados ANTES del deploy del 1.6.2. Si se necesita recuperar, se puede editar manualmente el regex del Router para aceptar puntos (riesgo mínimo, no hay rutas existentes que dependan de excluir puntos) — queda como opción para futuro.',
+            ],
+        ],
         [
             'version' => '1.6.1',
             'build' => '20260415.2',
