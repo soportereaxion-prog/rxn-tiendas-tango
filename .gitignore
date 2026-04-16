@@ -11,3 +11,71 @@
 /public/uploads/module-notes/
 .DS_Store
 Thumbs.db
+
+# Herramientas del dev environment (Claude Code / agents / antigravity)
+/.agents/
+/.claude/
+/.antigravityignore
+
+# Trash temporales (limpiezas del working tree)
+/_trash_*/
+
+# Builds y artefactos del Factory OTA
+/build/
+/build_ota/
+/build_release.zip
+/rxn_suite_v*.zip
+
+# Cache regenerable de runtime
+/app/storage/cache/*.json
+
+# Uploads de usuarios (runtime data, nunca commitear)
+/public/uploads/empresas/
+/public/uploads/pds-diagnostico/
+/public/uploads/print-forms/
+/public/uploads/mail-masivos/
+
+# Backups locales (no viajan en OTA)
+/storage/backups/
+
+# Basura típica que aparece en la raíz (dumps, diffs, tests sueltos)
+/*.zip
+/*.bak
+/all_commits.txt
+/crm_diff.txt
+/crm_head.txt
+/dashboard_commits.txt
+/views_commits.txt
+/reflog.txt
+/git_log_*.txt
+/editor_head.txt
+/diff_editor.txt
+/tmp-editor.txt
+/temp*.txt
+/temp_*.json
+/import_output.txt
+/log_dashboard.txt
+/res.txt
+/db.txt
+/db_info.json
+/dump_full.json
+/out*.json
+/perfiles*.json
+/test_*.php
+/test.php
+/testdb.php
+/tmp_*.php
+/check_*.php
+/fetch_*.php
+/fix_*.php
+/fix*.js
+/fix_*.py
+/repair.*
+/purge*.php
+/purge.ps1
+/update_db_users.php
+/do_replace.php
+/database_migrations_*.php
+/how *
+/nul
+/null
