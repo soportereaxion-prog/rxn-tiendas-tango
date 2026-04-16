@@ -124,6 +124,18 @@ return function (Router $router): void {
     $router->post('/login', [\App\Modules\Auth\AuthController::class, 'processLogin']);
     $router->get('/logout', [\App\Modules\Auth\AuthController::class, 'logout']);
 
+    // --- MODULO RXN GEO TRACKING (endpoints cross-tenant, solo requieren login) ---
+    // Banner de consentimiento (Ley 25.326) + reporte de posición post-evento.
+    $router->post('/geo-tracking/consent', [\App\Modules\RxnGeoTracking\RxnGeoTrackingConsentController::class, 'store']);
+    $router->post('/geo-tracking/report', [\App\Modules\RxnGeoTracking\RxnGeoTrackingReportController::class, 'store']);
+
+    // Dashboard admin + configuración (requireBackofficeAdmin validado dentro del controller).
+    $router->get('/mi-empresa/geo-tracking', [\App\Modules\RxnGeoTracking\RxnGeoTrackingController::class, 'index']);
+    $router->get('/mi-empresa/geo-tracking/map-points', [\App\Modules\RxnGeoTracking\RxnGeoTrackingController::class, 'mapPoints']);
+    $router->get('/mi-empresa/geo-tracking/export', [\App\Modules\RxnGeoTracking\RxnGeoTrackingController::class, 'export']);
+    $router->get('/mi-empresa/geo-tracking/config', [\App\Modules\RxnGeoTracking\RxnGeoTrackingConfigController::class, 'show']);
+    $router->post('/mi-empresa/geo-tracking/config', [\App\Modules\RxnGeoTracking\RxnGeoTrackingConfigController::class, 'update']);
+
     // Email Lifecycle & Recovery
     $router->get('/auth/verify', [\App\Modules\Auth\VerificationController::class, 'verify']);
     $router->get('/auth/resend-verify', [\App\Modules\Auth\VerificationController::class, 'showResend']);
@@ -282,6 +294,7 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/notas/exportar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'export', $requireCrmNotas));
     $router->get('/mi-empresa/crm/notas/sugerencias-tags', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'tagsSuggestions', $requireCrmNotas));
     $router->get('/mi-empresa/crm/notas/sugerencias-clientes', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'clientSuggestions', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/sugerencias-tratativas', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'tratativaSuggestions', $requireCrmNotas));
     $router->get('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'showImportForm', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/importar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'processImport', $requireCrmNotas));
     $router->get('/mi-empresa/crm/notas/descargar-plantilla', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'downloadTemplate', $requireCrmNotas));

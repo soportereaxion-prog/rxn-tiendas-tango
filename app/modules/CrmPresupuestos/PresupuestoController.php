@@ -138,6 +138,23 @@ class PresupuestoController extends \App\Core\Controller
         try {
             $payload = $this->validateRequest($_POST, $empresaId, null);
             $presupuestoId = $this->repository->create($payload);
+
+            // Geo-tracking: registrar evento de creación. Fire-and-forget.
+            // Ver app/modules/RxnGeoTracking/MODULE_CONTEXT.md.
+            try {
+                $geoService = new \App\Modules\RxnGeoTracking\GeoTrackingService();
+                $geoEventoId = $geoService->registrar(
+                    \App\Modules\RxnGeoTracking\GeoTrackingService::EVENT_PRESUPUESTO_CREATED,
+                    $presupuestoId,
+                    'presupuesto'
+                );
+                if ($geoEventoId !== null) {
+                    $_SESSION['rxn_geo_pending_event_id'] = $geoEventoId;
+                }
+            } catch (\Throwable) {
+                // Silent fail — el presupuesto ya está guardado.
+            }
+
             Flash::set('success', 'Presupuesto CRM guardado correctamente.');
             header('Location: ' . $this->resolveReturnPath($presupuestoId, (int) ($payload['tratativa_id'] ?? 0)));
             exit;

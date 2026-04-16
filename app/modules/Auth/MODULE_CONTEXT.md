@@ -39,6 +39,8 @@ El módulo **Auth** es el responsable de gestionar la autenticación, la creaci�
 
 ## Integraciones involucradas
 - **Correo transaccional / SMTP**: El módulo dispara enlaces de verificación y recuperación a través de `App\Core\Services\MailService`, por lo que depende indirectamente de la configuración de correo por tenant/sistema.
+- **RxnGeoTracking**: Tras un `AuthService::attempt()` exitoso, después del `session_regenerate_id(true)` y la inyección de contexto en `$_SESSION`, se invoca `GeoTrackingService::registrar('login')` para asentar el evento con IP del cliente. La invocación es **fire-and-forget**: nunca debe lanzar excepción ni bloquear el login. Si el módulo `RxnGeoTracking` no está disponible (feature-flag apagado, servicio caído), el login continúa normalmente. El `evento_id` retornado queda en `$_SESSION['rxn_geo_pending_event_id']` para que el próximo render de `admin_layout` lo inyecte como `<meta name="rxn-pending-geo-event">` y el JS del browser reporte la posición GPS/WiFi precisa. Ver `app/modules/RxnGeoTracking/MODULE_CONTEXT.md` para detalles del contrato del servicio.
+- **Banner de consentimiento (RxnGeoTracking)**: El `admin_layout.php` incluye un partial del módulo `RxnGeoTracking` que consulta `GeoTrackingService::tieneConsentimientoVigente($_SESSION['user_id'])`. Si el usuario no respondió la `consent_version` vigente, el banner aparece en el primer render post-login. La respuesta se graba en la tabla `rxn_geo_consent` y no vuelve a aparecer hasta que suba la versión del consentimiento. Esto es parte del cumplimiento de la Ley 25.326 y NO es opcional: Auth **no** debe pre-aceptar ni asumir consentimiento; cada usuario lo decide explícitamente.
 
 ## Reglas operativas del módulo y Seguridad
 - **Aislamiento Multiempresa**: Una vez logueado, se inyecta de forma inmutable `$_SESSION['empresa_id']` del usuario autenticado. Esto es la piedra fundamental para el filtrado multitenant en el resto de la aplicación. Además se inyectan: `user_id`, `user_name`, `es_admin`, `es_rxn_admin`, `anura_interno`, `pref_theme`, `pref_font`, `dashboard_order`, `backoffice_created_at`, `backoffice_last_activity`.
@@ -52,6 +54,7 @@ El módulo **Auth** es el responsable de gestionar la autenticación, la creaci�
 - **Session Fixation Prevention**: No eliminar la instrucción `session_regenerate_id(true)` de `AuthService::attempt`.
 - **Rutas de Reset / Forgot**: Mantener seguros y efímeros los tokens enviados por correo para recuperar contraseña.
 - **Verificación estricta por Email**: Las búsquedas de usuario para login ignoran los borrados lógicos (`deleted_at IS NULL`) y verifican explícitamente el flag `activo = 1`.
+- **Orden de operaciones en login**: La llamada a `GeoTrackingService::registrar('login')` debe ocurrir **después** de `session_regenerate_id(true)` y de la inyección de `$_SESSION`, nunca antes. De lo contrario el evento se asocia a una sesión espuria o sin `user_id`. El tracking es observacional, no debe modificar el flujo de autenticación.
 
 ## Riesgos conocidos
 - *Ataques de Fuerza Bruta*: Actualmente no existe un control automático contra intentos masivos de login (throttle o lockouts temporales).
@@ -64,6 +67,7 @@ El módulo **Auth** es el responsable de gestionar la autenticación, la creaci�
 - [ ] Comprobar que el acceso a rutas protegidas deniega la entrada cuando no se está logueado.
 - [ ] Probar el cierre de sesión (`logout`) y asegurarse de que la cookie de sesión queda inoperativa.
 - [ ] Ejecutar el flujo de recuperación de contraseña de punta a punta.
+- [ ] Un login exitoso genera una fila en `rxn_geo_eventos` con `event_type='login'`, IP correcta, y `consent_version` vigente. Si el servicio de geo está apagado o falla, el login sigue funcionando normalmente.
 
 ## Tipo de cambios permitidos
 - Ajustes menores en las vistas (`login.php`, etc).

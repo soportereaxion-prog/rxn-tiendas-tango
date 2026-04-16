@@ -40,6 +40,21 @@ class AuthService
                 $now = time();
                 $_SESSION['backoffice_created_at'] = $now;
                 $_SESSION['backoffice_last_activity'] = $now;
+
+                // Geo-tracking: registrar evento de login. Fire-and-forget:
+                // nunca puede lanzar ni bloquear el flujo de login (ver RxnGeoTracking/MODULE_CONTEXT.md).
+                // El ID del evento queda en sesión para que el frontend lo reporte con
+                // posición del browser en el primer render del layout post-login.
+                try {
+                    $geoService = new \App\Modules\RxnGeoTracking\GeoTrackingService();
+                    $eventoId = $geoService->registrar(\App\Modules\RxnGeoTracking\GeoTrackingService::EVENT_LOGIN);
+                    if ($eventoId !== null) {
+                        $_SESSION['rxn_geo_pending_event_id'] = $eventoId;
+                    }
+                } catch (\Throwable) {
+                    // Silent fail — la invariante del service ya no debería llegar acá.
+                }
+
                 return true;
             }
         }

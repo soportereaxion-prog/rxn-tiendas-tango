@@ -37,6 +37,7 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 ## Dependencias directas
 - `App\Modules\CrmClientes\CrmClienteRepository` para cargar el receptor de la cotización.
 - Lógica transaccional de Tango vía `App\Modules\Tango\TangoService`.
+- **RxnGeoTracking**: Al completar exitosamente la creación de un presupuesto (no en ediciones), `PresupuestoController::store()` invoca `GeoTrackingService::registrar('presupuesto.created', $presupuestoId, 'presupuesto')` para asentar el evento de auditoría geolocalizada. La llamada es **fire-and-forget**: si el servicio falla, el presupuesto ya está guardado y se retorna normalmente al usuario. El `evento_id` retornado queda en `$_SESSION['rxn_geo_pending_event_id']` para que el próximo render del `admin_layout` lo inyecte como meta tag y el JS del browser reporte posición precisa. Ver `app/modules/RxnGeoTracking/MODULE_CONTEXT.md`.
 
 ## Dependencias indirectas / impacto lateral
 - El funcionamiento del módulo depende enormemente de que la sincronización del `CommercialCatalogSyncService` esté sana. Si Tango modifica las clases o alias de sus artículos, y no bajan al CRM, no se podrán armar presupuestos válidos.
@@ -44,6 +45,7 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 ## Reglas operativas del módulo
 - La estructura de guardado suele ser atómica. Guardar la cabecera e iterar y salvar los renglones (artículos).
 - Un presupuesto enviado a Tango con éxito usualmente bloquea sus ediciones locales de cantidades/precios para no divergir de lo declarado en AFIP/Ventas (lógica de estado).
+- **Geo-tracking en creación**: El evento `presupuesto.created` se registra **únicamente en el INSERT exitoso** (primera vez que el presupuesto existe en DB), no en ediciones, no en envíos a Tango, no en re-impresiones. Esto es deliberado: el objetivo es auditar dónde estaba el vendedor cuando originó la cotización, no cada interacción posterior. El tracking ocurre **después** del commit exitoso en `crm_presupuestos` y los renglones, de modo que una falla en el tracking nunca deja un presupuesto a medio guardar.
 - **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 
 ## Tipo de cambios permitidos
@@ -62,3 +64,4 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 - [ ] Edición y Guardado de renglones recalcula correctamente sumatorias y no deja renglones huérfanos.
 - [ ] Generación PDF de impresión es exitosa y no omite el logo / cabecera de la empresa.
 - [ ] Envío a Tango reporta status OK / ERROR correctamente interceptado.
+- [ ] Crear un presupuesto nuevo genera una fila en `rxn_geo_eventos` con `event_type='presupuesto.created'` y `entidad_id` igual al ID del presupuesto creado. Editar un presupuesto existente NO genera evento nuevo. Una falla del servicio de geo no impide el guardado del presupuesto.

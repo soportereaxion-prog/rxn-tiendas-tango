@@ -228,6 +228,24 @@ class PedidoServicioController extends \App\Core\Controller
                 $this->repository->syncAdjuntos($pedidoId, $empresaId, $_POST['capturas_diagnostico_base64']);
             }
 
+            // Geo-tracking: registrar evento de creación. Fire-and-forget.
+            // Se invoca ACÁ (no en el branch tango) porque el PDS ya existe en DB aunque
+            // el envío a Tango falle después. El evento captura la creación, no el envío.
+            // Ver app/modules/RxnGeoTracking/MODULE_CONTEXT.md.
+            try {
+                $geoService = new \App\Modules\RxnGeoTracking\GeoTrackingService();
+                $geoEventoId = $geoService->registrar(
+                    \App\Modules\RxnGeoTracking\GeoTrackingService::EVENT_PDS_CREATED,
+                    $pedidoId,
+                    'pds'
+                );
+                if ($geoEventoId !== null) {
+                    $_SESSION['rxn_geo_pending_event_id'] = $geoEventoId;
+                }
+            } catch (\Throwable) {
+                // Silent fail — el PDS ya está guardado.
+            }
+
             if (($_POST['action'] ?? '') === 'tango') {
                 $tangoService = new PedidoServicioTangoService();
                 $res = $tangoService->send($pedidoId, $empresaId);

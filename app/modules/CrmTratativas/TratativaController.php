@@ -82,6 +82,23 @@ class TratativaController extends \App\Core\Controller
         try {
             $payload = $this->validateRequest($_POST, $empresaId, null);
             $tratativaId = $this->repository->create($payload);
+
+            // Geo-tracking: registrar evento de creación. Fire-and-forget.
+            // Ver app/modules/RxnGeoTracking/MODULE_CONTEXT.md.
+            try {
+                $geoService = new \App\Modules\RxnGeoTracking\GeoTrackingService();
+                $geoEventoId = $geoService->registrar(
+                    \App\Modules\RxnGeoTracking\GeoTrackingService::EVENT_TRATATIVA_CREATED,
+                    $tratativaId,
+                    'tratativa'
+                );
+                if ($geoEventoId !== null) {
+                    $_SESSION['rxn_geo_pending_event_id'] = $geoEventoId;
+                }
+            } catch (\Throwable) {
+                // Silent fail — la tratativa ya está guardada.
+            }
+
             Flash::set('success', 'Tratativa creada correctamente.');
 
             header('Location: /mi-empresa/crm/tratativas/' . $tratativaId);
@@ -111,11 +128,13 @@ class TratativaController extends \App\Core\Controller
 
         $pds = $this->repository->findPdsByTratativaId((int) $tratativa['id'], $empresaId);
         $presupuestos = $this->repository->findPresupuestosByTratativaId((int) $tratativa['id'], $empresaId);
+        $notas = $this->repository->findNotasByTratativaId((int) $tratativa['id'], $empresaId);
 
         View::render('app/modules/CrmTratativas/views/detalle.php', array_merge($this->buildUiContext(), [
             'tratativa' => $tratativa,
             'pds' => $pds,
             'presupuestos' => $presupuestos,
+            'notas' => $notas,
         ]));
     }
 

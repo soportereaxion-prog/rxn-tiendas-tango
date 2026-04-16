@@ -11,8 +11,8 @@ Inspirado en el concepto de "oportunidad" / "deal" de los CRMs tradicionales (Sa
 ## Alcance
 **QUÉ HACE:**
 - ABM completo de tratativas con búsqueda, paginación, filtros por estado y filtros avanzados (Motor BD).
-- Vista detalle con sub-grillas de PDS y Presupuestos asociados.
-- Creación de PDS o Presupuestos ya vinculados a una tratativa (vía query param `?tratativa_id=X&cliente_id=Y`, reutilizando los forms existentes de `CrmPedidosServicio` y `CrmPresupuestos`).
+- Vista detalle con sub-grillas de PDS, Presupuestos y Notas asociadas.
+- Creación de PDS, Presupuestos o Notas ya vinculadas a una tratativa (vía query param `?tratativa_id=X&cliente_id=Y`, reutilizando los forms existentes de `CrmPedidosServicio`, `CrmPresupuestos` y `CrmNotas`).
 - Endpoint `suggestions()` para buscador global F3 / spotlight.
 - Endpoint `clientSuggestions()` para el selector de cliente dentro del form.
 - Papelera con soft-delete, restauración y borrado permanente.
@@ -32,6 +32,7 @@ Inspirado en el concepto de "oportunidad" / "deal" de los CRMs tradicionales (Sa
 - **Migraciones:**
     - `database/migrations/2026_04_11_create_crm_tratativas.php`
     - `database/migrations/2026_04_11_add_tratativa_id_to_pds_presupuestos.php` (agrega `tratativa_id INT NULL` a `crm_pedidos_servicio` y `crm_presupuestos` con índice).
+    - `database/migrations/2026_04_15_add_tratativa_id_to_crm_notas.php` (agrega `tratativa_id INT NULL` a `crm_notas` con índice; mismo patrón que PDS/Presupuestos).
 
 ## Seguridad Base (Política de Implementación)
 - **Aislamiento Multiempresa**: OBLIGATORIO Y ESTRICTO. Todo el ciclo de vida filtra por `Context::getEmpresaId()` (controller y repository). Todos los métodos del repo reciben `empresaId` explícito.
@@ -46,7 +47,9 @@ Inspirado en el concepto de "oportunidad" / "deal" de los CRMs tradicionales (Sa
 - `App\Modules\CrmClientes\CrmClienteRepository` — para el selector de cliente en el form y la validación de existencia al guardar.
 - Módulo `CrmPedidosServicio` — vía query param `?tratativa_id=X` desde la vista detalle (hook quirúrgico en PedidoServicioController que persiste la vinculación).
 - Módulo `CrmPresupuestos` — vía query param `?tratativa_id=X` desde la vista detalle (idem).
+- Módulo `CrmNotas` — vía query param `?tratativa_id=X&cliente_id=Y` desde la vista detalle. `CrmNotaRepository::findByTratativaId()` alimenta la sub-tabla de notas, y `TratativaRepository::findNotasByTratativaId()` es una fachada delgada sobre ese método.
 - `App\Shared\Services\OperationalAreaService` para resolver rutas de dashboard y ayuda.
+- **RxnGeoTracking**: Al crear exitosamente una tratativa (no en ediciones, no al vincular/desvincular PDS/Presupuestos/Notas), `TratativaController::store()` invoca `GeoTrackingService::registrar('tratativa.created', $tratativaId, 'tratativa')` para asentar el evento de auditoría geolocalizada. Fire-and-forget: el alta de la tratativa sigue funcionando aunque el servicio falle. El `evento_id` queda en `$_SESSION['rxn_geo_pending_event_id']` para auto-reporte posterior via meta tag en `admin_layout`. Ver `app/modules/RxnGeoTracking/MODULE_CONTEXT.md`.
 
 ## Dependencias indirectas / impacto lateral
 - El endpoint `suggestions()` es proveedor de datos para el buscador global F3 (spotlight). Cambiar su contrato de salida `['id', 'label', 'value', 'caption']` rompe cualquier consumidor del buscador unificado.
@@ -58,12 +61,13 @@ Inspirado en el concepto de "oportunidad" / "deal" de los CRMs tradicionales (Sa
 - **Vinculación opcional con cliente**: una tratativa puede existir sin cliente asignado (ej. una oportunidad inicial sin identificar al prospecto todavía). Si se asigna un `cliente_id`, debe existir en `crm_clientes` y pertenecer a la misma empresa.
 - **Motivo de cierre obligatorio**: si el estado es `ganada` o `perdida`, el campo `motivo_cierre` es obligatorio (validado server-side).
 - **Probabilidad**: entero 0-100, capado en el buildPayload del repositorio para evitar valores fuera de rango.
+- **Geo-tracking en creación**: El evento `tratativa.created` se registra **únicamente en el INSERT exitoso** de la tratativa, no cuando se vinculan PDS/Presupuestos/Notas (esos ya registran sus propios eventos al crearse), no en cambios de estado, no en ediciones. El objetivo es capturar dónde estaba el comercial cuando abrió la oportunidad. La llamada ocurre **después** del commit del alta; una falla del servicio de geo no impide persistir la tratativa.
 
 ## Tipo de cambios permitidos
 - Agregar columnas adicionales al encabezado de la tratativa (ej. fuente de origen, canal, etiquetas).
 - Sumar filtros al listado (por rango de valor estimado, por responsable, por fecha).
 - Agregar kanban visual en una fase futura (vista alternativa al listado tabular).
-- Conectar tratativas a CrmNotas para registrar historial de interacciones (fase futura).
+- ~~Conectar tratativas a CrmNotas para registrar historial de interacciones~~ ✅ Implementado (2026-04-15). Ver sección "Piezas principales" y "Dependencias directas".
 - Proyectar eventos de tratativa en la futura `CrmAgenda` (fase 2 del plan del rey).
 
 ## Tipo de cambios sensibles
@@ -79,9 +83,10 @@ Inspirado en el concepto de "oportunidad" / "deal" de los CRMs tradicionales (Sa
 ## Checklist post-cambio
 - [ ] ABM completo: crear, editar, ver detalle, eliminar (papelera), restaurar, force-delete.
 - [ ] Listado respeta `empresa_id`, muestra filtros F3 y contadores de PDS/Presupuestos asociados.
-- [ ] Vista detalle muestra PDS y Presupuestos vinculados (vacías cuando no hay).
-- [ ] Botones "Nuevo PDS" y "Nuevo Presupuesto" redirigen con `?tratativa_id=X&cliente_id=Y` y vuelven correctamente al detalle al guardar.
+- [ ] Vista detalle muestra PDS, Presupuestos y Notas vinculados (vacías cuando no hay).
+- [ ] Botones "Nuevo PDS", "Nuevo Presupuesto" y "Nueva Nota" redirigen con `?tratativa_id=X&cliente_id=Y` y vuelven correctamente al detalle al guardar.
 - [ ] Endpoint `suggestions()` devuelve formato `['id','label','value','caption']`.
 - [ ] Endpoint `clientSuggestions()` funciona con términos de búsqueda ≥ 2 caracteres.
 - [ ] Validación server-side: título obligatorio, motivo de cierre obligatorio en ganada/perdida, probabilidad 0-100.
-- [ ] forceDelete desvincula los PDS/Presupuestos antes de borrar la tratativa definitivamente.
+- [ ] forceDelete desvincula los PDS/Presupuestos/Notas antes de borrar la tratativa definitivamente.
+- [ ] Crear una tratativa nueva genera una fila en `rxn_geo_eventos` con `event_type='tratativa.created'` y `entidad_id` igual al ID de la tratativa creada. Editar una tratativa existente NO genera evento nuevo. Una falla del servicio de geo no impide el alta.

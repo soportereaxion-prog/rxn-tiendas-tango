@@ -93,6 +93,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-activity"></i>',
         'link' => '/mi-empresa/crm/monitoreo-usuarios',
     ],
+    'geo_tracking' => [
+        'title' => 'Geo Tracking',
+        'desc' => 'Auditoría geolocalizada de inicios de sesión y creación de presupuestos, tratativas y pedidos de servicio.',
+        'icon' => '<i class="bi bi-geo-alt-fill"></i>',
+        'link' => '/mi-empresa/geo-tracking',
+    ],
     'usuarios' => [
         'title' => 'Administrar Cuentas',
         'desc' => 'Gestion de usuarios internos compartida entre los entornos operativos del tenant.',
@@ -130,6 +136,11 @@ if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmLlamadasAccess()) {
 }
 if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmMonitoreoAccess()) {
     unset($defaultCards['monitoreo']);
+}
+// Geo Tracking solo para admin de empresa (es_admin=1) o rxn_admin — mismo guard
+// que AuthService::requireBackofficeAdmin() que valida el controller.
+if (!\App\Modules\Auth\AuthService::hasAdminPrivileges()) {
+    unset($defaultCards['geo_tracking']);
 }
 
 $finalCards = [];

@@ -38,6 +38,7 @@ Gestionar un ABM avanzado de "Pedidos de Servicio", permitiendo al equipo del CR
 - Módulo `CrmClientes` para el selector de cliente en el form.
 - Subsistema de UI `Flash` messages y `OperationalAreaService`.
 - Clase global `App\Modules\Tango\TangoService` o librerías HTTP para la interacción de capa red.
+- **RxnGeoTracking**: Al crear exitosamente un PDS (no en ediciones, no en el envío a Tango posterior), `PedidoServicioController::store()` invoca `GeoTrackingService::registrar('pds.created', $pdsId, 'pds')` para asentar el evento de auditoría geolocalizada. Fire-and-forget: una falla del servicio no rompe el alta del PDS. El `evento_id` queda en `$_SESSION['rxn_geo_pending_event_id']` para auto-reporte posterior via meta tag en `admin_layout`. Ver `app/modules/RxnGeoTracking/MODULE_CONTEXT.md`.
 
 ## Dependencias indirectas / impacto lateral
 - El endpoint `suggestions()` es un proveedor de datos para selectores relacionados. Cambiar su contrato de salida `['id', 'label', 'value', 'caption']` rompe modales o workflows satélites.
@@ -45,6 +46,7 @@ Gestionar un ABM avanzado de "Pedidos de Servicio", permitiendo al equipo del CR
 ## Reglas operativas del módulo
 - La persistencia del PDS y la transmisión a Tango están disociadas visualmente por botones (`Guardar` vs `Guardar y Enviar a Tango`), donde ambas caen al `store/update` del controller enviando distintos flags (`$_POST['action'] === 'tango'`).
 - Las imágenes de diagnóstico cruzan el formulario como strings Base64 ocultos en el DOM.
+- **Geo-tracking en creación**: El evento `pds.created` se registra **únicamente en el alta exitosa** del PDS (primer INSERT en `crm_pedidos_servicio`), no en updates, no en el envío a Tango, no en la carga de adjuntos. El objetivo es auditar dónde estaba el técnico/operador al originar el pedido de servicio. La llamada ocurre **después** del commit del alta y después del `syncAdjuntos`, pero antes del branch de envío a Tango — porque el PDS ya existe en DB aunque el envío a Tango falle.
 - **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 - **Creación desde Llamadas (fecha_inicio pre-cargada)**: cuando se entra al form con `?inicio=...&fin=...&diagnostico=...&cliente_id=...` (flujo "Generar PDS" desde `CrmLlamadas`), `defaultFormState()` respeta esos valores y el script inline de `views/form.php` NO emite el `tick()` que reemplaza `fecha_inicio` por `new Date()` — condicionado por `!isset($_GET['inicio'])`. Cualquier nuevo origen que pretenda precargar fechas debe pasar por `?inicio=` para heredar este comportamiento.
 
@@ -65,3 +67,4 @@ Gestionar un ABM avanzado de "Pedidos de Servicio", permitiendo al equipo del CR
 - [ ] El envío a Tango devuelve Flash success (ok) o danger y no interrumpe fatalmente el controller.
 - [ ] Listado renderiza y la paginación funciona.
 - [ ] `suggestions()` endpoint sigue devolviendo el formato de llaves exacto.
+- [ ] Crear un PDS nuevo genera una fila en `rxn_geo_eventos` con `event_type='pds.created'` y `entidad_id` igual al ID del PDS creado. Editar un PDS existente NO genera evento nuevo. Una falla del servicio de geo no impide el alta del PDS.
