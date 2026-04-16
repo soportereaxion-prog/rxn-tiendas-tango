@@ -5,6 +5,7 @@ $pageTitle = 'Tratativa #' . (int) ($tratativa['numero'] ?? 0) . ' - rxn_suite';
 $tratativa = $tratativa ?? [];
 $pds = $pds ?? [];
 $presupuestos = $presupuestos ?? [];
+$notas = $notas ?? [];
 
 $estadoBadges = [
     'nueva' => ['bg-secondary', 'Nueva'],
@@ -29,6 +30,12 @@ $urlNuevoPresupuesto = '/mi-empresa/crm/presupuestos/crear?tratativa_id=' . $tra
 if ($clienteId > 0) {
     $urlNuevoPresupuesto .= '&cliente_id=' . $clienteId;
 }
+
+$urlNuevaNota = '/mi-empresa/crm/notas/crear?tratativa_id=' . $tratativaId;
+if ($clienteId > 0) {
+    $urlNuevaNota .= '&cliente_id=' . $clienteId;
+}
+$urlListadoNotasTratativa = '/mi-empresa/crm/notas?tratativa_id=' . $tratativaId;
 
 $formatFecha = static function ($value): string {
     if ($value === null || trim((string) $value) === '' || (string) $value === '0000-00-00') {
@@ -220,6 +227,67 @@ ob_start();
                                 </td>
                                 <td class="text-end">
                                     <a href="/mi-empresa/crm/presupuestos/<?= (int) $item['id'] ?>/editar" class="btn btn-sm btn-outline-primary" title="Abrir Presupuesto"><i class="bi bi-box-arrow-up-right"></i></a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card bg-dark text-light border-0 shadow-sm mb-4">
+        <div class="card-header border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-journal-text"></i> Notas relacionadas <span class="badge bg-secondary ms-2"><?= count($notas) ?></span></h5>
+            <div class="d-flex gap-2">
+                <?php if (!empty($notas)): ?>
+                    <a href="<?= htmlspecialchars($urlListadoNotasTratativa) ?>" class="btn btn-sm btn-outline-secondary" title="Ver todas las notas filtradas por esta tratativa"><i class="bi bi-list-ul"></i> Ver todas</a>
+                <?php endif; ?>
+                <a href="<?= htmlspecialchars($urlNuevaNota) ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Nueva Nota</a>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">#</th>
+                        <th>Título</th>
+                        <th>Contenido</th>
+                        <th>Cliente</th>
+                        <th>Tags</th>
+                        <th style="width: 120px;">Fecha</th>
+                        <th style="width: 80px;" class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($notas)): ?>
+                        <tr><td colspan="7" class="text-center p-4 text-muted">No hay notas vinculadas a esta tratativa.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($notas as $nota): ?>
+                            <?php
+                            $contenidoPlano = trim((string) ($nota['contenido'] ?? ''));
+                            $contenidoResumen = mb_strlen($contenidoPlano) > 120 ? mb_substr($contenidoPlano, 0, 117) . '…' : $contenidoPlano;
+                            ?>
+                            <tr>
+                                <td class="text-muted small">#<?= (int) ($nota['id'] ?? 0) ?></td>
+                                <td>
+                                    <a href="/mi-empresa/crm/notas/<?= (int) $nota['id'] ?>" class="text-info text-decoration-none fw-bold"><?= htmlspecialchars((string) ($nota['titulo'] ?? '')) ?></a>
+                                    <?php if ((int) ($nota['activo'] ?? 1) === 0): ?>
+                                        <span class="badge bg-danger ms-2">Inactiva</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="small text-muted"><?= htmlspecialchars($contenidoResumen) ?: '-' ?></td>
+                                <td class="small"><?= htmlspecialchars((string) ($nota['cliente_nombre'] ?? '-')) ?></td>
+                                <td>
+                                    <?php if (!empty($nota['tags'])): ?>
+                                        <span class="badge bg-secondary"><?= htmlspecialchars((string) $nota['tags']) ?></span>
+                                    <?php else: ?>
+                                        <span class="text-muted small">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="small"><?= !empty($nota['created_at']) ? date('d/m/Y', strtotime((string) $nota['created_at'])) : '-' ?></td>
+                                <td class="text-end">
+                                    <a href="/mi-empresa/crm/notas/<?= (int) $nota['id'] ?>/editar" class="btn btn-sm btn-outline-primary" title="Editar nota"><i class="bi bi-box-arrow-up-right"></i></a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

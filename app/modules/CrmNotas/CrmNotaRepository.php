@@ -25,6 +25,7 @@ class CrmNotaRepository
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 empresa_id INT NOT NULL,
                 cliente_id INT DEFAULT NULL,
+                tratativa_id INT DEFAULT NULL,
                 titulo VARCHAR(255) NOT NULL,
                 contenido TEXT NOT NULL,
                 tags VARCHAR(500) DEFAULT NULL,
@@ -33,6 +34,7 @@ class CrmNotaRepository
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_notas_empresa (empresa_id),
                 INDEX idx_notas_cliente (cliente_id),
+                INDEX idx_crm_notas_tratativa (empresa_id, tratativa_id),
                 FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
                 FOREIGN KEY (cliente_id) REFERENCES crm_clientes(id) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -51,28 +53,40 @@ class CrmNotaRepository
         $this->db->exec($sqlTags);
     }
 
-    public function findAllWithClientName(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false, array $advancedFilters = []): array
+    public function findAllWithClientName(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false, array $advancedFilters = [], ?int $tratativaId = null): array
     {
         $delCond = $onlyDeleted ? 'n.deleted_at IS NOT NULL' : 'n.deleted_at IS NULL';
-        
+
         $sql = "
-            SELECT n.*, c.razon_social as cliente_nombre, c.codigo_tango as cliente_codigo
+            SELECT n.*,
+                   c.razon_social AS cliente_nombre,
+                   c.codigo_tango AS cliente_codigo,
+                   t.numero AS tratativa_numero,
+                   t.titulo AS tratativa_titulo
             FROM crm_notas n
             LEFT JOIN crm_clientes c ON n.cliente_id = c.id
+            LEFT JOIN crm_tratativas t ON n.tratativa_id = t.id AND t.empresa_id = n.empresa_id
             WHERE n.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
+
+        if ($tratativaId !== null && $tratativaId > 0) {
+            $sql .= ' AND n.tratativa_id = :tratativa_id';
+            $params[':tratativa_id'] = $tratativaId;
+        }
 
         // Advanced Filters integration
         $filterMap = [
             'id' => 'n.id',
             'titulo' => 'n.titulo',
             'cliente_nombre' => 'c.razon_social',
+            'tratativa_numero' => 'CAST(t.numero AS CHAR)',
+            'tratativa_titulo' => 't.titulo',
             'tags' => 'n.tags',
             'created_at' => 'n.created_at',
             'cliente_codigo' => 'c.codigo_tango'
         ];
-        
+
         [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
         if ($advFilterSql !== '') {
             $sql .= " AND (" . $advFilterSql . ")";
@@ -80,21 +94,23 @@ class CrmNotaRepository
         }
 
         if ($search !== '') {
-            $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3)";
+            $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3 OR t.titulo LIKE :search4 OR CAST(t.numero AS CHAR) LIKE :search5)";
             $searchTerm = '%' . $search . '%';
             $params[':search1'] = $searchTerm;
             $params[':search2'] = $searchTerm;
             $params[':search3'] = $searchTerm;
+            $params[':search4'] = $searchTerm;
+            $params[':search5'] = $searchTerm;
         }
 
-        $validColumns = ['id', 'created_at', 'titulo', 'cliente_nombre'];
+        $validColumns = ['id', 'created_at', 'titulo', 'cliente_nombre', 'tratativa_numero'];
         $sortColumn = in_array($sortColumn, $validColumns) ? $sortColumn : 'created_at';
         $sortDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
 
         $sql .= " ORDER BY {$sortColumn} {$sortDir} LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($sql);
-        
+
         // PDO bind limits as ints carefully
         foreach ($params as $key => $val) {
             $stmt->bindValue($key, $val);
@@ -106,26 +122,34 @@ class CrmNotaRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function countAll(int $empresaId, string $search = '', bool $onlyDeleted = false, array $advancedFilters = []): int
+    public function countAll(int $empresaId, string $search = '', bool $onlyDeleted = false, array $advancedFilters = [], ?int $tratativaId = null): int
     {
         $delCond = $onlyDeleted ? 'n.deleted_at IS NOT NULL' : 'n.deleted_at IS NULL';
         $sql = "
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM crm_notas n
             LEFT JOIN crm_clientes c ON n.cliente_id = c.id
+            LEFT JOIN crm_tratativas t ON n.tratativa_id = t.id AND t.empresa_id = n.empresa_id
             WHERE n.empresa_id = :empresa_id AND $delCond
         ";
         $params = [':empresa_id' => $empresaId];
+
+        if ($tratativaId !== null && $tratativaId > 0) {
+            $sql .= ' AND n.tratativa_id = :tratativa_id';
+            $params[':tratativa_id'] = $tratativaId;
+        }
 
         $filterMap = [
             'id' => 'n.id',
             'titulo' => 'n.titulo',
             'cliente_nombre' => 'c.razon_social',
+            'tratativa_numero' => 'CAST(t.numero AS CHAR)',
+            'tratativa_titulo' => 't.titulo',
             'tags' => 'n.tags',
             'created_at' => 'n.created_at',
             'cliente_codigo' => 'c.codigo_tango'
         ];
-        
+
         [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
         if ($advFilterSql !== '') {
             $sql .= " AND (" . $advFilterSql . ")";
@@ -133,11 +157,13 @@ class CrmNotaRepository
         }
 
         if ($search !== '') {
-            $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3)";
+            $sql .= " AND (n.titulo LIKE :search1 OR n.contenido LIKE :search2 OR c.razon_social LIKE :search3 OR t.titulo LIKE :search4 OR CAST(t.numero AS CHAR) LIKE :search5)";
             $searchTerm = '%' . $search . '%';
             $params[':search1'] = $searchTerm;
             $params[':search2'] = $searchTerm;
             $params[':search3'] = $searchTerm;
+            $params[':search4'] = $searchTerm;
+            $params[':search5'] = $searchTerm;
         }
 
         $stmt = $this->db->prepare($sql);
@@ -149,9 +175,14 @@ class CrmNotaRepository
     {
         $delCond = $includeDeleted ? '1=1' : 'n.deleted_at IS NULL';
         $sql = "
-            SELECT n.*, c.razon_social as cliente_nombre, c.codigo_tango as cliente_codigo
+            SELECT n.*,
+                   c.razon_social AS cliente_nombre,
+                   c.codigo_tango AS cliente_codigo,
+                   t.numero AS tratativa_numero,
+                   t.titulo AS tratativa_titulo
             FROM crm_notas n
             LEFT JOIN crm_clientes c ON n.cliente_id = c.id
+            LEFT JOIN crm_tratativas t ON n.tratativa_id = t.id AND t.empresa_id = n.empresa_id
             WHERE n.id = :id AND n.empresa_id = :empresa_id AND $delCond
             LIMIT 1
         ";
@@ -173,23 +204,49 @@ class CrmNotaRepository
         $nota->id = (int)$nota->id;
         $nota->empresa_id = (int)$nota->empresa_id;
         $nota->cliente_id = $nota->cliente_id ? (int)$nota->cliente_id : null;
+        $nota->tratativa_id = $nota->tratativa_id ? (int)$nota->tratativa_id : null;
         $nota->activo = (int)$nota->activo;
 
         return $nota;
     }
 
+    /**
+     * Notas asociadas a una tratativa (activas), ordenadas por fecha de creación descendente.
+     * Mismo patrón que TratativaRepository::findPdsByTratativaId / findPresupuestosByTratativaId.
+     */
+    public function findByTratativaId(int $tratativaId, int $empresaId): array
+    {
+        $sql = "SELECT n.id, n.titulo, n.contenido, n.tags, n.activo, n.created_at,
+                       c.razon_social AS cliente_nombre
+                FROM crm_notas n
+                LEFT JOIN crm_clientes c ON n.cliente_id = c.id
+                WHERE n.tratativa_id = :tratativa_id
+                  AND n.empresa_id = :empresa_id
+                  AND n.deleted_at IS NULL
+                ORDER BY n.created_at DESC, n.id DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':tratativa_id' => $tratativaId,
+            ':empresa_id' => $empresaId,
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function save(CrmNota $nota): void
     {
         if (isset($nota->id) && $nota->id > 0) {
-            $sql = "UPDATE crm_notas 
-                    SET cliente_id = :cliente_id, 
-                        titulo = :titulo, 
-                        contenido = :contenido, 
-                        tags = :tags, 
-                        activo = :activo 
+            $sql = "UPDATE crm_notas
+                    SET cliente_id = :cliente_id,
+                        tratativa_id = :tratativa_id,
+                        titulo = :titulo,
+                        contenido = :contenido,
+                        tags = :tags,
+                        activo = :activo
                     WHERE id = :id AND empresa_id = :empresa_id";
             $params = [
                 ':cliente_id' => $nota->cliente_id,
+                ':tratativa_id' => $nota->tratativa_id,
                 ':titulo' => $nota->titulo,
                 ':contenido' => $nota->contenido,
                 ':tags' => $nota->tags,
@@ -200,11 +257,12 @@ class CrmNotaRepository
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
         } else {
-            $sql = "INSERT INTO crm_notas (empresa_id, cliente_id, titulo, contenido, tags, activo)
-                    VALUES (:empresa_id, :cliente_id, :titulo, :contenido, :tags, :activo)";
+            $sql = "INSERT INTO crm_notas (empresa_id, cliente_id, tratativa_id, titulo, contenido, tags, activo)
+                    VALUES (:empresa_id, :cliente_id, :tratativa_id, :titulo, :contenido, :tags, :activo)";
             $params = [
                 ':empresa_id' => $nota->empresa_id,
                 ':cliente_id' => $nota->cliente_id,
+                ':tratativa_id' => $nota->tratativa_id,
                 ':titulo' => $nota->titulo,
                 ':contenido' => $nota->contenido,
                 ':tags' => $nota->tags,

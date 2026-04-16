@@ -37,7 +37,7 @@ ob_start();
         <div class="card bg-dark text-light border-0 shadow-sm mb-4">
             <div class="card-body">
                 <div class="row align-items-center mb-4">
-                    <div class="col-md-6 border-end border-secondary border-opacity-25">
+                    <div class="col-md-4 border-end border-secondary border-opacity-25">
                         <h6 class="text-muted text-uppercase small fw-bold mb-2">Cliente Vinculado</h6>
                         <?php if ($nota->cliente_id): ?>
                             <div class="d-flex align-items-center">
@@ -46,14 +46,30 @@ ob_start();
                                 </div>
                                 <div>
                                     <h6 class="mb-0 fw-bold"><?= htmlspecialchars((string) $nota->cliente_nombre) ?></h6>
-                                    <small class="text-muted">ID Sistema: <?= htmlspecialchars((string) $nota->cliente_id) ?> | Cód: <?= htmlspecialchars((string) $nota->cliente_codigo) ?></small>
+                                    <small class="text-muted">ID: <?= htmlspecialchars((string) $nota->cliente_id) ?> | Cód: <?= htmlspecialchars((string) $nota->cliente_codigo) ?></small>
                                 </div>
                             </div>
                         <?php else: ?>
                             <div class="text-muted"><i class="bi bi-dash-circle"></i> Sin cliente vinculado</div>
                         <?php endif; ?>
                     </div>
-                    <div class="col-md-6 ps-4">
+                    <div class="col-md-4 border-end border-secondary border-opacity-25 ps-4">
+                        <h6 class="text-muted text-uppercase small fw-bold mb-2">Tratativa Vinculada</h6>
+                        <?php if (!empty($nota->tratativa_id)): ?>
+                            <a href="/mi-empresa/crm/tratativas/<?= (int) $nota->tratativa_id ?>" class="text-decoration-none d-flex align-items-center text-light">
+                                <div class="bg-primary bg-opacity-25 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-briefcase-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Tratativa #<?= (int) ($nota->tratativa_numero ?? 0) ?></h6>
+                                    <small class="text-muted"><?= htmlspecialchars((string) ($nota->tratativa_titulo ?? '')) ?: 'Sin título' ?></small>
+                                </div>
+                            </a>
+                        <?php else: ?>
+                            <div class="text-muted"><i class="bi bi-dash-circle"></i> Sin tratativa vinculada</div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-md-4 ps-4">
                         <h6 class="text-muted text-uppercase small fw-bold mb-2">Etiquetas</h6>
                         <?php if (!empty($nota->tags)): ?>
                             <div class="d-flex flex-wrap gap-1">

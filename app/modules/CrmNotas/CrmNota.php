@@ -9,6 +9,7 @@ class CrmNota
     public int $id;
     public int $empresa_id;
     public ?int $cliente_id = null; // Relación opcional/obligatoria con crm_clientes
+    public ?int $tratativa_id = null; // Vínculo opcional con una tratativa (FK blanda)
     public string $titulo;
     public string $contenido;
     public ?string $tags = null; // Ej: "importante, seguimiento" (JSON o str_comma)
@@ -20,4 +21,6 @@ class CrmNota
     // Campos virtuales
     public ?string $cliente_nombre = null;
     public ?string $cliente_codigo = null;
+    public ?string $tratativa_numero = null;
+    public ?string $tratativa_titulo = null;
 }

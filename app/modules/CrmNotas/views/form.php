@@ -2,6 +2,53 @@
 use App\Core\Helpers\UIHelper;
 use App\Core\View;
 $ui = isset($environmentLabel) ? compact('environmentLabel', 'dashboardPath') : [];
+
+// Prefill por query param (solo aplica en alta/create).
+// En edición usamos los valores ya hidratados del objeto $nota.
+$prefill = $prefill ?? [
+    'tratativa_id' => null,
+    'tratativa_numero' => null,
+    'tratativa_titulo' => null,
+    'cliente_id' => null,
+    'cliente_nombre' => null,
+];
+
+// Resolvemos el estado inicial del selector de tratativa teniendo en cuenta prioridad:
+// 1) $nota->tratativa_id (edición)
+// 2) $old['tratativa_id'] (re-render tras error de validación)
+// 3) $prefill['tratativa_id'] (alta con ?tratativa_id= en la URL)
+$tratativaIdPreset = '';
+$tratativaNumeroPreset = '';
+$tratativaTituloPreset = '';
+if (isset($nota) && $nota !== null) {
+    $tratativaIdPreset = (string) ((int) ($nota->tratativa_id ?? 0));
+    $tratativaNumeroPreset = $nota->tratativa_numero ?? '';
+    $tratativaTituloPreset = $nota->tratativa_titulo ?? '';
+} elseif (!empty($old['tratativa_id'])) {
+    $tratativaIdPreset = (string) ((int) $old['tratativa_id']);
+} elseif (!empty($prefill['tratativa_id'])) {
+    $tratativaIdPreset = (string) $prefill['tratativa_id'];
+    $tratativaNumeroPreset = (string) ($prefill['tratativa_numero'] ?? '');
+    $tratativaTituloPreset = (string) ($prefill['tratativa_titulo'] ?? '');
+}
+
+// Cliente: si venimos de un prefill por URL y todavía no hay un cliente seteado en la nota,
+// usamos el cliente heredado de la tratativa como valor inicial.
+$clienteIdPreset = '';
+$clienteNombrePreset = '';
+if (isset($nota) && $nota !== null) {
+    $clienteIdPreset = (string) ((int) ($nota->cliente_id ?? 0));
+    $clienteNombrePreset = (string) ($nota->cliente_nombre ?? '');
+} elseif (!empty($old['cliente_id'])) {
+    $clienteIdPreset = (string) ((int) $old['cliente_id']);
+} elseif (!empty($prefill['cliente_id'])) {
+    $clienteIdPreset = (string) $prefill['cliente_id'];
+    $clienteNombrePreset = (string) ($prefill['cliente_nombre'] ?? '');
+}
+
+// Si venimos pre-cargados desde una tratativa (alta con ?tratativa_id=), mostramos un chip
+// informativo para que el usuario entienda el contexto.
+$showTratativaPrefillChip = !isset($nota) && !empty($prefill['tratativa_id']);
 ?>
 <?php
 $pageTitle = 'RXN Suite';
@@ -53,11 +100,50 @@ ob_start();
                 <form action="<?= htmlspecialchars($indexPath) ?><?= $isEdit ? '/' . $nota->id . '/editar' : '/crear' ?>" method="POST" class="needs-validation">
                     
                     <h5 class="fw-bold border-bottom border-secondary pb-2 mb-3 text-info"><i class="bi bi-link"></i> Vínculos</h5>
-                    
+
+                    <?php if ($showTratativaPrefillChip): ?>
+                        <div class="alert alert-info bg-info bg-opacity-10 border-info border-opacity-25 text-info d-flex align-items-center mb-3" role="alert">
+                            <i class="bi bi-briefcase-fill me-2 fs-5"></i>
+                            <div>
+                                Esta nota se va a vincular a
+                                <strong>Tratativa #<?= (int) $prefill['tratativa_numero'] ?></strong>
+                                <?php if (!empty($prefill['tratativa_titulo'])): ?>
+                                    <span class="text-muted"> — <?= htmlspecialchars((string) $prefill['tratativa_titulo']) ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($prefill['cliente_nombre'])): ?>
+                                    <div class="small mt-1 text-light">
+                                        <i class="bi bi-building"></i> Cliente heredado: <?= htmlspecialchars((string) $prefill['cliente_nombre']) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mb-4 position-relative">
+                        <label class="form-label text-muted small">Vincular a Tratativa (Opcional)</label>
+                        <input type="hidden" name="tratativa_id" id="tratativa_id" value="<?= htmlspecialchars($tratativaIdPreset) ?>">
+                        <?php
+                        $tratativaInputValue = '';
+                        if ($tratativaIdPreset !== '' && (int) $tratativaIdPreset > 0) {
+                            $numeroFmt = $tratativaNumeroPreset !== '' ? (string) $tratativaNumeroPreset : $tratativaIdPreset;
+                            $tratativaInputValue = 'Tratativa #' . $numeroFmt;
+                            if ($tratativaTituloPreset !== '') {
+                                $tratativaInputValue .= ' — ' . $tratativaTituloPreset;
+                            }
+                        }
+                        ?>
+                        <div class="input-group">
+                            <input type="text" id="tratativa_search" class="form-control bg-dark text-light border-secondary" placeholder="Escribí número, título o cliente de la tratativa..." autocomplete="off" value="<?= htmlspecialchars($tratativaInputValue) ?>">
+                            <button type="button" class="btn btn-outline-secondary" id="tratativa_clear" title="Desvincular tratativa"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        <ul id="tratativa_dropdown" class="dropdown-menu w-100 bg-dark border-secondary shadow-lg overflow-hidden" style="max-height: 250px; overflow-y: auto; display: none; position: absolute; z-index: 1050;"></ul>
+                        <div class="form-text text-secondary"><i class="bi bi-search"></i> Busca tratativas activas. La nota queda asociada al caso comercial.</div>
+                    </div>
+
                     <div class="mb-4 position-relative">
                         <label class="form-label text-muted small">Vincular a Cliente (Opcional)</label>
-                        <input type="hidden" name="cliente_id" id="cliente_id" value="<?= htmlspecialchars((string) ($nota->cliente_id ?? $old['cliente_id'] ?? '')) ?>">
-                        <input type="text" id="cliente_search" class="form-control bg-dark text-light border-secondary" placeholder="Escribí razón social o código para buscar..." autocomplete="off" value="<?= htmlspecialchars((string) ($nota->cliente_nombre ?? '')) ?>">
+                        <input type="hidden" name="cliente_id" id="cliente_id" value="<?= htmlspecialchars($clienteIdPreset) ?>">
+                        <input type="text" id="cliente_search" class="form-control bg-dark text-light border-secondary" placeholder="Escribí razón social o código para buscar..." autocomplete="off" value="<?= htmlspecialchars($clienteNombrePreset) ?>">
                         <ul id="cliente_dropdown" class="dropdown-menu w-100 bg-dark border-secondary shadow-lg overflow-hidden" style="max-height: 250px; overflow-y: auto; display: none; position: absolute; z-index: 1050;"></ul>
                         <div class="form-text text-secondary"><i class="bi bi-search"></i> Busca clientes activos en el CRM.</div>
                     </div>
@@ -300,6 +386,123 @@ ob_start();
             }, 300);
         });
 
+        // --- AUTOCOMPLETE TRATATIVAS ---
+        const inputTratativa = document.getElementById('tratativa_search');
+        const hiddenTratativa = document.getElementById('tratativa_id');
+        const dropTratativa = document.getElementById('tratativa_dropdown');
+        const btnClearTratativa = document.getElementById('tratativa_clear');
+        let trTimeout = null;
+        let currentTratativaFocus = -1;
+
+        function addTratativaActive(items) {
+            if (!items) return false;
+            removeTratativaActive(items);
+            if (currentTratativaFocus >= items.length) currentTratativaFocus = 0;
+            if (currentTratativaFocus < 0) currentTratativaFocus = (items.length - 1);
+            items[currentTratativaFocus].classList.add('bg-secondary', 'bg-opacity-50');
+        }
+
+        function removeTratativaActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('bg-secondary', 'bg-opacity-50');
+            }
+        }
+
+        if (btnClearTratativa) {
+            btnClearTratativa.addEventListener('click', () => {
+                hiddenTratativa.value = '';
+                inputTratativa.value = '';
+                dropTratativa.style.display = 'none';
+                inputTratativa.focus();
+            });
+        }
+
+        inputTratativa.addEventListener('keydown', function(e) {
+            let items = dropTratativa.querySelectorAll('li.rxn-selectable');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                currentTratativaFocus++;
+                addTratativaActive(items);
+            } else if (e.key === 'ArrowUp') {
+                currentTratativaFocus--;
+                addTratativaActive(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentTratativaFocus > -1) {
+                    if (items[currentTratativaFocus]) items[currentTratativaFocus].click();
+                }
+            } else if (e.key === 'Escape') {
+                dropTratativa.style.display = 'none';
+            }
+        });
+
+        inputTratativa.addEventListener('input', (e) => {
+            clearTimeout(trTimeout);
+            hiddenTratativa.value = ''; // Reset ID si el usuario está escribiendo
+            currentTratativaFocus = -1;
+
+            const term = e.target.value.trim();
+            if (term.length < 2) {
+                dropTratativa.style.display = 'none';
+                return;
+            }
+
+            trTimeout = setTimeout(async () => {
+                try {
+                    const params = new URLSearchParams({ search: term });
+                    const res = await fetch(`${basePath}/sugerencias-tratativas?${params.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!res.ok) {
+                        throw new Error(`Error de servidor: ${res.status}`);
+                    }
+
+                    const json = await res.json();
+
+                    dropTratativa.innerHTML = '';
+                    if (json.data && json.data.length > 0) {
+                        json.data.forEach((t, index) => {
+                            const li = document.createElement('li');
+                            li.className = 'dropdown-item text-light border-bottom border-secondary border-opacity-25 px-3 py-2 rxn-hover-bg rxn-selectable';
+                            li.style.cursor = 'pointer';
+                            const safeLabel = (t.label || `Tratativa #${t.numero || ''}`).replace(/</g, '&lt;');
+                            const safeCaption = (t.caption || '').replace(/</g, '&lt;');
+                            li.innerHTML = `<strong>${safeLabel}</strong>` + (safeCaption ? ` <span class="text-muted small ms-2">${safeCaption}</span>` : '');
+                            li.onclick = () => {
+                                const numeroFmt = t.numero || t.id;
+                                let display = `Tratativa #${numeroFmt}`;
+                                if (t.titulo) display += ` — ${t.titulo}`;
+                                inputTratativa.value = display;
+                                hiddenTratativa.value = t.id;
+                                dropTratativa.style.display = 'none';
+                            };
+                            li.onmouseover = () => {
+                                removeTratativaActive(dropTratativa.querySelectorAll('li.rxn-selectable'));
+                                currentTratativaFocus = index;
+                                addTratativaActive(dropTratativa.querySelectorAll('li.rxn-selectable'));
+                            };
+                            dropTratativa.appendChild(li);
+                        });
+                        dropTratativa.style.display = 'block';
+                    } else {
+                        dropTratativa.innerHTML = '<li class="dropdown-item text-muted disabled">No se encontraron tratativas...</li>';
+                        dropTratativa.style.display = 'block';
+                    }
+                } catch (err) {
+                    console.error('Error fetching tratativas:', err);
+                    dropTratativa.innerHTML = `<li class="dropdown-item text-danger disabled"><i class="bi bi-exclamation-triangle"></i> Error buscando tratativas: ${err.message}</li>`;
+                    dropTratativa.style.display = 'block';
+                }
+            }, 350);
+        });
+
         // Ocultar dropdowns
         document.addEventListener('click', (e) => {
             if (!inputClient.contains(e.target) && !dropClient.contains(e.target)) {
@@ -307,6 +510,9 @@ ob_start();
             }
             if (!inputTags.contains(e.target) && !dropTags.contains(e.target)) {
                 dropTags.style.display = 'none';
+            }
+            if (!inputTratativa.contains(e.target) && !dropTratativa.contains(e.target)) {
+                dropTratativa.style.display = 'none';
             }
         });
     });

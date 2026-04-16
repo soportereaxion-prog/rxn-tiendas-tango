@@ -9,7 +9,10 @@ $pageHeaderBackLabel = 'Volver';
 
 $sort = $sort ?? 'created_at';
 $dir = $dir ?? 'DESC';
-$buildQuery = function (array $overrides = []) use ($search, $sort, $dir, $page, $status) {
+$tratativaFiltroInfo = $tratativaFiltroInfo ?? null;
+$tratativaFiltroId = $tratativaFiltroInfo['id'] ?? null;
+
+$buildQuery = function (array $overrides = []) use ($search, $sort, $dir, $page, $status, $tratativaFiltroId) {
     $params = [
         'search' => $search,
         'limit' => 25,
@@ -18,6 +21,9 @@ $buildQuery = function (array $overrides = []) use ($search, $sort, $dir, $page,
         'page' => $page,
         'status' => $status ?? 'activos',
     ];
+    if ($tratativaFiltroId !== null) {
+        $params['tratativa_id'] = $tratativaFiltroId;
+    }
 
     foreach ($overrides as $key => $value) {
         if ($value === null || $value === '') {
@@ -45,6 +51,23 @@ ob_start();
         $moduleNotesLabel = 'CRM - Notas';
         require BASE_PATH . '/app/shared/views/components/module_notes_panel.php'; 
         ?>
+
+        <?php if ($tratativaFiltroInfo !== null): ?>
+            <div class="alert alert-info bg-info bg-opacity-10 border-info border-opacity-25 text-info d-flex justify-content-between align-items-center shadow-sm" role="alert">
+                <div>
+                    <i class="bi bi-funnel-fill"></i>
+                    Filtrando notas de la
+                    <strong>Tratativa #<?= (int) $tratativaFiltroInfo['numero'] ?></strong>
+                    <?php if (!empty($tratativaFiltroInfo['titulo'])): ?>
+                        <span class="text-muted"> — <?= htmlspecialchars((string) $tratativaFiltroInfo['titulo']) ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/mi-empresa/crm/tratativas/<?= (int) $tratativaFiltroInfo['id'] ?>" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-left"></i> Volver a la tratativa</a>
+                    <a href="<?= htmlspecialchars($indexPath) ?>?<?= htmlspecialchars($buildQuery(['tratativa_id' => null, 'page' => 1])) ?>" class="btn btn-sm btn-outline-warning"><i class="bi bi-x-lg"></i> Quitar filtro</a>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php if (!empty($_GET['success'])): ?>
             <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
@@ -120,6 +143,7 @@ ob_start();
                             <th style="width: 50px;" class="rxn-filter-col" data-filter-field="id"><?= $sortLink('id', 'ID') ?></th>
                             <th class="rxn-filter-col" data-filter-field="titulo"><?= $sortLink('titulo', 'Título') ?></th>
                             <th class="rxn-filter-col" data-filter-field="cliente_nombre"><?= $sortLink('cliente_nombre', 'Cliente Vinculado') ?></th>
+                            <th class="rxn-filter-col" data-filter-field="tratativa_numero"><?= $sortLink('tratativa_numero', 'Tratativa') ?></th>
                             <th class="rxn-filter-col" data-filter-field="tags"><?= $sortLink('tags', 'Tags') ?></th>
                             <th style="width: 150px;" class="rxn-filter-col" data-filter-field="created_at"><?= $sortLink('created_at', 'Fecha') ?></th>
                             <th style="width: 120px;" class="text-end">Acciones</th>
@@ -127,7 +151,7 @@ ob_start();
                     </thead>
                     <tbody>
                         <?php if (empty($notas)): ?>
-                            <tr><td colspan="6" class="text-center p-4 text-muted">No existen notas registradas.</td></tr>
+                            <tr><td colspan="8" class="text-center p-4 text-muted">No existen notas registradas.</td></tr>
                         <?php else: ?>
                             <?php foreach ($notas as $item): ?>
                                 <tr data-row-link="<?= htmlspecialchars($indexPath) ?>/<?= $item['id'] ?>">
@@ -141,10 +165,22 @@ ob_start();
                                     </td>
                                     <td>
                                         <?php if ($item['cliente_nombre']): ?>
-                                            <?= htmlspecialchars($item['cliente_nombre']) ?> 
+                                            <?= htmlspecialchars($item['cliente_nombre']) ?>
                                             <small class="text-muted ms-1">(<?= htmlspecialchars($item['cliente_codigo'] ?? '') ?>)</small>
                                         <?php else: ?>
                                             <span class="text-muted"><i class="bi bi-link-45deg"></i> Sin cliente</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td data-row-link-ignore>
+                                        <?php if (!empty($item['tratativa_id'])): ?>
+                                            <a href="/mi-empresa/crm/tratativas/<?= (int) $item['tratativa_id'] ?>" class="text-decoration-none" title="Ir al detalle de la tratativa">
+                                                <span class="badge bg-primary bg-opacity-75"><i class="bi bi-briefcase"></i> #<?= (int) ($item['tratativa_numero'] ?? 0) ?></span>
+                                                <?php if (!empty($item['tratativa_titulo'])): ?>
+                                                    <small class="text-muted ms-1"><?= htmlspecialchars(mb_strimwidth((string) $item['tratativa_titulo'], 0, 40, '…')) ?></small>
+                                                <?php endif; ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted small">—</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>

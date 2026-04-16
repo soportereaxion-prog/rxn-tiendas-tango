@@ -11,7 +11,9 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 - ABM completo de Notas (Listado, Creación, Edición, Soft-Delete, Restauración).
 - Búsqueda avanzada, ordenamiento y filtros (por estado, texto, etc.).
 - Permite copiado rápido de una nota existente (acción `copy`).
-- Brinda autocompletado rápido de Etiquetas (`tagsSuggestions`) y Clientes (`clientSuggestions`).
+- Brinda autocompletado rápido de Etiquetas (`tagsSuggestions`), Clientes (`clientSuggestions`) y Tratativas (`tratativaSuggestions`).
+- Vinculación opcional de cada nota con una Tratativa del CRM (mismo patrón de FK blanda que PDS y Presupuestos).
+- Creación contextualizada desde el detalle de una tratativa vía query param `?tratativa_id=X&cliente_id=Y`: el cliente se hereda automáticamente y al guardar la nota se vuelve al detalle de la tratativa.
 - Importación masiva de notas desde archivos `.xlsx` usando la librería OpenSpout, detectando clientes vía "Código Tango" y asociándolas al vuelo.
 - Exportación del listado de notas a `.xlsx`.
 
@@ -26,6 +28,8 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 - **Vistas:** `views/index.php`, `views/form.php`, `views/show.php`, `views/import.php`.
 - **Rutas/Pantallas:** `/mi-empresa/crm/notas`.
 - **Tablas/Persistencia:** `crm_notas`, `crm_notas_tags_diccionario`.
+- **Migraciones relevantes:**
+    - `database/migrations/2026_04_15_add_tratativa_id_to_crm_notas.php` — agrega `tratativa_id INT NULL` a `crm_notas` con índice `(empresa_id, tratativa_id)`. FK blanda (sin constraint duro).
 
 ## Seguridad Base (Política de Implementación)
 - **Aislamiento Multiempresa**: OBLIGATORIO. El controlador exige `Context::getEmpresaId()` en todas sus acciones (`getEmpresaIdOrDie()`). Las búsquedas de Tags y Clientes en los endpoints AJAX también filtran por empresa.
@@ -38,11 +42,14 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 ## Dependencias directas
 - Librería `OpenSpout\Reader\XLSX\Reader` y `OpenSpout\Writer\XLSX\Writer` para importación y exportación de Excel.
 - `App\Modules\CrmClientes\CrmClienteRepository` para la vinculación en el modal y la asociación por "Código Tango" en la importación masiva.
+- `App\Modules\CrmTratativas\TratativaRepository` — se usa en `create/store/update` para validar que `tratativa_id` pertenezca a la empresa (`existsActiveForEmpresa`) y en `index` para precargar el filtro por tratativa. También alimenta el endpoint `tratativaSuggestions` via `findSuggestions()`.
 
 ## Dependencias indirectas / impacto lateral
 - Un cambio radical en cómo se persiste `CrmClientes` puede impactar en las consultas Join del listado de notas (`findAllWithClientName`).
 
 ## Reglas operativas del módulo
+- **Vínculo con Tratativa**: `tratativa_id` es opcional (FK blanda). Si viene por query param `?tratativa_id=X`, el controller valida que exista y pertenezca a la empresa; si no pasa la validación se ignora silenciosamente (la nota se crea sin vínculo). Al guardar una nota que tiene `tratativa_id`, el redirect vuelve a `/mi-empresa/crm/tratativas/{id}` en lugar del listado por defecto.
+- **Herencia de cliente desde Tratativa**: cuando se crea una nota desde el detalle de una tratativa (query param), el `cliente_id` se hereda automáticamente del cliente de la tratativa. El usuario puede sobrescribirlo desde el form. Si se pasa también `?cliente_id=Y` por URL, ese valor tiene prioridad sobre el heredado.
 - Durante la importación de Excel, si el "Código Tango" no matchea ningún cliente en la base local de la empresa, la nota se crea igualmente pero de forma huérfana (sin `cliente_id`).
 - La exportación vuelca toda la visualización de la grilla (incluyendo resolución del nombre del cliente) aplicando los filtros vigentes del Datatable.
 - **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.

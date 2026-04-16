@@ -103,6 +103,10 @@ ob_start();
                         <i class="bi text-info bi-table"></i>
                     </button>
                     <div class="vr border-secondary mx-1"></div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-2" id="toggleWrapBtn" title="Alternar ajuste de texto al ancho de columna (wrap vs truncar)" onclick="toggleWrapText()">
+                        <i class="bi text-info bi-text-wrap"></i>
+                        <span class="ms-1 small d-none d-lg-inline" id="toggleWrapLabel">Ajustar</span>
+                    </button>
                     <div class="dropdown d-inline-block">
                         <button class="btn btn-outline-secondary btn-sm px-2" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Columnas">
                             <i class="bi bi-layout-three-columns"></i>
@@ -417,6 +421,10 @@ let hiddenCols = [];
 let orderedCols = [];
 let flatFilters = {};
 let flatDiscreteFilters = {};
+// Widths custom por columna (px). {colName: 180, ...} — persistidos en volatile state y vista guardada.
+let colWidths = {};
+// Toggle global: false = truncar con ellipsis (default), true = wrap (ajustar al ancho, celda crece en alto).
+let wrapText = false;
 
 function getValidOrderedCols(baseCols) {
     let valid = orderedCols.filter(c => baseCols.includes(c));
@@ -729,7 +737,12 @@ function buildDiscreteDropdown(col) {
             </div>
         </div>`;
     div.innerHTML = html;
-    
+
+    // Aplicar Flatpickr (formato 24hs) a los inputs datetime-local recién renderizados.
+    if (window.RxnDateTime && typeof window.RxnDateTime.initAll === 'function') {
+        window.RxnDateTime.initAll(div);
+    }
+
     // Forzar a Popper a recalcular la posición en base al nuevo contenido para que no se encime / corte
     setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 50);
 }
@@ -856,8 +869,14 @@ function renderPlana() {
         }
     });
 
-    let html = `<table class="table table-dark table-striped table-hover table-sm m-0" style="font-size: 0.85rem; border-collapse: separate; border-spacing: 0;">`;
-    
+    // Estilos dependientes del modo wrap. table-layout fixed es clave para que el width aplicado
+    // al <th> sea respetado — si no, el browser re-reparte ancho según contenido y se pierde el resize.
+    let tableStyle = `font-size: 0.85rem; border-collapse: separate; border-spacing: 0;`;
+    if (wrapText || Object.keys(colWidths).length > 0) {
+        tableStyle += ` table-layout: fixed; width: auto;`;
+    }
+    let html = `<table class="table table-dark table-striped table-hover table-sm m-0" style="${tableStyle}">`;
+
     // THEAD
     html += `<thead class="text-muted" style="position: sticky; top: 0; background-color: #212529; z-index: 2; box-shadow: 0 1px 0 rgba(255,255,255,0.1);">`;
     html += `<tr>`;
@@ -867,8 +886,12 @@ function renderPlana() {
             sortIcon = flatSortAsc ? '<i class="bi bi-arrow-down text-info ms-1"></i>' : '<i class="bi bi-arrow-up text-info ms-1"></i>';
         }
         let thClass = (pivotMetadata[col] && pivotMetadata[col].type === 'numeric') ? 'text-end' : '';
-        html += `<th class="fw-bold text-nowrap px-3 py-2 border-bottom-0 pb-1 ${thClass}" style="cursor: pointer; user-select: none;" onclick="handleFlatSort('${col}')">
+        // En modo wrap sacamos text-nowrap para que el label del header también pueda cortarse si es muy largo.
+        let nowrapClass = wrapText ? '' : 'text-nowrap';
+        let widthStyle = colWidths[col] ? `width: ${colWidths[col]}px; min-width: ${colWidths[col]}px; max-width: ${colWidths[col]}px;` : '';
+        html += `<th class="fw-bold ${nowrapClass} px-3 py-2 border-bottom-0 pb-1 ${thClass}" style="cursor: pointer; user-select: none; position: relative; ${widthStyle}" data-col="${col}" onclick="handleFlatSort('${col}')">
                     <span class="align-middle">${(pivotMetadata[col] && pivotMetadata[col].label) ? pivotMetadata[col].label : col.toUpperCase()} <span class="ms-1">${sortIcon}</span></span>
+                    <span class="rxn-col-resizer" data-col="${col}" onclick="event.stopPropagation()" onmousedown="startColResize(event, '${col}')" title="Arrastrar para ajustar ancho" style="position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none;"></span>
                  </th>`;
     });
     html += `</tr><tr>`;
@@ -881,9 +904,10 @@ function renderPlana() {
         let btnClass = isDiscreteActive ? 'btn-primary' : 'btn-dark dropdown-toggle-split border-secondary';
         let iconHtml = isDiscreteActive ? '<i class="bi bi-funnel-fill text-warning"></i>' : '<i class="bi bi-funnel"></i>';
         
-        html += `<th class="px-1 py-1 pt-0 border-bottom-0">
+        let filterWidthStyle = colWidths[col] ? `width: ${colWidths[col]}px; min-width: ${colWidths[col]}px; max-width: ${colWidths[col]}px;` : '';
+        html += `<th class="px-1 py-1 pt-0 border-bottom-0" style="${filterWidthStyle}">
                     <div class="input-group input-group-sm m-0">
-                        <input type="text" data-filter-col="${col}" class="form-control bg-dark text-white border-secondary" style="font-size: 0.75rem; padding: 2px 6px; min-width: 60px;" placeholder="Filtrar..." value="${escapedV}" oninput="handleFlatFilter('${col}', this.value)">
+                        <input type="text" data-filter-col="${col}" class="form-control bg-dark text-white border-secondary" style="font-size: 0.75rem; padding: 2px 6px; min-width: 0;" placeholder="Filtrar..." value="${escapedV}" oninput="handleFlatFilter('${col}', this.value)">
                         <button class="btn ${btnClass} text-white" type="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="buildDiscreteDropdown('${col}')">
                             ${iconHtml}
                         </button>
@@ -921,14 +945,29 @@ function renderPlana() {
                 let isNumeric = (pivotMetadata[col] && pivotMetadata[col].type === 'numeric');
                 let tdClass = isNumeric ? 'text-end font-monospace' : '';
                 let printVal = val || '';
-                
+
                 if (isNumeric && val !== null && val !== '') {
                     printVal = Number(val).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                 } else if (globalDateFormat !== 'Y-m-d' && pivotMetadata[col] && (pivotMetadata[col].type === 'date' || pivotMetadata[col].type === 'datetime' || pivotMetadata[col].type === 'timestamp') && val !== null && val !== '') {
                     printVal = formatRxnDate(val, globalDateFormat);
                 }
-                
-                html += `<td class="text-nowrap px-3 py-1 border-secondary border-opacity-25 ${tdClass}">${printVal}</td>`;
+
+                // Modo wrap: celda crece en alto. Modo truncate (default): oculta overflow con ellipsis y tooltip.
+                let cellStyle;
+                let titleAttr = '';
+                if (wrapText) {
+                    cellStyle = 'white-space: normal; word-break: break-word; vertical-align: top;';
+                } else {
+                    cellStyle = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+                    // Tooltip con el valor completo — clave cuando la columna está angosta y el texto queda cortado.
+                    if (printVal !== '' && printVal !== null) {
+                        let plain = String(printVal).replace(/"/g, '&quot;');
+                        titleAttr = ` title="${plain}"`;
+                    }
+                }
+                let cellWidthStyle = colWidths[col] ? `max-width: ${colWidths[col]}px;` : '';
+
+                html += `<td class="px-3 py-1 border-secondary border-opacity-25 ${tdClass}" style="${cellStyle} ${cellWidthStyle}"${titleAttr}>${printVal}</td>`;
             });
             html += `</tr>`;
         });
@@ -1043,6 +1082,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (volatileBase.orderedCols) orderedCols = volatileBase.orderedCols;
         if (volatileBase.flatSortCol !== undefined) flatSortCol = volatileBase.flatSortCol;
         if (volatileBase.flatSortAsc !== undefined) flatSortAsc = volatileBase.flatSortAsc;
+        // Widths + wrap (features nuevas — defensive contra volatile state viejo que no los tenga).
+        if (volatileBase.colWidths && typeof volatileBase.colWidths === 'object' && !Array.isArray(volatileBase.colWidths)) {
+            colWidths = {};
+            for (let k in volatileBase.colWidths) {
+                let w = parseInt(volatileBase.colWidths[k], 10);
+                if (Number.isFinite(w) && w >= 40 && w <= 800) colWidths[k] = w;
+            }
+        }
+        if (volatileBase.wrapText !== undefined) wrapText = !!volatileBase.wrapText;
+        applyWrapBtnState();
         // Chart config
         if (volatileBase.chartConfig) {
             chartConfig = Object.assign(chartConfig, volatileBase.chartConfig);
@@ -1051,20 +1100,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderPlana();
 
-    let exportForm = document.getElementById('exportDatasetForm');
-    if (exportForm) {
-        exportForm.addEventListener('submit', function(e) {
-            let oldTheme = this.querySelector('input[name="theme"]');
-            if (oldTheme) oldTheme.remove();
-            let isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark' || document.body.classList.contains('bg-dark') || document.querySelector('.navbar-dark') !== null;
-            let th = document.createElement('input');
-            th.className = 'dynamic-export-input';
-            th.type = 'hidden';
-            th.name = 'theme';
-            th.value = isDark ? 'dark' : 'light';
-            this.appendChild(th);
-        });
-    }
+    // Nota: antes de 2026-04-15 acá se inyectaba un input hidden `theme` detectando dark/light
+    // para el XLSX. Se removió — el export ahora usa paleta Excel clásica fija independiente del tema.
 
     // Siempre inicializar el gráfico al final (Vista Base y navegación)
     populateChartSelectors();
@@ -1074,46 +1111,149 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateExportForm() {
     let exportForm = document.getElementById('exportDatasetForm');
     if (!exportForm) return;
-    
-    exportForm.querySelectorAll('.dynamic-export-input:not([name="theme"])').forEach(el => el.remove());
-    
-    if (hiddenCols && hiddenCols.length > 0) {
+
+    // Limpiar TODOS los inputs dinámicos previos (antes excluíamos `theme`, pero `theme` ya no se usa).
+    exportForm.querySelectorAll('.dynamic-export-input').forEach(el => el.remove());
+
+    let addHidden = (name, value) => {
         let input = document.createElement('input');
         input.className = 'dynamic-export-input';
         input.type = 'hidden';
-        input.name = 'hidden_cols';
-        input.value = JSON.stringify(hiddenCols);
+        input.name = name;
+        input.value = value;
         exportForm.appendChild(input);
-    }
-    
-    if (orderedCols && orderedCols.length > 0) {
-        let input = document.createElement('input');
-        input.className = 'dynamic-export-input';
-        input.type = 'hidden';
-        input.name = 'ordered_cols';
-        input.value = JSON.stringify(orderedCols);
-        exportForm.appendChild(input);
-    }
+    };
+
+    if (hiddenCols && hiddenCols.length > 0) addHidden('hidden_cols', JSON.stringify(hiddenCols));
+    if (orderedCols && orderedCols.length > 0) addHidden('ordered_cols', JSON.stringify(orderedCols));
 
     if (flatSortCol) {
-        let sc = document.createElement('input');
-        sc.className = 'dynamic-export-input';
-        sc.type = 'hidden';
-        sc.name = 'sort_col';
-        sc.value = flatSortCol;
-        exportForm.appendChild(sc);
-        
-        let sa = document.createElement('input');
-        sa.className = 'dynamic-export-input';
-        sa.type = 'hidden';
-        sa.name = 'sort_asc';
-        sa.value = flatSortAsc ? '1' : '0';
-        exportForm.appendChild(sa);
+        addHidden('sort_col', flatSortCol);
+        addHidden('sort_asc', flatSortAsc ? '1' : '0');
+    }
+
+    // Filtros por columna (texto "contiene") — ANTES no se enviaban y el export salía sin filtrar.
+    // El backend los aplica en memoria replicando el formato visual de fechas (ver RxnLiveController::exportar).
+    if (flatFilters && Object.keys(flatFilters).length > 0) {
+        // Limpiar entradas vacías para no ensuciar el payload.
+        let clean = {};
+        for (let k in flatFilters) {
+            if (flatFilters[k] !== '' && flatFilters[k] !== null && flatFilters[k] !== undefined) {
+                clean[k] = flatFilters[k];
+            }
+        }
+        if (Object.keys(clean).length > 0) addHidden('flat_filters', JSON.stringify(clean));
+    }
+
+    // Filtros discretos (dropdown con checkboxes de valores únicos) — también faltaban de mandarse.
+    if (flatDiscreteFilters && Object.keys(flatDiscreteFilters).length > 0) {
+        let clean = {};
+        for (let k in flatDiscreteFilters) {
+            if (Array.isArray(flatDiscreteFilters[k]) && flatDiscreteFilters[k].length > 0) {
+                clean[k] = flatDiscreteFilters[k];
+            }
+        }
+        if (Object.keys(clean).length > 0) addHidden('discrete_filters', JSON.stringify(clean));
+    }
+
+    // Formato de fecha global — el backend lo usa para replicar el formateo visual al aplicar flat_filters
+    // y discrete_filters sobre columnas de fecha.
+    if (globalDateFormat && globalDateFormat !== 'Y-m-d') {
+        addHidden('global_date_format', globalDateFormat);
+    }
+
+    // Widths custom de columnas (px). El backend los convierte a Excel width units (≈ px/7) y los
+    // aplica via OpenSpout\Options::setColumnWidth antes de escribir filas.
+    if (colWidths && Object.keys(colWidths).length > 0) {
+        addHidden('col_widths', JSON.stringify(colWidths));
     }
 }
 
 function strEquals(a, b) {
     return String(a) === String(b);
+}
+
+/**
+ * Resize de columnas por drag en el borde derecho del <th>.
+ * - mousedown captura X inicial y width actual.
+ * - mousemove recalcula (min 40px, max 800px para evitar widths absurdos).
+ * - mouseup persiste en sessionStorage via saveVolatileState().
+ *
+ * No re-renderizamos toda la tabla durante el drag (haría flicker) — aplicamos
+ * el width directo al DOM y al soltar mandamos re-render para que quede limpio.
+ */
+let _rxnResizeState = null;
+function startColResize(e, col) {
+    e.preventDefault();
+    e.stopPropagation();
+    let th = e.currentTarget.closest('th');
+    if (!th) return;
+    let startX = e.clientX;
+    let startWidth = th.offsetWidth;
+    _rxnResizeState = { col: col, startX: startX, startWidth: startWidth, th: th };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', _onColResizeMove);
+    document.addEventListener('mouseup', _onColResizeEnd);
+}
+function _onColResizeMove(e) {
+    if (!_rxnResizeState) return;
+    let delta = e.clientX - _rxnResizeState.startX;
+    let newW = Math.max(40, Math.min(800, _rxnResizeState.startWidth + delta));
+    colWidths[_rxnResizeState.col] = newW;
+    // Aplicar directo al th sin re-render para evitar flicker durante el drag.
+    let table = _rxnResizeState.th.closest('table');
+    if (table) {
+        table.querySelectorAll(`th[data-col="${_rxnResizeState.col}"]`).forEach(el => {
+            el.style.width = newW + 'px';
+            el.style.minWidth = newW + 'px';
+            el.style.maxWidth = newW + 'px';
+        });
+    }
+}
+function _onColResizeEnd(e) {
+    document.removeEventListener('mousemove', _onColResizeMove);
+    document.removeEventListener('mouseup', _onColResizeEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    if (_rxnResizeState) {
+        _rxnResizeState = null;
+        // Re-render para aplicar el width a los <td> también (que no tocamos durante el drag).
+        renderPlana();
+        saveVolatileState();
+    }
+}
+
+/**
+ * Toggle global entre modo "truncar + tooltip" (default) y "ajustar al ancho" (wrap).
+ * Global por decisión de diseño (2026-04-15) — por columna sería ruido al pepe.
+ */
+function toggleWrapText() {
+    wrapText = !wrapText;
+    let btn = document.getElementById('toggleWrapBtn');
+    if (btn) {
+        if (wrapText) {
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-info');
+        } else {
+            btn.classList.add('btn-outline-secondary');
+            btn.classList.remove('btn-info');
+        }
+    }
+    renderPlana();
+    saveVolatileState();
+}
+
+function applyWrapBtnState() {
+    let btn = document.getElementById('toggleWrapBtn');
+    if (!btn) return;
+    if (wrapText) {
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-info');
+    } else {
+        btn.classList.add('btn-outline-secondary');
+        btn.classList.remove('btn-info');
+    }
 }
 // --- FIN LOGICA FLAT VIEW ---
 
@@ -1610,6 +1750,8 @@ function extractViewConfig(overrideParams = null) {
         flatFilters: flatFilters,
         flatDiscreteFilters: flatDiscreteFilters,
         globalDateFormat: globalDateFormat,
+        colWidths: colWidths,
+        wrapText: wrapText,
         view_id: document.getElementById('savedViewsDropdown') ? document.getElementById('savedViewsDropdown').value : ''
     };
 }
@@ -1850,6 +1992,141 @@ function hydratePivotSlots(type, items) {
 }
 
 /**
+ * Circuit breaker anti-loop: detecta cuando loadSelectedView() está disparando
+ * redirects en cascada (síntoma: la UI "titila" tan rápido que el usuario no puede
+ * abrir DevTools). Si detecta ≥5 redirects en <2s sobre el mismo dataset, corta
+ * la cadena y muestra un banner diagnóstico con la info necesaria para entender la causa.
+ *
+ * Siempre activo (defensivo permanente). Con `?debug_loop=1` en URL se activa el modo
+ * verbose: logs en consola en cada ciclo + historial completo de URLs + config dumpeado
+ * en el banner.
+ *
+ * Retorna true si se debe ABORTAR el redirect (loop detectado), false si se puede continuar.
+ */
+function detectAndBreakRedirectLoop(nextUrl, viewId, config) {
+    const datasetKey = '<?= htmlspecialchars($datasetKey) ?>';
+    const storageKey = 'rxn_live_loop_detector_' + datasetKey;
+    const THRESHOLD = 5;       // redirects
+    const WINDOW_MS = 2000;    // en 2 segundos
+    const now = Date.now();
+    const isDebug = new URLSearchParams(window.location.search).get('debug_loop') === '1';
+
+    let state = null;
+    try { state = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); }
+    catch(e) { state = null; }
+
+    if (!state || (now - state.firstAt) > WINDOW_MS) {
+        // Reset: ventana nueva o primera vez
+        state = { count: 1, firstAt: now, history: [window.location.href] };
+    } else {
+        state.count += 1;
+        state.history.push(window.location.href);
+        if (state.history.length > 10) state.history.shift();
+    }
+
+    if (isDebug) {
+        try {
+            console.warn('[RxnLive LoopDetector]', {
+                count: state.count,
+                elapsedMs: now - state.firstAt,
+                nextUrl: nextUrl,
+                currentUrl: window.location.href,
+                viewId: viewId
+            });
+        } catch(e) {}
+    }
+
+    if (state.count >= THRESHOLD) {
+        // Loop confirmado: limpiar estado que pudo causarlo y mostrar banner
+        try { sessionStorage.removeItem(storageKey); } catch(e) {}
+        try { sessionStorage.removeItem('rxn_live_volatile_' + datasetKey); } catch(e) {}
+        try {
+            console.error('[RxnLive] Loop de redirect detectado y cortado', {
+                count: state.count,
+                windowMs: WINDOW_MS,
+                currentUrl: window.location.href,
+                nextUrl: nextUrl,
+                viewId: viewId,
+                history: state.history,
+                config: config
+            });
+        } catch(e) {}
+        showLoopBrokenBanner({
+            viewId: viewId,
+            currentUrl: window.location.href,
+            nextUrl: nextUrl,
+            history: state.history,
+            config: config,
+            isDebug: isDebug
+        });
+        return true;
+    }
+
+    try { sessionStorage.setItem(storageKey, JSON.stringify(state)); } catch(e) {}
+    return false;
+}
+
+/**
+ * Banner persistente cuando el circuit breaker corta un loop.
+ * Muestra diff exacto de URLs + (en modo debug) historial completo y config aplicado.
+ * CTA obligatorio a Safe Mode para salir limpiamente.
+ */
+function showLoopBrokenBanner(info) {
+    const existing = document.getElementById('rxnLoopBreakerBanner');
+    if (existing) return;
+    const banner = document.createElement('div');
+    banner.id = 'rxnLoopBreakerBanner';
+    banner.className = 'alert alert-danger mb-3';
+    banner.setAttribute('role', 'alert');
+    banner.style.border = '2px solid #b02a37';
+    const safeUrl = `/rxn_live/dataset?dataset=<?= urlencode($datasetKey) ?>&safe_mode=1`;
+
+    const escapeHtml = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    let debugBlock = '';
+    if (info.isDebug) {
+        const histText = (info.history || []).map((u, i) => (i+1) + '. ' + u).join('\n');
+        const cfgText = info.config ? JSON.stringify(info.config, null, 2) : '(no disponible)';
+        debugBlock = `
+            <details class="mt-2" open>
+                <summary class="small"><strong>Debug info (debug_loop=1)</strong></summary>
+                <div class="small mt-2">
+                    <div><strong>Historial de URLs visitadas:</strong></div>
+                    <pre class="bg-light p-2 mb-2" style="max-height:200px; overflow:auto; color:#000; font-size:11px;">${escapeHtml(histText)}</pre>
+                    <div><strong>Config aplicado:</strong></div>
+                    <pre class="bg-light p-2" style="max-height:200px; overflow:auto; color:#000; font-size:11px;">${escapeHtml(cfgText)}</pre>
+                </div>
+            </details>
+        `;
+    } else {
+        debugBlock = `<div class="small mt-1 text-muted">Para ver historial de URLs y config aplicado, recargá con <code>?debug_loop=1</code> en la URL.</div>`;
+    }
+
+    banner.innerHTML = `
+        <div class="d-flex align-items-start justify-content-between flex-wrap">
+            <div style="flex:1; min-width:280px;">
+                <h5 class="alert-heading mb-1"><i class="bi bi-slash-circle-fill me-2"></i>Loop de recarga detectado y frenado</h5>
+                <p class="mb-1">La vista ${info.viewId ? '<code>' + escapeHtml(info.viewId) + '</code>' : 'seleccionada'} entró en un loop de redirects (≥5 recargas en &lt;2s). Se cortó automáticamente para que puedas usar el dataset.</p>
+                <div class="small">
+                    <div><strong>URL actual:</strong> <code style="word-break:break-all;">${escapeHtml(info.currentUrl || '-')}</code></div>
+                    <div><strong>URL que iba a redirigir:</strong> <code style="word-break:break-all;">${escapeHtml(info.nextUrl || '-')}</code></div>
+                </div>
+                ${debugBlock}
+            </div>
+            <div class="ms-3 mt-2">
+                <a href="${safeUrl}" class="btn btn-sm btn-outline-dark">
+                    <i class="bi bi-shield-exclamation"></i> Abrir en Safe Mode
+                </a>
+            </div>
+        </div>
+    `;
+    const container = document.querySelector('.container, main, body');
+    if (container) container.insertBefore(banner, container.firstChild);
+}
+
+/**
  * Muestra un banner de fallback cuando applyViewConfig() explota.
  * Da al usuario un CTA claro para salir con Safe Mode sin que tenga que recordar la URL.
  */
@@ -1915,6 +2192,23 @@ function applyViewConfig(config, isVolatile = false) {
     } else {
         orderedCols = [];
     }
+
+    // Hidratar widths y wrap toggle (features nuevas — defensive: si el config viejo no las tiene, quedan en defaults).
+    if (config.colWidths && typeof config.colWidths === 'object' && !Array.isArray(config.colWidths)) {
+        // Defensive: filtrar a números positivos en rango razonable para evitar values corruptos.
+        colWidths = {};
+        for (let k in config.colWidths) {
+            let w = parseInt(config.colWidths[k], 10);
+            if (Number.isFinite(w) && w >= 40 && w <= 800) {
+                colWidths[k] = w;
+            }
+        }
+    } else {
+        colWidths = {};
+    }
+    wrapText = !!config.wrapText;
+    applyWrapBtnState();
+
     buildColumnSelector();
     
     if (config.chartVisible !== undefined) chartVisible = !!config.chartVisible;
@@ -2053,7 +2347,9 @@ function loadSelectedView() {
                 url.searchParams.set('dataset', currentUrl.searchParams.get('dataset'));
             }
             url.searchParams.set('reset_view', '1');
-            window.location.href = url.toString();
+            if (!detectAndBreakRedirectLoop(url.toString(), null, null)) {
+                window.location.href = url.toString();
+            }
         }
         return;
     }
@@ -2103,7 +2399,9 @@ function loadSelectedView() {
         sessionStorage.removeItem('rxn_live_volatile_<?= htmlspecialchars($datasetKey) ?>');
 
         if (urlTarget.toString() !== window.location.href) {
-            window.location.href = urlTarget.toString();
+            if (!detectAndBreakRedirectLoop(urlTarget.toString(), dropdown.value, config)) {
+                window.location.href = urlTarget.toString();
+            }
             return;
         }
 

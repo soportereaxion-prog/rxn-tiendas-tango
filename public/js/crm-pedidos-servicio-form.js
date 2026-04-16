@@ -309,10 +309,15 @@
 
         btn.addEventListener('click', function() {
             var now = new Date();
-            var tzOffset = now.getTimezoneOffset() * 60000;
-            var localIso = new Date(now - tzOffset).toISOString().slice(0, 19);
-            endInput.value = localIso;
-            endInput.dispatchEvent(new Event('input')); 
+            var pad = function (n) { return String(n).padStart(2, '0'); };
+            var localValue = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+                + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+            if (window.RxnDateTime && typeof window.RxnDateTime.setValue === 'function') {
+                window.RxnDateTime.setValue(endInput, localValue);
+            } else {
+                endInput.value = localValue;
+                endInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         });
     }
 

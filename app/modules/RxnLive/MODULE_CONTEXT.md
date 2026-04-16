@@ -33,7 +33,15 @@ Accesible desde cualquier área operativa (CRM, Tiendas, Admin) mediante paráme
 - Pivot table interactivo con agrupaciones por filas/columnas y funciones de agregación (SUM, COUNT, AVG, etc.).
 - Gráficos dinámicos configurables (bar, doughnut, line, etc.).
 - Filtros discretos por columna (checkbox de valores únicos).
-- Exportación a CSV (con BOM UTF-8) y XLSX (OpenSpout).
+- **Resize de columnas persistente** (desde v1.9.0): drag en el borde derecho de cada `<th>` ajusta el ancho. Se persiste en `sessionStorage` (`rxn_live_volatile_<dataset>`) y en el config JSON de la vista guardada. Rango defensivo `[40, 800]` px.
+- **Switch global "Ajustar"** (desde v1.9.0): alterna toda la tabla entre modo truncar con ellipsis + tooltip al hover (default) y modo wrap que ajusta al ancho y crece en alto (estilo celda Excel). Misma persistencia que los widths.
+- Exportación a CSV (con BOM UTF-8) y XLSX (OpenSpout). **El XLSX usa paleta fija tipo "Tabla azul" de Excel** — independiente del tema de la UI. Tres niveles visuales:
+  - Header: fondo `#4472C4` + texto blanco bold.
+  - Body: fondo blanco + texto negro.
+  - Footer totals (solo si hay columnas numéricas): fondo `#D9E1F2` + texto negro bold, con label "TOTAL" en la primera columna no numérica visible.
+- **El export respeta los anchos de columna configurados por el user** (desde v1.9.1): `colWidths` del frontend se convierte a Excel width units (`px / 7`) y se aplica con `OpenSpout\Writer\XLSX\Options::setColumnWidth` antes de escribir filas.
+- **El export incluye fila de totales** (desde v1.9.1): sumatorias de columnas numéricas exportadas como valor precalculado (NO como fórmula Excel). Aplican a ambos formatos CSV y XLSX; en XLSX con estilo destacado.
+- **Los filtros client-side (flat + discrete) se envían al export** (desde v1.9.0): el JS empuja `flat_filters`, `discrete_filters` y `global_date_format` al form, y el controller los aplica en memoria replicando el formato visual de fechas.
 - Guardado y carga de "vistas" personalizadas por usuario y dataset (persistidas en `rxn_live_vistas`).
 - Vistas de sistema predefinidas (hardcodeadas en `getSystemDefaultViews()`).
 - Memoria de último estado de navegación por dataset en sesión.
@@ -173,6 +181,7 @@ No hay guard explícito de autenticación en `RxnLiveController`. La protección
 4. **Exportación sin límite real**: la exportación carga hasta 10.000 registros en memoria. Con datasets grandes, esto puede causar problemas de memoria.
 5. **Filtros discretos en memoria**: los filtros discretos de exportación se aplican en PHP (`array_filter`) sobre datos ya cargados. Ineficiente con datasets grandes.
 6. **SQL injection mitigado pero no blindado**: la sanitización de nombres de columna usa regex, no whitelist. Un nombre de columna que pase el regex pero sea un keyword SQL podría causar comportamiento inesperado.
+7. **Formateo de fechas en filtros backend vs JS**: el controller replica el formateo visual usando `DateTime::format($globalDateFormat)` directo. El JS usa la función propia `formatRxnDate()` con string replace. Los tokens soportados matchean (`Y-m-d`, `d/m/Y`, `d-m-Y`, `d/m/y`, `d-m-y`) — si se agrega un formato nuevo, hay que validar que ambos lados devuelvan el mismo string para que los filtros del export sigan matcheando lo que ve el usuario en pantalla.
 
 ---
 

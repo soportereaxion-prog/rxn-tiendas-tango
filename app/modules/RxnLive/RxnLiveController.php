@@ -122,37 +122,102 @@ class RxnLiveController
         }
 
         $format = $_POST['format'] ?? 'csv';
-        
+
         $hiddenColsJson = $_POST['hidden_cols'] ?? '[]';
         $hiddenCols = json_decode($hiddenColsJson, true);
         if (!is_array($hiddenCols)) $hiddenCols = [];
-        
+
         $orderedColsJson = $_POST['ordered_cols'] ?? '[]';
         $orderedCols = json_decode($orderedColsJson, true);
         if (!is_array($orderedCols)) $orderedCols = [];
-        
+
         $filters = $_POST;
-        $theme = $filters['theme'] ?? 'dark';
-        
+
         $discreteFiltersJson = $filters['discrete_filters'] ?? '{}';
         $discreteFilters = json_decode($discreteFiltersJson, true);
         if (!is_array($discreteFilters)) $discreteFilters = [];
-        
-        unset($filters['dataset'], $filters['format'], $filters['hidden_cols'], $filters['ordered_cols'], $filters['view_id'], $filters['theme'], $filters['discrete_filters']);
+
+        // Filtros "contiene" por columna (los que el user tipea en el input "Filtrar..." del header).
+        // Antes el export ignoraba esto y salía el dataset entero. Ahora se aplican en memoria
+        // igual que en el JS, replicando el formato visual de fechas para que matcheen con lo que
+        // el usuario ve en pantalla.
+        $flatFiltersJson = $filters['flat_filters'] ?? '{}';
+        $flatFilters = json_decode($flatFiltersJson, true);
+        if (!is_array($flatFilters)) $flatFilters = [];
+
+        // Formato de fecha visual del front. Necesario para que los flat_filters matcheen con
+        // lo que el user ve en pantalla (si tipeó "05/03" en una fecha mostrada como DD/MM/YYYY).
+        $globalDateFormat = (string)($filters['global_date_format'] ?? 'Y-m-d');
+
+        // Widths custom por columna en píxeles — los setea el user con el resize handle del front.
+        // Se convierten a Excel width units (≈ px/7 para Calibri 11 default) antes de aplicarlos al XLSX.
+        $colWidthsJson = $filters['col_widths'] ?? '{}';
+        $colWidths = json_decode($colWidthsJson, true);
+        if (!is_array($colWidths)) $colWidths = [];
+
+        unset(
+            $filters['dataset'], $filters['format'], $filters['hidden_cols'], $filters['ordered_cols'],
+            $filters['view_id'], $filters['discrete_filters'], $filters['flat_filters'],
+            $filters['global_date_format'], $filters['col_widths']
+        );
 
         $data = $this->service->getDatasetData($datasetKey, $filters, 1, 10000); // Múltiplos lógicos preventivos
-        
+
+        // Metadata de columnas (tipo date/datetime) para aplicar filtros visuales de fecha.
+        $datasetInfo = $this->service->getDatasetInfo($datasetKey);
+        $pivotMeta = $datasetInfo['pivot_metadata'] ?? [];
+
+        $formatVisual = function ($raw, string $col) use ($pivotMeta, $globalDateFormat) {
+            if ($raw === null || $raw === '') return $raw;
+            $type = $pivotMeta[$col]['type'] ?? null;
+            $isDate = in_array($type, ['date', 'datetime', 'timestamp'], true);
+            if (!$isDate || $globalDateFormat === 'Y-m-d') return $raw;
+            try {
+                $dt = new \DateTime((string)$raw);
+                // Mapeo mínimo JS → PHP: el front usa tokens estilo PHP date(), así que va directo.
+                return $dt->format($globalDateFormat);
+            } catch (\Throwable $e) {
+                return $raw;
+            }
+        };
+
         // Aplicar filtros discretos en memoria (evita complejidad en ORM/SQL)
         if (!empty($data) && !empty($discreteFilters)) {
-            $data = array_filter($data, function($row) use ($discreteFilters) {
+            $data = array_filter($data, function($row) use ($discreteFilters, $formatVisual) {
                 foreach ($discreteFilters as $col => $allowedValues) {
                     if (!empty($allowedValues)) {
                         $val = $row[$col] ?? null;
+                        // Replicar formateo visual de fechas para matchear con lo elegido en el dropdown.
+                        $val = $formatVisual($val, $col);
                         if ($val === null || $val === '') $val = '(Vacío)';
                         $valStr = (string)$val;
                         if (!in_array($valStr, $allowedValues, true)) {
                             return false;
                         }
+                    }
+                }
+                return true;
+            });
+            $data = array_values($data);
+        }
+
+        // Aplicar flat filters (texto "contiene" por columna) en memoria.
+        // Soporta wildcards % estilo LIKE: "abc%" = empieza con abc, "%abc" = termina con abc, "a%c" = matchea a...c.
+        if (!empty($data) && !empty($flatFilters)) {
+            $data = array_filter($data, function($row) use ($flatFilters, $formatVisual) {
+                foreach ($flatFilters as $col => $term) {
+                    $term = (string)$term;
+                    if ($term === '') continue;
+                    $raw = $row[$col] ?? '';
+                    $val = (string)$formatVisual($raw, $col);
+                    $termLc = mb_strtolower($term);
+                    $valLc = mb_strtolower($val);
+                    if (strpos($termLc, '%') !== false) {
+                        // preg_quote no escapa el %, así que str_replace después es seguro.
+                        $pattern = '/^' . str_replace('%', '.*', preg_quote($termLc, '/')) . '$/u';
+                        if (!preg_match($pattern, $valLc)) return false;
+                    } else {
+                        if (mb_strpos($valLc, $termLc) === false) return false;
                     }
                 }
                 return true;
@@ -188,6 +253,42 @@ class RxnLiveController
             }
         }
 
+        // Fila de totales (suma de columnas numéricas visibles) — replica lo que el <tfoot> muestra en pantalla.
+        // Charly pidió exportar el valor ya expresado, no fórmula Excel. Se calcula DESPUÉS de ordered_cols
+        // + hidden_cols para que las columnas ocultas no aparezcan y el orden matchee el de la tabla.
+        $totalsRow = null;
+        if (!empty($data)) {
+            $visibleCols = array_keys($data[0]);
+            $numericCols = [];
+            foreach ($visibleCols as $col) {
+                if (($pivotMeta[$col]['type'] ?? null) === 'numeric') {
+                    $numericCols[] = $col;
+                }
+            }
+
+            if (!empty($numericCols)) {
+                // Inicializar la fila con strings vacíos para todas las columnas visibles.
+                $totalsRow = array_fill_keys($visibleCols, '');
+                // Sumar cada columna numérica.
+                foreach ($numericCols as $col) {
+                    $sum = 0.0;
+                    foreach ($data as $row) {
+                        $v = $row[$col] ?? null;
+                        if ($v === null || $v === '') continue;
+                        if (is_numeric($v)) $sum += (float)$v;
+                    }
+                    $totalsRow[$col] = $sum;
+                }
+                // Poner la etiqueta "TOTAL" en la primera columna no numérica visible (si existe).
+                foreach ($visibleCols as $col) {
+                    if (!in_array($col, $numericCols, true)) {
+                        $totalsRow[$col] = 'TOTAL';
+                        break;
+                    }
+                }
+            }
+        }
+
         if ($format === 'xlsx') {
             if (!class_exists('\\OpenSpout\\Writer\\XLSX\\Writer')) {
                 die("La exportación requiere que OpenSpout esté instalado.");
@@ -197,7 +298,25 @@ class RxnLiveController
             }
 
             $filename = "export_" . htmlspecialchars($datasetKey, ENT_QUOTES) . "_" . date('Ymd_His') . ".xlsx";
-            $writer = new \OpenSpout\Writer\XLSX\Writer();
+
+            // Options con column widths — se convierten px → Excel units (≈ px/7 para Calibri 11 default).
+            // Aplicados solo a las columnas visibles, respetando el orden final del $data.
+            $options = new \OpenSpout\Writer\XLSX\Options();
+            if (!empty($data) && !empty($colWidths)) {
+                $visibleCols = array_keys($data[0]);
+                foreach ($visibleCols as $idx => $col) {
+                    if (isset($colWidths[$col]) && is_numeric($colWidths[$col])) {
+                        $px = (float)$colWidths[$col];
+                        if ($px < 40) $px = 40;
+                        if ($px > 800) $px = 800;
+                        $excelWidth = max(5.0, round($px / 7.0, 2));
+                        // setColumnWidth(width, ...columns) — columnas 1-indexed.
+                        $options->setColumnWidth($excelWidth, $idx + 1);
+                    }
+                }
+            }
+
+            $writer = new \OpenSpout\Writer\XLSX\Writer($options);
 
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -205,15 +324,18 @@ class RxnLiveController
 
             $writer->openToFile('php://output');
 
-            // === Estilos theme-aware ===
-            // El front inyecta `theme` en el form antes de submit (detectado por data-bs-theme
-            // o clases bg-dark/navbar-dark). El default es 'dark' — matchea el UI actual de RXN Live.
-            [$headerStyle, $rowStyle] = $this->buildXlsxThemeStyles($theme);
+            // Estilos fijos tipo "Tabla azul" de Excel (independiente del tema de la UI).
+            // Charly pidió explícitamente que el export siempre salga con la paleta Excel clásica.
+            [$headerStyle, $rowStyle, $footerStyle] = $this->buildXlsxStyles();
 
             if (!empty($data)) {
                 $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle(array_keys($data[0]), $headerStyle));
                 foreach ($data as $row) {
                     $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle(array_values($row), $rowStyle));
+                }
+                // Fila de totales al final con estilo destacado (bold + fondo azul claro #D9E1F2).
+                if ($totalsRow !== null) {
+                    $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle(array_values($totalsRow), $footerStyle));
                 }
             }
 
@@ -224,49 +346,50 @@ class RxnLiveController
         // Comportamiento CSV por defecto
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="export_' . htmlspecialchars($datasetKey, ENT_QUOTES) . '_' . date('Ymd_His') . '.csv"');
-        
+
         $output = fopen('php://output', 'w');
         // BOM para Excel
         fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-        
+
         if (!empty($data)) {
             fputcsv($output, array_keys($data[0]));
             foreach ($data as $row) {
                 fputcsv($output, $row);
             }
+            // Fila de totales al final — mismo valor que el footer visual de la tabla.
+            if ($totalsRow !== null) {
+                fputcsv($output, array_values($totalsRow));
+            }
         }
-        
+
         fclose($output);
         exit;
     }
 
     /**
-     * Construye los dos estilos (header + body) para el export XLSX según el tema.
+     * Construye los tres estilos (header + body + footer totals) para el export XLSX.
      *
-     * Tema 'dark' (default): matchea el UI oscuro de RXN Live — útil si se abre directo.
-     * Tema 'light': claro + contrastado — útil para imprimir o compartir por mail.
+     * Paleta fija tipo "Tabla azul medio" de Excel — NO depende del tema de la UI.
+     * Decisión de Charly (2026-04-15): el export siempre debe verse como Excel clásico
+     * para que sea consistente al abrirlo/compartirlo, sin importar el tema del navegador.
      *
-     * @return array{0: \OpenSpout\Common\Entity\Style\Style, 1: \OpenSpout\Common\Entity\Style\Style}
+     * - Header: fondo azul medio (#4472C4) + texto blanco, negrita.
+     * - Body: fondo blanco + texto negro.
+     * - Footer (fila totales): fondo azul claro (#D9E1F2) + texto negro, negrita. Solo se usa
+     *   si el export incluye fila de totales (hay al menos una columna numérica visible).
+     * - Bordes: azul claro (#8EA9DB) para matchear el look de tabla Excel.
+     *
+     * @return array{0: \OpenSpout\Common\Entity\Style\Style, 1: \OpenSpout\Common\Entity\Style\Style, 2: \OpenSpout\Common\Entity\Style\Style}
      */
-    private function buildXlsxThemeStyles(string $theme): array
+    private function buildXlsxStyles(): array
     {
-        $isDark = ($theme === 'dark');
-
-        if ($isDark) {
-            // Paleta oscura (alineada con bg-dark + text-white de Bootstrap)
-            $headerBg   = '343A40'; // gris carbón
-            $headerFg   = 'FFFFFF';
-            $rowBg      = '2C3034';
-            $rowFg      = 'F8F9FA';
-            $borderCol  = '495057';
-        } else {
-            // Paleta clara (header azulado tipo primary-subtle, cuerpo blanco)
-            $headerBg   = 'E7F1FF';
-            $headerFg   = '0D6EFD';
-            $rowBg      = 'FFFFFF';
-            $rowFg      = '212529';
-            $borderCol  = 'DEE2E6';
-        }
+        $headerBg   = '4472C4';
+        $headerFg   = 'FFFFFF';
+        $rowBg      = 'FFFFFF';
+        $rowFg      = '000000';
+        $footerBg   = 'D9E1F2';
+        $footerFg   = '000000';
+        $borderCol  = '8EA9DB';
 
         $border = new \OpenSpout\Common\Entity\Style\Border(
             new \OpenSpout\Common\Entity\Style\BorderPart(
@@ -306,7 +429,13 @@ class RxnLiveController
             ->withBackgroundColor($rowBg)
             ->withBorder($border);
 
-        return [$headerStyle, $rowStyle];
+        $footerStyle = (new \OpenSpout\Common\Entity\Style\Style())
+            ->withFontBold(true)
+            ->withFontColor($footerFg)
+            ->withBackgroundColor($footerBg)
+            ->withBorder($border);
+
+        return [$headerStyle, $rowStyle, $footerStyle];
     }
 
     public function eliminarVista(): void

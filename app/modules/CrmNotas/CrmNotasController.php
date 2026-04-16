@@ -47,11 +47,31 @@ class CrmNotasController extends Controller
 
         $status = $_GET['status'] ?? 'activos';
         $onlyDeleted = $status === 'papelera';
-        
+
         $advancedFilters = $this->handleCrudFilters('crm_notas');
 
-        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted, $advancedFilters);
-        $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted, $advancedFilters);
+        // Filtro opcional por tratativa (viene por query param desde detalle de tratativa).
+        // Se valida que pertenezca a la empresa antes de aplicar el filtro.
+        $tratativaIdFilter = null;
+        $tratativaFiltroInfo = null;
+        if (!empty($_GET['tratativa_id'])) {
+            $tratativaIdCandidate = (int) $_GET['tratativa_id'];
+            if ($tratativaIdCandidate > 0) {
+                $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+                $tratativaRow = $tratativaRepo->findById($tratativaIdCandidate, $empresaId);
+                if ($tratativaRow !== null) {
+                    $tratativaIdFilter = $tratativaIdCandidate;
+                    $tratativaFiltroInfo = [
+                        'id' => $tratativaIdCandidate,
+                        'numero' => (int) ($tratativaRow['numero'] ?? 0),
+                        'titulo' => (string) ($tratativaRow['titulo'] ?? ''),
+                    ];
+                }
+            }
+        }
+
+        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted, $advancedFilters, $tratativaIdFilter);
+        $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted, $advancedFilters, $tratativaIdFilter);
 
         View::render('app/modules/CrmNotas/views/index.php', array_merge($ui, [
             'notas' => $items,
@@ -61,19 +81,23 @@ class CrmNotasController extends Controller
             'totalItems' => $totalItems,
             'status' => $status,
             'sort' => $sortColumn,
-            'dir' => $sortDir
+            'dir' => $sortDir,
+            'tratativaFiltroInfo' => $tratativaFiltroInfo,
         ]));
     }
 
     public function create(): void
     {
         AuthService::requireLogin();
-        $this->getEmpresaIdOrDie();
+        $empresaId = $this->getEmpresaIdOrDie();
         $ui = $this->buildUiContext();
+
+        $prefill = $this->resolvePrefillFromQuery($empresaId);
 
         View::render('app/modules/CrmNotas/views/form.php', array_merge($ui, [
             'isEdit' => false,
-            'nota' => null
+            'nota' => null,
+            'prefill' => $prefill,
         ]));
     }
 
@@ -92,6 +116,7 @@ class CrmNotasController extends Controller
             $nota = new CrmNota();
             $nota->empresa_id = $empresaId;
             $nota->cliente_id = !empty($_POST['cliente_id']) ? (int) $_POST['cliente_id'] : null;
+            $nota->tratativa_id = $this->resolveTratativaIdFromInput($_POST['tratativa_id'] ?? null, $empresaId);
             $nota->titulo = trim($_POST['titulo'] ?? '');
             $nota->contenido = trim($_POST['contenido'] ?? '');
             $nota->tags = !empty($_POST['tags']) ? trim($_POST['tags']) : null;
@@ -102,13 +127,21 @@ class CrmNotasController extends Controller
             }
 
             $this->repository->save($nota);
-            header('Location: ' . $this->withSuccess($ui['indexPath'], 'Nota creada exitosamente.'));
+
+            // Si la nota quedó vinculada a una tratativa, volvemos al detalle de la tratativa
+            // (mismo patrón que PDS/Presupuestos creados desde una tratativa).
+            $redirectPath = $nota->tratativa_id !== null
+                ? '/mi-empresa/crm/tratativas/' . $nota->tratativa_id
+                : $ui['indexPath'];
+
+            header('Location: ' . $this->withSuccess($redirectPath, 'Nota creada exitosamente.'));
             exit;
         } catch (\Exception $e) {
             View::render('app/modules/CrmNotas/views/form.php', array_merge($ui, [
                 'error' => $e->getMessage(),
                 'isEdit' => false,
-                'old' => $_POST
+                'old' => $_POST,
+                'prefill' => $this->resolvePrefillFromQuery($empresaId),
             ]));
         }
     }
@@ -149,6 +182,7 @@ class CrmNotasController extends Controller
             }
 
             $nota->cliente_id = !empty($_POST['cliente_id']) ? (int) $_POST['cliente_id'] : null;
+            $nota->tratativa_id = $this->resolveTratativaIdFromInput($_POST['tratativa_id'] ?? null, $empresaId);
             $nota->titulo = trim($_POST['titulo'] ?? '');
             $nota->contenido = trim($_POST['contenido'] ?? '');
             $nota->tags = !empty($_POST['tags']) ? trim($_POST['tags']) : null;
@@ -208,6 +242,7 @@ class CrmNotasController extends Controller
         $notaCopy = new CrmNota();
         $notaCopy->empresa_id = $empresaId;
         $notaCopy->cliente_id = $original->cliente_id;
+        $notaCopy->tratativa_id = $original->tratativa_id;
         $notaCopy->titulo = $original->titulo . ' (Copia)';
         $notaCopy->contenido = $original->contenido;
         $notaCopy->tags = $original->tags;
@@ -244,13 +279,129 @@ class CrmNotasController extends Controller
         $empresaId = $this->getEmpresaIdOrDie();
 
         $search = $_GET['search'] ?? '';
-        
+
         $repo = new \App\Modules\CrmClientes\CrmClienteRepository();
         $results = $repo->findSuggestions($empresaId, $search, 'all', 10);
 
         header('Content-Type: application/json');
         echo json_encode(['success' => true, 'data' => $results]);
         exit;
+    }
+
+    /**
+     * Endpoint de autocomplete de tratativas para el selector del form de notas.
+     * Busca por numero, titulo o cliente (campos usados por TratativaRepository::findSuggestions).
+     * Devuelve el contrato canónico: { id, label, caption }.
+     */
+    public function tratativaSuggestions(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+
+        $empresaId = $this->getEmpresaIdOrDie();
+        $term = trim((string) ($_GET['search'] ?? $_GET['q'] ?? ''));
+
+        if (mb_strlen($term) < 2) {
+            echo json_encode(['success' => true, 'data' => []]);
+            exit;
+        }
+
+        $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+        // Buscamos en todos los campos y devolvemos hasta 10 resultados (similar a clientSuggestions).
+        $rows = $tratativaRepo->findSuggestions($empresaId, $term, 'all', '', 10);
+
+        $data = array_map(static function (array $row): array {
+            $numero = (int) ($row['numero'] ?? 0);
+            $titulo = trim((string) ($row['titulo'] ?? ''));
+            $cliente = trim((string) ($row['cliente_nombre'] ?? ''));
+            $estado = trim((string) ($row['estado'] ?? 'nueva'));
+
+            return [
+                'id' => (int) ($row['id'] ?? 0),
+                'numero' => $numero,
+                'titulo' => $titulo,
+                'label' => 'Tratativa #' . $numero . ($titulo !== '' ? ' — ' . $titulo : ''),
+                'caption' => trim(($cliente !== '' ? $cliente : 'Sin cliente') . ' · ' . strtoupper($estado)),
+            ];
+        }, $rows);
+
+        echo json_encode(['success' => true, 'data' => $data], JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    /**
+     * Valida que una tratativa_id (cruda del POST) exista y pertenezca a la empresa.
+     * Devuelve el ID validado o null si no aplica / no pasa la validación.
+     */
+    private function resolveTratativaIdFromInput($rawInput, int $empresaId): ?int
+    {
+        if ($rawInput === null || $rawInput === '' || (int) $rawInput <= 0) {
+            return null;
+        }
+
+        $candidate = (int) $rawInput;
+        $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+        if (!$tratativaRepo->existsActiveForEmpresa($candidate, $empresaId)) {
+            return null;
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * Si la URL trae ?tratativa_id=X (y opcionalmente ?cliente_id=Y), precarga los datos
+     * para mostrarlos en el form de creación de nota. Si la tratativa tiene cliente
+     * asociado, el cliente de la nota se hereda automáticamente (criterio acordado).
+     *
+     * Devuelve un array con:
+     *   - tratativa_id / tratativa_numero / tratativa_titulo (o null si no se encontró)
+     *   - cliente_id / cliente_nombre (o null si no se encontró)
+     */
+    private function resolvePrefillFromQuery(int $empresaId): array
+    {
+        $prefill = [
+            'tratativa_id' => null,
+            'tratativa_numero' => null,
+            'tratativa_titulo' => null,
+            'cliente_id' => null,
+            'cliente_nombre' => null,
+        ];
+
+        if (!empty($_GET['tratativa_id'])) {
+            $candidate = (int) $_GET['tratativa_id'];
+            if ($candidate > 0) {
+                $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+                $tratativa = $tratativaRepo->findById($candidate, $empresaId);
+                if ($tratativa !== null) {
+                    $prefill['tratativa_id'] = $candidate;
+                    $prefill['tratativa_numero'] = (int) ($tratativa['numero'] ?? 0);
+                    $prefill['tratativa_titulo'] = (string) ($tratativa['titulo'] ?? '');
+
+                    // Heredar cliente de la tratativa si tiene uno.
+                    $clienteIdFromTratativa = (int) ($tratativa['cliente_id'] ?? 0);
+                    if ($clienteIdFromTratativa > 0) {
+                        $prefill['cliente_id'] = $clienteIdFromTratativa;
+                        $prefill['cliente_nombre'] = (string) ($tratativa['cliente_nombre'] ?? '');
+                    }
+                }
+            }
+        }
+
+        // Si se pasa cliente_id por URL, tiene prioridad sobre el heredado de la tratativa.
+        if (!empty($_GET['cliente_id'])) {
+            $candidate = (int) $_GET['cliente_id'];
+            if ($candidate > 0) {
+                $clienteRepo = new \App\Modules\CrmClientes\CrmClienteRepository();
+                $cliente = $clienteRepo->findById($candidate, $empresaId);
+                if ($cliente !== null) {
+                    $prefill['cliente_id'] = $candidate;
+                    $razon = trim((string) ($cliente['razon_social'] ?? ''));
+                    $prefill['cliente_nombre'] = $razon !== '' ? $razon : trim(((string) ($cliente['nombre'] ?? '')) . ' ' . ((string) ($cliente['apellido'] ?? '')));
+                }
+            }
+        }
+
+        return $prefill;
     }
 
     public function showImportForm(): void

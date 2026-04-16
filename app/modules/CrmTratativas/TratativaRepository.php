@@ -341,6 +341,9 @@ class TratativaRepository
         $unlinkPres = $this->db->prepare('UPDATE crm_presupuestos SET tratativa_id = NULL WHERE empresa_id = ? AND tratativa_id IN (' . $placeholders . ')');
         $unlinkPres->execute(array_merge([$empresaId], $intIds));
 
+        $unlinkNotas = $this->db->prepare('UPDATE crm_notas SET tratativa_id = NULL WHERE empresa_id = ? AND tratativa_id IN (' . $placeholders . ')');
+        $unlinkNotas->execute(array_merge([$empresaId], $intIds));
+
         $sql = 'DELETE FROM crm_tratativas WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
         $stmt = $this->db->prepare($sql);
         $stmt->execute(array_merge([$empresaId], $intIds));
@@ -384,6 +387,16 @@ class TratativaRepository
         ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Retorna las Notas asociadas a una tratativa (activas).
+     * Delega en CrmNotaRepository para no duplicar la query.
+     */
+    public function findNotasByTratativaId(int $tratativaId, int $empresaId): array
+    {
+        $notasRepo = new \App\Modules\CrmNotas\CrmNotaRepository();
+        return $notasRepo->findByTratativaId($tratativaId, $empresaId);
     }
 
     /**
