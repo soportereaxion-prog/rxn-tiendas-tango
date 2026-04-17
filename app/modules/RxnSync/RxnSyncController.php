@@ -32,28 +32,38 @@ class RxnSyncController extends Controller
             return ($row['estado'] ?? '') === 'vinculado' && !empty($row['tango_id']);
         }));
 
+        // Precondiciones operativas del circuito. En CRM leen del catálogo comercial
+        // (poblado por Sync Catálogos). En Tiendas leen de los selectores planos del form.
+        $catalogosReady = false;
         if ($area === 'crm') {
             $catalogRepo = new \App\Modules\CrmPresupuestos\CommercialCatalogRepository();
             $listasReady = $catalogRepo->countByType((int) $empresaId, 'lista_precio') > 0;
+            $depositoReady = $catalogRepo->countByType((int) $empresaId, 'deposito') > 0;
+            // El botón "Sync Catálogos" se habilita apenas hay credenciales Tango mínimas.
+            $catalogosReady = !empty($config->tango_connect_token);
         } else {
             $listasReady = !empty($config->lista_precio_1) || !empty($config->lista_precio_2);
+            $depositoReady = !empty($config->deposito_codigo);
         }
-        $depositoReady = !empty($config->deposito_codigo);
 
         View::render('app/modules/RxnSync/views/index.php', [
             'empresaId' => $empresaId,
+            'area' => $area,
             'syncCircuit' => [
+                'area' => $area,
                 'articulos_total' => count($articulosStatus),
                 'articulos_vinculados' => $articulosVinculados,
                 'articulos_ready' => $articulosVinculados > 0,
                 'listas_ready' => $listasReady,
                 'deposito_ready' => $depositoReady,
+                'catalogos_ready' => $catalogosReady,
                 'precios_ready' => $articulosVinculados > 0 && $listasReady,
                 'stock_ready' => $articulosVinculados > 0 && $depositoReady,
                 'config_path' => $area === 'crm' ? '/mi-empresa/crm/configuracion' : '/mi-empresa/configuracion',
                 'sync_articulos_path' => $area === 'crm' ? '/mi-empresa/crm/sync/articulos' : '/mi-empresa/sync/articulos',
                 'sync_precios_path' => $area === 'crm' ? '/mi-empresa/crm/sync/precios?return=/mi-empresa/crm/rxn-sync' : '/mi-empresa/sync/precios?return=/mi-empresa/rxn-sync',
                 'sync_stock_path' => $area === 'crm' ? '/mi-empresa/crm/sync/stock?return=/mi-empresa/crm/rxn-sync' : '/mi-empresa/sync/stock?return=/mi-empresa/rxn-sync',
+                'sync_catalogos_path' => '/mi-empresa/crm/rxn-sync/sync-catalogos',
             ],
         ]);
     }
@@ -242,6 +252,155 @@ class RxnSyncController extends Controller
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
         exit;
+    }
+
+    /**
+     * AJAX: Flujo completo para Articulos = Import (pull masivo desde Tango, upsert local)
+     * + Audit (match suave por codigo). Devuelve stats consolidados.
+     *
+     * Esto reemplaza conceptualmente lo que antes hacia el boton "Sync Total" del
+     * modulo Articulos antes de la migracion a RxnSync (ver docs/logs/2026-03-26_2107_sync_total_articulos.md).
+     */
+    public function syncPullArticulos(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(240);
+
+        $empresaId = (int) Context::getEmpresaId();
+
+        try {
+            $tangoSyncService = $this->resolveTangoSyncService();
+            $importStats = $tangoSyncService->syncArticulos();
+            $auditResult = $this->service->auditarArticulos($empresaId);
+
+            $msg = sprintf(
+                'Sincronización completada. Importados: %d recibidos → %d nuevos / %d actualizados / %d omitidos. Vinculación: %d vinculados / %d pendientes.',
+                (int) ($importStats['recibidos'] ?? 0),
+                (int) ($importStats['insertados'] ?? 0),
+                (int) ($importStats['actualizados'] ?? 0),
+                (int) ($importStats['omitidos'] ?? 0),
+                (int) ($auditResult['vinculados'] ?? 0),
+                (int) ($auditResult['pendientes'] ?? 0)
+            );
+
+            echo json_encode([
+                'success' => true,
+                'message' => $msg,
+                'stats'   => [
+                    'import' => $importStats,
+                    'audit'  => $auditResult,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error en sincronización: ' . $e->getMessage(),
+                'error_class' => (new \ReflectionClass($e))->getShortName(),
+                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
+            ]);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX: Flujo completo para Clientes = Import + Audit. Solo aplica a area CRM.
+     */
+    public function syncPullClientes(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(240);
+
+        $empresaId = (int) Context::getEmpresaId();
+
+        try {
+            $tangoSyncService = $this->resolveTangoSyncService();
+            $importStats = $tangoSyncService->syncClientes();
+            $auditResult = $this->service->auditarClientes($empresaId);
+
+            $msg = sprintf(
+                'Sincronización completada. Importados: %d recibidos → %d nuevos / %d actualizados / %d omitidos. Vinculación: %d vinculados / %d pendientes.',
+                (int) ($importStats['recibidos'] ?? 0),
+                (int) ($importStats['insertados'] ?? 0),
+                (int) ($importStats['actualizados'] ?? 0),
+                (int) ($importStats['omitidos'] ?? 0),
+                (int) ($auditResult['vinculados'] ?? 0),
+                (int) ($auditResult['pendientes'] ?? 0)
+            );
+
+            echo json_encode([
+                'success' => true,
+                'message' => $msg,
+                'stats'   => [
+                    'import' => $importStats,
+                    'audit'  => $auditResult,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error en sincronización: ' . $e->getMessage(),
+                'error_class' => (new \ReflectionClass($e))->getShortName(),
+                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
+            ]);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX: Sincroniza los catalogos comerciales del area CRM (condiciones de venta,
+     * listas de precio, vendedores, transportes y depositos). Es prerequisito para
+     * poder ejecutar Sync Precios y Sync Stock en CRM, porque esos dependen de que
+     * haya listas y depositos en crm_catalogo_comercial_items.
+     *
+     * Antes vivia en PresupuestoController::syncCatalogs — se movio aca en release 1.12.5
+     * porque semanticamente es responsabilidad de la consola de sincronizacion.
+     */
+    public function syncCatalogos(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(240);
+
+        try {
+            $empresaId = (int) Context::getEmpresaId();
+            $catalogSync = new \App\Modules\RxnSync\Services\CommercialCatalogSyncService();
+            $stats = $catalogSync->sync($empresaId);
+
+            $msg = sprintf(
+                'Catálogos sincronizados. Condiciones: %d / Listas: %d / Vendedores: %d / Transportes: %d / Depósitos: %d (total recibidos).',
+                (int) ($stats['condicion_venta']['received'] ?? 0),
+                (int) ($stats['lista_precio']['received'] ?? 0),
+                (int) ($stats['vendedor']['received'] ?? 0),
+                (int) ($stats['transporte']['received'] ?? 0),
+                (int) ($stats['deposito']['received'] ?? 0)
+            );
+
+            echo json_encode([
+                'success' => true,
+                'message' => $msg,
+                'stats'   => $stats,
+            ]);
+        } catch (\Throwable $e) {
+            // \Throwable para atrapar Fatal errors (class not found, etc) y no
+            // dejar que xdebug devuelva HTML con 200 status. Aplica regla del
+            // proyecto: diagnóstico persistente > error silencioso.
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error en Sync Catálogos: ' . $e->getMessage(),
+                'error_class' => (new \ReflectionClass($e))->getShortName(),
+                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
+            ]);
+        }
+        exit;
+    }
+
+    private function resolveTangoSyncService(): \App\Modules\Tango\Services\TangoSyncService
+    {
+        return $this->resolveArea() === 'crm'
+            ? \App\Modules\Tango\Services\TangoSyncService::forCrm()
+            : new \App\Modules\Tango\Services\TangoSyncService();
     }
 
     private function resolveArea(): string

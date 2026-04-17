@@ -368,6 +368,15 @@ ob_start();
                                    value="<?= htmlspecialchars((string)($old['cantidad_articulos_sync'] ?? ($config->cantidad_articulos_sync ?? 50))) ?>">
                         </div>
 
+                        <?php if (!(isset($area) && $area === 'crm')): ?>
+                        <!--
+                            Selectores Lista Precio 1/2 + Depósito: SOLO aplican al área Tiendas.
+                            En Tiendas son fuente de verdad para Sync Precios (columnas planas precio_lista_1/2 en crm_articulos)
+                            y Sync Stock (stock_actual). En CRM estos selectores NO aplican — los precios y stock se trabajan
+                            contra el catálogo comercial completo (crm_articulo_precios y crm_articulo_stocks normalizados),
+                            poblado por "Sync Catálogos" en RxnSync. Se ocultan para no confundir al operador CRM.
+                            Ver release 1.12.5 (2026-04-16) + EmpresaConfig/MODULE_CONTEXT.md.
+                        -->
                         <div class="col-md-4 mt-3">
                             <label for="lista_precio_1" class="form-label">Lista de Precios 1</label>
                             <?php $valL1 = htmlspecialchars((string)($old['lista_precio_1'] ?? ($config->lista_precio_1 ?? ''))); ?>
@@ -389,11 +398,22 @@ ob_start();
                                 <?php if($valDep): ?><option value="<?= $valDep ?>">Guardado (<?= $valDep ?>)</option><?php else: ?><option value="">Validar conexión...</option><?php endif; ?>
                             </select>
                         </div>
+                        <?php else: ?>
+                        <div class="col-12 mt-3">
+                            <div class="alert alert-info border-0 rounded-3 shadow-sm mb-0 d-flex align-items-start gap-3">
+                                <span class="fs-4">📚</span>
+                                <div class="small">
+                                    <strong>Listas de Precio y Depósitos en CRM:</strong> se sincronizan <b>todos automáticamente</b> desde Tango Connect.
+                                    Usá el botón <b>Sync Catálogos</b> en <a href="/mi-empresa/crm/rxn-sync" class="alert-link">RxnSync</a> para poblar listas, depósitos, condiciones de venta, vendedores y transportes. Después correrán Sync Precios y Sync Stock sin necesidad de elegir cuáles.
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
 
                         <div class="col-md-12">
                             <label for="clasificaciones_pds_raw" class="form-label">Catálogo Local de Clasificaciones PDS</label>
-                            <textarea class="form-control font-monospace" id="clasificaciones_pds_raw" name="clasificaciones_pds_raw" rows="3" style="font-size:0.8rem;" placeholder='[{"codigo":"ASETGO", "descripcion":"Asesoramiento Tango"}, ...]'><?= htmlspecialchars($old['clasificaciones_pds_raw'] ?? ($config->clasificaciones_pds_raw ?? '')) ?></textarea>
-                            <div class="form-text"><small>Alimenta el autocompletado del CRM sin demoras de la API externa (soporta JSON array).</small></div>
+                            <textarea class="form-control font-monospace" id="clasificaciones_pds_raw" name="clasificaciones_pds_raw" rows="4" style="font-size:0.8rem;" placeholder="ASETGO Asesoramiento Tango&#10;TRAT01 Tratamiento base&#10;..."><?= htmlspecialchars($old['clasificaciones_pds_raw'] ?? ($config->clasificaciones_pds_raw ?? '')) ?></textarea>
+                            <div class="form-text"><small>Una línea por clasificación: <code>CODIGO descripcion</code>. Se autollena al validar conexión (process 326) si está vacío. Alimenta el autocompletado del CRM en PDS y Presupuestos sin demoras de la API externa. Si querés forzar re-sync, vaciá el textarea y apretá <em>Validar Conexión</em>.</small></div>
                         </div>
 
                         <div class="col-md-12">
@@ -410,11 +430,15 @@ ob_start();
                                         <button class="btn btn-outline-secondary" type="button" id="toggleTokenEye" title="Mostrar/Ocultar">👁️</button>
                                     </div>
                                 </div>
-                                <div class="col-md-3 mt-3 mt-md-0 d-grid">
+                                <div class="col-md-3 mt-3 mt-md-0 d-grid gap-2">
                                     <button type="button" id="btn-validate-tango" class="btn btn-primary d-flex justify-content-center align-items-center gap-2 shadow-sm"><i class="bi bi-shield-check"></i> <span>Validar Conexión</span></button>
+                                    <button type="button" id="btn-diagnose-tango" class="btn btn-outline-secondary btn-sm d-flex justify-content-center align-items-center gap-2" title="Consulta directa a Connect process=1418 con Company: -1 y muestra la respuesta cruda. Útil si el selector de empresa queda vacío."><i class="bi bi-bug"></i> <span>Diagnóstico crudo</span></button>
                                 </div>
                                 <div class="col-12">
                                     <div id="tango-select-hint" class="form-text text-muted">La pantalla muestra primero lo guardado localmente. Connect solo se consulta cuando validás la integración.</div>
+                                </div>
+                                <div class="col-12">
+                                    <div id="tango-diagnostic-panel" class="d-none mt-3"></div>
                                 </div>
                             </div>
                         </div>
@@ -605,6 +629,20 @@ ob_start();
             const tangoBtn = document.getElementById('btn-validate-tango');
             const tangoHint = document.getElementById('tango-select-hint');
 
+            // Resuelve la base del contexto (CRM vs Tiendas). En scope del DOMContentLoaded
+            // porque lo usan tanto loadTangoMetadata como el boton de "Diagnostico crudo".
+            const configBase = window.location.pathname.includes('/crm/')
+                ? '/mi-empresa/crm/configuracion'
+                : '/mi-empresa/configuracion';
+
+            // Acumulador de diagnostics por corrida de validacion.
+            // En scope del DOMContentLoaded porque lo leen renderTangoDiagnosticPanel
+            // (declarado afuera) y lo escribe fetchCatalog (adentro de loadTangoMetadata).
+            const tangoDiagnostics = [];
+            function recordTangoDiagnostic(entry) {
+                tangoDiagnostics.push(entry);
+            }
+
             async function loadTangoMetadata({ validateFirst = false } = {}) {
                 if (!tangoBtn) {
                     return false;
@@ -613,11 +651,6 @@ ob_start();
                 const originalBtnHtml = tangoBtn.innerHTML;
                 const originalHint = tangoHint ? tangoHint.textContent : '';
 
-                // Resuelve la base del contexto (CRM vs Tiendas)
-                const configBase = window.location.pathname.includes('/crm/')
-                    ? '/mi-empresa/crm/configuracion'
-                    : '/mi-empresa/configuracion';
-
                 async function fetchCatalog(endpoint, formData, onSuccess, label) {
                     try {
                         const res  = await fetch(configBase + '/' + endpoint, { method: 'POST', body: formData });
@@ -625,7 +658,18 @@ ob_start();
                         let json;
                         try { json = JSON.parse(text); } catch (e) {
                             console.warn('[Tango] JSON inválido en ' + endpoint + ':', text.substring(0, 100));
+                            recordTangoDiagnostic({
+                                outcome: 'error',
+                                label: label,
+                                error_class: 'InvalidJson',
+                                error_message: 'El endpoint ' + endpoint + ' devolvió contenido no parseable.',
+                                raw_sample: text.substring(0, 500)
+                            });
                             return false;
+                        }
+                        // Guardar SIEMPRE el diagnostic (éxito o fracaso) para que el banner pueda explicarlo
+                        if (json.diagnostic) {
+                            recordTangoDiagnostic(Object.assign({ label: label }, json.diagnostic));
                         }
                         if (json.success && Array.isArray(json.data)) {
                             onSuccess(json.data);
@@ -635,10 +679,18 @@ ob_start();
                         return false;
                     } catch (err) {
                         console.error('[Tango] Error de red en ' + endpoint + ':', err);
+                        recordTangoDiagnostic({
+                            outcome: 'error',
+                            label: label,
+                            error_class: 'NetworkError',
+                            error_message: String(err && err.message ? err.message : err)
+                        });
                         return false;
                     }
                 }
 
+                tangoDiagnostics.length = 0; // reset por corrida de validación
+                hideTangoDiagnosticPanel();
                 tangoBtn.innerHTML = validateFirst ? '⏳ Validando...' : '⏳ Resolviendo catálogos...';
                 tangoBtn.disabled = true;
                 if (tangoHint) {
@@ -676,11 +728,11 @@ ob_start();
                         tangoBtn.classList.replace('btn-primary', 'btn-success');
                     }
 
-                    // 4 fetches atómicos paralelos — cada uno es independiente, ~2-3s c/u
+                    // 5 fetches atómicos paralelos — cada uno es independiente, ~2-3s c/u
                     let done = 0;
                     const tick = () => {
                         done++;
-                        if (tangoHint) tangoHint.textContent = `Cargando catálogos Tango... ${done}/4`;
+                        if (tangoHint) tangoHint.textContent = `Cargando catálogos Tango... ${done}/5`;
                     };
 
                     await Promise.allSettled([
@@ -696,11 +748,15 @@ ob_start();
                         fetchCatalog('tango-perfiles', formData, function(items) {
                             tick(); populateTangoSelects({ perfiles_pedidos: items });
                         }, 'Perfiles'),
+                        fetchCatalog('tango-clasificaciones', formData, function(items) {
+                            tick(); populateClasificacionesPds(items);
+                        }, 'Clasificaciones PDS'),
                     ]);
 
                     if (tangoHint) {
                         tangoHint.textContent = 'Catálogos Tango resueltos. Si un valor no existe más en Connect, se conserva el guardado.';
                     }
+                    renderTangoDiagnosticPanel();
                     return true;
 
                 } catch (error) {
@@ -766,6 +822,142 @@ ob_start();
                 tangoBtn.addEventListener('click', async () => {
                     await loadTangoMetadata({ validateFirst: true });
                 });
+            }
+
+            // ---- Panel de diagnostico Connect ----
+            const diagnosticPanel = document.getElementById('tango-diagnostic-panel');
+
+            function hideTangoDiagnosticPanel() {
+                if (!diagnosticPanel) return;
+                diagnosticPanel.classList.add('d-none');
+                diagnosticPanel.innerHTML = '';
+            }
+
+            function escapeHtml(v) {
+                const s = v == null ? '' : String(v);
+                return s.replace(/[&<>"']/g, c => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[c]));
+            }
+
+            function renderTangoDiagnosticPanel() {
+                if (!diagnosticPanel) return;
+                // Mostrar SIEMPRE que haya al menos un diagnostic con outcome != 'ok'
+                const anomalies = tangoDiagnostics.filter(d => d && d.outcome && d.outcome !== 'ok');
+                if (anomalies.length === 0) {
+                    hideTangoDiagnosticPanel();
+                    return;
+                }
+
+                const rows = anomalies.map(d => {
+                    const badgeClass = d.outcome === 'error' ? 'bg-danger' : 'bg-warning text-dark';
+                    const badgeText = d.outcome === 'error' ? 'ERROR' : 'VACÍO';
+                    const extra = [];
+                    if (d.process != null) extra.push('process=' + escapeHtml(d.process));
+                    if (d.company_header) extra.push('Company=' + escapeHtml(d.company_header));
+                    if (d.http_code) extra.push('HTTP ' + escapeHtml(d.http_code));
+                    if (d.items_count != null) extra.push('items=' + escapeHtml(d.items_count));
+                    const headerExtra = extra.length ? ' <small class="text-muted">' + extra.join(' · ') + '</small>' : '';
+
+                    const firstKeys = Array.isArray(d.first_item_keys) && d.first_item_keys.length > 0
+                        ? '<div class="small mt-1"><strong>Claves del primer item recibido:</strong> <code>' + escapeHtml(d.first_item_keys.join(', ')) + '</code></div>'
+                        : '';
+                    const idKeys = Array.isArray(d.id_keys) && d.id_keys.length > 0
+                        ? '<div class="small"><strong>Claves de ID buscadas:</strong> <code>' + escapeHtml(d.id_keys.join(', ')) + '</code></div>'
+                        : '';
+                    const errBlock = d.error_message
+                        ? '<div class="small mt-1 text-danger"><strong>' + escapeHtml(d.error_class || 'Error') + ':</strong> ' + escapeHtml(d.error_message) + '</div>'
+                        : '';
+                    const rawBlock = d.raw_sample
+                        ? '<details class="small mt-2"><summary class="text-muted">Ver respuesta cruda (primeros 500 chars)</summary><pre class="mb-0 mt-1 p-2 bg-light border rounded" style="white-space: pre-wrap; word-break: break-all; font-size: 0.75rem; max-height: 200px; overflow-y: auto;">' + escapeHtml(d.raw_sample) + '</pre></details>'
+                        : '';
+
+                    return '<div class="border-start border-3 ps-3 mb-2 ' + (d.outcome === 'error' ? 'border-danger' : 'border-warning') + '">'
+                        + '<div><span class="badge ' + badgeClass + ' me-2">' + badgeText + '</span><strong>' + escapeHtml(d.label || 'Catálogo') + '</strong>' + headerExtra + '</div>'
+                        + idKeys
+                        + firstKeys
+                        + errBlock
+                        + rawBlock
+                        + '</div>';
+                }).join('');
+
+                const anyError = anomalies.some(d => d.outcome === 'error');
+                const headerHtml = '<div class="alert ' + (anyError ? 'alert-danger' : 'alert-warning') + ' shadow-sm rounded-3 mb-0">'
+                    + '<h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle"></i> Diagnóstico Connect</h6>'
+                    + '<div class="small text-muted mb-3">Se detectaron catálogos sin datos o con error. Revisá el detalle antes de guardar — probablemente Axoft está respondiendo con un shape distinto o con credenciales insuficientes para esa empresa.</div>'
+                    + rows
+                    + '</div>';
+
+                diagnosticPanel.innerHTML = headerHtml;
+                diagnosticPanel.classList.remove('d-none');
+            }
+
+            // Botón "Diagnóstico crudo" → hace dump directo de process=1418
+            const diagnoseBtn = document.getElementById('btn-diagnose-tango');
+            if (diagnoseBtn) {
+                diagnoseBtn.addEventListener('click', async () => {
+                    const originalText = diagnoseBtn.innerHTML;
+                    diagnoseBtn.innerHTML = '⏳ Consultando...';
+                    diagnoseBtn.disabled = true;
+                    try {
+                        const formData = new FormData(diagnoseBtn.closest('form'));
+                        const res = await fetch(configBase + '/tango-diagnose', { method: 'POST', body: formData });
+                        const text = await res.text();
+                        let json;
+                        try { json = JSON.parse(text); } catch (e) {
+                            diagnosticPanel.innerHTML = '<div class="alert alert-danger mb-0"><strong>Respuesta no parseable:</strong><pre class="mb-0 mt-2 small" style="white-space: pre-wrap;">' + escapeHtml(text.substring(0, 1000)) + '</pre></div>';
+                            diagnosticPanel.classList.remove('d-none');
+                            return;
+                        }
+                        const d = (json.data || {});
+                        const diag = d.diagnostic || {};
+                        const req  = d.request_info || {};
+                        const html = '<div class="alert ' + (json.success ? 'alert-info' : 'alert-danger') + ' shadow-sm rounded-3 mb-0">'
+                            + '<h6 class="fw-bold mb-2"><i class="bi bi-bug"></i> Diagnóstico crudo — process=1418 (maestro Empresas)</h6>'
+                            + '<div class="small mb-2"><strong>Endpoint:</strong> ' + escapeHtml(d.endpoint || '') + '</div>'
+                            + '<div class="small mb-2"><strong>Outcome TangoApiClient:</strong> ' + escapeHtml(diag.outcome || '-') + ' · <strong>items parseados:</strong> ' + escapeHtml(d.empresas_parsed_count ?? '-') + ' · <strong>list recibida:</strong> ' + escapeHtml(d.resultData_list_count ?? '-') + '</div>'
+                            + (diag.error_message ? '<div class="small text-danger mb-2"><strong>' + escapeHtml(diag.error_class || 'Error') + ':</strong> ' + escapeHtml(diag.error_message) + '</div>' : '')
+                            + (d.top_level_keys && d.top_level_keys.length ? '<div class="small mb-1"><strong>Top-level keys:</strong> <code>' + escapeHtml(d.top_level_keys.join(', ')) + '</code></div>' : '')
+                            + (d.first_item_keys && d.first_item_keys.length ? '<div class="small mb-1"><strong>Primer item keys:</strong> <code>' + escapeHtml(d.first_item_keys.join(', ')) + '</code></div>' : '')
+                            + (req.url ? '<div class="small mb-1"><strong>URL llamada:</strong> <code style="word-break: break-all;">' + escapeHtml(req.url) + '</code></div>' : '')
+                            + '<details class="small mt-2"><summary class="text-muted">Ver respuesta cruda (primeros 2000 chars)</summary><pre class="mb-0 mt-1 p-2 bg-light border rounded" style="white-space: pre-wrap; word-break: break-all; font-size: 0.75rem; max-height: 400px; overflow-y: auto;">' + escapeHtml(d.raw_response_sample || json.message || '(sin contenido)') + '</pre></details>'
+                            + '</div>';
+                        diagnosticPanel.innerHTML = html;
+                        diagnosticPanel.classList.remove('d-none');
+                    } catch (err) {
+                        diagnosticPanel.innerHTML = '<div class="alert alert-danger mb-0"><strong>Error de red:</strong> ' + escapeHtml(String(err)) + '</div>';
+                        diagnosticPanel.classList.remove('d-none');
+                    } finally {
+                        diagnoseBtn.innerHTML = originalText;
+                        diagnoseBtn.disabled = false;
+                    }
+                });
+            }
+
+            // Auto-llenado del textarea "Catálogo Local de Clasificaciones PDS".
+            // El shape que espera ClasificacionCatalogService::parseRaw() son líneas planas
+            // "CODIGO descripcion" — NO JSON. Por eso acá transformamos los items a ese formato.
+            // Regla de respeto: solo sobrescribimos si el textarea está vacío, para no pisar
+            // ediciones manuales del operador.
+            function populateClasificacionesPds(items) {
+                const ta = document.getElementById('clasificaciones_pds_raw');
+                if (!ta || !Array.isArray(items) || items.length === 0) return;
+
+                const existing = (ta.value || '').trim();
+                if (existing !== '') {
+                    // Ya tiene contenido manual — no tocamos. Se puede forzar re-sync
+                    // limpiando el textarea y reapretando Validar Conexión.
+                    return;
+                }
+
+                const lines = items.map(function(it) {
+                    const code = (it && it.codigo ? String(it.codigo) : '').trim();
+                    const desc = (it && it.descripcion ? String(it.descripcion) : '').trim();
+                    if (!code) return null;
+                    return desc ? (code + ' ' + desc) : code;
+                }).filter(Boolean);
+
+                ta.value = lines.join('\n');
             }
 
             function populateTangoSelects(data) {
@@ -858,7 +1050,7 @@ ob_start();
                     
                     const wrapper = document.createElement('div');
                     wrapper.className = 'position-relative w-100';
-                    wrapper.style.zIndex = '999'; 
+                    wrapper.style.zIndex = '1';
                     // Asegurar que el padre no corte
                     if (selectEl.parentElement) {
                         selectEl.parentElement.style.overflow = 'visible';
@@ -895,7 +1087,10 @@ ob_start();
                         }
                     };
                     
-                    input.addEventListener('focus', () => renderSuggestions(''));
+                    input.addEventListener('focus', () => {
+                        wrapper.style.zIndex = '1060';
+                        renderSuggestions('');
+                    });
                     input.addEventListener('input', (e) => renderSuggestions(e.target.value));
 
                     let currentFocus = -1;
@@ -939,11 +1134,13 @@ ob_start();
                         if(!isMousedown) {
                             setTimeout(() => {
                                 suggestions.classList.add('d-none');
+                                wrapper.style.zIndex = '1'; // devolver al stacking default
                                 selectEl._syncSearch();
                             }, 150);
                         }
                         isMousedown = false;
                     });
+
 
                     // Evento click extra para asegurar despliegue completo
                     input.addEventListener('click', (e) => {

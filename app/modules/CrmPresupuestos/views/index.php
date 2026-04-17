@@ -35,7 +35,7 @@ ob_start();
 
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="/mi-empresa/crm/formularios-impresion/crm_presupuesto" class="btn btn-outline-dark"><i class="bi bi-easel2"></i> Formulario</a>
-                <a href="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" class="btn btn-outline-warning" data-rxn-confirm="¿Sincronizar catalogos comerciales CRM para depositos, condiciones, listas, vendedores y transportes?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Sync Catalogos</a>
+                <a href="<?= htmlspecialchars((string) $syncCatalogosPath) ?>" class="btn btn-outline-info" title="Los catálogos comerciales se sincronizan desde la consola RxnSync."><i class="bi bi-arrow-up-right-square"></i> Ir a RxnSync</a>
                 <a href="/mi-empresa/crm/presupuestos/crear" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nuevo presupuesto</a>
                 <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al CRM</a>
             </div>

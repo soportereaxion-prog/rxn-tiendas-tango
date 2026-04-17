@@ -10,6 +10,7 @@ use App\Modules\Articulos\ArticuloRepository;
 use App\Modules\Auth\AuthService;
 use App\Modules\CrmClientes\CrmClienteRepository;
 use App\Modules\EmpresaConfig\EmpresaConfigRepository;
+use App\Modules\RxnSync\Services\CommercialCatalogSyncService;
 use App\Shared\Services\OperationalAreaService;
 use DateTimeImmutable;
 use Throwable;
@@ -507,60 +508,6 @@ class PresupuestoController extends \App\Core\Controller
         exit;
     }
 
-    public function syncCatalogs(): void
-    {
-        AuthService::requireLogin();
-        $empresaId = (int) Context::getEmpresaId();
-        $redirectPath = '/mi-empresa/crm/presupuestos';
-        $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
-        $refererPath = (string) parse_url($referer, PHP_URL_PATH);
-        $refererQuery = (string) parse_url($referer, PHP_URL_QUERY);
-        if ($refererPath !== '' && str_contains($refererPath, '/mi-empresa/crm/presupuestos')) {
-            $redirectPath = $refererPath . ($refererQuery !== '' ? '?' . $refererQuery : '');
-        }
-
-        try {
-            $stats = $this->catalogSyncService->sync($empresaId);
-
-            if (isset($_SESSION['user_id'])) {
-                $userRepo = new \App\Modules\Auth\UsuarioRepository();
-                $usuario = $userRepo->findById((int)$_SESSION['user_id']);
-                if ($usuario && $usuario->tango_perfil_pedido_id) {
-                    $config = $this->configRepository->findByEmpresaId($empresaId);
-                    if ($config) {
-                        $token = trim((string) ($config->tango_connect_token ?? ''));
-                        $clientKey = trim((string) ($config->tango_connect_key ?? ''));
-                        $apiUrl = trim((string) ($config->tango_api_url ?? ''));
-                        $companyId = trim((string) ($config->tango_connect_company_id ?? '-1'));
-                        
-                        if ($token !== '' && ($clientKey !== '' || $apiUrl !== '')) {
-                            $finalUrl = $clientKey !== ''
-                                ? rtrim(sprintf('https://%s.connect.axoft.com/Api', str_replace('/', '-', $clientKey)), '/')
-                                : rtrim($apiUrl, '/');
-                                
-                            $apiClient = new \App\Modules\Tango\TangoApiClient($finalUrl, $token, $companyId !== '' ? $companyId : '-1', $clientKey !== '' ? $clientKey : null);
-                            try {
-                                $perfilData = $apiClient->getPerfilPedidoById($usuario->tango_perfil_pedido_id);
-                                if (!empty($perfilData)) {
-                                    $usuario->tango_perfil_snapshot_json = json_encode(['raw' => $perfilData, 'company_id' => $companyId], JSON_UNESCAPED_UNICODE);
-                                    $usuario->tango_perfil_snapshot_date = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
-                                    $userRepo->save($usuario);
-                                }
-                            } catch (\Throwable $ex) {}
-                        }
-                    }
-                }
-            }
-
-            Flash::set('success', 'Catalogos comerciales CRM sincronizados correctamente.', $stats);
-        } catch (Throwable $e) {
-            Flash::set('danger', 'No se pudieron sincronizar los catalogos comerciales CRM: ' . $e->getMessage());
-        }
-
-        header('Location: ' . $redirectPath);
-        exit;
-    }
-
     public function clientSuggestions(): void
     {
         AuthService::requireLogin();
@@ -720,7 +667,8 @@ class PresupuestoController extends \App\Core\Controller
             'basePath' => '/mi-empresa/crm/presupuestos',
             'moduleNotesKey' => 'crm_presupuestos',
             'moduleNotesLabel' => 'Presupuestos CRM',
-            'syncCatalogosPath' => '/mi-empresa/crm/presupuestos/catalogos/sincronizar',
+            // Sync Catalogos vive ahora en RxnSync (release 1.12.5). Ver /mi-empresa/crm/rxn-sync.
+            'syncCatalogosPath' => '/mi-empresa/crm/rxn-sync',
         ];
     }
 

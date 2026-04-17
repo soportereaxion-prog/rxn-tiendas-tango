@@ -12,15 +12,19 @@ class TangoSyncController extends Controller
     {
         AuthService::requireLogin();
         $syncService = $this->resolveService();
-        $redirectPath = '/mi-empresa/crm/clientes';
-        
+        // Respeta ?return= si viene de RxnSync u otro modulo; si no, vuelve al listado de clientes.
+        $return = trim((string) ($_GET['return'] ?? ''));
+        $redirectPath = ($return !== '' && str_starts_with($return, '/mi-empresa/'))
+            ? $return
+            : '/mi-empresa/crm/clientes';
+
         try {
             $stats = $syncService->syncClientes();
-            
+
             \App\Core\Flash::set('success', 'Sincronización de Clientes finalizada exitosamente.', $stats);
             header('Location: ' . $redirectPath);
             exit;
-            
+
         } catch (\Exception $e) {
             \App\Core\Flash::set('danger', 'Error de Sincronización de Clientes: ' . $e->getMessage());
             header('Location: ' . $redirectPath);

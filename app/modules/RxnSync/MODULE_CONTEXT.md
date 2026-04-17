@@ -16,8 +16,33 @@ El módulo **RxnSync** es la consola centralizada de sincronización bidireccion
 Además expone el **Circuito de Sync** — un panel visual que indica al operador si las precondiciones están cumplidas (artículos vinculados, listas de precios configuradas, depósito configurado) antes de ejecutar sincronizaciones masivas de Precios y Stock.
 
 ## Alcance
-- **Sí hace**: Sincronización individual y masiva de `Clientes CRM` y `Artículos CRM`. Realiza la vinculación blanda ("Match Suave") basada en SKU o código, y conserva el historial de transacciones mediante un pivot. Inicia sincronizaciones de Precios y Stock redirigiendo al `TangoSyncController` con `?return=` para volver al módulo.
-- **No hace**: No sincroniza pedidos transaccionales ni configuraciones maestras. No realiza sincronización desatendida/automática (es *on demand* operada por el usuario). No sincroniza hacia el entorno de *Tiendas B2C/B2B*.
+- **Sí hace**:
+  - Sincronización masiva e individual de `Clientes CRM` y `Artículos CRM` (Import + Audit o las variantes separadas). Ver sección "Flujos de sync" más abajo.
+  - Sincronización de **Catálogos Comerciales CRM** (condiciones de venta, listas de precio, vendedores, transportes, depósitos) via `CommercialCatalogSyncService` que habita en `Services/`. Prerequisito para que `Sync Precios` y `Sync Stock` funcionen en CRM.
+  - Inicia sincronizaciones de Precios y Stock redirigiendo al `TangoSyncController` con `?return=` para volver al módulo.
+  - Realiza la vinculación blanda ("Match Suave") basada en SKU o código, y conserva el historial de transacciones mediante un pivot `rxn_sync_status` + log `rxn_sync_log`.
+- **No hace**: No sincroniza pedidos transaccionales ni configuraciones maestras. No realiza sincronización desatendida/automática (es *on demand* operada por el usuario). No sincroniza clientes hacia el entorno de *Tiendas B2C/B2B* (no hay endpoint `/mi-empresa/sync/clientes` — solo existe en CRM).
+
+## Bifurcación CRM vs Tiendas (importante)
+
+El circuito visual del módulo es distinto según el área:
+
+### Área Tiendas (`/mi-empresa/rxn-sync`)
+Circuito: `1. Artículos → 2. Precios → 3. Stock`.
+- **Precios** se basa en los selectores planos `lista_precio_1` y `lista_precio_2` de `empresa_config` (form de `/mi-empresa/configuracion`). Actualiza columnas planas `precio_lista_1` / `precio_lista_2` en `crm_articulos`. Máximo 2 listas.
+- **Stock** se basa en el selector `deposito_codigo` de `empresa_config`. Actualiza columna plana `stock_actual` en `crm_articulos`. Un solo depósito de referencia.
+- **Catálogos comerciales NO aplican.** El botón "Sync Catálogos" no se renderiza.
+
+### Área CRM (`/mi-empresa/crm/rxn-sync`)
+Circuito: `1. Artículos → 2. Catálogos → 3. Precios → 4. Stock`.
+- **Catálogos** es un paso obligatorio explícito. Trae listas, depósitos, condiciones, vendedores, transportes desde Tango y los persiste en `crm_catalogo_comercial_items`. Se habilita apenas hay credenciales Tango configuradas.
+- **Precios** recorre TODAS las listas del catálogo (no 2) y puebla la tabla normalizada `crm_articulo_precios`.
+- **Stock** recorre TODOS los depósitos del catálogo y puebla la tabla normalizada `crm_articulo_stocks`. No requiere `deposito_codigo` en el config (ese campo está oculto en el form CRM).
+- Los selectores `lista_precio_1/2` y `deposito_codigo` del `empresa_config_crm` NO se usan (se ocultan en el form del área CRM desde release 1.12.5).
+
+**Precondiciones calculadas en `RxnSyncController::index()` por área**:
+- Tiendas: `listasReady = !empty(lista_precio_1) || !empty(lista_precio_2)`; `depositoReady = !empty(deposito_codigo)`.
+- CRM: `listasReady = countByType(empresaId, 'lista_precio') > 0`; `depositoReady = countByType(empresaId, 'deposito') > 0`.
 
 ## Piezas principales
 
@@ -28,15 +53,16 @@ Acciones principales:
 - `index()` — Renderiza la consola con el `syncCircuit` array (estado de precondiciones)
 - `listClientes()` — AJAX, carga parcial del tab de clientes
 - `listArticulos()` — AJAX, carga parcial del tab de artículos
-- `auditarArticulos()` / `auditarClientes()` — AJAX POST, auditoría masiva via Tango
+- `auditarArticulos()` / `auditarClientes()` — AJAX POST, **solo auditoría** (match suave local vs Tango). No trae datos nuevos.
+- `syncPullArticulos()` / `syncPullClientes()` — AJAX POST, flujo completo **Import + Audit** en cadena (release 1.12.4). Es lo que dispara el botón principal "Sincronizar desde Tango".
+- `syncCatalogos()` — AJAX POST, sincroniza catálogos comerciales CRM via `CommercialCatalogSyncService` (release 1.12.5). Solo CRM.
 - `pushToTango()` / `pullSingle()` — AJAX POST, operaciones individuales
 - `pushMasivo()` / `pullMasivo()` — AJAX POST, operaciones masivas seleccionadas
 - `getPayload()` — AJAX GET, solo lectura del último snapshot de sync
 
-### Servicio
-`app/modules/RxnSync/RxnSyncService.php`
-
-Contiene la lógica de negocio, mapeos a DTOs de Tango y conexión real a `TangoService`.
+### Servicios
+- `app/modules/RxnSync/RxnSyncService.php` — lógica de negocio de audit/push/pull de clientes y artículos, mapeos a DTOs de Tango y conexión real a `TangoService`.
+- `app/modules/RxnSync/Services/CommercialCatalogSyncService.php` — sync de catálogos comerciales CRM (condiciones/listas/vendedores/transportes/depósitos). Se movió acá desde `CrmPresupuestos` en release 1.12.5 porque semánticamente es responsabilidad de la consola de sync, no de un módulo de presentación. Persiste en `crm_catalogo_comercial_items` (tabla cuyo repo sigue en `CrmPresupuestos\CommercialCatalogRepository` por consumo directo del form).
 
 ### Sync de Precios y Stock (delegado)
 Las sincronizaciones de precios y stock NO pasan por `RxnSyncController` sino por `TangoSyncController`:

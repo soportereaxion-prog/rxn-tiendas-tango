@@ -9,10 +9,11 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 ## Alcance
 **QUÉ HACE:**
 - Gestiona el ABM de Presupuestos (con Maestro-Detalle para los renglones/artículos).
-- Sincroniza un catálogo local comercial de artículos desde Tango (`CommercialCatalogSyncService`, `CommercialCatalogRepository`).
+- **Consume** el catálogo comercial (condiciones de venta, listas de precio, vendedores, transportes, depósitos) desde `CommercialCatalogRepository`. La sincronización es responsabilidad de **RxnSync** (ver `App\Modules\RxnSync\Services\CommercialCatalogSyncService`, release 1.12.5).
 - Envía presupuestos formalizados al ERP Tango (`PresupuestoTangoService`).
 - Renderiza contexto de impresión con plantillas (`CrmPresupuestoPrintContextBuilder`).
 - Búsqueda visual en grilla, paginación, filtros de estado.
+- Auto-trigger defensivo del Sync Catálogos: si al abrir un form se detecta catálogo vacío, `loadCatalogData()` dispara el sync inline (usando el service de RxnSync) para no bloquear al operador.
 
 **QUÉ NO HACE:**
 - No permite cobrar ni aplicar medios de pago. Es exclusivamente preventa / cotización.
@@ -20,11 +21,11 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 
 ## Piezas principales
 - **Controladores:** `PresupuestoController`.
-- **Servicios:** `PresupuestoTangoService`, `CommercialCatalogSyncService`, `CrmPresupuestoPrintContextBuilder`.
-- **Repositorios:** `PresupuestoRepository`, `CommercialCatalogRepository`.
+- **Servicios:** `PresupuestoTangoService`, `CrmPresupuestoPrintContextBuilder`. (El `CommercialCatalogSyncService` vive ahora en `App\Modules\RxnSync\Services` — release 1.12.5.)
+- **Repositorios:** `PresupuestoRepository`, `CommercialCatalogRepository` (queda en este módulo porque el form lo consume directo — findAllByType, findOption, findFirstByType).
 - **Vistas:** `views/index.php`, `views/form.php`.
-- **Rutas/Pantallas:** `/mi-empresa/crm/presupuestos`.
-- **Tablas/Persistencia:** `crm_presupuestos`, `crm_presupuestos_renglones`, `crm_catalogo_comercial` (caché de artículos).
+- **Rutas/Pantallas:** `/mi-empresa/crm/presupuestos`. El botón "Sync Catálogos" del listado se removió; ahora redirige a la consola RxnSync con un link "Ir a RxnSync".
+- **Tablas/Persistencia:** `crm_presupuestos`, `crm_presupuestos_renglones`, `crm_catalogo_comercial_items` (tabla poblada por RxnSync con condiciones/listas/vendedores/transportes/depósitos).
 
 ## Seguridad Base (Política de Implementación)
 - **Aislamiento Multiempresa**: OBLIGATORIO Y ESTRICTO. La consulta de cabecera de presupuesto, renglones y catálogos usan `empresa_id` inyectado forzosamente desde `Context::getEmpresaId()`.
@@ -40,7 +41,8 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 - **RxnGeoTracking**: Al completar exitosamente la creación de un presupuesto (no en ediciones), `PresupuestoController::store()` invoca `GeoTrackingService::registrar('presupuesto.created', $presupuestoId, 'presupuesto')` para asentar el evento de auditoría geolocalizada. La llamada es **fire-and-forget**: si el servicio falla, el presupuesto ya está guardado y se retorna normalmente al usuario. El `evento_id` retornado queda en `$_SESSION['rxn_geo_pending_event_id']` para que el próximo render del `admin_layout` lo inyecte como meta tag y el JS del browser reporte posición precisa. Ver `app/modules/RxnGeoTracking/MODULE_CONTEXT.md`.
 
 ## Dependencias indirectas / impacto lateral
-- El funcionamiento del módulo depende enormemente de que la sincronización del `CommercialCatalogSyncService` esté sana. Si Tango modifica las clases o alias de sus artículos, y no bajan al CRM, no se podrán armar presupuestos válidos.
+- El funcionamiento del módulo depende enormemente de que la sincronización del `CommercialCatalogSyncService` (hoy en `App\Modules\RxnSync\Services`) esté sana. Si Tango modifica las clases o alias de sus artículos, y no bajan al CRM, no se podrán armar presupuestos válidos.
+- El operador dispara la sincronización desde `RxnSync` (botón "Sync Catálogos"). Si nunca se corrió, los selectores del form van a estar vacíos y se activará el auto-trigger defensivo en `loadCatalogData()`.
 
 ## Reglas operativas del módulo
 - La estructura de guardado suele ser atómica. Guardar la cabecera e iterar y salvar los renglones (artículos).

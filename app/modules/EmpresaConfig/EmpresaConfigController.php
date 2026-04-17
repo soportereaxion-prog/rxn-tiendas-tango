@@ -227,9 +227,13 @@ class EmpresaConfigController extends Controller
             foreach ($raw as $id => $desc) {
                 $empresas[] = ['id' => $id, 'descripcion' => $desc];
             }
-            echo json_encode(['success' => true, 'data' => $empresas], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode($this->envelopeCatalogResponse($empresas, $client, 'Empresas (process 1418)'), JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Throwable $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'diagnostic' => $this->fallbackDiagnosticFromException($e, 'Empresas (process 1418)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
     }
@@ -249,9 +253,13 @@ class EmpresaConfigController extends Controller
             foreach ($raw as $id => $desc) {
                 $listas[] = ['id' => $id, 'descripcion' => $desc];
             }
-            echo json_encode(['success' => true, 'data' => $listas], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode($this->envelopeCatalogResponse($listas, $client, 'Listas de precio (process 984)'), JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Throwable $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'diagnostic' => $this->fallbackDiagnosticFromException($e, 'Listas de precio (process 984)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
     }
@@ -271,9 +279,48 @@ class EmpresaConfigController extends Controller
             foreach ($raw as $id => $desc) {
                 $depositos[] = ['id' => $id, 'descripcion' => $desc];
             }
-            echo json_encode(['success' => true, 'data' => $depositos], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode($this->envelopeCatalogResponse($depositos, $client, 'Depositos (process 2941)'), JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Throwable $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'diagnostic' => $this->fallbackDiagnosticFromException($e, 'Depositos (process 2941)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX atómico: devuelve solo Clasificaciones PDS (process 326).
+     * Se devuelve en el shape "items" que el frontend traduce a lineas planas
+     * (CODIGO descripcion) en el textarea clasificaciones_pds_raw — que es lo
+     * que espera ClasificacionCatalogService::parseRaw().
+     */
+    public function getTangoClasificaciones(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(30);
+        try {
+            $client = $this->buildTangoClientFromPost();
+            $raw    = $client->getClasificacionesPds();
+            // getClasificacionesPds devuelve ['id' => ID_GVA81, 'COD_GVA81' => ..., 'DESCRIP' => ...]
+            $items = [];
+            foreach ($raw as $row) {
+                $code = trim((string) ($row['COD_GVA81'] ?? ''));
+                $desc = trim((string) ($row['DESCRIP'] ?? ''));
+                if ($code === '') {
+                    continue;
+                }
+                $items[] = ['codigo' => $code, 'descripcion' => $desc];
+            }
+            echo json_encode($this->envelopeCatalogResponse($items, $client, 'Clasificaciones PDS (process 326)'), JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'diagnostic' => $this->fallbackDiagnosticFromException($e, 'Clasificaciones PDS (process 326)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
     }
@@ -289,11 +336,128 @@ class EmpresaConfigController extends Controller
         try {
             $client   = $this->buildTangoClientFromPost();
             $perfiles = $client->getPerfilesPedidos();
-            echo json_encode(['success' => true, 'data' => $perfiles], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode($this->envelopeCatalogResponse($perfiles, $client, 'Perfiles de pedido (process 20020)'), JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Throwable $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_INVALID_UTF8_SUBSTITUTE);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'diagnostic' => $this->fallbackDiagnosticFromException($e, 'Perfiles de pedido (process 20020)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
         }
         exit;
+    }
+
+    /**
+     * Endpoint de diagnostico crudo. Ejecuta la misma llamada que getTangoEmpresas
+     * (process 1418 con Company: -1) y devuelve el payload textual tal como vino
+     * desde Axoft — sin parseo, sin filtros. Pensado para cuando el selector de
+     * empresas se ve vacio y hay que saber QUE dijo Connect exactamente.
+     *
+     * Ver docs/logs/2026-04-16 release 1.12.2.
+     */
+    public function diagnoseTangoConnect(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(30);
+
+        try {
+            $client = $this->buildTangoClientFromPost();
+            // Forzamos el flujo real de getMaestroEmpresas (process 1418 con Company: -1)
+            // para que el diagnostico refleje EXACTAMENTE lo que ocurre al validar.
+            $empresas = $client->getMaestroEmpresas();
+            $rawEmpresas = $client->debugLastRawEmpresas;
+            $rawJson = json_encode($rawEmpresas, JSON_INVALID_UTF8_SUBSTITUTE);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'endpoint' => 'Get?process=1418 (Company: -1)',
+                    'empresas_parsed_count' => count($empresas),
+                    'diagnostic' => $client->debugLastDiagnostic,
+                    'raw_response_sample' => $rawJson !== false ? substr($rawJson, 0, 2000) : '',
+                    'resultData_list_count' => is_array($rawEmpresas['resultData']['list'] ?? null)
+                        ? count($rawEmpresas['resultData']['list'])
+                        : (is_array($rawEmpresas['data']['resultData']['list'] ?? null)
+                            ? count($rawEmpresas['data']['resultData']['list'])
+                            : null),
+                    'top_level_keys' => is_array($rawEmpresas ?? null) ? array_keys($rawEmpresas) : [],
+                    'first_item_keys' => is_array($rawEmpresas['resultData']['list'][0] ?? null)
+                        ? array_keys($rawEmpresas['resultData']['list'][0])
+                        : (is_array($rawEmpresas['data']['resultData']['list'][0] ?? null)
+                            ? array_keys($rawEmpresas['data']['resultData']['list'][0])
+                            : []),
+                    'request_info' => $this->scrubSensitiveHeaders($client->debugLastHttpRequest),
+                ],
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'diagnostic' => $this->fallbackDiagnosticFromException($e, 'Diagnostico empresas (process 1418)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    /**
+     * Construye el envelope de respuesta de los 4 endpoints atomicos de catalogos.
+     * SIEMPRE incluye el diagnostic del TangoApiClient — aun cuando success=true —
+     * para que el frontend pueda explicar por que un catalogo vino vacio.
+     */
+    private function envelopeCatalogResponse(array $data, \App\Modules\Tango\TangoApiClient $client, string $label): array
+    {
+        $diagnostic = $client->debugLastDiagnostic;
+        $diagnostic['label'] = $label;
+
+        return [
+            'success' => true,
+            'data' => $data,
+            'diagnostic' => $diagnostic,
+        ];
+    }
+
+    /**
+     * Oculta el token en el debugLastRequest antes de emitirlo por JSON.
+     * El array trae headers como 'ApiAuthorization: <token>'.
+     */
+    private function scrubSensitiveHeaders(array $requestInfo): array
+    {
+        if (!empty($requestInfo['headers']) && is_array($requestInfo['headers'])) {
+            $requestInfo['headers'] = array_map(static function ($h) {
+                if (!is_string($h)) {
+                    return $h;
+                }
+                if (stripos($h, 'ApiAuthorization:') === 0) {
+                    return 'ApiAuthorization: ***redacted***';
+                }
+                return $h;
+            }, $requestInfo['headers']);
+        }
+        return $requestInfo;
+    }
+
+    /**
+     * Cuando la excepcion salta ANTES de que fetchCatalog pueda llenar el diagnostic
+     * (ej: credenciales incompletas), construimos uno minimo para que el frontend no
+     * pierda visibilidad.
+     */
+    private function fallbackDiagnosticFromException(\Throwable $e, string $label): array
+    {
+        return [
+            'outcome' => 'error',
+            'label' => $label,
+            'process' => null,
+            'company_header' => trim($_POST['tango_connect_company_id'] ?? '') ?: '-1',
+            'url' => trim($_POST['tango_api_url'] ?? ''),
+            'items_count' => 0,
+            'error_class' => (new \ReflectionClass($e))->getShortName(),
+            'error_message' => $e->getMessage(),
+            'http_code' => (int) $e->getCode(),
+            'raw_sample' => null,
+            'id_keys' => [],
+            'first_item_keys' => [],
+        ];
     }
 
     /**

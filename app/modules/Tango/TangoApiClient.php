@@ -13,10 +13,32 @@ class TangoApiClient
     private string $apiUrl;
     private string $accessToken;
     private ?string $clientKey;
+    private string $defaultCompanyHeader = '';
     public $debugLastRawDepositos = null;
     public $debugLastRawListas = null;
     public $debugLastRawEmpresas = null;
     public $debugLastHttpRequest = [];
+
+    /**
+     * Diagnostico del ultimo fetchCatalog/fetchRichCatalog ejecutado.
+     * Siempre se rellena — tanto en exito como en error — para que el caller
+     * pueda explicar al usuario por que un catalogo vino vacio sin depender
+     * de DevTools. Ver docs/logs/2026-04-16 release 1.12.2.
+     *
+     * Shape:
+     *  - outcome: 'ok' | 'empty' | 'error'
+     *  - process: int
+     *  - company_header: string (el valor usado en el header Company)
+     *  - url: string (baseUrl usado)
+     *  - items_count: int
+     *  - error_class: ?string
+     *  - error_message: ?string
+     *  - http_code: ?int
+     *  - raw_sample: ?string (primeros 500 chars del body crudo si hubo)
+     *  - id_keys: array (las claves buscadas para el ID)
+     *  - first_item_keys: array (las keys del primer item recibido, para debugging)
+     */
+    public array $debugLastDiagnostic = [];
 
     public function __construct(string $apiUrl, string $accessToken, string $companyId, ?string $clientKey = null)
     {
@@ -34,6 +56,7 @@ class TangoApiClient
         $this->accessToken = $accessToken;
         $this->clientKey = $clientKey;
 
+        $this->defaultCompanyHeader = $companyId;
         $this->client = $this->buildClient($companyId);
     }
 
@@ -349,6 +372,10 @@ class TangoApiClient
         $pageSize = $maxPageSize;
         $client = $companyOverride !== null ? $this->buildClient($companyOverride) : $this->client;
         $seenFirstIds = [];
+        $firstItemKeys = [];
+        $rawSample = null;
+
+        $this->resetDiagnostic($process, $companyOverride, $idKeys);
 
         try {
             while (true) {
@@ -362,6 +389,7 @@ class TangoApiClient
                 if ($page === 0) {
                     $debugRawStore = $data;
                     $this->debugLastHttpRequest = $client->debugLastRequest ?? [];
+                    $rawSample = $this->sampleRaw($data);
                 }
 
                 $list = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
@@ -369,12 +397,16 @@ class TangoApiClient
                     break;
                 }
 
+                if ($page === 0 && is_array($list[0] ?? null)) {
+                    $firstItemKeys = array_keys($list[0]);
+                }
+
                 $firstId = $this->firstAvailableValue($list[0], $idKeys);
                 $hasValidId = ($firstId !== null);
                 if ($hasValidId) {
                     $firstIdStr = (string)$firstId;
                     if (isset($seenFirstIds[$firstIdStr])) {
-                        break; 
+                        break;
                     }
                     $seenFirstIds[$firstIdStr] = true;
                 }
@@ -399,7 +431,10 @@ class TangoApiClient
 
                 $page++;
             }
-        } catch (\Exception $e) {
+
+            $this->finalizeDiagnostic($items, $firstItemKeys, $rawSample);
+        } catch (\Throwable $e) {
+            $this->recordDiagnosticError($e, $rawSample);
         }
 
         return $items;
@@ -418,6 +453,10 @@ class TangoApiClient
         $pageSize = $maxPageSize;
         $client = $companyOverride !== null ? $this->buildClient($companyOverride) : $this->client;
         $seenFirstIds = [];
+        $firstItemKeys = [];
+        $rawSample = null;
+
+        $this->resetDiagnostic($process, $companyOverride, $idKeys);
 
         try {
             while (true) {
@@ -431,6 +470,7 @@ class TangoApiClient
                 if ($page === 0) {
                     $debugRawStore = $data;
                     $this->debugLastHttpRequest = $client->debugLastRequest ?? [];
+                    $rawSample = $this->sampleRaw($data);
                 }
 
                 $list = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
@@ -438,12 +478,16 @@ class TangoApiClient
                     break;
                 }
 
+                if ($page === 0 && is_array($list[0] ?? null)) {
+                    $firstItemKeys = array_keys($list[0]);
+                }
+
                 $firstId = $this->firstAvailableValue($list[0], $idKeys);
                 $hasValidId = ($firstId !== null);
                 if ($hasValidId) {
                     $firstIdStr = (string)$firstId;
                     if (isset($seenFirstIds[$firstIdStr])) {
-                        break; 
+                        break;
                     }
                     $seenFirstIds[$firstIdStr] = true;
                 }
@@ -467,10 +511,62 @@ class TangoApiClient
 
                 $page++;
             }
-        } catch (\Exception $e) {
+
+            $this->finalizeDiagnostic($items, $firstItemKeys, $rawSample);
+        } catch (\Throwable $e) {
+            $this->recordDiagnosticError($e, $rawSample);
         }
 
         return $items;
+    }
+
+    private function resetDiagnostic(int $process, ?string $companyOverride, array $idKeys): void
+    {
+        $this->debugLastDiagnostic = [
+            'outcome' => 'pending',
+            'process' => $process,
+            'company_header' => $companyOverride !== null ? $companyOverride : $this->currentCompanyHeader(),
+            'url' => $this->apiUrl,
+            'items_count' => 0,
+            'error_class' => null,
+            'error_message' => null,
+            'http_code' => null,
+            'raw_sample' => null,
+            'id_keys' => $idKeys,
+            'first_item_keys' => [],
+        ];
+    }
+
+    private function finalizeDiagnostic(array $items, array $firstItemKeys, ?string $rawSample): void
+    {
+        $this->debugLastDiagnostic['items_count'] = count($items);
+        $this->debugLastDiagnostic['first_item_keys'] = $firstItemKeys;
+        $this->debugLastDiagnostic['raw_sample'] = $rawSample;
+        $this->debugLastDiagnostic['outcome'] = count($items) > 0 ? 'ok' : 'empty';
+    }
+
+    private function recordDiagnosticError(\Throwable $e, ?string $rawSample): void
+    {
+        $this->debugLastDiagnostic['outcome'] = 'error';
+        $this->debugLastDiagnostic['error_class'] = (new \ReflectionClass($e))->getShortName();
+        $this->debugLastDiagnostic['error_message'] = $e->getMessage();
+        $this->debugLastDiagnostic['http_code'] = method_exists($e, 'getCode') ? (int) $e->getCode() : null;
+        $this->debugLastDiagnostic['raw_sample'] = $rawSample;
+    }
+
+    private function sampleRaw(mixed $data): string
+    {
+        $encoded = json_encode($data, JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($encoded === false) {
+            return '';
+        }
+
+        return substr($encoded, 0, 500);
+    }
+
+    private function currentCompanyHeader(): string
+    {
+        return $this->defaultCompanyHeader;
     }
 
     private function firstAvailableValue(array $item, array $keys): mixed

@@ -413,8 +413,14 @@ class TangoSyncService
     private function syncStockWithConfig(int $empresaId, object $config): array
     {
         $deposito = $config->deposito_codigo ?? null;
+        $isCrm = $this->area === 'crm';
 
-        if ($deposito === null || $deposito === '') {
+        // En Tiendas el deposito_codigo sigue siendo requerido — es el depósito único
+        // que alimenta el stock_actual plano de crm_articulos para el frontend B2C.
+        // En CRM el flujo es distinto: recorre todos los depósitos del catálogo comercial
+        // y los guarda en la tabla normalizada crm_articulo_stocks. Por eso acá aceptamos
+        // que venga vacío — el operador no necesita elegir un depósito "principal".
+        if (!$isCrm && ($deposito === null || $deposito === '')) {
             throw new \RuntimeException("Sincronización abortada: No hay Depósito (deposito_codigo) configurado para esta Empresa.");
         }
 
@@ -422,7 +428,6 @@ class TangoSyncService
         $stats = ['recibidos' => 0, 'actualizados' => 0, 'omitidos' => 0, 'sin_match' => 0, 'stocks_deposito' => 0];
 
         // CRM: guardar stock por depósito en tabla normalizada crm_articulo_stocks
-        $isCrm = $this->area === 'crm';
         $crmRepo = null;
         $skuMap = [];
         if ($isCrm) {

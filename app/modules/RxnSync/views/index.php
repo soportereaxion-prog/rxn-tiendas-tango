@@ -18,17 +18,27 @@ ob_start();
         </div>
     </div>
 
+    <?php $isCrm = ($syncCircuit['area'] ?? '') === 'crm'; ?>
     <div class="card shadow-sm border-0 mb-3 border-start border-4 border-info-subtle">
         <div class="card-body py-3 px-4">
             <div class="d-flex flex-wrap align-items-center gap-3 justify-content-between">
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <span class="badge text-bg-<?= !empty($syncCircuit['articulos_ready']) ? 'success' : 'secondary' ?>">1. Artículos <?= !empty($syncCircuit['articulos_ready']) ? 'listos' : 'pendientes' ?></span>
-                    <span class="badge text-bg-<?= !empty($syncCircuit['precios_ready']) ? 'success' : 'warning' ?>">2. Precios <?= !empty($syncCircuit['precios_ready']) ? 'habilitados' : 'requieren artículos + listas' ?></span>
-                    <span class="badge text-bg-<?= !empty($syncCircuit['stock_ready']) ? 'success' : 'warning' ?>">3. Stock <?= !empty($syncCircuit['stock_ready']) ? 'habilitado' : 'requiere artículos + depósito' ?></span>
+                    <?php if ($isCrm): ?>
+                        <span class="badge text-bg-<?= (!empty($syncCircuit['listas_ready']) && !empty($syncCircuit['deposito_ready'])) ? 'success' : 'warning' ?>">2. Catálogos <?= (!empty($syncCircuit['listas_ready']) && !empty($syncCircuit['deposito_ready'])) ? 'cargados' : 'pendientes (correr Sync Catálogos)' ?></span>
+                        <span class="badge text-bg-<?= !empty($syncCircuit['precios_ready']) ? 'success' : 'warning' ?>">3. Precios <?= !empty($syncCircuit['precios_ready']) ? 'habilitados' : 'requieren artículos + catálogos' ?></span>
+                        <span class="badge text-bg-<?= !empty($syncCircuit['stock_ready']) ? 'success' : 'warning' ?>">4. Stock <?= !empty($syncCircuit['stock_ready']) ? 'habilitado' : 'requiere artículos + catálogos' ?></span>
+                    <?php else: ?>
+                        <span class="badge text-bg-<?= !empty($syncCircuit['precios_ready']) ? 'success' : 'warning' ?>">2. Precios <?= !empty($syncCircuit['precios_ready']) ? 'habilitados' : 'requieren artículos + listas' ?></span>
+                        <span class="badge text-bg-<?= !empty($syncCircuit['stock_ready']) ? 'success' : 'warning' ?>">3. Stock <?= !empty($syncCircuit['stock_ready']) ? 'habilitado' : 'requiere artículos + depósito' ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="d-flex flex-wrap gap-2 small text-muted align-items-center">
                     <span>Vinculados: <strong><?= (int) ($syncCircuit['articulos_vinculados'] ?? 0) ?></strong><?= !empty($syncCircuit['articulos_total']) ? ' / ' . (int) $syncCircuit['articulos_total'] : '' ?></span>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['config_path'] ?? '/mi-empresa/configuracion')) ?>" class="btn btn-sm btn-outline-secondary">Configuración</a>
+                    <?php if ($isCrm): ?>
+                        <button type="button" id="btn-sync-catalogos" class="btn btn-sm btn-outline-warning <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>" title="Sincroniza condiciones de venta, listas de precio, vendedores, transportes y depósitos desde Tango Connect. Prerequisito de Sync Precios y Sync Stock en CRM." <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>><i class="bi bi-arrow-repeat"></i> Sync Catálogos</button>
+                    <?php endif; ?>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_precios_path'] ?? '/mi-empresa/sync/precios')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['precios_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['precios_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Precios</a>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_stock_path'] ?? '/mi-empresa/sync/stock')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['stock_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['stock_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Stock</a>
                 </div>
@@ -116,11 +126,17 @@ ob_start();
 
     <!-- Barra de acciones del tab (visible siempre, colapsa cuando hay selección) -->
     <div id="rxnsync-tab-actions" class="mb-3 d-flex align-items-center justify-content-between border rounded px-3 py-2 bg-dark-subtle">
-        <div class="d-flex gap-2 align-items-center">
-            <button class="btn btn-sm btn-warning fw-semibold" id="btn-audit-tab-main" style="background: linear-gradient(135deg,#f7b733,#fc4a1a);border:0;">
-                <i class="fas fa-bolt me-1"></i> <span id="audit-tab-label">Auditoría Clientes</span>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button class="btn btn-sm btn-warning fw-semibold" id="btn-audit-tab-main" style="background: linear-gradient(135deg,#f7b733,#fc4a1a);border:0;" title="Importa desde Tango (upsert local) y luego audita el vínculo por código. Flujo completo recomendado para tenants nuevos o sincronización periódica.">
+                <i class="fas fa-bolt me-1"></i> <span id="audit-tab-label">Sincronizar desde Tango</span>
             </button>
-            <small class="text-muted">Sincroniza el catálogo del tab activo contra Tango</small>
+            <button class="btn btn-sm btn-outline-primary" id="btn-only-import-main" title="Solo trae datos desde Tango (upsert local). No ejecuta la auditoría de vínculo.">
+                <i class="bi bi-cloud-download me-1"></i> Solo importar
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="btn-only-audit-main" title="Solo match suave por código contra Tango. No trae datos nuevos. Útil para revalidar vínculos existentes.">
+                <i class="fas fa-search me-1"></i> Solo auditar
+            </button>
+            <small class="text-muted ms-2">Import trae datos nuevos • Auditar revalida vínculos • Sincronizar hace ambos.</small>
         </div>
     </div>
 
@@ -292,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (resetPage) pageState[tabKey].page = 1;
 
         if (auditLabel) {
-            auditLabel.textContent = entidad === 'articulo' ? 'Auditoría Artículos' : 'Auditoría Clientes';
+            auditLabel.textContent = entidad === 'articulo' ? 'Sincronizar Artículos' : 'Sincronizar Clientes';
         }
 
         container.innerHTML = '<div class="spinner-border text-primary my-4" role="status"></div>';
@@ -725,54 +741,193 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('btn-bulk-clear').addEventListener('click', clearSelection);
 
-    // ── Auditoría del tab activo ──────────────────────────────────────
-    function runAuditTab() {
-        var tabBtn  = getActiveTabBtn();
-        var entidad = tabBtn ? tabBtn.getAttribute('data-entidad') : 'articulo';
-        var label   = entidad === 'articulo' ? 'Artículos' : 'Clientes';
+    // ── Helper común: POST AJAX a un endpoint del módulo con feedback visual ──
+    function runRxnSyncAjax(opts) {
+        // opts: { endpoint, btnEl, busyLabel, confirmMsg, confirmLabel, successTitle, errorTitle }
+        var btn      = opts.btnEl;
+        var origHtml = btn ? btn.innerHTML : '';
 
         showConfirm(
-            '¿Iniciar Auditoría Pull de ' + label + ' desde Tango?\n\nEsto puede tardar varios segundos dependiendo del catálogo.',
+            opts.confirmMsg,
             'warning',
             function () {
-                var auditUrl = basePath + '/auditar-' + entidad + 's';
-                var btnMain  = document.getElementById('btn-audit-tab-main');
-                var origMain = btnMain ? btnMain.innerHTML : '';
-
-                if (btnMain) {
-                    btnMain.disabled = true;
-                    btnMain.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Auditando...';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> ' + opts.busyLabel;
                 }
                 showProgress();
 
-                fetch(auditUrl, {
+                fetch(basePath + '/' + opts.endpoint, {
                     method: 'POST',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     hideProgress();
-                    if (btnMain) { btnMain.disabled = false; btnMain.innerHTML = origMain; }
+                    if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
                     if (data.success) {
-                        showAlert(data.message, 'success', 'Auditoría Completada');
+                        showAlert(data.message, 'success', opts.successTitle);
                         var activeTab = getActiveTabBtn();
                         if (activeTab) loadTabContent(activeTab, true);
                     } else {
-                        showAlert(data.message, 'danger', 'Error en Auditoría');
+                        showAlert(data.message, 'danger', opts.errorTitle);
                     }
                 })
                 .catch(function(err) {
                     hideProgress();
-                    if (btnMain) { btnMain.disabled = false; btnMain.innerHTML = origMain; }
-                    showAlert(err.message || 'Error de red', 'danger', 'Error Auditoría');
+                    if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+                    showAlert(err.message || 'Error de red', 'danger', opts.errorTitle);
                 });
             },
-            'Iniciar Auditoría'
+            opts.confirmLabel
         );
     }
 
-    document.getElementById('btn-audit-tab-main').addEventListener('click', runAuditTab);
-    document.getElementById('btn-bulk-audit-tab').addEventListener('click', runAuditTab);
+    // ── Sincronización completa (Import + Audit) del tab activo ──────────────
+    function runSyncFullTab() {
+        var tabBtn  = getActiveTabBtn();
+        var entidad = tabBtn ? tabBtn.getAttribute('data-entidad') : 'articulo';
+        var label   = entidad === 'articulo' ? 'Artículos' : 'Clientes';
+
+        runRxnSyncAjax({
+            endpoint:     'sync-full-' + entidad + 's',
+            btnEl:        document.getElementById('btn-audit-tab-main'),
+            busyLabel:    'Sincronizando...',
+            confirmMsg:   '¿Sincronizar ' + label + ' desde Tango?\n\nEsto traerá datos nuevos/actualizados desde Tango y luego auditará los vínculos por código. Puede tardar varios segundos o minutos según el catálogo.',
+            confirmLabel: 'Sincronizar Ahora',
+            successTitle: 'Sincronización Completa',
+            errorTitle:   'Error en Sincronización'
+        });
+    }
+
+    // ── Solo auditar (match suave contra Tango, sin import) ─────────────────
+    function runOnlyAuditTab() {
+        var tabBtn  = getActiveTabBtn();
+        var entidad = tabBtn ? tabBtn.getAttribute('data-entidad') : 'articulo';
+        var label   = entidad === 'articulo' ? 'Artículos' : 'Clientes';
+
+        runRxnSyncAjax({
+            endpoint:     'auditar-' + entidad + 's',
+            btnEl:        document.getElementById('btn-only-audit-main'),
+            busyLabel:    'Auditando...',
+            confirmMsg:   '¿Iniciar Auditoría Pull de ' + label + ' desde Tango?\n\nSolo revalida los vínculos existentes por código contra Tango. No trae datos nuevos.',
+            confirmLabel: 'Iniciar Auditoría',
+            successTitle: 'Auditoría Completada',
+            errorTitle:   'Error en Auditoría'
+        });
+    }
+
+    // ── Solo importar (redirige al TangoSyncController con ?return=) ────────
+    // No es AJAX porque el TangoSyncController es screen-based con Flash al volver.
+    function runOnlyImportTab() {
+        var tabBtn  = getActiveTabBtn();
+        var entidad = tabBtn ? tabBtn.getAttribute('data-entidad') : 'articulo';
+        var label   = entidad === 'articulo' ? 'Artículos' : 'Clientes';
+
+        // Gate: Tiendas no tiene endpoint de import de clientes (solo existe /mi-empresa/crm/sync/clientes).
+        // Si llegamos acá en área Tiendas con tab Clientes, explicamos y abortamos.
+        var isCrm = basePath.indexOf('/crm/') !== -1;
+        if (!isCrm && entidad === 'cliente') {
+            showAlert('El import masivo de clientes desde Tango solo está disponible en el área CRM. Usá "Sincronizar desde Tango" (que también audita) o hacé el Pull individual por fila.', 'warning', 'No disponible en Tiendas');
+            return;
+        }
+
+        showConfirm(
+            '¿Importar ' + label + ' desde Tango?\n\nTrae y upserta los registros sin auditar el vínculo. Al terminar volvés a esta pantalla con un resumen.',
+            'warning',
+            function () {
+                // basePath viene de data-base-path del #syncTabs (ej: /mi-empresa/rxn-sync o /mi-empresa/crm/rxn-sync)
+                // Derivamos la ruta del TangoSyncController a partir del basePath:
+                //   /mi-empresa/rxn-sync       → /mi-empresa/sync/articulos
+                //   /mi-empresa/crm/rxn-sync   → /mi-empresa/crm/sync/articulos|clientes
+                var syncBase = basePath.replace(/\/rxn-sync$/, '/sync');
+                var returnTo = encodeURIComponent(basePath);
+                window.location.href = syncBase + '/' + entidad + 's?return=' + returnTo;
+            },
+            'Importar Ahora'
+        );
+    }
+
+    document.getElementById('btn-audit-tab-main').addEventListener('click', runSyncFullTab);
+    document.getElementById('btn-bulk-audit-tab').addEventListener('click', runSyncFullTab);
+    document.getElementById('btn-only-audit-main').addEventListener('click', runOnlyAuditTab);
+    document.getElementById('btn-only-import-main').addEventListener('click', runOnlyImportTab);
+
+    // ── Sync Catálogos (solo CRM) ────────────────────────────────────────────
+    // Trae condiciones de venta, listas de precio, vendedores, transportes y depósitos
+    // desde Tango Connect y los persiste en crm_catalogo_comercial_items. Prerequisito
+    // para que Sync Precios y Sync Stock puedan correr en CRM.
+    //
+    // Defensivo: (1) URL derivada de basePath (NO hardcoded) para sobrevivir a cambios
+    // de prefijo o multi-tenant. (2) try/catch que captura cualquier error sincrónico
+    // del handler y lo reporta visualmente en lugar de morir silencioso — el síntoma
+    // "el botón no hace nada" de release 1.12.5 se debió a URL hardcoded que rompía
+    // el rewrite del server. (3) Console.log de cada paso para diagnóstico persistente.
+    var btnSyncCatalogos = document.getElementById('btn-sync-catalogos');
+    if (btnSyncCatalogos) {
+        btnSyncCatalogos.addEventListener('click', function () {
+            console.log('[SyncCatalogos] click detected, opening confirm');
+            showConfirm(
+                '¿Sincronizar catálogos comerciales CRM desde Tango?\n\nTrae condiciones de venta, listas de precio, vendedores, transportes y depósitos. Prerequisito para Sync Precios y Sync Stock.',
+                'warning',
+                function () {
+                    console.log('[SyncCatalogos] confirm OK, disparando fetch a ' + basePath + '/sync-catalogos');
+                    var orig = btnSyncCatalogos.innerHTML;
+                    try {
+                        btnSyncCatalogos.disabled = true;
+                        btnSyncCatalogos.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sincronizando catálogos...';
+                        showProgress();
+
+                        fetch(basePath + '/sync-catalogos', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                        .then(function (r) {
+                            console.log('[SyncCatalogos] response recibida, status=' + r.status);
+                            return r.text().then(function (text) { return { status: r.status, body: text }; });
+                        })
+                        .then(function (res) {
+                            hideProgress();
+                            btnSyncCatalogos.disabled = false;
+                            btnSyncCatalogos.innerHTML = orig;
+
+                            var data;
+                            try {
+                                data = JSON.parse(res.body);
+                            } catch (e) {
+                                console.error('[SyncCatalogos] respuesta no-JSON', res);
+                                showAlert('El servidor devolvió contenido inválido (HTTP ' + res.status + '). Primeros 200 chars: ' + res.body.substring(0, 200), 'danger', 'Error en Sync Catálogos');
+                                return;
+                            }
+
+                            if (data.success) {
+                                console.log('[SyncCatalogos] success', data.stats);
+                                showAlert(data.message + '\n\nRecargando circuito para reflejar nuevas precondiciones...', 'success', 'Catálogos sincronizados');
+                                setTimeout(function () { window.location.reload(); }, 1500);
+                            } else {
+                                console.warn('[SyncCatalogos] server reportó fracaso', data);
+                                showAlert(data.message || 'Error sin mensaje', 'danger', 'Error en Sync Catálogos');
+                            }
+                        })
+                        .catch(function (err) {
+                            console.error('[SyncCatalogos] fetch rejected', err);
+                            hideProgress();
+                            btnSyncCatalogos.disabled = false;
+                            btnSyncCatalogos.innerHTML = orig;
+                            showAlert((err && err.message) ? err.message : 'Error de red al contactar el endpoint de sincronización.', 'danger', 'Error en Sync Catálogos');
+                        });
+                    } catch (syncErr) {
+                        console.error('[SyncCatalogos] excepción sincrónica en el handler', syncErr);
+                        hideProgress();
+                        btnSyncCatalogos.disabled = false;
+                        btnSyncCatalogos.innerHTML = orig;
+                        showAlert('Excepción en el handler JS: ' + (syncErr && syncErr.message ? syncErr.message : String(syncErr)), 'danger', 'Error interno');
+                    }
+                },
+                'Sincronizar Catálogos'
+            );
+        });
+    }
 
     // ── Push Masivo ───────────────────────────────────────────────────
     document.getElementById('btn-bulk-push').addEventListener('click', function() {
