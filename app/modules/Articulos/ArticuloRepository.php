@@ -269,8 +269,20 @@ class ArticuloRepository
     public function findSuggestions(int $empresaId, string $search = '', string $field = 'all', int $limit = 3): array
     {
         $search = trim($search);
+
+        // Sin term: primeros N articulos alfabeticos. Ver CrmClienteRepository::findSuggestions
+        // para el por qué: el contrato del endpoint espera que q='' devuelva resultados scrollables,
+        // no vacío.
         if ($search === '') {
-            return [];
+            $stmt = $this->db->prepare('SELECT a.id, a.codigo_externo, a.nombre, a.descripcion
+                FROM ' . $this->quoteTable($this->articulosTable) . ' a
+                WHERE a.empresa_id = :empresa_id
+                ORDER BY a.nombre ASC
+                LIMIT :limit');
+            $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
 
         $sql = 'SELECT a.id, a.codigo_externo, a.nombre, a.descripcion FROM ' . $this->quoteTable($this->articulosTable) . ' a WHERE a.empresa_id = :empresa_id';

@@ -420,7 +420,7 @@
             }
         }
 
-        // --- Header lock: bloquea cabecera cuando hay artículos cargados ---
+        // --- Header lock: bloquea cabecera cuando hay artículos cargados Y los campos obligatorios ya están completos ---
         var headerFieldSelectors = [
             '#presupuesto-fecha',
             '#presupuesto-estado',
@@ -436,7 +436,24 @@
             return itemsBody.querySelectorAll('[data-item-row]').length > 0;
         }
 
+        // Los obligatorios del encabezado son: fecha, cliente_id, lista_codigo.
+        // Si alguno falta, NO bloqueamos: el usuario tiene que poder corregir antes de reintentar guardar.
+        function headerRequiredFieldsFilled() {
+            var fecha = form.querySelector('#presupuesto-fecha');
+            if (!fecha || !String(fecha.value || '').trim()) return false;
+
+            var lista = form.querySelector('[data-lista-select]');
+            if (!lista || !String(lista.value || '').trim()) return false;
+
+            var clienteHidden = clientRoot ? clientRoot.querySelector('[data-picker-hidden]') : null;
+            var clienteId = clienteHidden ? String(clienteHidden.value || '').trim() : '';
+            if (!clienteId || clienteId === '0') return false;
+
+            return true;
+        }
+
         function lockHeader() {
+            if (!headerRequiredFieldsFilled()) return; // circuit breaker: nunca bloquear con faltantes
             headerFieldSelectors.forEach(function(sel) {
                 var el = form.querySelector(sel);
                 if (el) el.disabled = true;
@@ -663,12 +680,44 @@
             });
         }
 
-        // Inicializar pickers genéricos restantes (ej: Clasificación) que no tienen callback custom
+        // Inicializar pickers genéricos restantes (ej: Clasificación) con callback custom
+        // para persistir y mostrar la descripción junto al código.
+        var clasificacionDescHidden = form.querySelector('#clasificacion_descripcion');
+        var clasificacionDescDisplay = form.querySelector('[data-clasificacion-desc-display]');
         form.querySelectorAll('[data-picker]').forEach(function(root) {
-            if (root !== clientRoot && root !== articleRoot) {
-                setupPicker(root);
+            if (root === clientRoot || root === articleRoot) {
+                return;
             }
+            var esClasificacion = !!root.querySelector('#clasificacion_codigo');
+            setupPicker(root, esClasificacion ? function(item) {
+                // item.label viene como "COD - DESCRIPCIÓN" (o sólo "COD" si no hay descripción).
+                var label = String(item && item.label || '').trim();
+                var code = String(item && item.id || '').trim();
+                var desc = '';
+                if (label && code && label.indexOf(code) === 0) {
+                    desc = label.slice(code.length).replace(/^\s*[-–—]\s*/, '').trim();
+                } else if (label && label !== code) {
+                    desc = label;
+                }
+                if (clasificacionDescHidden) {
+                    clasificacionDescHidden.value = desc;
+                }
+                if (clasificacionDescDisplay) {
+                    clasificacionDescDisplay.textContent = desc || '\u00A0';
+                }
+            } : undefined);
         });
+
+        // Si el usuario borra manualmente el código de clasificación, limpiamos la descripción.
+        var clasificacionInput = form.querySelector('#clasificacion_codigo');
+        if (clasificacionInput) {
+            clasificacionInput.addEventListener('input', function() {
+                if (!String(clasificacionInput.value || '').trim()) {
+                    if (clasificacionDescHidden) clasificacionDescHidden.value = '';
+                    if (clasificacionDescDisplay) clasificacionDescDisplay.textContent = '\u00A0';
+                }
+            });
+        }
 
         if (inlineQty && inlinePrice && inlineBonus && inlineAddBtn) {
             [inlineQty, inlinePrice, inlineBonus].forEach(function(el) {

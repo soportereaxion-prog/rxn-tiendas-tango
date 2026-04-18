@@ -55,6 +55,7 @@ class CommercialCatalogSyncService
 
         $relations = $lookupService->getRelacionCatalogs();
         $depositos = $apiClient->getMaestroDepositos();
+        $clasificaciones = $apiClient->getClasificacionesPds();
 
         $stats = [];
         $stats['condicion_venta'] = $this->repository->upsertMany($empresaId, 'condicion_venta', $relations['condiciones_venta'] ?? []);
@@ -62,8 +63,44 @@ class CommercialCatalogSyncService
         $stats['vendedor'] = $this->repository->upsertMany($empresaId, 'vendedor', $relations['vendedores'] ?? []);
         $stats['transporte'] = $this->repository->upsertMany($empresaId, 'transporte', $relations['transportes'] ?? []);
         $stats['deposito'] = $this->repository->upsertMany($empresaId, 'deposito', $this->mapDepositos($depositos));
+        $stats['clasificacion_pds'] = $this->repository->upsertMany($empresaId, 'clasificacion_pds', $this->mapClasificaciones($clasificaciones));
 
         return $stats;
+    }
+
+    /**
+     * Normaliza las clasificaciones PDS (process 326 de Tango) al formato que espera el repo:
+     * - codigo = COD_GVA81
+     * - descripcion = DESCRIP
+     * - id_interno = ID_GVA81 (lo que despues va a clasificacion_id_tango al armar el requerimiento)
+     * - payload_json conserva el ID_GVA81 y el COD_GVA81 originales para evolucion futura.
+     */
+    private function mapClasificaciones(array $clasificaciones): array
+    {
+        $items = [];
+
+        foreach ($clasificaciones as $raw) {
+            $codigo = trim((string) ($raw['COD_GVA81'] ?? ''));
+            $descripcion = trim((string) ($raw['DESCRIP'] ?? ''));
+            $idInterno = $raw['id'] ?? ($raw['ID_GVA81'] ?? null);
+
+            if ($codigo === '' || $descripcion === '') {
+                continue;
+            }
+
+            $items[] = [
+                'codigo' => $codigo,
+                'descripcion' => $descripcion,
+                'id_interno' => is_numeric($idInterno) ? (int) $idInterno : null,
+                'payload_json' => [
+                    'COD_GVA81' => $codigo,
+                    'DESCRIP' => $descripcion,
+                    'ID_GVA81' => $idInterno,
+                ],
+            ];
+        }
+
+        return $items;
     }
 
     private function mapDepositos(array $depositos): array

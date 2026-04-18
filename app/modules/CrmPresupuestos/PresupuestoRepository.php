@@ -266,7 +266,7 @@ class PresupuestoRepository
                         transporte_codigo, transporte_nombre_snapshot, transporte_id_interno,
                         lista_codigo, lista_nombre_snapshot, lista_id_interno,
                         vendedor_codigo, vendedor_nombre_snapshot, vendedor_id_interno,
-                        clasificacion_codigo, clasificacion_id_tango,
+                        clasificacion_codigo, clasificacion_id_tango, clasificacion_descripcion,
                         subtotal, descuento_total, impuestos_total, total, estado, usuario_id, usuario_nombre, created_at, updated_at
                     ) VALUES (
                         :empresa_id, :tratativa_id, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
@@ -275,7 +275,7 @@ class PresupuestoRepository
                         :transporte_codigo, :transporte_nombre_snapshot, :transporte_id_interno,
                         :lista_codigo, :lista_nombre_snapshot, :lista_id_interno,
                         :vendedor_codigo, :vendedor_nombre_snapshot, :vendedor_id_interno,
-                        :clasificacion_codigo, :clasificacion_id_tango,
+                        :clasificacion_codigo, :clasificacion_id_tango, :clasificacion_descripcion,
                         :subtotal, :descuento_total, :impuestos_total, :total, :estado, :usuario_id, :usuario_nombre, NOW(), NOW()
                     )');
                 $payload = $this->buildHeaderPayload($data);
@@ -338,6 +338,7 @@ class PresupuestoRepository
                     vendedor_id_interno = :vendedor_id_interno,
                     clasificacion_codigo = :clasificacion_codigo,
                     clasificacion_id_tango = :clasificacion_id_tango,
+                    clasificacion_descripcion = :clasificacion_descripcion,
                     subtotal = :subtotal,
                     descuento_total = :descuento_total,
                     impuestos_total = :impuestos_total,
@@ -488,6 +489,7 @@ class PresupuestoRepository
             ':vendedor_id_interno' => $this->nullableInt($data['vendedor_id_interno'] ?? null),
             ':clasificacion_codigo' => $this->nullableString($data['clasificacion_codigo'] ?? null),
             ':clasificacion_id_tango' => $this->nullableString($data['clasificacion_id_tango'] ?? null),
+            ':clasificacion_descripcion' => $this->nullableString($data['clasificacion_descripcion'] ?? null),
             ':subtotal' => (float) ($data['subtotal'] ?? 0),
             ':descuento_total' => (float) ($data['descuento_total'] ?? 0),
             ':impuestos_total' => (float) ($data['impuestos_total'] ?? 0),
@@ -593,6 +595,10 @@ class PresupuestoRepository
         
         try {
             $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN clasificacion_codigo VARCHAR(50) NULL AFTER vendedor_id_interno, ADD COLUMN clasificacion_id_tango VARCHAR(50) NULL AFTER clasificacion_codigo');
+        } catch (\Throwable $e) {}
+
+        try {
+            $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN clasificacion_descripcion VARCHAR(255) NULL AFTER clasificacion_id_tango');
         } catch (\Throwable $e) {}
 
         try {

@@ -102,8 +102,22 @@ class CrmClienteRepository
 
     public function findSuggestions(int $empresaId, string $search = '', string $field = 'all', int $limit = 3): array
     {
-        if (trim($search) === '') {
-            return [];
+        $search = trim($search);
+
+        // Sin term: devolvemos los primeros N por orden alfabetico de razon social.
+        // Antes acá había un early return [] que hacía que los pickers (ej: Presupuestos)
+        // mostrasen "No se encontraron resultados" al abrirlos con foco vacío. El contrato
+        // del endpoint (ver clientSuggestions) es: q='' -> primeros resultados scrollables.
+        if ($search === '') {
+            $stmt = $this->db->prepare('SELECT id, codigo_tango, razon_social, documento, email, telefono, id_gva14_tango
+                FROM crm_clientes
+                WHERE empresa_id = :empresa_id AND deleted_at IS NULL
+                ORDER BY razon_social ASC
+                LIMIT :limit');
+            $stmt->bindValue(':empresa_id', $empresaId, PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
 
         $sql = 'SELECT id, codigo_tango, razon_social, documento, email, telefono, id_gva14_tango FROM crm_clientes WHERE empresa_id = :empresa_id AND deleted_at IS NULL';

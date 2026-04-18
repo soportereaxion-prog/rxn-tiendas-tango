@@ -518,8 +518,11 @@ class PresupuestoController extends \App\Core\Controller
         // Sin guard de longitud mínima: al abrir el Spotlight Modal con Enter, el frontend
         // hace fetch con q='' y esperamos que el backend devuelva los primeros resultados
         // (comportamiento alineado con PedidoServicioController::clientSuggestions).
+        // Límite dinámico: sin término pedimos 30 para que el operador pueda scrollear;
+        // con término suficiente para match preciso, 5 por relevancia.
+        $limit = $term === '' ? 30 : 5;
 
-        $rows = $this->clienteRepository->findSuggestions($empresaId, $term, 'all', 5);
+        $rows = $this->clienteRepository->findSuggestions($empresaId, $term, 'all', $limit);
         $data = array_map(static function (array $row): array {
             $label = trim((string) ($row['razon_social'] ?? ''));
             $codigoTango = trim((string) ($row['codigo_tango'] ?? ''));
@@ -597,8 +600,10 @@ class PresupuestoController extends \App\Core\Controller
         // Sin guard de longitud mínima: al abrir el Spotlight Modal con Enter, el frontend
         // hace fetch con q='' y esperamos que el backend devuelva los primeros resultados
         // (comportamiento alineado con PedidoServicioController::articleSuggestions).
+        // Límite dinámico: sin término 30 (scroll cómodo), con término 6 (relevancia).
+        $limit = $term === '' ? 30 : 6;
 
-        $rows = ArticuloRepository::forCrm()->findSuggestions($empresaId, $term, 'all', 6);
+        $rows = ArticuloRepository::forCrm()->findSuggestions($empresaId, $term, 'all', $limit);
         $data = array_map(static function (array $row): array {
             $nombre = trim((string) ($row['nombre'] ?? ''));
             $codigo = trim((string) ($row['codigo_externo'] ?? ''));
@@ -735,26 +740,22 @@ class PresupuestoController extends \App\Core\Controller
             }
         }
 
-        if ($deposito === '') {
-            $firstDep = $this->catalogRepository->findFirstByType($empresaId, 'deposito');
-            $deposito = $firstDep ? trim((string)$firstDep['codigo']) : '';
-        }
-        if ($condicion === '') {
-            $firstCond = $this->catalogRepository->findFirstByType($empresaId, 'condicion_venta');
-            $condicion = $firstCond ? trim((string)$firstCond['codigo']) : '';
-        }
-        if ($transporte === '') {
-            $firstTra = $this->catalogRepository->findFirstByType($empresaId, 'transporte');
-            $transporte = $firstTra ? trim((string)$firstTra['codigo']) : '';
-        }
-        if ($lista === '') {
-            $firstList = $this->catalogRepository->findFirstByType($empresaId, 'lista_precio');
-            $lista = $firstList ? trim((string)$firstList['codigo']) : '';
-        }
-        if ($vendedor === '') {
-            $firstVend = $this->catalogRepository->findFirstByType($empresaId, 'vendedor');
-            $vendedor = $firstVend ? trim((string)$firstVend['codigo']) : '';
-        }
+        // Si el perfil Tango trae un codigo, verificamos que exista en el catalogo CRM actual;
+        // si no existe (por ejemplo un ID_GVA10 viejo que ya no esta sincronizado), caemos al primero
+        // disponible. Evita mostrar "Guardado localmente (N)" en el form para un nuevo presupuesto.
+        $resolveDefault = function (int $empresaId, string $type, string $code): string {
+            if ($code !== '' && $this->catalogRepository->findOption($empresaId, $type, $code) !== null) {
+                return $code;
+            }
+            $first = $this->catalogRepository->findFirstByType($empresaId, $type);
+            return $first ? trim((string) $first['codigo']) : '';
+        };
+
+        $deposito = $resolveDefault($empresaId, 'deposito', $deposito);
+        $condicion = $resolveDefault($empresaId, 'condicion_venta', $condicion);
+        $transporte = $resolveDefault($empresaId, 'transporte', $transporte);
+        $lista = $resolveDefault($empresaId, 'lista_precio', $lista);
+        $vendedor = $resolveDefault($empresaId, 'vendedor', $vendedor);
 
         return [
             'deposito_codigo' => $deposito,
@@ -820,6 +821,7 @@ class PresupuestoController extends \App\Core\Controller
             'lista_codigo' => $defaults['lista_codigo'] ?? '',
             'clasificacion_codigo' => '',
             'clasificacion_id_tango' => '',
+            'clasificacion_descripcion' => '',
             'vendedor_codigo' => $defaults['vendedor_codigo'] ?? '',
             'subtotal' => 0.0,
             'descuento_total' => 0.0,
@@ -860,6 +862,7 @@ class PresupuestoController extends \App\Core\Controller
             'vendedor_id_interno' => (string) ($presupuesto['vendedor_id_interno'] ?? ''),
             'clasificacion_codigo' => (string) ($presupuesto['clasificacion_codigo'] ?? ''),
             'clasificacion_id_tango' => (string) ($presupuesto['clasificacion_id_tango'] ?? ''),
+            'clasificacion_descripcion' => (string) ($presupuesto['clasificacion_descripcion'] ?? ''),
             'subtotal' => isset($presupuesto['subtotal']) ? (float) $presupuesto['subtotal'] : 0.0,
             'descuento_total' => isset($presupuesto['descuento_total']) ? (float) $presupuesto['descuento_total'] : 0.0,
             'impuestos_total' => isset($presupuesto['impuestos_total']) ? (float) $presupuesto['impuestos_total'] : 0.0,
@@ -904,6 +907,7 @@ class PresupuestoController extends \App\Core\Controller
         $state['vendedor_codigo'] = trim((string) ($input['vendedor_codigo'] ?? $state['vendedor_codigo']));
         $state['clasificacion_codigo'] = trim((string) ($input['clasificacion_codigo'] ?? $state['clasificacion_codigo']));
         $state['clasificacion_id_tango'] = trim((string) ($input['clasificacion_id_tango'] ?? $state['clasificacion_id_tango']));
+        $state['clasificacion_descripcion'] = trim((string) ($input['clasificacion_descripcion'] ?? ($state['clasificacion_descripcion'] ?? '')));
         $state['items'] = $this->normalizePostedItems($input['items'] ?? [], $state['lista_codigo']);
 
         $totals = $this->calculateTotals($state['items']);
@@ -1026,6 +1030,7 @@ class PresupuestoController extends \App\Core\Controller
             'lista_id_interno' => $lista['id_interno'],
             'clasificacion_codigo' => trim((string) ($input['clasificacion_codigo'] ?? '')),
             'clasificacion_id_tango' => trim((string) ($input['clasificacion_id_tango'] ?? '')),
+            'clasificacion_descripcion' => trim((string) ($input['clasificacion_descripcion'] ?? '')),
             'vendedor_codigo' => $vendedor['codigo'],
             'vendedor_nombre_snapshot' => $vendedor['descripcion'],
             'vendedor_id_interno' => $vendedor['id_interno'],

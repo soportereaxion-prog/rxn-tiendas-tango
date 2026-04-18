@@ -411,12 +411,6 @@ ob_start();
                         <?php endif; ?>
 
                         <div class="col-md-12">
-                            <label for="clasificaciones_pds_raw" class="form-label">Catálogo Local de Clasificaciones PDS</label>
-                            <textarea class="form-control font-monospace" id="clasificaciones_pds_raw" name="clasificaciones_pds_raw" rows="4" style="font-size:0.8rem;" placeholder="ASETGO Asesoramiento Tango&#10;TRAT01 Tratamiento base&#10;..."><?= htmlspecialchars($old['clasificaciones_pds_raw'] ?? ($config->clasificaciones_pds_raw ?? '')) ?></textarea>
-                            <div class="form-text"><small>Una línea por clasificación: <code>CODIGO descripcion</code>. Se autollena al validar conexión (process 326) si está vacío. Alimenta el autocompletado del CRM en PDS y Presupuestos sin demoras de la API externa. Si querés forzar re-sync, vaciá el textarea y apretá <em>Validar Conexión</em>.</small></div>
-                        </div>
-
-                        <div class="col-md-12">
                             <input type="hidden" id="tango_perfil_snapshot_json" name="tango_perfil_snapshot_json" value="<?= htmlspecialchars((string)($old['tango_perfil_snapshot_json'] ?? ($config->tango_perfil_snapshot_json ?? ''))) ?>">
                         </div>
 
@@ -728,11 +722,13 @@ ob_start();
                         tangoBtn.classList.replace('btn-primary', 'btn-success');
                     }
 
-                    // 5 fetches atómicos paralelos — cada uno es independiente, ~2-3s c/u
+                    // 4 fetches atómicos paralelos — cada uno es independiente, ~2-3s c/u.
+                    // Desde release 1.13.1 las clasificaciones PDS dejaron de cargarse acá
+                    // (se sincronizan via RXN Sync al catálogo crm_catalogo_comercial_items).
                     let done = 0;
                     const tick = () => {
                         done++;
-                        if (tangoHint) tangoHint.textContent = `Cargando catálogos Tango... ${done}/5`;
+                        if (tangoHint) tangoHint.textContent = `Cargando catálogos Tango... ${done}/4`;
                     };
 
                     await Promise.allSettled([
@@ -748,9 +744,6 @@ ob_start();
                         fetchCatalog('tango-perfiles', formData, function(items) {
                             tick(); populateTangoSelects({ perfiles_pedidos: items });
                         }, 'Perfiles'),
-                        fetchCatalog('tango-clasificaciones', formData, function(items) {
-                            tick(); populateClasificacionesPds(items);
-                        }, 'Clasificaciones PDS'),
                     ]);
 
                     if (tangoHint) {
@@ -932,32 +925,6 @@ ob_start();
                         diagnoseBtn.disabled = false;
                     }
                 });
-            }
-
-            // Auto-llenado del textarea "Catálogo Local de Clasificaciones PDS".
-            // El shape que espera ClasificacionCatalogService::parseRaw() son líneas planas
-            // "CODIGO descripcion" — NO JSON. Por eso acá transformamos los items a ese formato.
-            // Regla de respeto: solo sobrescribimos si el textarea está vacío, para no pisar
-            // ediciones manuales del operador.
-            function populateClasificacionesPds(items) {
-                const ta = document.getElementById('clasificaciones_pds_raw');
-                if (!ta || !Array.isArray(items) || items.length === 0) return;
-
-                const existing = (ta.value || '').trim();
-                if (existing !== '') {
-                    // Ya tiene contenido manual — no tocamos. Se puede forzar re-sync
-                    // limpiando el textarea y reapretando Validar Conexión.
-                    return;
-                }
-
-                const lines = items.map(function(it) {
-                    const code = (it && it.codigo ? String(it.codigo) : '').trim();
-                    const desc = (it && it.descripcion ? String(it.descripcion) : '').trim();
-                    if (!code) return null;
-                    return desc ? (code + ' ' + desc) : code;
-                }).filter(Boolean);
-
-                ta.value = lines.join('\n');
             }
 
             function populateTangoSelects(data) {

@@ -572,41 +572,56 @@ class PedidoServicioController extends \App\Core\Controller
 
         $empresaId = (int) Context::getEmpresaId();
         $term = mb_strtolower(trim((string) ($_GET['q'] ?? '')));
-        $config = \App\Modules\EmpresaConfig\EmpresaConfigService::forCrm()->getConfig();
-        
-        $raw = trim((string)($config->clasificaciones_pds_raw ?? ''));
-        $useRaw = false;
         $items = [];
-        
-        if ($raw !== '') {
-            $parsed = json_decode($raw, true);
-            if (is_array($parsed)) {
-                $items = $parsed;
-                $useRaw = true;
+
+        // Prioridad 1: catalogo sincronizado por RXN Sync (tabla crm_catalogo_comercial_items, tipo 'clasificacion_pds').
+        // Cada sync refresca descripciones y altas/bajas de Tango; lectura 100% local, no depende de que la API este online.
+        $catalogRepo = new \App\Modules\CrmPresupuestos\CommercialCatalogRepository();
+        $catalogRows = $catalogRepo->findAllByType($empresaId, 'clasificacion_pds');
+        if (!empty($catalogRows)) {
+            foreach ($catalogRows as $row) {
+                $items[] = [
+                    'COD_GVA81' => (string) ($row['codigo'] ?? ''),
+                    'DESCRIP' => (string) ($row['descripcion'] ?? ''),
+                    'ID_GVA81' => $row['id_interno'] ?? null,
+                ];
             }
         }
-        
-        if (!$useRaw) {
-            $token = trim((string) ($config->tango_connect_token ?? ''));
-            if ($token !== '') {
-                try {
-                    $client = new \App\Modules\Tango\TangoApiClient(
-                        rtrim((string) ($config->tango_api_url ?? ''), '/') . '/Api',
-                        $token,
-                        trim((string) ($config->tango_connect_company_id ?? '')),
-                        trim((string) ($config->tango_connect_key ?? '')) ?: null
-                    );
-                    
-                    // Petición ágil y directa (1 sola hoja grande para traer todo sin loops lentos)
-                    $data = $client->getRawClient()->get('Get', [
-                        'process' => 326,
-                        'pageSize' => 150,
-                        'pageIndex' => 0,
-                        'view' => ''
-                    ]);
-                    $items = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
-                } catch (\Throwable $e) {
-                    $items = [];
+
+        // Prioridad 2: campo legacy clasificaciones_pds_raw en empresa_config_crm (se usaba para salir del paso).
+        // Se mantiene como fallback para instalaciones que todavia no corrieron Sync Catalogos en 1.13.1+.
+        if (empty($items)) {
+            $config = \App\Modules\EmpresaConfig\EmpresaConfigService::forCrm()->getConfig();
+            $raw = trim((string)($config->clasificaciones_pds_raw ?? ''));
+            if ($raw !== '') {
+                $parsed = json_decode($raw, true);
+                if (is_array($parsed)) {
+                    $items = $parsed;
+                }
+            }
+
+            // Prioridad 3: fetch en vivo a Tango (igual que antes — solo si no hay BD ni raw).
+            if (empty($items)) {
+                $token = trim((string) ($config->tango_connect_token ?? ''));
+                if ($token !== '') {
+                    try {
+                        $client = new \App\Modules\Tango\TangoApiClient(
+                            rtrim((string) ($config->tango_api_url ?? ''), '/') . '/Api',
+                            $token,
+                            trim((string) ($config->tango_connect_company_id ?? '')),
+                            trim((string) ($config->tango_connect_key ?? '')) ?: null
+                        );
+
+                        $data = $client->getRawClient()->get('Get', [
+                            'process' => 326,
+                            'pageSize' => 150,
+                            'pageIndex' => 0,
+                            'view' => ''
+                        ]);
+                        $items = $data['resultData']['list'] ?? $data['data']['resultData']['list'] ?? [];
+                    } catch (\Throwable $e) {
+                        $items = [];
+                    }
                 }
             }
         }

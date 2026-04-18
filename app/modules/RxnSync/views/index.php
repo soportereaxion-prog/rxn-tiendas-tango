@@ -37,7 +37,7 @@ ob_start();
                     <span>Vinculados: <strong><?= (int) ($syncCircuit['articulos_vinculados'] ?? 0) ?></strong><?= !empty($syncCircuit['articulos_total']) ? ' / ' . (int) $syncCircuit['articulos_total'] : '' ?></span>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['config_path'] ?? '/mi-empresa/configuracion')) ?>" class="btn btn-sm btn-outline-secondary">Configuración</a>
                     <?php if ($isCrm): ?>
-                        <button type="button" id="btn-sync-catalogos" class="btn btn-sm btn-outline-warning <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>" title="Sincroniza condiciones de venta, listas de precio, vendedores, transportes y depósitos desde Tango Connect. Prerequisito de Sync Precios y Sync Stock en CRM." <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>><i class="bi bi-arrow-repeat"></i> Sync Catálogos</button>
+                        <button type="button" id="btn-sync-catalogos" class="btn btn-sm btn-outline-warning <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>" title="Sincroniza condiciones de venta, listas de precio, vendedores, transportes, depósitos y clasificaciones PDS desde Tango Connect. Prerequisito de Sync Precios y Sync Stock en CRM." <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>><i class="bi bi-arrow-repeat"></i> Sync Catálogos</button>
                     <?php endif; ?>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_precios_path'] ?? '/mi-empresa/sync/precios')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['precios_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['precios_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Precios</a>
                     <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_stock_path'] ?? '/mi-empresa/sync/stock')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['stock_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['stock_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Stock</a>
@@ -868,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btnSyncCatalogos.addEventListener('click', function () {
             console.log('[SyncCatalogos] click detected, opening confirm');
             showConfirm(
-                '¿Sincronizar catálogos comerciales CRM desde Tango?\n\nTrae condiciones de venta, listas de precio, vendedores, transportes y depósitos. Prerequisito para Sync Precios y Sync Stock.',
+                '¿Sincronizar catálogos comerciales CRM desde Tango?\n\nTrae condiciones de venta, listas de precio, vendedores, transportes, depósitos y clasificaciones PDS. Prerequisito para Sync Precios y Sync Stock.',
                 'warning',
                 function () {
                     console.log('[SyncCatalogos] confirm OK, disparando fetch a ' + basePath + '/sync-catalogos');

@@ -18,7 +18,7 @@ Además expone el **Circuito de Sync** — un panel visual que indica al operado
 ## Alcance
 - **Sí hace**:
   - Sincronización masiva e individual de `Clientes CRM` y `Artículos CRM` (Import + Audit o las variantes separadas). Ver sección "Flujos de sync" más abajo.
-  - Sincronización de **Catálogos Comerciales CRM** (condiciones de venta, listas de precio, vendedores, transportes, depósitos) via `CommercialCatalogSyncService` que habita en `Services/`. Prerequisito para que `Sync Precios` y `Sync Stock` funcionen en CRM.
+  - Sincronización de **Catálogos Comerciales CRM** (condiciones de venta, listas de precio, vendedores, transportes, depósitos, clasificaciones PDS) via `CommercialCatalogSyncService` que habita en `Services/`. Prerequisito para que `Sync Precios` y `Sync Stock` funcionen en CRM. Las clasificaciones PDS (process 326 de Tango, `tipo='clasificacion_pds'`) se agregaron en release 1.13.1 para reemplazar el campo raw `clasificaciones_pds_raw` que vivía en `empresa_config_crm` como salida temporal.
   - Inicia sincronizaciones de Precios y Stock redirigiendo al `TangoSyncController` con `?return=` para volver al módulo.
   - Realiza la vinculación blanda ("Match Suave") basada en SKU o código, y conserva el historial de transacciones mediante un pivot `rxn_sync_status` + log `rxn_sync_log`.
 - **No hace**: No sincroniza pedidos transaccionales ni configuraciones maestras. No realiza sincronización desatendida/automática (es *on demand* operada por el usuario). No sincroniza clientes hacia el entorno de *Tiendas B2C/B2B* (no hay endpoint `/mi-empresa/sync/clientes` — solo existe en CRM).

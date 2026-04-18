@@ -436,9 +436,11 @@ ob_start();
                             <div class="crm-picker-wrap" data-picker data-picker-url="/mi-empresa/crm/pedidos-servicio/clasificaciones/sugerencias" data-picker-allow-manual="1">
                                 <input type="hidden" name="clasificacion_id_tango" id="clasificacion_id_tango" data-picker-extra-hidden value="<?= htmlspecialchars((string) ($presupuesto['clasificacion_id_tango'] ?? '')) ?>">
                                 <input type="hidden" class="crm-picker-hidden" data-picker-hidden value="<?= htmlspecialchars((string) ($presupuesto['clasificacion_codigo'] ?? '')) ?>">
+                                <input type="hidden" name="clasificacion_descripcion" id="clasificacion_descripcion" value="<?= htmlspecialchars((string) ($presupuesto['clasificacion_descripcion'] ?? '')) ?>">
                                 <input type="text" class="form-control" id="clasificacion_codigo" name="clasificacion_codigo" value="<?= htmlspecialchars((string) ($presupuesto['clasificacion_codigo'] ?? '')) ?>" autocomplete="off" placeholder="Clasificacion" data-picker-input>
                                 <div class="rxn-search-suggestions crm-picker-results d-none" data-picker-results></div>
                             </div>
+                            <div class="form-text text-truncate" data-clasificacion-desc-display><?= trim((string) ($presupuesto['clasificacion_descripcion'] ?? '')) !== '' ? htmlspecialchars((string) $presupuesto['clasificacion_descripcion'], ENT_QUOTES, 'UTF-8') : '&nbsp;' ?></div>
                         </div>
 
                         <div class="crm-budget-col-3">

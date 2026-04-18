@@ -369,12 +369,13 @@ class RxnSyncController extends Controller
             $stats = $catalogSync->sync($empresaId);
 
             $msg = sprintf(
-                'Catálogos sincronizados. Condiciones: %d / Listas: %d / Vendedores: %d / Transportes: %d / Depósitos: %d (total recibidos).',
+                'Catálogos sincronizados. Condiciones: %d / Listas: %d / Vendedores: %d / Transportes: %d / Depósitos: %d / Clasificaciones PDS: %d (total recibidos).',
                 (int) ($stats['condicion_venta']['received'] ?? 0),
                 (int) ($stats['lista_precio']['received'] ?? 0),
                 (int) ($stats['vendedor']['received'] ?? 0),
                 (int) ($stats['transporte']['received'] ?? 0),
-                (int) ($stats['deposito']['received'] ?? 0)
+                (int) ($stats['deposito']['received'] ?? 0),
+                (int) ($stats['clasificacion_pds']['received'] ?? 0)
             );
 
             echo json_encode([
