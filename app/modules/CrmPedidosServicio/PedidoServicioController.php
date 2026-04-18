@@ -919,6 +919,7 @@ class PedidoServicioController extends \App\Core\Controller
             'duracion_bruta_hhmmss' => isset($pedido['duracion_bruta_segundos']) ? $this->formatDuration((int) $pedido['duracion_bruta_segundos']) : '--:--:--',
             'duracion_neta_hhmmss' => isset($pedido['duracion_neta_segundos']) ? $this->formatDuration((int) $pedido['duracion_neta_segundos']) : '--:--:--',
             'estado_ui' => empty($pedido['fecha_finalizado']) ? 'abierto' : 'finalizado',
+            'tango_sync_status' => $pedido['tango_sync_status'] ?? null,
             'tango_sync_payload' => $pedido['tango_sync_payload'] ?? null,
             'tango_sync_response' => $pedido['tango_sync_response'] ?? null,
             'capturas' => array_map(static function(array $adj) {

@@ -26,7 +26,7 @@ foreach ($registros as $r) {
         <option value="5">🚫 Anulado (<?= (int) $counts[5] ?>)</option>
         <option value="sin">❓ Sin sync (<?= (int) $counts['sin'] ?>)</option>
     </select>
-    <small class="text-muted ms-auto" id="rxnsync-ped-count"><?= count($registros) ?> PDS con ID Tango</small>
+    <small class="text-muted ms-auto" id="rxnsync-ped-count"><?= count($registros) ?> PDS en Tango</small>
 </div>
 
 <div class="table-responsive text-start">
@@ -46,7 +46,7 @@ foreach ($registros as $r) {
             <?php if (empty($registros)): ?>
                 <tr>
                     <td colspan="7" class="text-center text-muted py-4">
-                        No hay PDS enviados a Tango todavía. Cuando los PDS se envían a Tango aparecen acá para poder sincronizar su estado.
+                        No hay PDS enviados a Tango con éxito todavía. Cuando un PDS se envía a Tango y vuelve OK aparece acá para poder sincronizar su estado.
                     </td>
                 </tr>
             <?php else: ?>
@@ -56,7 +56,9 @@ foreach ($registros as $r) {
                     $meta      = TangoPedidoEstado::meta($estado);
                     $estadoKey = TangoPedidoEstado::isValid($estado) ? (string) $estado : 'sin';
                     $nombre    = strtolower((string) ($row['cliente_nombre'] ?? ''));
-                    $nroPed    = strtolower((string) ($row['tango_nro_pedido'] ?? ''));
+                    $nroPedTxt = (string) ($row['tango_nro_pedido'] ?? ($row['nro_pedido'] ?? ''));
+                    $nroPed    = strtolower($nroPedTxt);
+                    $hasGva21  = !empty($row['tango_id_gva21']);
                     ?>
                     <tr data-pedido-id="<?= (int) $row['id'] ?>"
                         data-estado="<?= htmlspecialchars($estadoKey) ?>"
@@ -68,9 +70,11 @@ foreach ($registros as $r) {
                             <?= htmlspecialchars((string) $row['cliente_nombre']) ?>
                         </td>
                         <td class="font-monospace small">
-                            <?= $row['tango_nro_pedido'] ? htmlspecialchars((string) $row['tango_nro_pedido']) : '<span class="text-muted">–</span>' ?>
+                            <?= $nroPedTxt !== '' ? htmlspecialchars($nroPedTxt) : '<span class="text-muted">–</span>' ?>
                         </td>
-                        <td class="font-monospace text-muted small">#<?= (int) $row['tango_id_gva21'] ?></td>
+                        <td class="font-monospace text-muted small">
+                            <?= $hasGva21 ? '#' . (int) $row['tango_id_gva21'] : '<span class="text-muted" title="Se resolverá al sincronizar">–</span>' ?>
+                        </td>
                         <td>
                             <span class="badge bg-<?= htmlspecialchars($meta['color']) ?> rounded-pill px-2">
                                 <i class="bi <?= htmlspecialchars($meta['icon']) ?> me-1"></i><?= htmlspecialchars($meta['label']) ?>
@@ -119,7 +123,7 @@ foreach ($registros as $r) {
             row.style.display = show ? '' : 'none';
             if (show) visible++;
         });
-        if (countEl) countEl.textContent = visible + ' PDS con ID Tango';
+        if (countEl) countEl.textContent = visible + ' PDS en Tango';
     }
 
     if (search) search.addEventListener('input', applyFilter);

@@ -126,3 +126,67 @@ Template del summary explícito en la sección.
 - **Presupuestos en RxnSync**: mismo patrón que pedidos (process=19845 acepta tanto pedidos como presupuestos via talonario diferente — hay que chequear). Charly pidió ir de PDS primero y seguir con presupuestos.
 - **Automatización con n8n**: pull programado, idealmente cada 15-30 min para los anulados (que son los más time-sensitive). Decisión posterior de cadencia.
 - **Exponer `snapshot_tango` completo en la UI**: hoy el resultado del pull individual muestra solo el message "Estado actualizado: ANULADO", pero el payload queda en memoria. Podría abrirse un details/collapse para ver el JSON como hace Clientes/Artículos.
+
+---
+
+## Segundo tramo (post-testing, mismo 2026-04-18)
+
+Charly testeó la release y reportó tres gaps. Se resolvieron en la misma release 1.15.0 (sin bumpear a 1.15.1) porque son parte del mismo ciclo de desarrollo.
+
+### Gap 1 — Confirm de salida seguía preguntando en PDS enviado-a-Tango + con mail
+
+**Causa raíz**: `PedidoServicioController::hydrateFormState()` es un whitelist explícito. Incluía `tango_sync_payload` y `tango_sync_response` pero **no** incluía `tango_sync_status`. Entonces el form PHP recibía `$pedido['tango_sync_status'] = null` → `data-tango-sent="0"` → `isFlowCompleted()` siempre false → confirm siempre aparecía.
+
+Mismo antipatrón que ya tenía documentado en Engram desde 1.14.1 (el bug de `correos_enviados_count`). Caí de nuevo en la misma trampa.
+
+**Fix**: agregado `'tango_sync_status' => $pedido['tango_sync_status'] ?? null,` al hydrate.
+
+Presupuestos ya lo tenía incluido desde 1.14.1, por eso ahí funcionaba sin tocarse.
+
+### Gap 2 — Botón "Sincronizar Estados de Pedidos" no hacía nada
+
+**Causa raíz**: `RxnSyncController` llamaba `AuthService::requireLogin()` en varios methods (`syncPullArticulos`, `syncPullClientes`, `syncCatalogos`, el nuevo `syncPedidosEstados`) pero **no tenía** `use App\Modules\Auth\AuthService;` en los imports. PHP resolvía la clase en el namespace local (`App\Modules\RxnSync\AuthService`) → fatal "Class not found" → respuesta HTML de error con status 200 → el `fetch` del JS parseaba como JSON fallando silencioso.
+
+Bug latente desde antes del 1.15.0 en los otros 3 endpoints. Apareció visible cuando Charly probó el botón nuevo.
+
+**Fix**: agregado `use App\Modules\Auth\AuthService;` al controller. De una arregla los 4 endpoints.
+
+### Gap 3 — Tab Pedidos aparecía vacío pese a haber 26 PDS históricos
+
+Dos causas encadenadas:
+
+**(a) Backfill del migration inicial estaba mal apuntado**. Asumí que el response de `Create?process=19845` devolvía `{data: {value: {ID_GVA21: ...}}}`. La realidad es `{data: {savedId: 26575}}` — int escalar, no objeto. El path `JSON_EXTRACT($.data.value.ID_GVA21)` no matcheó nunca. 26/26 PDS históricos quedaron con `tango_id_gva21 = NULL`.
+
+**Fix**: migración de reparación `2026_04_18_repair_tango_id_gva21_from_savedid.php` que reintenta con `$.data.savedId`. 26/26 resueltos en dev.
+
+**(b) Query del tab filtraba por `tango_id_gva21 IS NOT NULL`**, que después del gap (a) era todo NULL → tab vacío.
+
+**Fix**: filtro cambió a `tango_sync_status = 'success'`. Ahora lista todos los PDS enviados con éxito, los que no tengan ID resuelto muestran "–" con tooltip y se auto-resuelven al sincronizar.
+
+### Gap 4 (bonus, descubierto al primer sync) — Paginación no alcanzaba a los IDs altos
+
+Al correr el sync masivo la primera vez, 26/26 volvían "no encontrado en Tango". El loop `Get?process=19845&pageSize=500` con tope de 50 páginas cubría hasta 25.000 pedidos. Los IDs locales estaban en 26.550+ → fuera del rango.
+
+**Fix**: reemplazado el paginado completo por `GetByFilter?process=19845&filtroSql=WHERE ID_GVA21 IN (...)` en batches de 100. Una call por cada 100 pedidos, trae solo los que nos interesan.
+
+**Bonus discovery**: `GetByFilter` devuelve la lista en `data.list` (sin `resultData` intermedio), a diferencia del `Get` paginado que la devuelve en `data.resultData.list`. El parsing ahora contempla ambos shapes.
+
+### Feature extra — View de RXN Live con estado Tango
+
+Charly pidió extender la vista SQL `RXN_LIVE_VW_PEDIDOS_SERVICIO` para exponer las columnas nuevas de sync Tango. Migración nueva que:
+
+- Suma `tango_estado` (TINYINT) y `tango_estado_label` (resuelto con `CASE` SQL → "Aprobado/Cumplido/Cerrado/Anulado/Sin sync"), listo para Pivot/Data Live.
+- Suma `tango_estado_sync_at` (DATETIME).
+- Cambia `nro_pedido_tango` para priorizar `tango_nro_pedido` (formato legible) con fallback al `nro_pedido` legacy.
+
+### Ajuste al workflow — Commits SOLO al cierre
+
+Durante esta sesión Charly pidió formalizar que los commits van **SOLO al cierre**, no en medio del trabajo. Ya lo seguí el resto de la sesión (este segundo tramo quedó sin commitear hasta el ritual final). Agregado a CLAUDE.md.
+
+## Validación end-to-end del segundo tramo
+
+- Probe del endpoint Tango confirmó: `Create` devuelve `data.savedId`, `GetByFilter` devuelve `data.list`, los 4 estados (2/3/4/5) coinciden con lo que dijo Charly.
+- Corrida del `syncPedidosEstados` en local: `total: 26, actualizados: 26, sin_match: 0, errores: 0, resueltos_id: 0`.
+- Distribución de estados en dev: todos en 2 (Aprobado) — Charly no tiene anulados en la tabla local; el pedido 26576 que anuló no corresponde a un PDS.
+- Post-sync los `tango_nro_pedido` quedaron con el formato legible (`X00652-00000964`).
+- View `RXN_LIVE_VW_PEDIDOS_SERVICIO` expone las 3 columnas nuevas; verificado con SELECT directo.

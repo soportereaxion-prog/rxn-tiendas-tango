@@ -165,7 +165,7 @@ ob_start();
                                         </td>
                                         <td class="fw-bold text-dark">
                                             #<?= (int) $pedido['numero'] ?>
-                                            <?php if (!empty($pedido['nro_pedido'])): ?>
+                                            <?php if (!empty($pedido['nro_pedido']) || !empty($pedido['tango_nro_pedido'])): ?>
                                                 <?php
                                                 $_tangoEstado = isset($pedido['tango_estado']) && $pedido['tango_estado'] !== null
                                                     ? (int) $pedido['tango_estado']
@@ -174,8 +174,13 @@ ob_start();
                                                 $_syncAt = !empty($pedido['tango_estado_sync_at'])
                                                     ? date('d/m/Y H:i', strtotime((string) $pedido['tango_estado_sync_at']))
                                                     : 'Nunca';
+                                                // Priorizamos el NRO_PEDIDO resuelto desde Tango (formato legible X00652-...)
+                                                // por sobre el nro_pedido legacy (que históricamente guardaba el ID crudo).
+                                                $_nroPedidoMostrar = !empty($pedido['tango_nro_pedido'])
+                                                    ? (string) $pedido['tango_nro_pedido']
+                                                    : (string) $pedido['nro_pedido'];
                                                 $_titleParts = [
-                                                    'Pedido Tango: ' . $pedido['nro_pedido'],
+                                                    'Pedido Tango: ' . $_nroPedidoMostrar,
                                                     'Estado: ' . $_estadoMeta['label'],
                                                     'Última sync: ' . $_syncAt,
                                                 ];
@@ -184,7 +189,7 @@ ob_start();
                                                           title="<?= htmlspecialchars(implode(' · ', $_titleParts)) ?>"
                                                           style="font-size: 0.75rem;">
                                                     <i class="bi <?= htmlspecialchars($_estadoMeta['icon']) ?>"></i>
-                                                    <?= htmlspecialchars((string) $pedido['nro_pedido']) ?>
+                                                    <?= htmlspecialchars($_nroPedidoMostrar) ?>
                                                     <?php if ($_tangoEstado !== null): ?>
                                                         · <?= htmlspecialchars($_estadoMeta['label']) ?>
                                                     <?php endif; ?>

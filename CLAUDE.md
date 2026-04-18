@@ -336,6 +336,14 @@ RxnShortcuts.register({
 - **"Factory OTA"** = proceso de compilar el ZIP de release desde `/admin/mantenimiento` o vía `tools/build_update_zip.php`. Es interno del sistema, Charly lo dispara solo. **NO usar la palabra "OTA" a secas** — generó confusión en sesiones previas. Si Charly dice "metemos OTA" casi seguro se refiere a migraciones.
 - **"Deploy" / "Subir" / "Reino de los cielos"** = desplegar el código al server de producción (Plesk).
 
+### Commits SOLO al cierre de sesión (2026-04-18)
+
+Durante una sesión de trabajo **NO commitear**. Se commitea **SOLO al cierre**, cuando Charly dice "cerramos sesión", "cerremos", "listo por hoy" o similar. Antes de eso los cambios quedan sin commit — en el working tree pero sin ceremonia.
+
+**Por qué**: Charly encontró que los commits parciales en medio del trabajo generan ruido y obligan a pensar en mensajes de commit cuando todavía estamos iterando. Prefiere un único commit por ciclo de sesión que englobe todo el trabajo.
+
+**Corolario**: idem `app/config/version.php` y el log de `docs/logs/` — se arman al cierre, no en el medio. Durante la sesión los cambios están "en vuelo". Excepción explícita: si Charly dice "commiteá esto ahora", ahí sí.
+
 ### Flujo de trabajo preferido (Charly) — vigente desde 2026-04-14
 
 Charly simplificó el ritmo de trabajo. La idea es que sea **así de simple**:

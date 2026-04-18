@@ -580,7 +580,9 @@ class RxnSyncService
     }
 
     /**
-     * Lista los PDS con estado Tango para pintar el tab Pedidos de RxnSync.
+     * Lista los PDS enviados a Tango con éxito para pintar el tab Pedidos de RxnSync.
+     * Se incluyen también los que no tienen tango_id_gva21 resuelto todavía (aparecen
+     * con badge "Sin sync" y el botón de sync los resuelve on-the-fly desde el JSON).
      */
     public function getPedidosSyncList(int $empresaId, array $advancedFilters = []): array
     {
@@ -596,11 +598,12 @@ class RxnSyncService
 
         $sql = "SELECT ps.id, ps.numero, ps.cliente_nombre, ps.tango_id_gva21,
                        ps.tango_nro_pedido, ps.tango_estado, ps.tango_estado_sync_at,
-                       ps.fecha_inicio, ps.fecha_finalizado, ps.tango_sync_status
+                       ps.fecha_inicio, ps.fecha_finalizado, ps.tango_sync_status,
+                       ps.nro_pedido
                 FROM crm_pedidos_servicio ps
                 WHERE ps.empresa_id = :empresa_id
                   AND ps.deleted_at IS NULL
-                  AND ps.tango_id_gva21 IS NOT NULL";
+                  AND ps.tango_sync_status = 'success'";
 
         if ($advSql !== '') {
             $sql .= " AND {$advSql}";
@@ -616,6 +619,75 @@ class RxnSyncService
     }
 
     /**
+     * Extrae el ID_GVA21 desde el JSON tango_sync_response ya guardado. Tango Connect
+     * devuelve el ID del pedido creado en `data.savedId` (int escalar).
+     * Fallback por si algún wrapper distinto lo expone en otra clave.
+     */
+    private function extractTangoIdFromResponseJson(?string $responseJson): ?int
+    {
+        if ($responseJson === null || trim($responseJson) === '') {
+            return null;
+        }
+
+        $data = json_decode($responseJson, true);
+        if (!is_array($data)) {
+            return null;
+        }
+
+        $candidates = [
+            $data['data']['savedId']        ?? null,
+            $data['data']['value']['ID_GVA21'] ?? null,
+            $data['value']['ID_GVA21']      ?? null,
+            $data['ID_GVA21']               ?? null,
+            $data['savedId']                ?? null,
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_numeric($candidate) && (int) $candidate > 0) {
+                return (int) $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resuelve y persiste tango_id_gva21 desde el JSON ya guardado (sin pegarle a Tango).
+     * Retorna el ID_GVA21 resuelto o null si no se pudo extraer.
+     */
+    private function ensureTangoIdGva21(int $empresaId, array $pedidoRow): ?int
+    {
+        if (!empty($pedidoRow['tango_id_gva21'])) {
+            return (int) $pedidoRow['tango_id_gva21'];
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT tango_sync_response FROM crm_pedidos_servicio
+             WHERE id = ? AND empresa_id = ? LIMIT 1'
+        );
+        $stmt->execute([(int) $pedidoRow['id'], $empresaId]);
+        $json = $stmt->fetchColumn();
+
+        $resolved = $this->extractTangoIdFromResponseJson($json !== false ? (string) $json : null);
+        if ($resolved === null) {
+            return null;
+        }
+
+        $upd = $this->db->prepare(
+            'UPDATE crm_pedidos_servicio
+             SET tango_id_gva21 = :gva21
+             WHERE id = :id AND empresa_id = :empresa_id AND tango_id_gva21 IS NULL'
+        );
+        $upd->execute([
+            ':gva21'      => $resolved,
+            ':id'         => (int) $pedidoRow['id'],
+            ':empresa_id' => $empresaId,
+        ]);
+
+        return $resolved;
+    }
+
+    /**
      * Pull masivo de estados de pedidos desde Tango Connect (process=19845).
      *
      * Estrategia: en lugar de hacer N requests GetById (una por PDS), paginamos el
@@ -624,17 +696,37 @@ class RxnSyncService
      */
     public function syncPedidosEstados(int $empresaId): array
     {
+        // Arrancamos con TODOS los PDS con tango_sync_status='success' (incluye los que
+        // todavía no tienen tango_id_gva21 resuelto). Para esos intentamos resolverlo
+        // desde el JSON antes del pull — así cubrimos históricos sin tener que correr
+        // backfill manual.
         $stmt = $this->db->prepare(
-            'SELECT id, numero, tango_id_gva21
+            "SELECT id, numero, tango_id_gva21, tango_sync_response
              FROM crm_pedidos_servicio
-             WHERE empresa_id = ? AND deleted_at IS NULL AND tango_id_gva21 IS NOT NULL'
+             WHERE empresa_id = ? AND deleted_at IS NULL AND tango_sync_status = 'success'"
         );
         $stmt->execute([$empresaId]);
         $locales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if ($locales === []) {
-            return ['total' => 0, 'actualizados' => 0, 'sin_match' => 0, 'errores' => 0, 'detalles' => []];
+            return ['total' => 0, 'actualizados' => 0, 'sin_match' => 0, 'errores' => 0, 'resueltos_id' => 0, 'detalles' => []];
         }
+
+        // Auto-resolve de tango_id_gva21 faltantes desde el JSON guardado (sin Tango).
+        $resueltosId = 0;
+        foreach ($locales as $idx => $row) {
+            if (empty($row['tango_id_gva21'])) {
+                $resolved = $this->ensureTangoIdGva21($empresaId, $row);
+                if ($resolved !== null) {
+                    $locales[$idx]['tango_id_gva21'] = $resolved;
+                    $resueltosId++;
+                }
+            }
+        }
+
+        // Filtramos los que NO pudimos resolver — van al contador "sin_match" al final.
+        $sinIdResuelto = array_values(array_filter($locales, static fn ($r) => empty($r['tango_id_gva21'])));
+        $locales       = array_values(array_filter($locales, static fn ($r) => !empty($r['tango_id_gva21'])));
 
         $mapLocal = [];
         foreach ($locales as $row) {
@@ -645,48 +737,42 @@ class RxnSyncService
         $apiClient    = $tangoService->getApiClient();
         $rawClient    = $apiClient->getRawClient();
 
-        $pageIndex = 0;
-        $pageSize  = 500;
-        $seenFirstIds = [];
-        $mapTango = [];
+        // Estrategia: en lugar de paginar el listado entero (que puede tener decenas de
+        // miles de pedidos y obligar a recorrer muchas páginas), consultamos directamente
+        // por los ID_GVA21 que nos interesan usando GetByFilter?process=19845 con un
+        // filtroSql `WHERE ID_GVA21 IN (...)`. Batches de 100 IDs para evitar URLs gigantes.
+        $idsToQuery = array_map(static fn ($r) => (int) $r['tango_id_gva21'], $locales);
+        $batches    = array_chunk($idsToQuery, 100);
+        $mapTango   = [];
 
-        while (true) {
-            $res = $rawClient->get('Get', [
-                'process'   => 19845,
-                'pageSize'  => $pageSize,
-                'pageIndex' => $pageIndex,
-                'view'      => ''
-            ]);
+        foreach ($batches as $batch) {
+            if ($batch === []) {
+                continue;
+            }
+            $filtroSql = 'WHERE ID_GVA21 IN (' . implode(',', $batch) . ')';
+            $endpoint  = 'GetByFilter?process=19845&view=&filtroSql=' . rawurlencode($filtroSql);
 
-            $list = $res['data']['resultData']['list'] ?? $res['resultData']['list'] ?? [];
-            if ($list === []) {
-                break;
+            try {
+                $res = $rawClient->get($endpoint);
+            } catch (\Throwable $e) {
+                throw new RuntimeException('Falló GetByFilter contra Tango: ' . $e->getMessage());
             }
 
-            $firstId = isset($list[0]['ID_GVA21']) ? (string) $list[0]['ID_GVA21'] : '';
-            if ($firstId !== '') {
-                if (isset($seenFirstIds[$firstId])) {
-                    break;
-                }
-                $seenFirstIds[$firstId] = true;
-            }
-
+            // Ojo shape: GetByFilter devuelve `data.list`, NO `data.resultData.list` (que usa Get).
+            $list = $res['data']['list']
+                ?? $res['data']['resultData']['list']
+                ?? $res['resultData']['list']
+                ?? [];
             foreach ($list as $item) {
                 if (!isset($item['ID_GVA21'])) {
                     continue;
                 }
                 $gva21 = (int) $item['ID_GVA21'];
                 $mapTango[$gva21] = [
-                    'estado'       => isset($item['ESTADO']) ? (int) $item['ESTADO'] : null,
-                    'nro_pedido'   => isset($item['NRO_PEDIDO']) ? trim((string) $item['NRO_PEDIDO']) : null,
+                    'estado'     => isset($item['ESTADO']) ? (int) $item['ESTADO'] : null,
+                    'nro_pedido' => isset($item['NRO_PEDIDO']) ? trim((string) $item['NRO_PEDIDO']) : null,
                 ];
             }
-
-            if (count($list) < $pageSize || $pageIndex >= 50) {
-                break;
-            }
-
-            $pageIndex++;
         }
 
         $actualizados = 0;
@@ -726,23 +812,29 @@ class RxnSyncService
             }
         }
 
+        foreach ($sinIdResuelto as $local) {
+            $detalles[] = "PDS #{$local['numero']}: no se pudo extraer ID_GVA21 del response Tango guardado.";
+        }
+
         return [
-            'total'        => count($locales),
+            'total'        => count($locales) + count($sinIdResuelto),
             'actualizados' => $actualizados,
-            'sin_match'    => $sinMatch,
+            'sin_match'    => $sinMatch + count($sinIdResuelto),
             'errores'      => $errores,
+            'resueltos_id' => $resueltosId,
             'detalles'     => $detalles,
         ];
     }
 
     /**
      * Pull individual de estado de un PDS — consulta GetById?process=19845&id=ID_GVA21.
-     * Útil como botón "refrescar" por fila.
+     * Útil como botón "refrescar" por fila. Si el PDS todavía no tiene tango_id_gva21
+     * resuelto, intenta extraerlo del JSON antes del pull.
      */
     public function syncPedidoEstadoByLocalId(int $empresaId, int $pedidoServicioId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT id, numero, tango_id_gva21
+            'SELECT id, numero, tango_id_gva21, tango_sync_status
              FROM crm_pedidos_servicio
              WHERE id = ? AND empresa_id = ? AND deleted_at IS NULL
              LIMIT 1'
@@ -755,7 +847,16 @@ class RxnSyncService
         }
 
         if (empty($local['tango_id_gva21'])) {
-            throw new RuntimeException('Este PDS todavía no fue enviado a Tango (no tiene ID_GVA21).');
+            if (($local['tango_sync_status'] ?? '') !== 'success') {
+                throw new RuntimeException('Este PDS todavía no fue enviado a Tango con éxito.');
+            }
+
+            $resolved = $this->ensureTangoIdGva21($empresaId, $local);
+            if ($resolved === null) {
+                throw new RuntimeException('No se pudo extraer el ID Tango del response guardado. Reenvialo a Tango desde el form del PDS.');
+            }
+
+            $local['tango_id_gva21'] = $resolved;
         }
 
         $tangoService = \App\Modules\Tango\TangoService::forCrm();

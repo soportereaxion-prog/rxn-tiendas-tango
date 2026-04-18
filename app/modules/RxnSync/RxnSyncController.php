@@ -7,6 +7,7 @@ namespace App\Modules\RxnSync;
 use App\Core\Controller;
 use App\Core\Context;
 use App\Core\View;
+use App\Modules\Auth\AuthService;
 use App\Modules\EmpresaConfig\EmpresaConfigRepository;
 use RuntimeException;
 
@@ -426,13 +427,20 @@ class RxnSyncController extends Controller
 
         try {
             $stats = $this->service->syncPedidosEstados($empresaId);
-            $msg = sprintf(
-                'Sync de estados completado. Total: %d / Actualizados: %d / Sin match: %d / Errores: %d.',
-                (int) ($stats['total'] ?? 0),
-                (int) ($stats['actualizados'] ?? 0),
-                (int) ($stats['sin_match'] ?? 0),
-                (int) ($stats['errores'] ?? 0)
-            );
+            $parts = [
+                sprintf('Total: %d', (int) ($stats['total'] ?? 0)),
+                sprintf('Actualizados: %d', (int) ($stats['actualizados'] ?? 0)),
+            ];
+            if (!empty($stats['resueltos_id'])) {
+                $parts[] = sprintf('IDs Tango auto-resueltos: %d', (int) $stats['resueltos_id']);
+            }
+            if (!empty($stats['sin_match'])) {
+                $parts[] = sprintf('Sin match: %d', (int) $stats['sin_match']);
+            }
+            if (!empty($stats['errores'])) {
+                $parts[] = sprintf('Errores: %d', (int) $stats['errores']);
+            }
+            $msg = 'Sync de estados completado. ' . implode(' / ', $parts) . '.';
 
             echo json_encode([
                 'success' => ($stats['errores'] ?? 0) === 0,
