@@ -216,6 +216,7 @@ $buildQuery = static function (array $overrides = []) use ($search, $categoriaSl
                             </div>
 
                             <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="mt-auto position-relative" style="z-index: 2;">
+                                <?= \App\Core\CsrfHelper::input() ?>
                                 <input type="hidden" name="articulo_id" value="<?= (int) $art['id'] ?>">
                                 <input type="hidden" name="cantidad" value="1">
                                 <?php if ($price !== null && $hasStock): ?>

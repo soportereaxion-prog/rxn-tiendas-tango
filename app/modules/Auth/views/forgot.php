@@ -26,6 +26,7 @@
             <div class="alert alert-success py-2 small"><?= htmlspecialchars($success) ?></div>
         <?php else: ?>
             <form action="/auth/forgot" method="POST">
+                <?= \App\Core\CsrfHelper::input() ?>
                 <div class="mb-3">
                     <label class="form-label small fw-medium text-secondary">Correo Electrónico</label>
                     <input type="email" name="email" class="form-control" required placeholder="tu@email.com">

@@ -142,71 +142,60 @@ class EmpresaConfigService
         }
 
         // --- MÓDULO IMAGEN FALLBACK ---
-        if (isset($_FILES['imagen_default']) && $_FILES['imagen_default']['error'] === UPLOAD_ERR_OK) {
-            $tmpName = $_FILES['imagen_default']['tmp_name'];
-            $name = $_FILES['imagen_default']['name'];
-            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-            
-            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment;
-                if (!is_dir($dirUploads)) {
-                    mkdir($dirUploads, 0777, true);
-                }
-                
-                $filename = 'fallback_' . time() . '.' . $ext;
-                $rutaAbsoluta = $dirUploads . '/' . $filename;
-                
-                if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
-                    $config->imagen_default_producto = '/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment . '/' . $filename;
-                    // Limpieza obligatoria del menú ya que cambiamos el aspet global visual
-                    if ($this->clearStoreCache) {
-                        \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
-                    }
-                }
+        $fallbackPath = $this->handleImageUpload($_FILES['imagen_default'] ?? null, $empresaId, 'fallback');
+        if ($fallbackPath !== null) {
+            $config->imagen_default_producto = $fallbackPath;
+            // Limpieza obligatoria del menú ya que cambiamos el aspecto global visual
+            if ($this->clearStoreCache) {
+                \App\Core\FileCache::clearPrefix("catalogo_empresa_{$empresaId}");
             }
         }
 
         // --- IMAGENES DE IMPRESIÓN ---
-        if (isset($_FILES['impresion_header']) && $_FILES['impresion_header']['error'] === UPLOAD_ERR_OK) {
-            $tmpName = $_FILES['impresion_header']['tmp_name'];
-            $name = $_FILES['impresion_header']['name'];
-            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-            
-            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment;
-                if (!is_dir($dirUploads)) {
-                    mkdir($dirUploads, 0777, true);
-                }
-                
-                $filename = 'header_' . time() . '.' . $ext;
-                $rutaAbsoluta = $dirUploads . '/' . $filename;
-                
-                if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
-                    $config->impresion_header_url = '/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment . '/' . $filename;
-                }
-            }
+        $headerPath = $this->handleImageUpload($_FILES['impresion_header'] ?? null, $empresaId, 'header');
+        if ($headerPath !== null) {
+            $config->impresion_header_url = $headerPath;
         }
 
-        if (isset($_FILES['impresion_footer']) && $_FILES['impresion_footer']['error'] === UPLOAD_ERR_OK) {
-            $tmpName = $_FILES['impresion_footer']['tmp_name'];
-            $name = $_FILES['impresion_footer']['name'];
-            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-            
-            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-                $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment;
-                if (!is_dir($dirUploads)) {
-                    mkdir($dirUploads, 0777, true);
-                }
-                
-                $filename = 'footer_' . time() . '.' . $ext;
-                $rutaAbsoluta = $dirUploads . '/' . $filename;
-                
-                if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
-                    $config->impresion_footer_url = '/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment . '/' . $filename;
-                }
-            }
+        $footerPath = $this->handleImageUpload($_FILES['impresion_footer'] ?? null, $empresaId, 'footer');
+        if ($footerPath !== null) {
+            $config->impresion_footer_url = $footerPath;
         }
 
         $this->repository->save($config);
+    }
+
+    /**
+     * Recibe una entrada de $_FILES y la procesa con UploadValidator.
+     * Retorna la ruta pública relativa o null si no se subió archivo.
+     */
+    private function handleImageUpload(?array $file, int $empresaId, string $prefix): ?string
+    {
+        if (!is_array($file)) {
+            return null;
+        }
+
+        try {
+            $validated = \App\Core\UploadValidator::image($file);
+        } catch (\RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+            return null;
+        }
+
+        if ($validated === null) {
+            return null;
+        }
+
+        $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment;
+        \App\Core\UploadValidator::prepareDir($dirUploads);
+
+        $filename = \App\Core\UploadValidator::generateFilename($prefix, $empresaId, $validated['ext']);
+        $rutaAbsoluta = $dirUploads . '/' . $filename;
+
+        if (!move_uploaded_file($validated['tmp_name'], $rutaAbsoluta)) {
+            return null;
+        }
+
+        return '/uploads/empresas/' . $empresaId . '/' . $this->uploadSegment . '/' . $filename;
     }
 }

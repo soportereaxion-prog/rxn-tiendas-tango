@@ -583,24 +583,16 @@ class EmpresaConfigController extends Controller
         ];
 
         $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/branding';
-        if (!is_dir($dirUploads)) {
-            mkdir($dirUploads, 0777, true);
+        \App\Core\UploadValidator::prepareDir($dirUploads);
+
+        $logoPath = $this->storeBrandingAsset($_FILES['logo'] ?? null, $empresaId, 'logo', $dirUploads, false);
+        if ($logoPath !== null) {
+            $brandingData['logo_url'] = $logoPath;
         }
 
-        if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-            $filename = 'logo_' . time() . '.' . $ext;
-            if (move_uploaded_file($_FILES['logo']['tmp_name'], $dirUploads . '/' . $filename)) {
-                $brandingData['logo_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
-            }
-        }
-
-        if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION));
-            $filename = 'favicon_' . time() . '.' . $ext;
-            if (move_uploaded_file($_FILES['favicon']['tmp_name'], $dirUploads . '/' . $filename)) {
-                $brandingData['favicon_url'] = '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
-            }
+        $faviconPath = $this->storeBrandingAsset($_FILES['favicon'] ?? null, $empresaId, 'favicon', $dirUploads, true);
+        if ($faviconPath !== null) {
+            $brandingData['favicon_url'] = $faviconPath;
         }
 
         $this->empresaRepo->updateBranding($empresaId, $brandingData);
@@ -608,7 +600,7 @@ class EmpresaConfigController extends Controller
 
     private function persistCrmFavicon(): void
     {
-        if (!isset($_FILES['favicon']) || $_FILES['favicon']['error'] !== UPLOAD_ERR_OK) {
+        if (!isset($_FILES['favicon'])) {
             return;
         }
 
@@ -619,24 +611,54 @@ class EmpresaConfigController extends Controller
         }
 
         $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/branding';
-        if (!is_dir($dirUploads)) {
-            mkdir($dirUploads, 0777, true);
+        \App\Core\UploadValidator::prepareDir($dirUploads);
+
+        $faviconPath = $this->storeBrandingAsset($_FILES['favicon'], $empresaId, 'favicon', $dirUploads, true);
+        if ($faviconPath === null) {
+            return;
         }
 
-        $ext = strtolower(pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION));
-        $filename = 'favicon_' . time() . '.' . $ext;
-        if (move_uploaded_file($_FILES['favicon']['tmp_name'], $dirUploads . '/' . $filename)) {
-            $brandingData = [
-                'logo_url' => $empresa->logo_url ?? null,
-                'favicon_url' => '/uploads/empresas/' . $empresaId . '/branding/' . $filename,
-                'color_primary' => $empresa->color_primary ?? null,
-                'color_secondary' => $empresa->color_secondary ?? null,
-                'footer_text' => $empresa->footer_text ?? null,
-                'footer_address' => $empresa->footer_address ?? null,
-                'footer_phone' => $empresa->footer_phone ?? null,
-                'footer_socials' => $empresa->footer_socials ?? null,
-            ];
-            $this->empresaRepo->updateBranding($empresaId, $brandingData);
+        $brandingData = [
+            'logo_url' => $empresa->logo_url ?? null,
+            'favicon_url' => $faviconPath,
+            'color_primary' => $empresa->color_primary ?? null,
+            'color_secondary' => $empresa->color_secondary ?? null,
+            'footer_text' => $empresa->footer_text ?? null,
+            'footer_address' => $empresa->footer_address ?? null,
+            'footer_phone' => $empresa->footer_phone ?? null,
+            'footer_socials' => $empresa->footer_socials ?? null,
+        ];
+        $this->empresaRepo->updateBranding($empresaId, $brandingData);
+    }
+
+    /**
+     * Recibe una entrada de $_FILES y la procesa con UploadValidator.
+     * Retorna la ruta pública relativa o null si no se subió archivo.
+     */
+    private function storeBrandingAsset(?array $file, int $empresaId, string $prefix, string $dirUploads, bool $isFavicon): ?string
+    {
+        if (!is_array($file)) {
+            return null;
         }
+
+        try {
+            $validated = $isFavicon
+                ? \App\Core\UploadValidator::favicon($file)
+                : \App\Core\UploadValidator::image($file);
+        } catch (\RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+            return null;
+        }
+
+        if ($validated === null) {
+            return null;
+        }
+
+        $filename = \App\Core\UploadValidator::generateFilename($prefix, $empresaId, $validated['ext']);
+        if (!move_uploaded_file($validated['tmp_name'], $dirUploads . '/' . $filename)) {
+            return null;
+        }
+
+        return '/uploads/empresas/' . $empresaId . '/branding/' . $filename;
     }
 }

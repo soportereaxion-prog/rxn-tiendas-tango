@@ -355,29 +355,39 @@ class ArticuloController extends Controller
                                 break;
                             }
 
-                            if ($_FILES['imagenes']['error'][$i] === UPLOAD_ERR_OK) {
-                                $tmpName = $_FILES['imagenes']['tmp_name'][$i];
-                                $name = $_FILES['imagenes']['name'][$i];
-                                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            // Reconstruir entrada tipo $_FILES para un archivo y pasar por UploadValidator (MIME real + tamaño + getimagesize).
+                            $singleFile = [
+                                'name'     => $_FILES['imagenes']['name'][$i] ?? '',
+                                'type'     => $_FILES['imagenes']['type'][$i] ?? '',
+                                'tmp_name' => $_FILES['imagenes']['tmp_name'][$i] ?? '',
+                                'error'    => $_FILES['imagenes']['error'][$i] ?? UPLOAD_ERR_NO_FILE,
+                                'size'     => $_FILES['imagenes']['size'][$i] ?? 0,
+                            ];
 
-                                if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-                                    $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $ui['uploadSegment'] . '/' . $id;
-                                    if (!is_dir($dirUploads)) {
-                                        mkdir($dirUploads, 0777, true);
-                                    }
+                            try {
+                                $validated = \App\Core\UploadValidator::image($singleFile);
+                            } catch (\RuntimeException $e) {
+                                $_SESSION['flash_error'] = $e->getMessage();
+                                continue;
+                            }
 
-                                    $filename = 'emp_' . $empresaId . '_art_' . $id . '_' . time() . '_' . $i . '.' . $ext;
-                                    $rutaAbsoluta = $dirUploads . '/' . $filename;
+                            if ($validated === null) {
+                                continue;
+                            }
 
-                                    if (move_uploaded_file($tmpName, $rutaAbsoluta)) {
-                                        $rutaRelativa = '/uploads/empresas/' . $empresaId . '/' . $ui['uploadSegment'] . '/' . $id . '/' . $filename;
+                            $dirUploads = __DIR__ . '/../../../public/uploads/empresas/' . $empresaId . '/' . $ui['uploadSegment'] . '/' . $id;
+                            \App\Core\UploadValidator::prepareDir($dirUploads);
 
-                                        $isPrincipal = ($currentTotal === 0) ? 1 : 0;
-                                        $repository->guardarImagen($empresaId, $id, $rutaRelativa, $isPrincipal);
-                                        $currentTotal++;
-                                        $remaining--;
-                                    }
-                                }
+                            $filename = \App\Core\UploadValidator::generateFilename('art', $empresaId, $validated['ext'], (string) $id);
+                            $rutaAbsoluta = $dirUploads . '/' . $filename;
+
+                            if (move_uploaded_file($validated['tmp_name'], $rutaAbsoluta)) {
+                                $rutaRelativa = '/uploads/empresas/' . $empresaId . '/' . $ui['uploadSegment'] . '/' . $id . '/' . $filename;
+
+                                $isPrincipal = ($currentTotal === 0) ? 1 : 0;
+                                $repository->guardarImagen($empresaId, $id, $rutaRelativa, $isPrincipal);
+                                $currentTotal++;
+                                $remaining--;
                             }
                         }
                     }

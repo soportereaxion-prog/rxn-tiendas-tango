@@ -45,9 +45,10 @@
                                 </td>
                                 <td class="py-4 text-center">
                                     <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/update" method="POST" class="d-flex justify-content-center">
-                                        <input type="hidden" name="articulo_id" value="<?= $item['articulo_id'] ?>">
+                                        <?= \App\Core\CsrfHelper::input() ?>
+                                        <input type="hidden" name="articulo_id" value="<?= (int) $item['articulo_id'] ?>">
                                         <div class="input-group input-group-sm rounded-3 shadow-none border" style="width: 100px;">
-                                            <input type="number" name="cantidad" value="<?= $item['cantidad'] ?>" class="form-control text-center border-0 fw-bold bg-transparent" min="1" max="99" onchange="this.form.submit()">
+                                            <input type="number" name="cantidad" value="<?= (int) $item['cantidad'] ?>" class="form-control text-center border-0 fw-bold bg-transparent" min="1" max="99" onchange="this.form.submit()">
                                         </div>
                                     </form>
                                 </td>
@@ -56,7 +57,8 @@
                                 </td>
                                 <td class="pe-4 py-4 text-end">
                                     <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/remove" method="POST" class="d-inline">
-                                        <input type="hidden" name="articulo_id" value="<?= $item['articulo_id'] ?>">
+                                        <?= \App\Core\CsrfHelper::input() ?>
+                                        <input type="hidden" name="articulo_id" value="<?= (int) $item['articulo_id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Eliminar">🗑️</button>
                                     </form>
                                 </td>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\ClientesWeb\Controllers;
 
 use App\Core\Controller;
+use App\Core\RateLimiter;
 use App\Core\View;
 use App\Modules\Store\Services\StoreResolver;
 use App\Modules\Store\Context\PublicStoreContext;
@@ -46,23 +47,49 @@ class ClienteAuthController extends Controller
     public function processLogin(string $slug): void
     {
         $this->requireValidStore($slug);
+        $this->verifyCsrfOrAbort();
         $empresaId = PublicStoreContext::getEmpresaId();
 
         $email = trim($_POST['email'] ?? '');
         $password = trim($_POST['password'] ?? '');
 
+        // Mensaje SIEMPRE genérico — mitiga user enumeration (no diferenciar mail inexistente vs password errado vs no verificado).
         $error = 'Credenciales inválidas o cuenta inactiva.';
+
+        // Throttle: 5 intentos cada 15 min por email+IP+empresa.
+        $rateKey = RateLimiter::clientKey('login_b2c_' . $empresaId, $email);
+        if (!RateLimiter::allow($rateKey, 5, 900)) {
+            $retryAfter = RateLimiter::retryAfter($rateKey);
+            $minutes = max(1, (int) ceil($retryAfter / 60));
+            View::render('app/modules/Store/views/auth/login.php', [
+                'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
+                'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
+                'error'          => "Demasiados intentos fallidos. Intentá de nuevo en {$minutes} minuto(s).",
+            ]);
+            return;
+        }
 
         try {
             if ($this->authService->login($empresaId, $email, $password)) {
-                // Verificar si hay un redirect previo (ej. al pagar checkout y requeria login temporalmente)
+                RateLimiter::reset($rateKey);
+                // Redirect post-login. Validar que `next` sea relativo local (mitiga open redirect).
                 $next = $_GET['next'] ?? "/{$slug}";
-                header("Location: " . filter_var($next, FILTER_SANITIZE_URL));
+                if (!is_string($next)
+                    || !str_starts_with($next, '/')
+                    || str_starts_with($next, '//')
+                    || str_contains($next, '://')) {
+                    $next = "/{$slug}";
+                }
+                header("Location: " . $next);
                 exit;
             }
         } catch (Exception $e) {
-            $error = $e->getMessage();
+            // Log server-side para debug. Nunca reflejar $e->getMessage() al usuario en auth.
+            error_log('[ClienteAuthController::processLogin] ' . $e->getMessage());
         }
+
+        // Fallo: registrar intento fallido.
+        RateLimiter::hit($rateKey, 900);
 
         View::render('app/modules/Store/views/auth/login.php', [
             'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
@@ -88,6 +115,7 @@ class ClienteAuthController extends Controller
     public function processRegister(string $slug): void
     {
         $this->requireValidStore($slug);
+        $this->verifyCsrfOrAbort();
         $empresaId = PublicStoreContext::getEmpresaId();
 
         $data = [
@@ -103,6 +131,28 @@ class ClienteAuthController extends Controller
                 'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
                 'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
                 'error'          => 'Todos los campos Obligatorios deben completarse.'
+            ]);
+            return;
+        }
+
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            View::render('app/modules/Store/views/auth/registro.php', [
+                'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
+                'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
+                'error'          => 'El e-mail ingresado no es válido.'
+            ]);
+            return;
+        }
+
+        // Throttle: 3 registros cada 15 min por IP — mitiga que se use el endpoint como relay de mails de verificación.
+        $rateKey = RateLimiter::clientKey('register_b2c_' . $empresaId);
+        if (!RateLimiter::attempt($rateKey, 3, 900)) {
+            $retryAfter = RateLimiter::retryAfter($rateKey);
+            $minutes = max(1, (int) ceil($retryAfter / 60));
+            View::render('app/modules/Store/views/auth/registro.php', [
+                'empresa_nombre' => PublicStoreContext::getEmpresaNombre(),
+                'empresa_slug'   => PublicStoreContext::getEmpresaSlug(),
+                'error'          => "Demasiados registros desde esta conexión. Intentá de nuevo en {$minutes} minuto(s).",
             ]);
             return;
         }

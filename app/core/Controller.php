@@ -7,6 +7,30 @@ namespace App\Core;
 abstract class Controller
 {
     /**
+     * Valida el token CSRF en requests POST. Si falla, aborta con 419.
+     * Llamar al inicio de cualquier action que procese POST.
+     *
+     * Excepciones legítimas (no llamar):
+     * - Webhooks externos (usan HMAC).
+     * - APIs públicas con auth por token.
+     */
+    protected function verifyCsrfOrAbort(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            return;
+        }
+
+        $token = $_POST['csrf_token'] ?? null;
+        if (!CsrfHelper::validate(is_string($token) ? $token : null)) {
+            http_response_code(419);
+            header('Content-Type: text/html; charset=utf-8');
+            // Respuesta mínima — no revelar info del entorno.
+            echo '<h1>419 — Sesión expirada</h1><p>El formulario expiró o el token de seguridad es inválido. Recargá la página e intentá de nuevo.</p>';
+            exit;
+        }
+    }
+
+    /**
      * Resuelve los filtros avanzados de la sesión.
      * Si no hay filtros en la URL pero existen en la sesión para este módulo, redirige a la URL con los filtros.
      * Si el usuario usa ?reset_filters=1, limpia la sesión y redirige limpio.

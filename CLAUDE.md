@@ -14,6 +14,7 @@
 
 - **Evitar SIEMPRE los loops infinitos.** Cualquier código que pueda disparar navegación (`window.location.href`, `replaceState`, `pushState`), recarga de datos en cascada, re-render reactivo o cualquier otra acción que pueda auto-invocarse debe tener un **circuit breaker explícito**: contador por ventana de tiempo (ej: ≥3 ocurrencias en <3s), persistido en `sessionStorage` cuando corresponda, que al dispararse CORTE la cadena, muestre al usuario un banner con la causa exacta (URL previa vs URL nueva, config aplicado, view_id), y dé una salida clara (link a Safe Mode, reset, etc.). La regla es: **si algo puede loopear, asumí que va a loopear en prod y metele freno antes de deployar.**
 - **Diagnóstico persistente > DevTools.** Cuando un bug titila/congela la UI tan rápido que el usuario no puede abrir DevTools, el diagnóstico tiene que vivir en el código mismo (banner con info completa + `console.error` con payload + opcional `?debug_loop=1` o similar flag para verbose). No depender de que el usuario saque screenshots de consola.
+- **Seguridad transversal — leer `docs/seguridad/convenciones.md` antes de mergear un módulo nuevo.** Ese archivo es la checklist obligatoria: aislamiento multi-tenant, CSRF, uploads, rate limiting, IDOR, XSS, tokens. Cada módulo debe tildar cada punto o documentar en su `MODULE_CONTEXT.md` por qué no aplica. Las reglas salieron de la auditoría del 2026-04-17 (`docs/seguridad/2026-04-17_auditoria_tiendas_multitenant.md`).
 
 ## Personality
 

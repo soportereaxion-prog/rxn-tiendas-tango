@@ -23,6 +23,7 @@
         <?php endif; ?>
 
         <form action="/auth/reset" method="POST">
+            <?= \App\Core\CsrfHelper::input() ?>
             <input type="hidden" name="token" value="<?= htmlspecialchars($token ?? '') ?>">
             
             <div class="mb-3">

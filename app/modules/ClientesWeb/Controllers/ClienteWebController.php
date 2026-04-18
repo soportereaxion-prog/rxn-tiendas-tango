@@ -148,14 +148,14 @@ class ClienteWebController extends \App\Core\Controller
             $relationOverrides = $this->extractRelationOverrides($_POST);
             $remoteSyncRequested = isset($_POST['tango_remote_sync_requested']) && $_POST['tango_remote_sync_requested'] === '1';
 
-            $repository->update($id, $data);
+            $repository->update($id, $empresaId, $data);
 
             $selectedTangoId = trim($_POST['tango_selected_id_gva14'] ?? '');
             $codigoTangoNuevo = $data['codigo_tango'];
             $codigoTangoAnterior = trim((string) ($cliente['codigo_tango'] ?? ''));
 
             if ($codigoTangoNuevo === '') {
-                $repository->clearTangoData($id);
+                $repository->clearTangoData($id, $empresaId);
             } elseif ($remoteSyncRequested && $selectedTangoId !== '') {
                 try {
                     $lookupService = $this->buildLookupService($empresaId);
@@ -163,20 +163,20 @@ class ClienteWebController extends \App\Core\Controller
 
                     if ($tangoData) {
                         $tangoData = $this->applyRelationOverrides($tangoData, $relationOverrides);
-                        $repository->updateTangoData($id, $tangoData);
+                        $repository->updateTangoData($id, $empresaId, $tangoData);
                     } else {
-                        $repository->clearTangoData($id, $codigoTangoNuevo);
+                        $repository->clearTangoData($id, $empresaId, $codigoTangoNuevo);
                     }
                 } catch (Exception $e) {
-                    $repository->clearTangoData($id, $codigoTangoNuevo);
+                    $repository->clearTangoData($id, $empresaId, $codigoTangoNuevo);
                     $_SESSION['flash_error'] = "Se guardaron los cambios locales, pero no se pudo resolver el cliente Tango seleccionado: " . $e->getMessage();
                     header("Location: {$ui['basePath']}/$id/editar");
                     exit;
                 }
             } elseif ($codigoTangoNuevo !== $codigoTangoAnterior) {
-                $repository->clearTangoData($id, $codigoTangoNuevo);
+                $repository->clearTangoData($id, $empresaId, $codigoTangoNuevo);
             } elseif ($cliente['id_gva14_tango'] ?? null) {
-                $repository->updateRelacionOverrides($id, $relationOverrides);
+                $repository->updateRelacionOverrides($id, $empresaId, $relationOverrides);
             }
 
             $_SESSION['flash_success'] = "Cliente web actualizado correctamente.";
@@ -382,13 +382,13 @@ class ClienteWebController extends \App\Core\Controller
 
             if (!$tangoData) {
                 $_SESSION['flash_error'] = "El cliente con código '{$codigoTango}' NO fue encontrado en Tango.";
-                
+
                 // Si el operario intentó validar un nuevo código en vuelo sin guardar, lo guardamos para que no se pierda el input
                 if ($cliente['codigo_tango'] !== $codigoTango) {
-                    $repository->clearTangoData($id, $codigoTango);
+                    $repository->clearTangoData($id, $empresaId, $codigoTango);
                 }
             } else {
-                $repository->updateTangoData($id, $tangoData);
+                $repository->updateTangoData($id, $empresaId, $tangoData);
                 $_SESSION['flash_success'] = "Cliente resuelto correctamente en Tango. (ID_GVA14: {$tangoData['id_gva14_tango']})";
             }
         } catch (Exception $e) {

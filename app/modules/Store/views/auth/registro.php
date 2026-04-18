@@ -9,6 +9,7 @@
                         <div class="alert alert-danger rounded-3"><?= htmlspecialchars($error) ?></div>
                     <?php endif; ?>
                     <form action="/<?= htmlspecialchars($empresa_slug) ?>/registro" method="POST">
+                        <?= \App\Core\CsrfHelper::input() ?>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-medium text-secondary">Nombre <span class="text-danger">*</span></label>

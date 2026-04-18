@@ -1,0 +1,26 @@
+# Niega ejecución de cualquier script del lado del server dentro de /uploads/.
+# Defense-in-depth contra uploads que pasen el validator pero sean polyglots maliciosos.
+# Si se migra a nginx, replicar esta regla en el vhost (location ~* \.(php|phtml|...) { deny all; }).
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar|pl|py|jsp|asp|aspx|sh|cgi)$">
+    Require all denied
+</FilesMatch>
+
+# Forzar MIME correcto para imágenes (evita que Apache sirva un .jpg como text/html si el byte header está mal).
+<IfModule mod_mime.c>
+    AddType image/jpeg .jpg .jpeg
+    AddType image/png .png
+    AddType image/webp .webp
+    AddType image/x-icon .ico
+</IfModule>
+
+# Desactivar parsers de PHP en este directorio (redundante con el FilesMatch pero es explícito).
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>

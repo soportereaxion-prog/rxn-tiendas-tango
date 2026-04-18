@@ -8,6 +8,7 @@
     </div>
 
     <form action="/<?= htmlspecialchars($empresa_slug) ?>/checkout/confirmar" method="POST">
+        <?= \App\Core\CsrfHelper::input() ?>
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class=" rounded-4 border shadow-sm p-4 mb-4">

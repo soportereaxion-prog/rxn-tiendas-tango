@@ -25,6 +25,12 @@ class ClienteWebContext
     public static function login(int $clienteWebId, int $empresaId, array $clienteData): void
     {
         self::checkSession();
+
+        // Mitigación session fixation: regenerar ID tras cambio de identidad.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+
         $_SESSION['store_cliente_id'] = $clienteWebId;
         $_SESSION['store_empresa_id'] = $empresaId;
         $_SESSION['store_cliente_nombre'] = $clienteData['nombre'];
@@ -35,11 +41,21 @@ class ClienteWebContext
     public static function logout(): void
     {
         self::checkSession();
+
+        // Limpiar datos del cliente logueado.
         unset($_SESSION['store_cliente_id']);
         unset($_SESSION['store_empresa_id']);
         unset($_SESSION['store_cliente_nombre']);
         unset($_SESSION['store_cliente_email']);
         unset($_SESSION['store_cliente_apellido']);
+
+        // Limpiar carrito — evita que el siguiente usuario del mismo browser vea el carrito del anterior.
+        unset($_SESSION['cart']);
+
+        // Regenerar ID tras logout para cortar cualquier trazabilidad de la sesión previa.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
     }
 
     public static function isLoggedIn(int $empresaIdActual): bool

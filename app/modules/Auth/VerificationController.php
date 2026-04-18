@@ -6,6 +6,7 @@ namespace App\Modules\Auth;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\RateLimiter;
 use App\Core\View;
 use PDO;
 
@@ -76,14 +77,24 @@ class VerificationController extends Controller
 
     public function processResend(): void
     {
+        $this->verifyCsrfOrAbort();
+
         $email = trim($_POST['email'] ?? '');
         if (empty($email)) {
             View::render('app/modules/Auth/views/resend.php', ['error' => 'Por favor, ingresá un e-mail válido.']);
             return;
         }
 
+        // Throttle: 3 reenvíos cada 15 min por email+IP — mitiga abuso del envío de mails.
+        $rateKey = RateLimiter::clientKey('resend_verify', $email);
+        if (!RateLimiter::attempt($rateKey, 3, 900)) {
+            // Respuesta genérica idéntica al caso exitoso — mantiene fallo silencioso.
+            View::render('app/modules/Auth/views/resend.php', ['success' => 'Si tu cuenta existe y aún no estaba verificada, te enviamos un nuevo enlace. Revise su bandeja y Spam.']);
+            return;
+        }
+
         $pdo = Database::getConnection();
-        
+
         $this->resendForTable($pdo, 'clientes_web', $email);
         $this->resendForTable($pdo, 'usuarios', $email);
 

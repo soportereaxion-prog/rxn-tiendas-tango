@@ -61,7 +61,8 @@ class CheckoutController extends Controller
     public function confirm(string $slug): void
     {
         $this->requireValidStore($slug);
-        
+        $this->verifyCsrfOrAbort();
+
         $empresaId = PublicStoreContext::getEmpresaId();
 
         // Validaciones básicas de formulario

@@ -124,7 +124,8 @@ $isFallbackOnly = (empty($articulo->imagen_principal) && empty($imagenes));
             </p>
 
             <form action="/<?= htmlspecialchars($empresa_slug) ?>/carrito/add" method="POST" class="p-4  border rounded-4 shadow-sm">
-                <input type="hidden" name="articulo_id" value="<?= $articulo->id ?>">
+                <?= \App\Core\CsrfHelper::input() ?>
+                <input type="hidden" name="articulo_id" value="<?= (int) $articulo->id ?>">
                 <div class="row g-3 align-items-center">
                     <div class="col-auto">
                         <label for="qty" class="col-form-label fw-medium text-dark">Cantidad:</label>

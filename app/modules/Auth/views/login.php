@@ -32,7 +32,8 @@
 
         <div class="card rxn-form-card rxn-auth-card p-4 p-lg-5">
             <form action="/login" method="POST">
-                
+                <?= \App\Core\CsrfHelper::input() ?>
+
                 <div class="mb-3">
                     <label for="email" class="form-label">Correo Electrónico</label>
                     <input type="email" class="form-control" id="email" name="email" required

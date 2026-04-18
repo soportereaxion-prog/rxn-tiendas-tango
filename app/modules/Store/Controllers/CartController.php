@@ -41,6 +41,7 @@ class CartController extends Controller
     public function add(string $slug): void
     {
         $this->requireValidStore($slug);
+        $this->verifyCsrfOrAbort();
 
         $articuloId = (int)($_POST['articulo_id'] ?? 0);
         $cantidad = (int)($_POST['cantidad'] ?? 1);
@@ -49,8 +50,14 @@ class CartController extends Controller
             $this->cartService->addItem($articuloId, $cantidad);
         }
 
-        // Redireccionar a la vista anterior para seguir comprando
-        $referer = $_SERVER['HTTP_REFERER'] ?? "/{$slug}";
+        // Redirect al referer, validado como relativo local (mitiga open redirect).
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        if (!is_string($referer)
+            || !str_starts_with($referer, '/')
+            || str_starts_with($referer, '//')
+            || str_contains($referer, '://')) {
+            $referer = "/{$slug}";
+        }
         header("Location: " . $referer);
         exit;
     }
@@ -58,6 +65,7 @@ class CartController extends Controller
     public function update(string $slug): void
     {
         $this->requireValidStore($slug);
+        $this->verifyCsrfOrAbort();
 
         $articuloId = (int)($_POST['articulo_id'] ?? 0);
         $cantidad = (int)($_POST['cantidad'] ?? 0);
@@ -73,6 +81,7 @@ class CartController extends Controller
     public function remove(string $slug): void
     {
         $this->requireValidStore($slug);
+        $this->verifyCsrfOrAbort();
 
         $articuloId = (int)($_POST['articulo_id'] ?? 0);
 

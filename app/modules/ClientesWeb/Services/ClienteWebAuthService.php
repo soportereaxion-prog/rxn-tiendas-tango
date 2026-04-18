@@ -119,18 +119,20 @@ class ClienteWebAuthService
             return false;
         }
 
-        $tokenStr = random_int(100000, 999999);
+        // Token de 32 hex en vez del PIN de 6 dígitos (brute-force inviable con rate limit + keyspace grande).
+        $tokenStr = bin2hex(random_bytes(16));
         $expires = date('Y-m-d H:i:s', strtotime('+30 minutes'));
 
-        $stmtUpd = $pdo->prepare("UPDATE clientes_web SET reset_token = :token, reset_expires = :expires WHERE id = :id");
+        $stmtUpd = $pdo->prepare("UPDATE clientes_web SET reset_token = :token, reset_expires = :expires WHERE id = :id AND empresa_id = :empresa_id");
         $stmtUpd->execute([
-            'token' => (string)$tokenStr,
+            'token' => $tokenStr,
             'expires' => $expires,
-            'id' => (int)$cliente['id']
+            'id' => (int)$cliente['id'],
+            'empresa_id' => $empresaId,
         ]);
 
         $mailService = new \App\Core\Services\MailService();
-        $mailService->sendPasswordReset($email, $cliente['nombre'], (string)$tokenStr, $empresaId);
+        $mailService->sendPasswordReset($email, $cliente['nombre'], $tokenStr, $empresaId);
 
         return true;
     }

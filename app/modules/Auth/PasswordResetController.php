@@ -6,6 +6,7 @@ namespace App\Modules\Auth;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\RateLimiter;
 use App\Core\View;
 use PDO;
 use Exception;
@@ -25,14 +26,24 @@ class PasswordResetController extends Controller
      */
     public function processForgot(): void
     {
+        $this->verifyCsrfOrAbort();
+
         $email = trim($_POST['email'] ?? '');
         if (empty($email)) {
             View::render('app/modules/Auth/views/forgot.php', ['error' => 'Por favor, ingrese un e-mail válido.']);
             return;
         }
 
+        // Throttle: 3 solicitudes cada 15 min por email+IP — mitiga brute-force y abuso del envío de mail.
+        $rateKey = RateLimiter::clientKey('forgot', $email);
+        if (!RateLimiter::attempt($rateKey, 3, 900)) {
+            // Respuesta genérica idéntica al caso exitoso — mantiene fallo silencioso.
+            View::render('app/modules/Auth/views/forgot.php', ['success' => 'Si el e-mail está registrado, recibirás un enlace de recuperación en breve.']);
+            return;
+        }
+
         $pdo = Database::getConnection();
-        
+
         // El sistema es ciego para el usuario. Siempre dice "Si el email existe te llegará un correo." para evitar enumeración.
         $this->triggerResetForTable($pdo, 'clientes_web', $email);
         $this->triggerResetForTable($pdo, 'usuarios', $email);
@@ -89,6 +100,8 @@ class PasswordResetController extends Controller
      */
     public function processReset(): void
     {
+        $this->verifyCsrfOrAbort();
+
         $token = $_POST['token'] ?? '';
         $pass1 = $_POST['password'] ?? '';
         $pass2 = $_POST['password_confirmation'] ?? '';

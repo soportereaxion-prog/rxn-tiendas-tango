@@ -311,28 +311,30 @@ class ClienteWebRepository
 
     /**
      * Actualiza manualmente un cliente (ABM).
+     * Scope obligatorio por empresa_id (defense-in-depth contra IDOR).
      */
-    public function update(int $id, array $data): void
+    public function update(int $id, int $empresaId, array $data): void
     {
-        $sql = "UPDATE {$this->clientesTable} SET 
-            nombre = :nombre, 
-            apellido = :apellido, 
+        $sql = "UPDATE {$this->clientesTable} SET
+            nombre = :nombre,
+            apellido = :apellido,
             email = :email,
-            telefono = :telefono, 
+            telefono = :telefono,
             documento = :documento,
             razon_social = :razon_social,
-            direccion = :direccion, 
-            localidad = :localidad, 
-            provincia = :provincia, 
+            direccion = :direccion,
+            localidad = :localidad,
+            provincia = :provincia,
             codigo_postal = :codigo_postal,
             codigo_tango = :codigo_tango,
             activo = :activo,
             updated_at = NOW()
-            WHERE id = :id";
+            WHERE id = :id AND empresa_id = :empresa_id";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'id' => $id,
+            'empresa_id' => $empresaId,
             'nombre' => $data['nombre'],
             'apellido' => $data['apellido'] ?? '',
             'email' => $data['email'],
@@ -348,9 +350,9 @@ class ClienteWebRepository
         ]);
     }
 
-    public function updateTangoData(int $id, array $tangoData): void
+    public function updateTangoData(int $id, int $empresaId, array $tangoData): void
     {
-        $sql = "UPDATE {$this->clientesTable} SET 
+        $sql = "UPDATE {$this->clientesTable} SET
             id_gva14_tango = :gva14,
             id_gva01_condicion_venta = :gva01,
             id_gva10_lista_precios = :gva10,
@@ -362,11 +364,12 @@ class ClienteWebRepository
             id_gva24_tango = :id_gva24_tango,
             codigo_tango = :codigo_tango,
             updated_at = NOW()
-            WHERE id = :id";
+            WHERE id = :id AND empresa_id = :empresa_id";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'id' => $id,
+            'empresa_id' => $empresaId,
             'gva14' => $tangoData['id_gva14_tango'] ?? null,
             'gva01' => $tangoData['id_gva01_condicion_venta'] ?? null,
             'gva10' => $tangoData['id_gva10_lista_precios'] ?? null,
@@ -380,9 +383,9 @@ class ClienteWebRepository
         ]);
     }
 
-    public function clearTangoData(int $id, ?string $codigoTango = null): void
+    public function clearTangoData(int $id, int $empresaId, ?string $codigoTango = null): void
     {
-        $sql = "UPDATE clientes_web SET
+        $sql = "UPDATE {$this->clientesTable} SET
             id_gva14_tango = NULL,
             id_gva01_condicion_venta = NULL,
             id_gva10_lista_precios = NULL,
@@ -394,18 +397,19 @@ class ClienteWebRepository
             id_gva24_tango = NULL,
             codigo_tango = :codigo_tango,
             updated_at = NOW()
-            WHERE id = :id";
+            WHERE id = :id AND empresa_id = :empresa_id";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'id' => $id,
+            'empresa_id' => $empresaId,
             'codigo_tango' => $codigoTango !== null && $codigoTango !== '' ? $codigoTango : null,
         ]);
     }
 
-    public function updateRelacionOverrides(int $id, array $data): void
+    public function updateRelacionOverrides(int $id, int $empresaId, array $data): void
     {
-        $sql = "UPDATE clientes_web SET
+        $sql = "UPDATE {$this->clientesTable} SET
             id_gva01_condicion_venta = :gva01_codigo,
             id_gva10_lista_precios = :gva10_codigo,
             id_gva23_vendedor = :gva23_codigo,
@@ -415,11 +419,12 @@ class ClienteWebRepository
             id_gva23_tango = :gva23_id,
             id_gva24_tango = :gva24_id,
             updated_at = NOW()
-            WHERE id = :id";
+            WHERE id = :id AND empresa_id = :empresa_id";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'id' => $id,
+            'empresa_id' => $empresaId,
             'gva01_codigo' => $this->normalizeNullableInt($data['id_gva01_condicion_venta'] ?? null),
             'gva10_codigo' => $this->normalizeNullableInt($data['id_gva10_lista_precios'] ?? null),
             'gva23_codigo' => $this->normalizeNullableInt($data['id_gva23_vendedor'] ?? null),

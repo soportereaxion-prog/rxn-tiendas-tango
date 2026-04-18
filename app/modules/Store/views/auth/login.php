@@ -20,7 +20,8 @@
                         <div class="alert alert-danger rounded-3"><?= htmlspecialchars($error) ?></div>
                     <?php endif; ?>
                     
-                    <form action="/<?= htmlspecialchars($empresa_slug) ?>/login<?= !empty($_GET['next']) ? '?next='.urlencode($_GET['next']) : '' ?>" method="POST">
+                    <form action="/<?= htmlspecialchars($empresa_slug) ?>/login<?= !empty($_GET['next']) ? '?next='.urlencode((string) $_GET['next']) : '' ?>" method="POST">
+                        <?= \App\Core\CsrfHelper::input() ?>
                         <div class="mb-3">
                             <label class="form-label fw-medium text-secondary">Correo Electrónico</label>
                             <input type="email" name="email" class="form-control form-control-lg bg-light border-0" required autofocus>

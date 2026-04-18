@@ -180,31 +180,19 @@ class CategoriaService
             return $currentPath;
         }
 
-        $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
-        if ($error === UPLOAD_ERR_NO_FILE) {
+        // Validación centralizada: MIME real + tamaño + getimagesize(). Tira RuntimeException si es inválido.
+        $validated = \App\Core\UploadValidator::image($file);
+        if ($validated === null) {
             return $currentPath;
         }
 
-        if ($error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('No se pudo subir la imagen de la categoria.');
-        }
-
-        $name = (string) ($file['name'] ?? '');
-        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-            throw new RuntimeException('La imagen debe estar en formato JPG, PNG o WEBP.');
-        }
-
         $dir = BASE_PATH . '/public/uploads/empresas/' . $empresaId . '/categorias';
-        if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
-            throw new RuntimeException('No se pudo preparar la carpeta de categorias.');
-        }
+        \App\Core\UploadValidator::prepareDir($dir);
 
-        $filename = 'categoria_' . $empresaId . '_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $filename = \App\Core\UploadValidator::generateFilename('categoria', $empresaId, $validated['ext']);
         $absolutePath = $dir . '/' . $filename;
-        $tmpName = (string) ($file['tmp_name'] ?? '');
 
-        if ($tmpName === '' || !move_uploaded_file($tmpName, $absolutePath)) {
+        if (!move_uploaded_file($validated['tmp_name'], $absolutePath)) {
             throw new RuntimeException('No se pudo guardar la imagen de la categoria.');
         }
 
