@@ -157,7 +157,16 @@ ob_start();
                             }
                             ?>
                             <form action="/mi-empresa/crm/pedidos-servicio/<?= (int) ($pedido['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-outline-primary btn-sm" data-rxn-confirm="<?= htmlspecialchars($correoMsg) ?>" data-confirm-type="primary" title="Enviar por mail"><i class="bi bi-envelope"></i></button>
+                                <button type="submit" class="btn btn-outline-primary btn-sm position-relative" data-rxn-confirm="<?= htmlspecialchars($correoMsg) ?>" data-confirm-type="primary" title="Enviar por mail">
+                                    <i class="bi bi-envelope"></i>
+                                    <?php
+                                    $count = (int) ($pedido['correos_enviados_count'] ?? 0);
+                                    $ultimoEnvio = $pedido['correos_ultimo_envio_at'] ?? null;
+                                    $ultimoError = $pedido['correos_ultimo_error'] ?? null;
+                                    $ultimoErrorAt = $pedido['correos_ultimo_error_at'] ?? null;
+                                    include BASE_PATH . '/app/shared/views/components/correo_envio_dot.php';
+                                    ?>
+                                </button>
                             </form>
                         <?php else: ?>
                             <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="El PDS debe estar Finalizado para enviar por correo"><i class="bi bi-envelope"></i></button>
@@ -215,7 +224,7 @@ ob_start();
 
         <div class="card rxn-form-card crm-service-form">
             <div class="card-body">
-                <form id="crm-pedido-servicio-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate>
+                <form id="crm-pedido-servicio-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate data-rxn-form-intercept="1">
                     <?php if (!empty($pedido['tratativa_id'])): ?>
                         <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $pedido['tratativa_id']) ?>">
                     <?php endif; ?>
@@ -447,8 +456,11 @@ ob_start();
     </script>
     <?php endif; ?>
     <script>
-        (function() {
-            if (!window.RxnShortcuts) return;
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!window.RxnShortcuts) {
+                console.warn('[PDS form] RxnShortcuts no disponible al DOMContentLoaded');
+                return;
+            }
 
             RxnShortcuts.register({
                 id: 'pds-enviar-tango',
@@ -479,7 +491,7 @@ ob_start();
                     if (btn) btn.click();
                 }
             });
-        })();
+        });
     </script>
 
 <?php

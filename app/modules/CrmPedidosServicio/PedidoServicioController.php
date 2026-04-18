@@ -928,6 +928,10 @@ class PedidoServicioController extends \App\Core\Controller
                     'label' => $adj['label'] ?? ''
                 ];
             }, $this->repository->getAdjuntos((int) ($pedido['id'] ?? 0))),
+            'correos_enviados_count' => (int) ($pedido['correos_enviados_count'] ?? 0),
+            'correos_ultimo_envio_at' => $pedido['correos_ultimo_envio_at'] ?? null,
+            'correos_ultimo_error' => $pedido['correos_ultimo_error'] ?? null,
+            'correos_ultimo_error_at' => $pedido['correos_ultimo_error_at'] ?? null,
         ];
     }
 

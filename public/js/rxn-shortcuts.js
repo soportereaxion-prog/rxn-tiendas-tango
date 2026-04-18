@@ -225,14 +225,19 @@
 
     // ---------- Keydown dispatcher global ----------
     function dispatch(e) {
-        // Si el overlay está abierto, Esc lo cierra (prioridad absoluta)
+        // Si el overlay está abierto, Esc lo cierra (prioridad absoluta).
+        // stopImmediatePropagation evita que otros listeners (Bootstrap modal, rxn-confirm)
+        // reaccionen al mismo keydown — si no, un Esc cerraría el overlay Y además
+        // un modal Bootstrap abierto debajo.
         if (isOverlayOpen()) {
             if (e.key === 'Escape') {
                 e.preventDefault();
+                e.stopImmediatePropagation();
                 close();
                 return;
             }
             // Dentro del overlay no dejamos pasar ningún otro shortcut
+            e.stopImmediatePropagation();
             return;
         }
 
@@ -256,7 +261,10 @@
         }
     }
 
-    document.addEventListener('keydown', dispatch);
+    // Registramos en fase capture para que corramos ANTES de handlers bubble
+    // (ej: Bootstrap modal). Sin esto, stopImmediatePropagation no alcanza para
+    // evitar que un Esc sobre el overlay abierto cierre también un modal Bootstrap.
+    document.addEventListener('keydown', dispatch, true);
 
     // ---------- API pública ----------
     window.RxnShortcuts = {
@@ -346,7 +354,11 @@
         description: 'Volver al listado / cancelar',
         group: 'Navegación',
         scope: 'global',
-        when: () => !document.querySelector('.modal.show'),
+        // Si hay un modal abierto O un form que declara manejar su propio Escape
+        // (data-rxn-form-intercept), no disparamos el back automático — dejamos que
+        // el form decida (típicamente muestra un confirm "¿Salir sin guardar?").
+        when: () => !document.querySelector('.modal.show')
+                 && !document.querySelector('[data-rxn-form-intercept]'),
         action: (e) => {
             const activeEl = document.activeElement;
             const isInput = activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName);

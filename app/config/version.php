@@ -1,9 +1,34 @@
 <?php
 
 return [
-    'current_version' => '1.14.0',
-    'current_build' => '20260418.2',
+    'current_version' => '1.14.1',
+    'current_build' => '20260418.3',
     'history' => [
+        [
+            'version' => '1.14.1',
+            'build' => '20260418.3',
+            'released_at' => '2026-04-18',
+            'title' => 'Hotfixes UX 1.14: hotkeys en forms, Esc en overlay, badge tipo notificación WhatsApp, confirm "salir sin guardar", tema oscuro del modal',
+            'summary' => 'Iteración de hotfixes sobre release 1.14.0 con 5 correcciones visibles detectadas post-deploy local por Charly. (1) Hotkeys ALT+P y ALT+E en forms de PDS y Presupuestos no funcionaban: el script inline con RxnShortcuts.register() corría antes que rxn-shortcuts.js porque está en $content (inicio del body) y rxn-shortcuts carga al final. Fix: envolver cada register en DOMContentLoaded para garantizar orden. (2) Escape en el overlay Shift+? cerraba el overlay pero además disparaba acciones Bootstrap y rxn-back del registry simultáneamente. Fix: dispatcher registrado en fase capture con stopImmediatePropagation + cache-buster en admin_layout. (3) Modal Shift+? no respetaba el tema oscuro del sistema: los selectores CSS usaban [data-bs-theme="dark"] pero el proyecto usa html[data-theme="dark"] (sistema propio rxn-theming.css). Fix: selectores actualizados + variables del sistema (--card-bg, --text-color, --border-color, --surface-color). (4) Badge del contador de envíos mostraba siempre 0 en el form aunque la DB tuviera 3+ envíos. Causa raíz: hydrateFormState() de ambos controllers hace whitelist explícito de campos — los correos_* no estaban en el map. Fix: agregar los 4 campos (count, ultimo_envio_at, ultimo_error, ultimo_error_at) al whitelist. Diseño: partial nuevo correo_envio_dot.php que renderiza un dot flotante estilo WhatsApp (position-absolute, top-0, start-100, translate-middle) en la esquina del botón Enviar. (5) Al crear un PDS o Presupuesto nuevo y apretar Esc o click en Volver, navegaba al listado sin preguntar, perdiendo cambios. Causa: el interceptor propio del form (que sí muestra confirm "¿Salir sin guardar?") corría DESPUÉS de rxn-back del registry. Fix: nuevo data-attribute data-rxn-form-intercept="1" en el <form>; rxn-back lo chequea en su when y se abstiene si está presente. También: interceptor nuevo para el click en el botón "Volver al listado" con el mismo confirm. Además: reescritura completa del CLAUDE.md del proyecto con 7 ajustes consensuados (idioma unificado a español, sección "Dinámica con Charly" afuera del bloque persona, reemplazo de reglas shell obsoletas, clarificación del modus operandi OTA no-proactivo, aclaración del equilibrio "complacer en el trato nunca en el criterio", dedup del protocolo Engram, remoción de marcadores gentle-ai).',
+            'items' => [
+                'app/modules/CrmPedidosServicio/views/form.php: script inline envuelto en DOMContentLoaded para garantizar que window.RxnShortcuts exista al momento del register. Agregado data-rxn-form-intercept="1" al <form>.',
+                'app/modules/CrmPresupuestos/views/form.php: mismo envoltorio DOMContentLoaded + data-rxn-form-intercept="1".',
+                'public/js/rxn-shortcuts.js: dispatcher registrado en fase capture (document.addEventListener(..., true)). Al cerrar el overlay con Esc: preventDefault + stopImmediatePropagation + close(). Cuando overlay abierto y otra tecla: stopImmediatePropagation también. Guard del rxn-back ampliado: se abstiene si hay [data-rxn-form-intercept] en el DOM (delega al form).',
+                'app/shared/views/admin_layout.php: agregado ?v=<?= time() ?> a rxn-shortcuts.js para forzar cache-bust. Orden: rxn-shortcuts.js y rxn-list-shortcuts.js ANTES que $extraScripts.',
+                'public/css/rxn-shortcuts.css: selectores html[data-theme="dark"] agregados (sistema del proyecto). Panel usa var(--card-bg, --bs-body-bg, #fff), color usa var(--text-color, --bs-body-color, #212529), kbd usa var(--surface-color, ...), border usa var(--border-color, ...). Fallbacks mantenidos para compatibilidad.',
+                'app/modules/CrmPedidosServicio/PedidoServicioController.php::hydrateFormState: agregados correos_enviados_count, correos_ultimo_envio_at, correos_ultimo_error, correos_ultimo_error_at al array de retorno. Sin esto el form veía 0 aunque la DB tuviera el valor correcto.',
+                'app/modules/CrmPresupuestos/PresupuestoController.php::hydrateFormState: mismos 4 campos.',
+                'app/shared/views/components/correo_envio_dot.php NUEVO: partial para dot flotante estilo WhatsApp. Se superpone en la esquina del ícono del botón Enviar (position-absolute top 2px left 100%, translate-middle). Verde con count si >0; rojo con count o warning si error vigente; nada si count=0 sin error (botón queda limpio).',
+                'app/shared/views/components/correo_envio_badge.php: sin cambios (sigue usándose en listados, donde tiene sentido el sobre+badge al lado porque no hay ícono al que superponer).',
+                'app/modules/CrmPedidosServicio/views/form.php: botón Enviar del header ahora tiene position-relative y contiene el include del correo_envio_dot.php.',
+                'app/modules/CrmPresupuestos/views/form.php: mismo patrón.',
+                'public/js/crm-pedidos-servicio-form.js: agregado interceptor de click sobre el botón "Volver al listado" (.rxn-module-actions a.btn-outline-secondary) en fase capture. Muestra el mismo confirm "¿Querés salir del proceso sin guardar?" con rxnConfirm. stopImmediatePropagation para cortar rxn-confirm-modal global.',
+                'public/js/crm-presupuestos-form.js: mismo interceptor click Volver.',
+                'CLAUDE.md: reescritura completa con 7 ajustes (ver memoria Engram preferences/claude-md-workspace). Headings en español, sección "Dinámica con Charly" afuera de marcadores gentle-ai, regla de tools Claude Code en vez de bat/rg/fd shell, modus operandi OTA no-proactivo, aclaración del equilibrio "complacer en el trato nunca en el criterio", protocolo Engram deduplicado, agregada regla UI de hotkeys RxnShortcuts con orden de carga obligatorio.',
+                'app/config/version.php: bump a 1.14.1 / build 20260418.3.',
+                'docs/logs/2026-04-18_2300_release_1_14_1_hotfixes_ux.md NUEVO: log detallado con todas las causas raíz y fixes.',
+            ],
+        ],
         [
             'version' => '1.14.0',
             'build' => '20260418.2',

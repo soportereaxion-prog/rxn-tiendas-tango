@@ -268,7 +268,16 @@ ob_start();
                         <button type="submit" class="btn btn-outline-danger shadow-sm" data-rxn-confirm="¿Enviar presupuesto a la papelera?" data-confirm-type="danger"><i class="bi bi-trash"></i> Eliminar</button>
                     </form>
                     <form action="/mi-empresa/crm/presupuestos/<?= (int) ($presupuesto['id'] ?? 0) ?>/enviar-correo" method="POST" class="d-inline-block m-0 p-0">
-                        <button type="submit" class="btn btn-outline-primary shadow-sm" data-rxn-confirm="¿Enviar el presupuesto por correo electrónico al cliente?" data-confirm-type="info"><i class="bi bi-envelope-paper"></i> Enviar</button>
+                        <button type="submit" class="btn btn-outline-primary shadow-sm position-relative" data-rxn-confirm="¿Enviar el presupuesto por correo electrónico al cliente?" data-confirm-type="info">
+                            <i class="bi bi-envelope-paper"></i> Enviar
+                            <?php
+                            $count = (int) ($presupuesto['correos_enviados_count'] ?? 0);
+                            $ultimoEnvio = $presupuesto['correos_ultimo_envio_at'] ?? null;
+                            $ultimoError = $presupuesto['correos_ultimo_error'] ?? null;
+                            $ultimoErrorAt = $presupuesto['correos_ultimo_error_at'] ?? null;
+                            include BASE_PATH . '/app/shared/views/components/correo_envio_dot.php';
+                            ?>
+                        </button>
                     </form>
                     <?php if (($presupuesto['estado'] ?? '') !== 'anulado'): ?>
                         <?php if (empty($presupuesto['nro_comprobante_tango'])): ?>
@@ -328,7 +337,7 @@ ob_start();
             </div>
         <?php endif; ?>
 
-        <form id="crm-presupuesto-form" class="crm-budget-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate>
+        <form id="crm-presupuesto-form" class="crm-budget-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate data-rxn-form-intercept="1">
             <?php if (!empty($presupuesto['tratativa_id'])): ?>
                 <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $presupuesto['tratativa_id']) ?>">
                 <div class="alert alert-info border-0 small mb-3">
@@ -637,8 +646,11 @@ ob_start();
 ?>
 <script src="/js/crm-presupuestos-form.js"></script>
 <script>
-    (function() {
-        if (!window.RxnShortcuts) return;
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!window.RxnShortcuts) {
+            console.warn('[Presupuesto form] RxnShortcuts no disponible al DOMContentLoaded');
+            return;
+        }
 
         RxnShortcuts.register({
             id: 'presupuesto-enviar-tango',
@@ -667,7 +679,7 @@ ob_start();
                 if (btn) btn.click();
             }
         });
-    })();
+    });
 </script>
 <?php
 $extraScripts = ob_get_clean();

@@ -108,9 +108,9 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <script src="/js/rxn-spotlight.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-geo-consent.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-geo-tracking.js?v=<?= time() ?>"></script>
-    <?= $extraScripts ?? '' ?>
-    <script src="/js/rxn-shortcuts.js"></script>
+    <script src="/js/rxn-shortcuts.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-list-shortcuts.js?v=<?= time() ?>"></script>
+    <?= $extraScripts ?? '' ?>
     <script>
     // Table scroll indicator for mobile
     document.querySelectorAll('.rxn-table-responsive').forEach(function(el) {

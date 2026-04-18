@@ -38,26 +38,23 @@ if ($hayErrorVigente) {
     echo '<span class="rxn-correo-badge text-danger d-inline-flex align-items-center gap-1" style="position: relative;"'
         . ' title="' . htmlspecialchars($tooltip, ENT_QUOTES) . '"'
         . ' data-bs-toggle="tooltip" data-bs-placement="top">'
-        . '<i class="bi bi-envelope-x-fill" style="font-size: 1.05rem;"></i>';
-    if ($count > 0) {
-        echo '<span class="badge bg-danger" style="font-size: 0.62rem; padding: 0.15rem 0.35rem; line-height: 1;">' . $count . '</span>';
-    } else {
-        echo '<i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 0.75rem;"></i>';
-    }
-    echo '</span>';
-} elseif ($count > 0) {
-    $tooltip = 'Enviado ' . $count . ($count === 1 ? ' vez' : ' veces')
-             . (!empty($ultimoEnvio) ? ' — último: ' . $fmt($ultimoEnvio) : '');
-    echo '<span class="rxn-correo-badge text-success d-inline-flex align-items-center gap-1" style="position: relative;"'
-        . ' title="' . htmlspecialchars($tooltip, ENT_QUOTES) . '"'
-        . ' data-bs-toggle="tooltip" data-bs-placement="top">'
-        . '<i class="bi bi-envelope-check-fill" style="font-size: 1.05rem;"></i>'
-        . '<span class="badge bg-success" style="font-size: 0.62rem; padding: 0.15rem 0.35rem; line-height: 1;">' . $count . '</span>'
+        . '<i class="bi bi-envelope-x-fill" style="font-size: 1.05rem;"></i>'
+        . '<span class="badge bg-danger" style="font-size: 0.62rem; padding: 0.15rem 0.35rem; line-height: 1;">' . $count . '</span>'
         . '</span>';
 } else {
-    echo '<span class="rxn-correo-badge text-muted"'
-        . ' title="Sin envíos"'
+    if ($count === 0) {
+        $tooltip = 'Sin envíos todavía';
+    } else {
+        $tooltip = 'Enviado ' . $count . ($count === 1 ? ' vez' : ' veces')
+                 . (!empty($ultimoEnvio) ? ' — último: ' . $fmt($ultimoEnvio) : '');
+    }
+    $iconClass = $count === 0 ? 'bi-envelope' : 'bi-envelope-check-fill';
+    $badgeClass = $count === 0 ? 'bg-secondary' : 'bg-success';
+    $textClass = $count === 0 ? 'text-secondary' : 'text-success';
+    echo '<span class="rxn-correo-badge ' . $textClass . ' d-inline-flex align-items-center gap-1" style="position: relative;"'
+        . ' title="' . htmlspecialchars($tooltip, ENT_QUOTES) . '"'
         . ' data-bs-toggle="tooltip" data-bs-placement="top">'
-        . '<i class="bi bi-envelope" style="font-size: 1.05rem; opacity: 0.55;"></i>'
+        . '<i class="bi ' . $iconClass . '" style="font-size: 1.05rem;"></i>'
+        . '<span class="badge ' . $badgeClass . '" style="font-size: 0.62rem; padding: 0.15rem 0.35rem; line-height: 1;">' . $count . '</span>'
         . '</span>';
 }

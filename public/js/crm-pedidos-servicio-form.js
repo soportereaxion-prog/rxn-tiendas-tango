@@ -457,6 +457,33 @@
                 }
             }
         }, true);
+
+        // Interceptar click en el botón "Volver al listado" con el mismo confirm que Escape.
+        // Evita salidas accidentales cuando el usuario hizo cambios o está armando un PDS nuevo.
+        const backBtn = document.querySelector('.rxn-module-actions a.btn-outline-secondary')
+                     || document.querySelector('a.btn-outline-secondary[href*="/mi-empresa"]');
+        if (backBtn) {
+            backBtn.addEventListener('click', function(e) {
+                if (document.querySelector('.modal.show')) return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                const href = backBtn.href;
+                if (window.rxnConfirm) {
+                    window.rxnConfirm({
+                        title: 'Confirmar salida',
+                        message: '¿Querés salir del proceso sin guardar?',
+                        type: 'warning',
+                        okText: 'Sí, salir',
+                        cancelText: 'Cancelar',
+                        onConfirm: function() {
+                            window.location.href = href;
+                        }
+                    });
+                } else {
+                    window.location.href = href;
+                }
+            }, true);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {

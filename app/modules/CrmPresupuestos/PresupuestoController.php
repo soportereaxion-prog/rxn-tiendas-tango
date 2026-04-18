@@ -888,6 +888,10 @@ class PresupuestoController extends \App\Core\Controller
                     'lista_codigo_aplicada' => (string) ($item['lista_codigo_aplicada'] ?? ''),
                 ];
             }, $items),
+            'correos_enviados_count' => (int) ($presupuesto['correos_enviados_count'] ?? 0),
+            'correos_ultimo_envio_at' => $presupuesto['correos_ultimo_envio_at'] ?? null,
+            'correos_ultimo_error' => $presupuesto['correos_ultimo_error'] ?? null,
+            'correos_ultimo_error_at' => $presupuesto['correos_ultimo_error_at'] ?? null,
         ];
     }
 
