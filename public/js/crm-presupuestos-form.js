@@ -800,6 +800,14 @@
             interceptForm(form, 'Has modificado datos en este presupuesto.\n\nPor favor, hacé clic en el botón azul "Guardar" antes de enviarlo a Tango.');
         });
 
+        // Skip del confirm cuando el presupuesto ya está cerrado: enviado a Tango +
+        // al menos un correo despachado. Los flags se exponen como data-attrs del form.
+        function isFlowCompleted() {
+            const f = document.getElementById('crm-presupuesto-form');
+            if (!f) return false;
+            return f.dataset.tangoSent === '1' && f.dataset.mailSent === '1';
+        }
+
         // Intercept Escape key globally to show confirmation modal before returning
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -807,7 +815,19 @@
                 if (document.querySelector('.modal.show')) return;
                 // Ignore if currently inside the spotlight search
                 if (document.querySelector('.rxn-spotlight-dialog.show')) return;
-                
+
+                // Si el presupuesto ya fue enviado a Tango + mail → salir directo.
+                if (isFlowCompleted()) {
+                    var backBtnQuick = document.querySelector('.rxn-module-actions a.btn-outline-secondary') ||
+                                       document.querySelector('a.btn-outline-secondary[href*="/mi-empresa"]');
+                    if (backBtnQuick && backBtnQuick.href) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        window.location.href = backBtnQuick.href;
+                    }
+                    return;
+                }
+
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 if (window.rxnConfirm) {
@@ -838,6 +858,10 @@
         if (backBtn) {
             backBtn.addEventListener('click', function(e) {
                 if (document.querySelector('.modal.show')) return;
+
+                // Si el presupuesto ya está completo (Tango + mail), salir sin preguntar.
+                if (isFlowCompleted()) return;
+
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 const href = backBtn.href;

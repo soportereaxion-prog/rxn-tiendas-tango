@@ -397,6 +397,87 @@ class RxnSyncController extends Controller
         exit;
     }
 
+    /**
+     * Tab Pedidos: listado de PDS con su estado Tango cacheado.
+     * Solo disponible en área CRM (los PDS son una entidad CRM).
+     */
+    public function listPedidos(): void
+    {
+        $empresaId = Context::getEmpresaId();
+        $advancedFilters = is_array($_GET['f'] ?? null) ? $_GET['f'] : [];
+        $registros = $this->service->getPedidosSyncList($empresaId, $advancedFilters);
+
+        View::render('app/modules/RxnSync/views/tabs/pedidos.php', [
+            'registros' => $registros,
+        ], true);
+    }
+
+    /**
+     * AJAX: Pull masivo de estados de PDS desde Tango. Recorre el listado paginado
+     * de process=19845 y matchea por ID_GVA21 para update en bulk.
+     */
+    public function syncPedidosEstados(): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json');
+        set_time_limit(240);
+
+        $empresaId = (int) Context::getEmpresaId();
+
+        try {
+            $stats = $this->service->syncPedidosEstados($empresaId);
+            $msg = sprintf(
+                'Sync de estados completado. Total: %d / Actualizados: %d / Sin match: %d / Errores: %d.',
+                (int) ($stats['total'] ?? 0),
+                (int) ($stats['actualizados'] ?? 0),
+                (int) ($stats['sin_match'] ?? 0),
+                (int) ($stats['errores'] ?? 0)
+            );
+
+            echo json_encode([
+                'success' => ($stats['errores'] ?? 0) === 0,
+                'message' => $msg,
+                'stats'   => $stats,
+            ]);
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error en sync de estados: ' . $e->getMessage(),
+                'error_class' => (new \ReflectionClass($e))->getShortName(),
+                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
+            ]);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX: Pull individual de estado de un PDS. Recibe POST['id'] (local id del PDS).
+     */
+    public function syncPedidoEstado(): void
+    {
+        $id = (int) ($_POST['id'] ?? 0);
+        $empresaId = (int) Context::getEmpresaId();
+
+        header('Content-Type: application/json');
+
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            return;
+        }
+
+        try {
+            $result = $this->service->syncPedidoEstadoByLocalId($empresaId, $id);
+            $estadoLabel = \App\Modules\CrmPedidosServicio\TangoPedidoEstado::label($result['estado']);
+            echo json_encode([
+                'success' => true,
+                'message' => "Estado actualizado: {$estadoLabel}",
+                'payload' => $result,
+            ]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     private function resolveTangoSyncService(): \App\Modules\Tango\Services\TangoSyncService
     {
         return $this->resolveArea() === 'crm'

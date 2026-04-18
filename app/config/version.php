@@ -1,9 +1,36 @@
 <?php
 
 return [
-    'current_version' => '1.14.1',
-    'current_build' => '20260418.3',
+    'current_version' => '1.15.0',
+    'current_build' => '20260418.4',
     'history' => [
+        [
+            'version' => '1.15.0',
+            'build' => '20260418.4',
+            'released_at' => '2026-04-18',
+            'title' => 'Sync manual de estados de pedidos Tango en RxnSync + skip del confirm de salida cuando flujo PDS/Presupuesto está completo',
+            'summary' => 'Release enfocada en visibilidad del ciclo de vida de los PDS en Tango y en fricción cero del cierre del form. (1) Nuevo tab "Pedidos" en RxnSync (solo CRM) que hace pull manual del estado de los pedidos enviados a Tango. Reusa el endpoint process=19845 de Tango Connect (GetById con ID_GVA21 para individuales, Get paginado para masivo — mucho más eficiente). Los 4 estados posibles que devuelve Tango (2=Aprobado, 3=Cumplido/facturado, 4=Cerrado, 5=Anulado) se mapean a badges con color e ícono via helper TangoPedidoEstado. Migración agrega 4 columnas denormalizadas a crm_pedidos_servicio (tango_id_gva21, tango_nro_pedido, tango_estado, tango_estado_sync_at) y backfilea desde el JSON tango_sync_response que ya venía guardado. El listado de PDS ahora muestra un badge dinámico (verde Aprobado / info Cumplido / gris Cerrado / rojo ANULADO) con tooltip que informa nro, estado y fecha de última sync. Desde el tab RxnSync se dispara un pull masivo ("Sincronizar Estados de Pedidos") o uno individual por fila. La automatización vía cron/n8n vendrá en otra iteración. (2) UX de cierre: los forms de PDS y Presupuestos ahora saltean el confirm "¿Querés salir del proceso sin guardar?" cuando el flujo está completo — enviado a Tango con éxito Y al menos un correo despachado al cliente. En cualquier otro estado el confirm sigue apareciendo como protección contra salidas accidentales. (3) CLAUDE.md del proyecto: reescritura de la sección CRÍTICO — Uso de Engram como "Ritual Engram obligatorio" con 3 momentos (apertura, durante, cierre) y template exacto del mem_session_summary. El cierre de sesión con mem_session_summary queda como paso 0 obligatorio del ritual de cierre, al mismo nivel que commit, versionado y OTA.',
+            'items' => [
+                'database/migrations/2026_04_18_add_tango_estado_to_crm_pedidos_servicio.php NUEVO: agrega tango_id_gva21 INT (con índice empresa_id+tango_id_gva21), tango_nro_pedido VARCHAR(30), tango_estado TINYINT, tango_estado_sync_at DATETIME a crm_pedidos_servicio. Backfill con JSON_EXTRACT sobre tango_sync_response para pedidos ya enviados (soporta variantes $.data.value.ID_GVA21, $.value.ID_GVA21 y $.ID_GVA21).',
+                'app/modules/CrmPedidosServicio/TangoPedidoEstado.php NUEVO: helper con constantes APROBADO=2, CUMPLIDO=3, CERRADO=4, ANULADO=5 y método meta(?int) que retorna {code, label, color, icon} para pintar badges.',
+                'app/modules/CrmPedidosServicio/PedidoServicioRepository.php::markAsSentToTango: firma extendida con ?int $tangoIdGva21. El UPDATE ahora persiste tango_id_gva21, tango_nro_pedido, tango_estado=2 (Aprobado por default al crear) y tango_estado_sync_at=NOW() junto al payload/response JSON.',
+                'app/modules/CrmPedidosServicio/PedidoServicioTangoService.php::send: pasa $pedidoNumeroInt (el ID_GVA21 que extrae del response) como tango_id_gva21 a markAsSentToTango.',
+                'app/modules/RxnSync/RxnSyncService.php: nuevos métodos getPedidosSyncList(empresaId, filters) para el tab, syncPedidosEstados(empresaId) para pull masivo (pagina Get?process=19845 pageSize=500 con circuit breaker por firstId repetido, arma map por ID_GVA21, update bulk) y syncPedidoEstadoByLocalId(empresaId, pedidoId) para pull individual con GetById?process=19845&id=ID_GVA21.',
+                'app/modules/RxnSync/RxnSyncController.php: nuevos actions listPedidos, syncPedidosEstados (AJAX bulk), syncPedidoEstado (AJAX individual).',
+                'app/modules/RxnSync/views/tabs/pedidos.php NUEVO: tab auto-contenido con filtro por texto (PDS#, cliente, nro pedido Tango) y filtro por estado. Incluye su propio <script> inline para manejo de búsqueda/filtro — no usa el framework de sort/paginación del index porque pedidos es read-only.',
+                'app/modules/RxnSync/views/index.php: tab button condicional (solo CRM), pane condicional, getActiveTabKey mapea entidad=pedido→pedidos, initTabControls early-return cuando entidad=pedido (el tab trae su JS), runSyncFullTab despacha al endpoint sync-pedidos-estados cuando corresponde, auditLabel dice "Sincronizar Estados de Pedidos", botones "Solo importar" y "Solo auditar" se ocultan en el tab Pedidos (no aplican), event delegation para .btn-sync-pedido-row en #syncTabsContent.',
+                'app/modules/CrmPedidosServicio/views/index.php: badge del listado pasa a usar TangoPedidoEstado::meta() → color/ícono/label dinámico. Tooltip incluye nro pedido, estado legible y fecha de última sync.',
+                'app/config/routes.php: 3 rutas nuevas bajo /mi-empresa/crm/rxn-sync/ → pedidos/list (GET), sync-pedidos-estados (POST), sync-pedido-estado (POST). Solo CRM (PDS es exclusivo de esa área).',
+                'tools/probe_tango_pedidos.php NUEVO: script de exploración para probar GetById y Get de process=19845 contra Tango Connect. Útil para documentar el schema y los estados disponibles.',
+                'app/modules/CrmPedidosServicio/views/form.php: form expone data-tango-sent y data-mail-sent como attrs calculados desde $pedido.',
+                'app/modules/CrmPresupuestos/views/form.php: mismo patrón con data-tango-sent y data-mail-sent desde $presupuesto.',
+                'public/js/crm-pedidos-servicio-form.js: helper isFlowCompleted() que chequea ambos flags. En el listener de Escape y en el click del botón "Volver al listado", se chequea primero — si el flujo está completo, salir directo sin rxnConfirm.',
+                'public/js/crm-presupuestos-form.js: mismo helper y misma integración en Escape + backBtn.',
+                'CLAUDE.md: sección "CRÍTICO — Uso de Engram" reescrita como "Ritual Engram obligatorio" con 3 momentos (🟢 Apertura, 🟡 Durante, 🔴 Cierre), template obligatorio del mem_session_summary en el cierre. Regla dura: si se termina la sesión sin mem_session_summary, la próxima arranca ciega.',
+                'app/config/version.php: bump a 1.15.0 / build 20260418.4.',
+                'docs/logs/2026-04-18_2359_release_1_15_0_sync_pedidos_y_skip_confirm.md NUEVO: log detallado con hallazgos del probe, decisiones de arquitectura y diff conceptual.',
+            ],
+        ],
         [
             'version' => '1.14.1',
             'build' => '20260418.3',

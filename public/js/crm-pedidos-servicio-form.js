@@ -424,6 +424,16 @@
             });
         }
 
+        // Skip del confirm cuando el PDS ya se cerró en su flujo completo:
+        // enviado a Tango con éxito + al menos un correo despachado al cliente.
+        // El form expone ambos flags como data-attrs (rellenados desde PHP).
+        // Si los dos son "1", Escape y el click en "Volver" salen sin preguntar.
+        function isFlowCompleted() {
+            const f = document.getElementById('crm-pedido-servicio-form');
+            if (!f) return false;
+            return f.dataset.tangoSent === '1' && f.dataset.mailSent === '1';
+        }
+
         // Interceptar Escape globalmente para mostrar modal de confirmación antes de salir.
         // Alineado con el comportamiento de crm-presupuestos-form.js: evita que Escape dispare
         // una salida accidental del formulario con cambios sin guardar.
@@ -433,6 +443,18 @@
                 if (document.querySelector('.modal.show')) return;
                 // Ignorar si el Spotlight Modal está abierto (tiene su propio manejo de Escape)
                 if (document.querySelector('.rxn-spotlight-dialog.show')) return;
+
+                // Si el PDS ya fue enviado a Tango + mail → salir sin preguntar.
+                if (isFlowCompleted()) {
+                    var backBtnQuick = document.querySelector('.rxn-module-actions a.btn-outline-secondary') ||
+                                       document.querySelector('a.btn-outline-secondary[href*="/mi-empresa"]');
+                    if (backBtnQuick && backBtnQuick.href) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        window.location.href = backBtnQuick.href;
+                    }
+                    return;
+                }
 
                 e.preventDefault();
                 e.stopImmediatePropagation();
@@ -465,6 +487,10 @@
         if (backBtn) {
             backBtn.addEventListener('click', function(e) {
                 if (document.querySelector('.modal.show')) return;
+
+                // Si el PDS ya está completo (Tango + mail), no preguntar.
+                if (isFlowCompleted()) return;
+
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 const href = backBtn.href;

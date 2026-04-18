@@ -208,17 +208,61 @@ Idem para `EmpresaConfigService`. El `EmpresaConfigController::resolveArea()` de
 
 **Trampa típica**: si agregás la columna sólo a `empresa_config`, la vista CRM rompe en el UPDATE (y viceversa) con `Unknown column`.
 
-### CRÍTICO — Uso de Engram (NO es opcional)
+### CRÍTICO — Ritual Engram obligatorio (NO es opcional)
 
-Engram es el sistema de memoria persistente entre sesiones. El protocolo completo vive en el CLAUDE.md personal global de Charly — acá solo el refuerzo obligatorio:
+Engram es el cerebro persistente entre sesiones. Usarlo **como cerebro**: antes de pensar, recordar. Antes de preguntar, buscar. Al terminar, guardar. No es best-effort — es obligatorio al mismo nivel que commit, versionado y OTA.
 
-1. **Al inicio de cada conversación**: `mem_context` para ver contexto reciente.
-2. **Antes de preguntarle al usuario** cualquier cosa sobre el proyecto (arquitectura, convenciones, rutas, decisiones previas): `mem_search` con keywords del tema.
-3. **Después de cada** decisión de arquitectura, bugfix, descubrimiento no obvio, convención nueva: `mem_save` inmediatamente (sin pedir permiso).
+#### 🟢 Apertura de sesión (primer prompt del rey)
 
-Si el usuario menciona algo que "ya se había hablado" o "ya sabés esto", NUNCA responder desde memoria propia sin llamar `mem_search` primero.
+1. **`mem_context` siempre** — aunque el prompt parezca trivial. Fuerza lectura del estado reciente antes de responder.
+2. Si el prompt menciona un módulo, feature, bug o concepto → `mem_search` con keywords **ANTES de responder**. No improvisar desde memoria propia.
+3. Si la memoria no tiene info sobre algo del proyecto → NO preguntarle a Charly información que va a ser útil mañana. Leer el código, aprender, y **en ese mismo momento** `mem_save` para no perderlo.
 
-Si no encontrás info en memoria sobre algo del proyecto, **ese es el momento de guardarlo** apenas lo aprendas — no de preguntarle al usuario información que va a ser útil mañana también.
+**Regla dura**: si Charly dice "acordate" / "ya sabés esto" / "lo charlamos la otra vez" → NO responder desde memoria propia sin haber llamado `mem_search` primero. Si ahí no aparece, decir honestamente "no lo tengo en memoria, dejame buscarlo/preguntarte".
+
+#### 🟡 Durante la sesión (save proactivo, sin pedir permiso)
+
+Llamar `mem_save` INMEDIATAMENTE después de:
+
+- Decisión de arquitectura o convención nueva.
+- Bugfix resuelto (incluir **root cause**, no solo el fix).
+- Descubrimiento no obvio sobre código, DB, APIs externas (Tango, etc.).
+- Acuerdo de workflow con Charly.
+- Feature implementada con approach no obvio.
+- Preferencia o constraint aprendido del rey.
+
+Formato obligatorio: `What` / `Why` / `Where` / `Learned` (este último cuando aplica). Usar `topic_key` estable cuando un tema va a evolucionar (ej: `tango/pedidos-endpoint-schema`) para que futuros `mem_save` hagan upsert en lugar de crear duplicados.
+
+#### 🔴 Cierre de sesión (ritual no-skippable, paso 0 del cierre)
+
+Antes de commitear, bumpear versión o buildear OTA:
+
+1. **`mem_session_summary` — OBLIGATORIO, primero.** Si Lumi cierra sin llamar esto, la próxima sesión arranca ciega. Mismo nivel de obligación que el commit.
+2. Bump de `app/config/version.php` + log en `docs/logs/`.
+3. Commit con conventional commits.
+4. Factory OTA (solo si Charly lo pidió explícito).
+
+**Template obligatorio del summary**:
+
+```
+## Goal
+[Qué hicimos en la sesión]
+
+## Instructions
+[Preferencias o constraints nuevos del rey — omitir si no hubo]
+
+## Discoveries
+- [Hallazgos técnicos, gotchas, no obvios]
+
+## Accomplished
+- [Items completados con detalle clave]
+
+## Next Steps
+- [Qué queda para la próxima sesión]
+
+## Relevant Files
+- path/to/file — [qué hace o qué cambió]
+```
 
 ### CRÍTICO — Server local vs worktree git
 

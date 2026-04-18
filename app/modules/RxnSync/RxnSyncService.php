@@ -578,4 +578,228 @@ class RxnSyncService
 
         return mb_substr($value, 0, $maxLen);
     }
+
+    /**
+     * Lista los PDS con estado Tango para pintar el tab Pedidos de RxnSync.
+     */
+    public function getPedidosSyncList(int $empresaId, array $advancedFilters = []): array
+    {
+        $columnMap = [
+            'numero'              => 'ps.numero',
+            'cliente'             => 'ps.cliente_nombre',
+            'tango_nro_pedido'    => 'ps.tango_nro_pedido',
+            'tango_estado'        => 'ps.tango_estado',
+            'tango_estado_sync_at'=> 'ps.tango_estado_sync_at',
+        ];
+
+        [$advSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $columnMap);
+
+        $sql = "SELECT ps.id, ps.numero, ps.cliente_nombre, ps.tango_id_gva21,
+                       ps.tango_nro_pedido, ps.tango_estado, ps.tango_estado_sync_at,
+                       ps.fecha_inicio, ps.fecha_finalizado, ps.tango_sync_status
+                FROM crm_pedidos_servicio ps
+                WHERE ps.empresa_id = :empresa_id
+                  AND ps.deleted_at IS NULL
+                  AND ps.tango_id_gva21 IS NOT NULL";
+
+        if ($advSql !== '') {
+            $sql .= " AND {$advSql}";
+        }
+
+        $sql .= " ORDER BY ps.numero DESC";
+
+        $params = array_merge(['empresa_id' => $empresaId], $advParams);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Pull masivo de estados de pedidos desde Tango Connect (process=19845).
+     *
+     * Estrategia: en lugar de hacer N requests GetById (una por PDS), paginamos el
+     * listado Get?process=19845 (hasta 500 por página) y armamos un map por ID_GVA21.
+     * Mucho más eficiente y consistente con el patrón de auditarArticulos/auditarClientes.
+     */
+    public function syncPedidosEstados(int $empresaId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, numero, tango_id_gva21
+             FROM crm_pedidos_servicio
+             WHERE empresa_id = ? AND deleted_at IS NULL AND tango_id_gva21 IS NOT NULL'
+        );
+        $stmt->execute([$empresaId]);
+        $locales = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($locales === []) {
+            return ['total' => 0, 'actualizados' => 0, 'sin_match' => 0, 'errores' => 0, 'detalles' => []];
+        }
+
+        $mapLocal = [];
+        foreach ($locales as $row) {
+            $mapLocal[(int) $row['tango_id_gva21']] = (int) $row['id'];
+        }
+
+        $tangoService = \App\Modules\Tango\TangoService::forCrm();
+        $apiClient    = $tangoService->getApiClient();
+        $rawClient    = $apiClient->getRawClient();
+
+        $pageIndex = 0;
+        $pageSize  = 500;
+        $seenFirstIds = [];
+        $mapTango = [];
+
+        while (true) {
+            $res = $rawClient->get('Get', [
+                'process'   => 19845,
+                'pageSize'  => $pageSize,
+                'pageIndex' => $pageIndex,
+                'view'      => ''
+            ]);
+
+            $list = $res['data']['resultData']['list'] ?? $res['resultData']['list'] ?? [];
+            if ($list === []) {
+                break;
+            }
+
+            $firstId = isset($list[0]['ID_GVA21']) ? (string) $list[0]['ID_GVA21'] : '';
+            if ($firstId !== '') {
+                if (isset($seenFirstIds[$firstId])) {
+                    break;
+                }
+                $seenFirstIds[$firstId] = true;
+            }
+
+            foreach ($list as $item) {
+                if (!isset($item['ID_GVA21'])) {
+                    continue;
+                }
+                $gva21 = (int) $item['ID_GVA21'];
+                $mapTango[$gva21] = [
+                    'estado'       => isset($item['ESTADO']) ? (int) $item['ESTADO'] : null,
+                    'nro_pedido'   => isset($item['NRO_PEDIDO']) ? trim((string) $item['NRO_PEDIDO']) : null,
+                ];
+            }
+
+            if (count($list) < $pageSize || $pageIndex >= 50) {
+                break;
+            }
+
+            $pageIndex++;
+        }
+
+        $actualizados = 0;
+        $sinMatch = 0;
+        $errores = 0;
+        $detalles = [];
+
+        $update = $this->db->prepare(
+            'UPDATE crm_pedidos_servicio
+             SET tango_estado = :estado,
+                 tango_nro_pedido = COALESCE(:nro_pedido, tango_nro_pedido),
+                 tango_estado_sync_at = NOW()
+             WHERE id = :id AND empresa_id = :empresa_id'
+        );
+
+        foreach ($locales as $local) {
+            $gva21 = (int) $local['tango_id_gva21'];
+            $snap  = $mapTango[$gva21] ?? null;
+
+            if ($snap === null || $snap['estado'] === null) {
+                $sinMatch++;
+                $detalles[] = "PDS #{$local['numero']} (ID_GVA21 {$gva21}): no encontrado en Tango.";
+                continue;
+            }
+
+            try {
+                $update->execute([
+                    ':estado'       => $snap['estado'],
+                    ':nro_pedido'   => $snap['nro_pedido'],
+                    ':id'           => (int) $local['id'],
+                    ':empresa_id'   => $empresaId,
+                ]);
+                $actualizados++;
+            } catch (\Throwable $e) {
+                $errores++;
+                $detalles[] = "PDS #{$local['numero']}: error al persistir estado — " . $e->getMessage();
+            }
+        }
+
+        return [
+            'total'        => count($locales),
+            'actualizados' => $actualizados,
+            'sin_match'    => $sinMatch,
+            'errores'      => $errores,
+            'detalles'     => $detalles,
+        ];
+    }
+
+    /**
+     * Pull individual de estado de un PDS — consulta GetById?process=19845&id=ID_GVA21.
+     * Útil como botón "refrescar" por fila.
+     */
+    public function syncPedidoEstadoByLocalId(int $empresaId, int $pedidoServicioId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, numero, tango_id_gva21
+             FROM crm_pedidos_servicio
+             WHERE id = ? AND empresa_id = ? AND deleted_at IS NULL
+             LIMIT 1'
+        );
+        $stmt->execute([$pedidoServicioId, $empresaId]);
+        $local = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($local === false) {
+            throw new RuntimeException('El PDS no existe o no pertenece a la empresa activa.');
+        }
+
+        if (empty($local['tango_id_gva21'])) {
+            throw new RuntimeException('Este PDS todavía no fue enviado a Tango (no tiene ID_GVA21).');
+        }
+
+        $tangoService = \App\Modules\Tango\TangoService::forCrm();
+        $apiClient    = $tangoService->getApiClient();
+        $rawClient    = $apiClient->getRawClient();
+
+        $res = $rawClient->get('GetById', [
+            'process' => 19845,
+            'id'      => (int) $local['tango_id_gva21'],
+        ]);
+
+        $value = $res['data']['value'] ?? $res['value'] ?? null;
+        if (!is_array($value)) {
+            throw new RuntimeException('Tango no devolvió el pedido con ID_GVA21 ' . (int) $local['tango_id_gva21'] . '.');
+        }
+
+        $estado = isset($value['ESTADO']) ? (int) $value['ESTADO'] : null;
+        $nroPedido = isset($value['NRO_PEDIDO']) ? trim((string) $value['NRO_PEDIDO']) : null;
+
+        if ($estado === null) {
+            throw new RuntimeException('El response de Tango no trajo el campo ESTADO.');
+        }
+
+        $update = $this->db->prepare(
+            'UPDATE crm_pedidos_servicio
+             SET tango_estado = :estado,
+                 tango_nro_pedido = COALESCE(:nro_pedido, tango_nro_pedido),
+                 tango_estado_sync_at = NOW()
+             WHERE id = :id AND empresa_id = :empresa_id'
+        );
+        $update->execute([
+            ':estado'     => $estado,
+            ':nro_pedido' => $nroPedido,
+            ':id'         => (int) $local['id'],
+            ':empresa_id' => $empresaId,
+        ]);
+
+        return [
+            'id'         => (int) $local['id'],
+            'numero'     => (int) $local['numero'],
+            'tango_id_gva21' => (int) $local['tango_id_gva21'],
+            'estado'     => $estado,
+            'nro_pedido' => $nroPedido,
+            'snapshot_tango' => $value,
+        ];
+    }
 }

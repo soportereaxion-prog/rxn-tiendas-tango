@@ -718,22 +718,27 @@ class PedidoServicioRepository
         }
     }
 
-    public function markAsSentToTango(int $id, int $empresaId, string $pedidoNumero, string $payload, string $response): void
+    public function markAsSentToTango(int $id, int $empresaId, string $pedidoNumero, string $payload, string $response, ?int $tangoIdGva21 = null): void
     {
         $stmt = $this->db->prepare('UPDATE crm_pedidos_servicio SET
             tango_sync_status = "success",
             tango_sync_error = NULL,
             tango_sync_payload = :payload,
             tango_sync_response = :response,
-            nro_pedido = :nro_pedido
+            nro_pedido = :nro_pedido,
+            tango_id_gva21 = COALESCE(:tango_id_gva21, tango_id_gva21),
+            tango_nro_pedido = :nro_pedido,
+            tango_estado = COALESCE(tango_estado, 2),
+            tango_estado_sync_at = COALESCE(tango_estado_sync_at, NOW())
             WHERE id = :id AND empresa_id = :empresa_id');
-        
+
         $stmt->execute([
             ':id' => $id,
             ':empresa_id' => $empresaId,
             ':nro_pedido' => $pedidoNumero,
             ':payload' => $payload,
             ':response' => $response,
+            ':tango_id_gva21' => $tangoIdGva21,
         ]);
     }
 

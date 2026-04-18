@@ -205,6 +205,9 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/rxn-sync/sync-full-clientes', $action(\App\Modules\RxnSync\RxnSyncController::class, 'syncPullClientes', $requireCrm));
     $router->post('/mi-empresa/crm/rxn-sync/sync-catalogos', $action(\App\Modules\RxnSync\RxnSyncController::class, 'syncCatalogos', $requireCrm));
     $router->get('/mi-empresa/crm/rxn-sync/payload', $action(\App\Modules\RxnSync\RxnSyncController::class, 'getPayload', $requireCrm));
+    $router->get('/mi-empresa/crm/rxn-sync/pedidos/list', $action(\App\Modules\RxnSync\RxnSyncController::class, 'listPedidos', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/sync-pedidos-estados', $action(\App\Modules\RxnSync\RxnSyncController::class, 'syncPedidosEstados', $requireCrm));
+    $router->post('/mi-empresa/crm/rxn-sync/sync-pedido-estado', $action(\App\Modules\RxnSync\RxnSyncController::class, 'syncPedidoEstado', $requireCrm));
 
     // --- Endpoints atómicos Tango Metadata (CORS fix: 1 request por catálogo) ---
     $router->post('/mi-empresa/configuracion/tango-empresas', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'getTangoEmpresas', $requireTiendas));

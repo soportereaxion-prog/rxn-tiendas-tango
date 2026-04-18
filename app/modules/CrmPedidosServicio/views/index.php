@@ -166,7 +166,29 @@ ob_start();
                                         <td class="fw-bold text-dark">
                                             #<?= (int) $pedido['numero'] ?>
                                             <?php if (!empty($pedido['nro_pedido'])): ?>
-                                                <br><span class="badge bg-success fw-normal mt-1" title="Pedido Tango" style="font-size: 0.75rem;"><i class="bi bi-box-seam"></i> <?= htmlspecialchars((string)$pedido['nro_pedido']) ?></span>
+                                                <?php
+                                                $_tangoEstado = isset($pedido['tango_estado']) && $pedido['tango_estado'] !== null
+                                                    ? (int) $pedido['tango_estado']
+                                                    : null;
+                                                $_estadoMeta  = \App\Modules\CrmPedidosServicio\TangoPedidoEstado::meta($_tangoEstado);
+                                                $_syncAt = !empty($pedido['tango_estado_sync_at'])
+                                                    ? date('d/m/Y H:i', strtotime((string) $pedido['tango_estado_sync_at']))
+                                                    : 'Nunca';
+                                                $_titleParts = [
+                                                    'Pedido Tango: ' . $pedido['nro_pedido'],
+                                                    'Estado: ' . $_estadoMeta['label'],
+                                                    'Última sync: ' . $_syncAt,
+                                                ];
+                                                ?>
+                                                <br><span class="badge bg-<?= htmlspecialchars($_estadoMeta['color']) ?> fw-normal mt-1"
+                                                          title="<?= htmlspecialchars(implode(' · ', $_titleParts)) ?>"
+                                                          style="font-size: 0.75rem;">
+                                                    <i class="bi <?= htmlspecialchars($_estadoMeta['icon']) ?>"></i>
+                                                    <?= htmlspecialchars((string) $pedido['nro_pedido']) ?>
+                                                    <?php if ($_tangoEstado !== null): ?>
+                                                        · <?= htmlspecialchars($_estadoMeta['label']) ?>
+                                                    <?php endif; ?>
+                                                </span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-nowrap rxn-hide-mobile"><small><?= htmlspecialchars((string) $pedido['fecha_inicio']) ?></small></td>

@@ -150,12 +150,17 @@ class PedidoServicioTangoService
                     }
                 }
 
+                $tangoIdGva21 = is_numeric($pedidoNumeroInt) && (int) $pedidoNumeroInt > 0
+                    ? (int) $pedidoNumeroInt
+                    : null;
+
                 $this->repository->markAsSentToTango(
                     $pedidoId,
                     $empresaId,
                     $nroPedido,
                     json_encode($payload, JSON_UNESCAPED_UNICODE),
-                    json_encode($response, JSON_UNESCAPED_UNICODE)
+                    json_encode($response, JSON_UNESCAPED_UNICODE),
+                    $tangoIdGva21
                 );
 
                 return ['ok' => true, 'type' => 'success', 'message' => 'PDS enviado a Tango correctamente. Pedido externo: #' . $nroPedido . '.'];

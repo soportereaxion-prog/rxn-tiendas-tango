@@ -224,7 +224,13 @@ ob_start();
 
         <div class="card rxn-form-card crm-service-form">
             <div class="card-body">
-                <form id="crm-pedido-servicio-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate data-rxn-form-intercept="1">
+                <?php
+                $_tangoSent = (($pedido['tango_sync_status'] ?? '') === 'success') ? '1' : '0';
+                $_mailSent  = ((int) ($pedido['correos_enviados_count'] ?? 0) > 0) ? '1' : '0';
+                ?>
+                <form id="crm-pedido-servicio-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate data-rxn-form-intercept="1"
+                      data-tango-sent="<?= $_tangoSent ?>"
+                      data-mail-sent="<?= $_mailSent ?>">
                     <?php if (!empty($pedido['tratativa_id'])): ?>
                         <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $pedido['tratativa_id']) ?>">
                     <?php endif; ?>

@@ -337,7 +337,13 @@ ob_start();
             </div>
         <?php endif; ?>
 
-        <form id="crm-presupuesto-form" class="crm-budget-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate data-rxn-form-intercept="1">
+        <?php
+        $_tangoSent = (($presupuesto['tango_sync_status'] ?? '') === 'success') ? '1' : '0';
+        $_mailSent  = ((int) ($presupuesto['correos_enviados_count'] ?? 0) > 0) ? '1' : '0';
+        ?>
+        <form id="crm-presupuesto-form" class="crm-budget-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate data-rxn-form-intercept="1"
+              data-tango-sent="<?= $_tangoSent ?>"
+              data-mail-sent="<?= $_mailSent ?>">
             <?php if (!empty($presupuesto['tratativa_id'])): ?>
                 <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $presupuesto['tratativa_id']) ?>">
                 <div class="alert alert-info border-0 small mb-3">

@@ -104,6 +104,17 @@ ob_start();
                 <i class="fas fa-box me-2"></i>Artículos
             </button>
         </li>
+        <?php if ($isCrm): ?>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-4 rounded-pill fw-medium" id="pedidos-tab"
+                    data-bs-toggle="pill" data-bs-target="#pedidos" type="button" role="tab"
+                    aria-selected="false"
+                    data-url="<?= htmlspecialchars($basePath) ?>/pedidos/list"
+                    data-entidad="pedido">
+                <i class="fas fa-file-invoice me-2"></i>Pedidos
+            </button>
+        </li>
+        <?php endif; ?>
     </ul>
 
     <!-- Barra de acciones masivas (oculta por defecto) -->
@@ -164,6 +175,16 @@ ob_start();
                 </div>
             </div>
         </div>
+
+        <?php if ($isCrm): ?>
+        <div class="tab-pane fade" id="pedidos" role="tabpanel" aria-labelledby="pedidos-tab">
+            <div class="card shadow-sm border-0 border-top border-primary border-3">
+                <div class="card-body p-4 text-center text-muted" id="pedidos-content">
+                    <!-- Se carga via Ajax -->
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -194,12 +215,12 @@ document.addEventListener('DOMContentLoaded', function () {
             else { localStorage.removeItem('rxnsync_sort_' + key); localStorage.removeItem('rxnsync_dir_' + key); }
         } catch(e) {}
     }
-    var pageState = { clientes: loadSortState('clientes'), articulos: loadSortState('articulos') };
+    var pageState = { clientes: loadSortState('clientes'), articulos: loadSortState('articulos'), pedidos: loadSortState('pedidos') };
 
     // Filtros persistidos por tab — sobreviven cambios de solapa
-    var tabColFilters  = { clientes: {}, articulos: {} };       // embudos client-side
-    var tabSearchState = { clientes: { search: '', estado: '' }, articulos: { search: '', estado: '' } }; // búsqueda + estado
-    var tabBdParams    = { clientes: null, articulos: null };    // Motor BD (URLSearchParams)
+    var tabColFilters  = { clientes: {}, articulos: {}, pedidos: {} };       // embudos client-side
+    var tabSearchState = { clientes: { search: '', estado: '' }, articulos: { search: '', estado: '' }, pedidos: { search: '', estado: '' } }; // búsqueda + estado
+    var tabBdParams    = { clientes: null, articulos: null, pedidos: null };    // Motor BD (URLSearchParams)
 
     // ── Helpers ──────────────────────────────────────────────────────
     function showProgress() { if (progressBar) progressBar.classList.remove('d-none'); }
@@ -217,12 +238,15 @@ document.addEventListener('DOMContentLoaded', function () {
     function getActiveTabKey() {
         var btn = getActiveTabBtn();
         if (!btn) return 'articulos';
-        return btn.getAttribute('data-entidad') === 'cliente' ? 'clientes' : 'articulos';
+        var ent = btn.getAttribute('data-entidad');
+        if (ent === 'cliente') return 'clientes';
+        if (ent === 'pedido')  return 'pedidos';
+        return 'articulos';
     }
 
     function getActiveContentRoot() {
         var key = getActiveTabKey();
-        return document.getElementById((key === 'clientes' ? 'clientes' : 'articulos') + '-content') || document;
+        return document.getElementById(key + '-content') || document;
     }
 
     function fetchJson(url, options) {
@@ -290,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var url       = btn.getAttribute('data-url');
         var entidad   = btn.getAttribute('data-entidad');
         var container = document.getElementById(targetId + '-content');
-        var tabKey    = entidad === 'cliente' ? 'clientes' : 'articulos';
+        var tabKey    = entidad === 'cliente' ? 'clientes' : (entidad === 'pedido' ? 'pedidos' : 'articulos');
 
         // Guardar BD params del tab saliente ANTES de limpiar la URL
         var leavingTabKey = getActiveTabKey();
@@ -307,8 +331,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (resetPage) pageState[tabKey].page = 1;
 
+        // Mostrar/ocultar botones de acciones según tab activo.
+        // Pedidos es read-only (solo pull de estado), no aplica push/import/audit clásico.
+        var btnSyncMain    = document.getElementById('btn-audit-tab-main');
+        var btnOnlyImport  = document.getElementById('btn-only-import-main');
+        var btnOnlyAudit   = document.getElementById('btn-only-audit-main');
+        var isPedido = entidad === 'pedido';
+        if (btnOnlyImport) btnOnlyImport.style.display = isPedido ? 'none' : '';
+        if (btnOnlyAudit)  btnOnlyAudit.style.display  = isPedido ? 'none' : '';
+
         if (auditLabel) {
-            auditLabel.textContent = entidad === 'articulo' ? 'Sincronizar Artículos' : 'Sincronizar Clientes';
+            if (entidad === 'articulo') auditLabel.textContent = 'Sincronizar Artículos';
+            else if (entidad === 'cliente') auditLabel.textContent = 'Sincronizar Clientes';
+            else if (entidad === 'pedido')  auditLabel.textContent = 'Sincronizar Estados de Pedidos';
         }
 
         container.innerHTML = '<div class="spinner-border text-primary my-4" role="status"></div>';
@@ -344,6 +379,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Esta función se ejecuta DESPUÉS de inyectar el HTML via fetch
     function initTabControls(btn) {
         var entidad  = btn.getAttribute('data-entidad');
+        // El tab Pedidos es auto-contenido: su HTML ya trae su propio <script>
+        // que maneja búsqueda/filtro. No usamos el framework de control del index
+        // porque pedidos no tiene checkboxes, push/pull ni filtros Motor BD.
+        if (entidad === 'pedido') return;
         var tabKey   = entidad === 'cliente' ? 'clientes' : 'articulos';
         var suffix   = entidad === 'cliente' ? 'cli' : 'art';
 
@@ -787,8 +826,21 @@ document.addEventListener('DOMContentLoaded', function () {
     function runSyncFullTab() {
         var tabBtn  = getActiveTabBtn();
         var entidad = tabBtn ? tabBtn.getAttribute('data-entidad') : 'articulo';
-        var label   = entidad === 'articulo' ? 'Artículos' : 'Clientes';
 
+        if (entidad === 'pedido') {
+            runRxnSyncAjax({
+                endpoint:     'sync-pedidos-estados',
+                btnEl:        document.getElementById('btn-audit-tab-main'),
+                busyLabel:    'Sincronizando estados...',
+                confirmMsg:   '¿Sincronizar estados de todos los PDS enviados a Tango?\n\nPagina el listado de pedidos de Tango y actualiza Aprobado / Cumplido / Cerrado / Anulado. Puede tardar según el volumen de pedidos en Tango.',
+                confirmLabel: 'Sincronizar Estados',
+                successTitle: 'Estados sincronizados',
+                errorTitle:   'Error en Sync de Estados'
+            });
+            return;
+        }
+
+        var label = entidad === 'articulo' ? 'Artículos' : 'Clientes';
         runRxnSyncAjax({
             endpoint:     'sync-full-' + entidad + 's',
             btnEl:        document.getElementById('btn-audit-tab-main'),
@@ -1075,6 +1127,46 @@ document.addEventListener('DOMContentLoaded', function () {
                 function() { doSingleSync('pull', id, entidad, nombre, pullBtn, 'bi bi-cloud-download'); },
                 'Sí, Pull ↓'
             );
+            return;
+        }
+
+        // Re-sync estado de un PDS individual (tab Pedidos)
+        var syncPedBtn = e.target.closest('.btn-sync-pedido-row');
+        if (syncPedBtn) {
+            e.stopPropagation();
+            var pedId   = syncPedBtn.getAttribute('data-id');
+            var pedNum  = syncPedBtn.getAttribute('data-numero');
+            var icon    = syncPedBtn.querySelector('i');
+            var origCls = icon ? icon.className : 'bi bi-arrow-repeat';
+
+            syncPedBtn.disabled = true;
+            if (icon) icon.className = 'bi bi-arrow-repeat rxnsync-spin';
+
+            var fd = new FormData();
+            fd.append('id', pedId);
+
+            fetchJson(basePath + '/sync-pedido-estado', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(data) {
+                syncPedBtn.disabled = false;
+                if (icon) icon.className = origCls;
+                if (data.success) {
+                    showAlert('PDS #' + pedNum + ' — ' + data.message, 'success', 'Estado actualizado');
+                    // Recargar el tab para ver el badge/fecha actualizados
+                    var activeTab = getActiveTabBtn();
+                    if (activeTab) loadTabContent(activeTab, false);
+                } else {
+                    showAlert(data.message, 'danger', 'Error al sincronizar');
+                }
+            })
+            .catch(function(err) {
+                syncPedBtn.disabled = false;
+                if (icon) icon.className = origCls;
+                showAlert(err.message || 'Error de red', 'danger');
+            });
             return;
         }
 
