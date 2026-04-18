@@ -33,6 +33,9 @@ class EmpresaConfigRepository
         try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN presupuesto_email_body_canvas_id INT NULL'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN pds_email_asunto VARCHAR(255) NULL'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN presupuesto_email_asunto VARCHAR(255) NULL'); } catch (\Throwable $e) {}
+
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN documentos_cc_enabled TINYINT(1) NOT NULL DEFAULT 0'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE ' . $this->quoteTable() . ' ADD COLUMN documentos_cc_emails TEXT NULL DEFAULT NULL'); } catch (\Throwable $e) {}
     }
 
     public static function forCrm(): self
@@ -99,7 +102,9 @@ class EmpresaConfigRepository
                     google_oauth_client_id = :google_oauth_client_id,
                     google_oauth_client_secret = :google_oauth_client_secret,
                     google_oauth_redirect_uri = :google_oauth_redirect_uri,
-                    agenda_google_auth_mode = :agenda_google_auth_mode
+                    agenda_google_auth_mode = :agenda_google_auth_mode,
+                    documentos_cc_enabled = :documentos_cc_enabled,
+                    documentos_cc_emails = :documentos_cc_emails
                     WHERE id = :id';
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -144,11 +149,13 @@ class EmpresaConfigRepository
                 ':google_oauth_client_secret' => $config->google_oauth_client_secret,
                 ':google_oauth_redirect_uri' => $config->google_oauth_redirect_uri,
                 ':agenda_google_auth_mode' => $config->agenda_google_auth_mode ?? 'usuario',
+                ':documentos_cc_enabled' => (int) ($config->documentos_cc_enabled ?? 0),
+                ':documentos_cc_emails' => $config->documentos_cc_emails,
                 ':id' => $config->id,
             ]);
         } else {
-            $sql = 'INSERT INTO ' . $this->quoteTable() . ' (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto, usa_smtp_propio, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_email, smtp_from_name, tango_pds_talonario_id, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, clasificaciones_pds_raw, pds_numero_base, presupuesto_numero_base, pds_email_pdf_canvas_id, presupuesto_email_pdf_canvas_id, pds_email_body_canvas_id, presupuesto_email_body_canvas_id, pds_email_asunto, presupuesto_email_asunto, impresion_header_url, impresion_footer_url, google_oauth_client_id, google_oauth_client_secret, google_oauth_redirect_uri, agenda_google_auth_mode)
-                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto, :usa_smtp_propio, :smtp_host, :smtp_port, :smtp_user, :smtp_pass, :smtp_secure, :smtp_from_email, :smtp_from_name, :tango_pds_talonario_id, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :clasificaciones_pds_raw, :pds_numero_base, :presupuesto_numero_base, :pds_email_pdf_canvas_id, :presupuesto_email_pdf_canvas_id, :pds_email_body_canvas_id, :presupuesto_email_body_canvas_id, :pds_email_asunto, :presupuesto_email_asunto, :impresion_header_url, :impresion_footer_url, :google_oauth_client_id, :google_oauth_client_secret, :google_oauth_redirect_uri, :agenda_google_auth_mode)';
+            $sql = 'INSERT INTO ' . $this->quoteTable() . ' (empresa_id, nombre_fantasia, email_contacto, telefono, tango_api_url, tango_connect_key, tango_connect_token, tango_connect_company_id, cantidad_articulos_sync, lista_precio_1, lista_precio_2, deposito_codigo, imagen_default_producto, usa_smtp_propio, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from_email, smtp_from_name, tango_pds_talonario_id, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, clasificaciones_pds_raw, pds_numero_base, presupuesto_numero_base, pds_email_pdf_canvas_id, presupuesto_email_pdf_canvas_id, pds_email_body_canvas_id, presupuesto_email_body_canvas_id, pds_email_asunto, presupuesto_email_asunto, impresion_header_url, impresion_footer_url, google_oauth_client_id, google_oauth_client_secret, google_oauth_redirect_uri, agenda_google_auth_mode, documentos_cc_enabled, documentos_cc_emails)
+                    VALUES (:empresa_id, :nombre, :email, :telefono, :tango_api_url, :tango_connect_key, :tango_connect_token, :tango_connect_company_id, :cantidad_articulos_sync, :lista_precio_1, :lista_precio_2, :deposito_codigo, :imagen_default_producto, :usa_smtp_propio, :smtp_host, :smtp_port, :smtp_user, :smtp_pass, :smtp_secure, :smtp_from_email, :smtp_from_name, :tango_pds_talonario_id, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :clasificaciones_pds_raw, :pds_numero_base, :presupuesto_numero_base, :pds_email_pdf_canvas_id, :presupuesto_email_pdf_canvas_id, :pds_email_body_canvas_id, :presupuesto_email_body_canvas_id, :pds_email_asunto, :presupuesto_email_asunto, :impresion_header_url, :impresion_footer_url, :google_oauth_client_id, :google_oauth_client_secret, :google_oauth_redirect_uri, :agenda_google_auth_mode, :documentos_cc_enabled, :documentos_cc_emails)';
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $config->empresa_id,
@@ -193,6 +200,8 @@ class EmpresaConfigRepository
                 ':google_oauth_client_secret' => $config->google_oauth_client_secret,
                 ':google_oauth_redirect_uri' => $config->google_oauth_redirect_uri,
                 ':agenda_google_auth_mode' => $config->agenda_google_auth_mode ?? 'usuario',
+                ':documentos_cc_enabled' => (int) ($config->documentos_cc_enabled ?? 0),
+                ':documentos_cc_emails' => $config->documentos_cc_emails,
             ]);
             $config->id = (int) $this->db->lastInsertId();
         }

@@ -636,6 +636,39 @@ $content = ob_get_clean();
 ob_start();
 ?>
 <script src="/js/crm-presupuestos-form.js"></script>
+<script>
+    (function() {
+        if (!window.RxnShortcuts) return;
+
+        RxnShortcuts.register({
+            id: 'presupuesto-enviar-tango',
+            keys: ['Alt+P'],
+            description: 'Enviar Presupuesto a Tango',
+            group: 'Presupuesto',
+            scope: 'global',
+            when: () => !!document.querySelector('form[action*="/sync-tango"] button[type="submit"]:not([disabled])'),
+            action: (e) => {
+                e.preventDefault();
+                const btn = document.querySelector('form[action*="/sync-tango"] button[type="submit"]:not([disabled])');
+                if (btn) btn.click();
+            }
+        });
+
+        RxnShortcuts.register({
+            id: 'presupuesto-enviar-correo',
+            keys: ['Alt+E'],
+            description: 'Enviar Presupuesto por correo',
+            group: 'Presupuesto',
+            scope: 'global',
+            when: () => !!document.querySelector('form[action*="/enviar-correo"] button[type="submit"]:not([disabled])'),
+            action: (e) => {
+                e.preventDefault();
+                const btn = document.querySelector('form[action*="/enviar-correo"] button[type="submit"]:not([disabled])');
+                if (btn) btn.click();
+            }
+        });
+    })();
+</script>
 <?php
 $extraScripts = ob_get_clean();
 require BASE_PATH . '/app/shared/views/admin_layout.php';

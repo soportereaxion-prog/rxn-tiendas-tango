@@ -307,6 +307,30 @@ ob_start();
                     </div>
 
                     <div class="row gx-4 gy-3 mt-1">
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded border">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <div>
+                                        <label class="form-label fw-bold mb-0" for="documentos_cc_enabled">Envía CC automático en correos de PDS y Presupuestos</label>
+                                        <div class="form-text mb-0"><small>Cuando está activo, cada correo enviado desde PDS o Presupuestos se manda con copia (CC) a los destinatarios listados abajo.</small></div>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" style="width: 2.5em; height: 1.25em; cursor: pointer;" type="checkbox" role="switch" id="documentos_cc_enabled" name="documentos_cc_enabled" value="1" <?= (!empty($config->documentos_cc_enabled) && $config->documentos_cc_enabled == 1) ? 'checked' : '' ?>>
+                                    </div>
+                                </div>
+                                <div id="documentosCcContainer" style="display: <?= (!empty($config->documentos_cc_enabled) && $config->documentos_cc_enabled == 1) ? 'block' : 'none' ?>;">
+                                    <label for="documentos_cc_emails" class="form-label text-secondary small">Destinatarios CC</label>
+                                    <input type="text" class="form-control" id="documentos_cc_emails" name="documentos_cc_emails"
+                                           value="<?= htmlspecialchars($config->documentos_cc_emails ?? '') ?>"
+                                           placeholder="soporte@reaxion.com.ar, otro@dominio.com">
+                                    <div class="form-text"><small>Podés cargar uno o varios correos separados por coma (<code>,</code>) o punto y coma (<code>;</code>). Los correos inválidos se descartan al guardar.</small></div>
+                                    <div id="documentosCcFeedback" class="form-text small mt-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row gx-4 gy-3 mt-1">
                         <div class="col-md-6">
                             <label class="form-label">Imagen de Encabezado (Documentos)</label>
                             <div class="d-flex align-items-center gap-3">
@@ -588,6 +612,46 @@ ob_start();
                 toggleSmtp.addEventListener('change', function() {
                     smtpFields.style.display = this.checked ? 'block' : 'none';
                 });
+            }
+
+            // Documentos CC — toggle + validacion en vivo de emails
+            const toggleCc = document.getElementById('documentos_cc_enabled');
+            const ccContainer = document.getElementById('documentosCcContainer');
+            const ccInput = document.getElementById('documentos_cc_emails');
+            const ccFeedback = document.getElementById('documentosCcFeedback');
+
+            if (toggleCc && ccContainer) {
+                toggleCc.addEventListener('change', function() {
+                    ccContainer.style.display = this.checked ? 'block' : 'none';
+                });
+            }
+
+            if (ccInput && ccFeedback) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const validateCc = () => {
+                    const raw = ccInput.value.trim();
+                    if (raw === '') {
+                        ccInput.classList.remove('is-valid', 'is-invalid');
+                        ccFeedback.textContent = '';
+                        ccFeedback.className = 'form-text small mt-1';
+                        return;
+                    }
+                    const parts = raw.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+                    const invalid = parts.filter(p => !emailRegex.test(p));
+                    if (invalid.length > 0) {
+                        ccInput.classList.add('is-invalid');
+                        ccInput.classList.remove('is-valid');
+                        ccFeedback.textContent = 'Correos inválidos: ' + invalid.join(', ');
+                        ccFeedback.className = 'form-text small mt-1 text-danger';
+                    } else {
+                        ccInput.classList.add('is-valid');
+                        ccInput.classList.remove('is-invalid');
+                        ccFeedback.textContent = parts.length + ' correo' + (parts.length === 1 ? '' : 's') + ' válido' + (parts.length === 1 ? '' : 's') + '.';
+                        ccFeedback.className = 'form-text small mt-1 text-success';
+                    }
+                };
+                ccInput.addEventListener('input', validateCc);
+                ccInput.addEventListener('blur', validateCc);
             }
 
             // Ajax SMTP Validator

@@ -474,11 +474,14 @@ class PresupuestoController extends \App\Core\Controller
             );
 
             if ($success) {
+                $this->repository->registrarCorreoEnviado((int) $id, $empresaId);
                 Flash::set('success', 'Email enviado correctamente a ' . htmlspecialchars((string)$email));
             } else {
+                $this->repository->registrarErrorCorreo((int) $id, $empresaId, 'Error SMTP al enviar el correo. Revisá la configuración SMTP de la empresa.');
                 Flash::set('danger', 'Error al enviar el correo. Revise su configuración SMTP en Empresa -> Configuración.');
             }
         } catch (\Throwable $e) {
+            $this->repository->registrarErrorCorreo((int) $id, $empresaId, $e->getMessage());
             Flash::set('danger', 'Falla en la generación/envío de documento: ' . $e->getMessage());
         }
 

@@ -1,9 +1,41 @@
 <?php
 
 return [
-    'current_version' => '1.13.1',
-    'current_build' => '20260418.1',
+    'current_version' => '1.14.0',
+    'current_build' => '20260418.2',
     'history' => [
+        [
+            'version' => '1.14.0',
+            'build' => '20260418.2',
+            'released_at' => '2026-04-18',
+            'title' => 'UX Documentos CRM: formato fecha 24hs es-AR, CC automático en correos, hotkeys unificadas (ALT+O copiar) y badge de envíos por correo',
+            'summary' => 'Release de experiencia transversal sobre los módulos de documentos CRM (Presupuestos + PDS). (1) Todos los inputs de fecha/hora de la app pasan a mostrarse en formato es-AR (d/m/Y H:i:S) en 24hs, manteniendo el formato ISO internamente via Flatpickr altInput. El backend sigue recibiendo Y-m-d H:i:S sin cambios — es solo capa visual. (2) Configuración de empresa: nuevo switch "Envía CC automático" con input multi-email (separadores , o ;) que aplica solo a correos de PDS y Presupuestos. Integrado en MailService::send() como 6to parámetro opcional y leído por DocumentMailerService desde empresa_config.documentos_cc_enabled + documentos_cc_emails. No afecta welcome/verification/password-reset ni mail masivos. (3) Sistema de hotkeys existente (RxnShortcuts + modal Shift+?) extendido: hotkeys del form PDS migradas al registry central (antes no aparecían en Shift+?), mismas hotkeys agregadas al form de Presupuestos para unificar UX — ALT+P (Enviar a Tango) y ALT+E (Enviar por correo). Nuevo atajo global ALT+O registrado: copia la fila "activa" en listados (fila con foco o bajo el cursor), habilitado en listados de PDS y Presupuestos via data-copy-url. (4) Tracking persistente de envíos: nuevas columnas en crm_presupuestos y crm_pedidos_servicio (correos_enviados_count, correos_ultimo_envio_at, correos_ultimo_error, correos_ultimo_error_at) que el controller incrementa/registra después de cada envío. Partial compartido components/correo_envio_badge.php renderiza un sobrecito con badge del contador (verde si OK, rojo con warning si hubo error, muted si nunca se envió) en los listados. (5) Documentación defensiva: CLAUDE.md del proyecto ahora incluye secciones CRÍTICAS sobre (a) ruta absoluta de PHP local en Open Server/OSPanel, (b) arquitectura centralizada de mails, (c) patrón dual empresa_config / empresa_config_crm con checklist de 5 pasos al agregar columna, (d) refuerzo del protocolo Engram como obligatorio.',
+            'items' => [
+                'public/js/rxn-datetime.js: agregado altInput:true + altFormat "d/m/Y H:i:S" a datetimeConfig, y altFormat "d/m/Y" a dateConfig. El backend sigue recibiendo el formato ISO — solo cambia la representación visual.',
+                'database/migrations/2026_04_18_add_documentos_cc_to_empresa_config.php NUEVO: agrega documentos_cc_enabled TINYINT(1) + documentos_cc_emails TEXT a empresa_config y empresa_config_crm. Idempotente.',
+                'app/modules/EmpresaConfig/EmpresaConfig.php: 2 props nuevas (documentos_cc_enabled, documentos_cc_emails).',
+                'app/modules/EmpresaConfig/EmpresaConfigRepository.php: constructor agrega 2 ALTER TABLE idempotentes para las nuevas columnas. save() incluye UPDATE + INSERT con los 2 campos.',
+                'app/modules/EmpresaConfig/EmpresaConfigService.php::save: sanitiza documentos_cc_emails con preg_split /[,;\\s]+/ + filter_var FILTER_VALIDATE_EMAIL; descarta inválidos; persiste null si queda vacío. documentos_cc_enabled normalizado con FILTER_VALIDATE_BOOLEAN.',
+                'app/modules/EmpresaConfig/views/index.php: bloque nuevo debajo de los asuntos PDS/Presupuestos con switch + input con validación en vivo (regex js, feedback rojo/verde, contador). Toggle muestra/oculta el input container.',
+                'app/core/Services/MailService.php::send: firma extendida con 6to parámetro opcional array $cc = []. Por cada entry válida, addCC(). No rompe ningún llamador existente (5 params siguen siendo válidos).',
+                'app/shared/Services/DocumentMailerService.php::sendDocument: lee $config->documentos_cc_enabled + documentos_cc_emails, parsea con preg_split /[,;\\s]+/ + FILTER_VALIDATE_EMAIL, pasa el array a MailService::send. Auto-envío duplicado no filtrado (intencional — puede pegar con listas de distribución).',
+                'database/migrations/2026_04_18_add_correos_tracking_to_crm_docs.php NUEVO: agrega correos_enviados_count INT DEFAULT 0, correos_ultimo_envio_at DATETIME, correos_ultimo_error TEXT, correos_ultimo_error_at DATETIME a crm_presupuestos y crm_pedidos_servicio. Idempotente.',
+                'app/modules/CrmPresupuestos/PresupuestoRepository.php: métodos registrarCorreoEnviado(id, empresaId) que incrementa count + setea ultimo_envio_at + limpia error, y registrarErrorCorreo(id, empresaId, mensaje) que setea ultimo_error + ultimo_error_at (trunca a 2000 chars).',
+                'app/modules/CrmPedidosServicio/PedidoServicioRepository.php: mismos 2 métodos sobre crm_pedidos_servicio.',
+                'app/modules/CrmPresupuestos/PresupuestoController.php::sendEmail: después de sendDocument, si éxito registrarCorreoEnviado, si falla o throw registrarErrorCorreo con el mensaje real.',
+                'app/modules/CrmPedidosServicio/PedidoServicioController.php::enviarCorreo: mismo patrón.',
+                'app/shared/views/components/correo_envio_badge.php NUEVO: partial compartido que renderiza sobrecito con badge (verde/rojo/muted) + tooltip con el estado del envío. Espera $count, $ultimoEnvio, $ultimoError, $ultimoErrorAt en scope.',
+                'app/modules/CrmPresupuestos/views/index.php: nueva columna "Correo" en thead + include del partial en cada row. Marca en <tr> data-copy-url="/mi-empresa/crm/presupuestos/{id}/copiar" para habilitar ALT+O.',
+                'app/modules/CrmPedidosServicio/views/index.php: mismo (columna Correo + data-copy-url).',
+                'public/js/rxn-list-shortcuts.js NUEVO: registra en RxnShortcuts el atajo ALT+O con scope global, when: fila activa (focused o hovered con data-copy-url), action: POST dinámico (incluye csrf_token si hay meta). Hover tracking via delegación (mouseover/mouseout) con data-rxn-row-hover.',
+                'app/shared/views/admin_layout.php: agregado <script src="/js/rxn-list-shortcuts.js"> después de rxn-shortcuts.js. Carga global.',
+                'app/modules/CrmPedidosServicio/views/form.php: script inline reescrito — antes tenía document.addEventListener("keydown") manual para ALT+P y ALT+E; ahora se registran en RxnShortcuts.register con group "Pedido de Servicio" (visibles en Shift+?).',
+                'app/modules/CrmPresupuestos/views/form.php: nuevo bloque <script> que registra ALT+P (Tango) y ALT+E (correo) en RxnShortcuts con group "Presupuesto". Antes el form no tenía estas hotkeys; unificación con PDS.',
+                'CLAUDE.md del proyecto: 4 secciones nuevas bajo "CRÍTICO" — (1) cómo correr PHP local (D:\\RXNAPP\\3.3\\bin\\php\\php8.3.14\\php.exe), (2) arquitectura centralizada de mails (MailService + DocumentMailerService + MailMasivos), (3) patrón dual empresa_config / empresa_config_crm con checklist al agregar columna, (4) uso obligatorio de Engram (mem_context + mem_search antes de preguntar, mem_save después de cada decisión).',
+                'app/config/version.php: bump a 1.14.0 / build 20260418.2.',
+                'docs/logs/2026-04-18_2100_release_1_14_0_ux_documentos_crm.md NUEVO: log detallado del release.',
+            ],
+        ],
         [
             'version' => '1.13.1',
             'build' => '20260418.1',

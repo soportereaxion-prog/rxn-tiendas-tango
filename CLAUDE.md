@@ -211,6 +211,83 @@ This is NOT optional. If you skip this, the next session starts blind.
 
 ## Reglas del workspace (rxn_suite)
 
+### CRÍTICO — Cómo correr PHP local (Open Server / OSPanel)
+
+El entorno local es **Open Server (OSPanel)** montado en `D:\RXNAPP\3.3\`. **`php` NO está en el PATH de bash/cmd por defecto.** Las rutas absolutas a los binarios son:
+
+- `D:\RXNAPP\3.3\bin\php\php8.3.14\php.exe` ← **usar este por default** (versión estable moderna).
+- También disponibles: 7.4.33, 8.0.30, 8.1.31, 8.2.26, 8.4.0.
+
+Desde git bash se llama así (forward slashes):
+
+```bash
+/d/RXNAPP/3.3/bin/php/php8.3.14/php.exe tools/run_migrations.php
+/d/RXNAPP/3.3/bin/php/php8.3.14/php.exe tools/build_update_zip.php
+```
+
+**No perder tiempo buscando `php` ni preguntando al usuario**: usar directamente esta ruta. Si la versión necesitara cambiar (ej. un tool legacy requiere 7.4), elegir otra del directorio `D:\RXNAPP\3.3\bin\php\`.
+
+### CRÍTICO — Arquitectura centralizada de envío de mails
+
+**Todo envío de mail sale por un único punto:** `App\Core\Services\MailService::send()` en `app/core/Services/MailService.php`. Usa PHPMailer sobre SMTP propio de la empresa o fallback global RXN desde `.env`. Firma:
+
+```php
+send(string $to, string $subject, string $body, int $empresaId, array $attachments = [], array $cc = []): bool
+```
+
+Soporta múltiples destinatarios en `$to` separados por `,`, `;` o espacio (via `parseRecipients()`).
+
+Sobre ese core hay **wrappers por tipo de mail**:
+
+- **`App\Shared\Services\DocumentMailerService::sendDocument()`** → **PDS y Presupuestos**. Renderiza PrintForms (body + PDF adjunto), resuelve asunto y CC desde `empresa_config`, y termina llamando a `MailService::send()`.
+- **`CrmMailMasivos`** → usa `MailService` directo para envíos masivos (con Jobs/tracking).
+- **`MailService::sendWelcomeEmail` / `sendVerificationEmail` / `sendPasswordReset`** → helpers in-class para correos transaccionales de Auth, ClientesWeb y Store.
+
+**Regla**: si hay que agregar un cross-cutting concern de mail (CC, BCC, headers, tracking), elegir el nivel correcto:
+- Específico de PDS/Presupuestos → `DocumentMailerService` + config en `empresa_config` + param opcional en `MailService::send()`.
+- Global transaccional → directo en `MailService::send()`.
+
+**Nunca** preguntarle al usuario "¿está centralizado el envío de mails?" — sí, lo está. Leer estos 2 archivos primero.
+
+### CRÍTICO — Tablas duales `empresa_config` / `empresa_config_crm`
+
+La configuración de empresa vive en **dos tablas gemelas con el mismo schema**:
+
+- `empresa_config` → área **Tiendas**.
+- `empresa_config_crm` → área **CRM**.
+
+Se accede vía `EmpresaConfigRepository` con switches:
+
+```php
+new EmpresaConfigRepository()           // Tiendas (default)
+EmpresaConfigRepository::forCrm()       // CRM
+EmpresaConfigRepository::forArea($area) // switch por 'crm' o 'tiendas'
+```
+
+Idem para `EmpresaConfigService`. El `EmpresaConfigController::resolveArea()` detecta el área por URL (`/mi-empresa/crm/...` vs `/mi-empresa/...`).
+
+**Regla de oro al agregar una columna nueva a `empresa_config`:**
+
+1. La migración (`database/migrations/*.php`) debe iterar sobre **ambas tablas**.
+2. `EmpresaConfigRepository::__construct()` tiene ALTERs idempotentes `try { exec('ALTER TABLE ...'); } catch {}` por defensa — agregar la nueva columna también ahí.
+3. El modelo `EmpresaConfig` tiene la propiedad pública una sola vez (ambas tablas comparten modelo).
+4. El `save()` del repo tiene **UPDATE e INSERT** con todas las columnas — sumar la nueva a ambas queries y a ambos arrays `execute()`.
+5. `EmpresaConfigService::save()` hace `$config->xxx = ...` antes de `$this->repository->save($config)`.
+
+**Trampa típica**: si agregás la columna sólo a `empresa_config`, la vista CRM rompe en el UPDATE (y viceversa) con `Unknown column`.
+
+### CRÍTICO — Uso de Engram (NO es opcional)
+
+El protocolo de Engram del CLAUDE.md personal es **obligatorio y activo**. Antes de preguntarle al usuario cualquier cosa sobre el proyecto (arquitectura, convenciones, rutas, decisiones previas), **siempre**:
+
+1. Llamar `mem_context` al inicio de cada conversación para ver contexto reciente.
+2. Llamar `mem_search` con keywords del tema antes de asumir o de pedirle al usuario que explique.
+3. Si el usuario menciona algo que "ya se había hablado" o "ya sabés esto", NUNCA responder desde memoria propia sin llamar `mem_search` primero.
+
+**Después de cada**: decisión de arquitectura, bugfix, descubrimiento no obvio, convención nueva → `mem_save` inmediatamente (sin pedir permiso). Ver CLAUDE.md personal para el formato.
+
+Si no encontrás info en memoria sobre algo del proyecto, **ese es el momento de guardarlo** apenas lo aprendas, no de preguntarle al usuario información que va a ser útil mañana también.
+
 ### CRÍTICO — Server local vs worktree git
 
 El server PHP local (XAMPP/Laragon) sirve archivos **desde la carpeta principal del proyecto** (`D:\RXNAPP\3.3\www\rxn_suite\`). **NO** sirve desde los worktrees git en `.claude/worktrees/<branch>/`.

@@ -110,6 +110,23 @@ class EmpresaConfigService
             $config->tango_perfil_snapshot_date = date('Y-m-d H:i:s');
         }
 
+        // --- DOCUMENTOS CC (PDS / Presupuestos) ---
+        $config->documentos_cc_enabled = isset($data['documentos_cc_enabled']) && filter_var($data['documentos_cc_enabled'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        $ccRaw = isset($data['documentos_cc_emails']) ? trim((string)$data['documentos_cc_emails']) : '';
+        if ($ccRaw === '') {
+            $config->documentos_cc_emails = null;
+        } else {
+            $parts = preg_split('/[,;\s]+/', $ccRaw) ?: [];
+            $valid = [];
+            foreach ($parts as $candidate) {
+                $candidate = trim($candidate);
+                if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+                    $valid[] = $candidate;
+                }
+            }
+            $config->documentos_cc_emails = $valid ? implode(', ', $valid) : null;
+        }
+
         // --- SMTP SETTINGS ---
         $config->usa_smtp_propio = isset($data['usa_smtp_propio']) && filter_var($data['usa_smtp_propio'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
         $config->smtp_host = !empty($data['smtp_host']) ? trim($data['smtp_host']) : null;

@@ -501,11 +501,14 @@ class PedidoServicioController extends \App\Core\Controller
             );
 
             if ($success) {
+                $this->repository->registrarCorreoEnviado((int) $id, $empresaId);
                 Flash::set('success', 'Email enviado correctamente a ' . htmlspecialchars((string)$email));
             } else {
+                $this->repository->registrarErrorCorreo((int) $id, $empresaId, 'Error SMTP al enviar el correo. Revisa la configuracion SMTP de la empresa.');
                 Flash::set('danger', 'Error al enviar el correo. Revise su configuracion SMTP en Empresa -> Configuracion.');
             }
         } catch (\Throwable $e) {
+            $this->repository->registrarErrorCorreo((int) $id, $empresaId, $e->getMessage());
             Flash::set('danger', 'Falla en la generacion/envio de documento: ' . $e->getMessage());
         }
 

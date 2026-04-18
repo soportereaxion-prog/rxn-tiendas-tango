@@ -448,26 +448,35 @@ ob_start();
     <?php endif; ?>
     <script>
         (function() {
-            document.addEventListener('keydown', function(event) {
-                // Alt + P para enviar a Tango
-                if (event.altKey && event.key.toLowerCase() === 'p') {
-                    event.preventDefault();
-                    const btnTango = document.querySelector('button[name="action"][value="tango"]');
-                    if (btnTango && !btnTango.disabled) {
-                        btnTango.click();
-                    }
+            if (!window.RxnShortcuts) return;
+
+            RxnShortcuts.register({
+                id: 'pds-enviar-tango',
+                keys: ['Alt+P'],
+                description: 'Enviar Pedido de Servicio a Tango',
+                group: 'Pedido de Servicio',
+                scope: 'global',
+                when: () => !!document.querySelector('form[action*="/sync-tango"] button[type="submit"]:not([disabled])')
+                          || !!document.querySelector('button[name="action"][value="tango"]:not([disabled])'),
+                action: (e) => {
+                    e.preventDefault();
+                    const btn = document.querySelector('form[action*="/sync-tango"] button[type="submit"]:not([disabled])')
+                             || document.querySelector('button[name="action"][value="tango"]:not([disabled])');
+                    if (btn) btn.click();
                 }
-                
-                // Alt + E para enviar correo
-                if (event.altKey && event.key.toLowerCase() === 'e') {
-                    event.preventDefault();
-                    const formCorreo = document.querySelector('form[action*="/enviar-correo"]');
-                    if (formCorreo) {
-                        const btnCorreo = formCorreo.querySelector('button[type="submit"]');
-                        if (btnCorreo && !btnCorreo.disabled) {
-                            btnCorreo.click();
-                        }
-                    }
+            });
+
+            RxnShortcuts.register({
+                id: 'pds-enviar-correo',
+                keys: ['Alt+E'],
+                description: 'Enviar Pedido de Servicio por correo',
+                group: 'Pedido de Servicio',
+                scope: 'global',
+                when: () => !!document.querySelector('form[action*="/enviar-correo"] button[type="submit"]:not([disabled])'),
+                action: (e) => {
+                    e.preventDefault();
+                    const btn = document.querySelector('form[action*="/enviar-correo"] button[type="submit"]:not([disabled])');
+                    if (btn) btn.click();
                 }
             });
         })();

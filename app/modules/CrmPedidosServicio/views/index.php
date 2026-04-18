@@ -144,6 +144,7 @@ ob_start();
                                 <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="clasificacion_codigo"><?= $sortLink('clasificacion_codigo', 'Clasificacion') ?></th>
                                 <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="usuario_nombre">Usuario</th>
                                 <th class="rxn-hide-mobile"><?= $sortLink('duracion_neta_segundos', 'Tiempo neto') ?></th>
+                                <th class="rxn-hide-mobile text-center" style="width: 70px;" title="Envíos por correo">Correo</th>
                                 <th class="rxn-filter-col" data-filter-field="estado_codigo">Estado</th>
                                 <th class="rxn-row-chevron-col"></th>
                             </tr>
@@ -158,7 +159,7 @@ ob_start();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($pedidos as $pedido): ?>
-                                    <tr data-row-link="/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" class="rxn-row-link">
+                                    <tr data-row-link="/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/editar" data-copy-url="/mi-empresa/crm/pedidos-servicio/<?= (int) $pedido['id'] ?>/copiar" class="rxn-row-link">
                                         <td class="text-center" data-row-link-ignore>
                                             <input type="checkbox" class="form-check-input row-checkbox" name="ids[]" value="<?= (int) $pedido['id'] ?>" form="hiddenFormBulk">
                                         </td>
@@ -182,6 +183,15 @@ ob_start();
                                         <td class="rxn-hide-mobile">
                                             <div class="fw-semibold text-success"><?= htmlspecialchars((string) sprintf('%02d:%02d:%02d', intdiv((int) ($pedido['duracion_neta_segundos'] ?? 0), 3600), intdiv(((int) ($pedido['duracion_neta_segundos'] ?? 0) % 3600), 60), ((int) ($pedido['duracion_neta_segundos'] ?? 0) % 60))) ?></div>
                                             <small class="text-muted">Bruto: <?= htmlspecialchars((string) sprintf('%02d:%02d:%02d', intdiv((int) ($pedido['duracion_bruta_segundos'] ?? 0), 3600), intdiv(((int) ($pedido['duracion_bruta_segundos'] ?? 0) % 3600), 60), ((int) ($pedido['duracion_bruta_segundos'] ?? 0) % 60))) ?></small>
+                                        </td>
+                                        <td class="rxn-hide-mobile text-center" data-row-link-ignore>
+                                            <?php
+                                            $count = (int) ($pedido['correos_enviados_count'] ?? 0);
+                                            $ultimoEnvio = $pedido['correos_ultimo_envio_at'] ?? null;
+                                            $ultimoError = $pedido['correos_ultimo_error'] ?? null;
+                                            $ultimoErrorAt = $pedido['correos_ultimo_error_at'] ?? null;
+                                            include BASE_PATH . '/app/shared/views/components/correo_envio_badge.php';
+                                            ?>
                                         </td>
                                         <td>
                                             <?php if (empty($pedido['fecha_finalizado'])): ?>

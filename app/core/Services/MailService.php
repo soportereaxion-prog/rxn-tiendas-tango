@@ -113,7 +113,7 @@ class MailService
         return $valid;
     }
 
-    public function send(string $to, string $subject, string $body, int $empresaId, array $attachments = []): bool
+    public function send(string $to, string $subject, string $body, int $empresaId, array $attachments = [], array $cc = []): bool
     {
         $config = $this->resolveMailerConfig($empresaId);
 
@@ -133,6 +133,12 @@ class MailService
             $mail->setFrom($config['from_email'], $config['from_name']);
             foreach ($recipients as $recipient) {
                 $mail->addAddress($recipient);
+            }
+            foreach ($cc as $ccAddress) {
+                $ccAddress = trim((string)$ccAddress);
+                if ($ccAddress !== '' && filter_var($ccAddress, FILTER_VALIDATE_EMAIL)) {
+                    $mail->addCC($ccAddress);
+                }
             }
 
             $mail->isHTML(true);

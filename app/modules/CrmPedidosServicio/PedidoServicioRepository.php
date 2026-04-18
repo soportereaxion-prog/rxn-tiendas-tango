@@ -832,4 +832,32 @@ class PedidoServicioRepository
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         } catch (\Throwable $e) {}
     }
+
+    public function registrarCorreoEnviado(int $id, int $empresaId): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE crm_pedidos_servicio
+             SET correos_enviados_count = COALESCE(correos_enviados_count, 0) + 1,
+                 correos_ultimo_envio_at = NOW(),
+                 correos_ultimo_error = NULL,
+                 correos_ultimo_error_at = NULL
+             WHERE id = :id AND empresa_id = :empresa_id'
+        );
+        $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+    }
+
+    public function registrarErrorCorreo(int $id, int $empresaId, string $mensaje): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE crm_pedidos_servicio
+             SET correos_ultimo_error = :mensaje,
+                 correos_ultimo_error_at = NOW()
+             WHERE id = :id AND empresa_id = :empresa_id'
+        );
+        $stmt->execute([
+            ':mensaje' => mb_substr($mensaje, 0, 2000),
+            ':id' => $id,
+            ':empresa_id' => $empresaId,
+        ]);
+    }
 }

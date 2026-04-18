@@ -105,8 +105,20 @@ class DocumentMailerService
             $attachments = array_merge($attachments, $extraAttachments);
         }
 
-        // 5. Enviar usando MailService base
-        return $this->mailService->send($to, $subject, $bodyHtml, $empresaId, $attachments);
+        // 5. Resolver CC automatico si la empresa tiene el toggle activo
+        $ccList = [];
+        if (!empty($config->documentos_cc_enabled) && !empty($config->documentos_cc_emails)) {
+            $parts = preg_split('/[,;\s]+/', (string)$config->documentos_cc_emails) ?: [];
+            foreach ($parts as $candidate) {
+                $candidate = trim($candidate);
+                if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+                    $ccList[] = $candidate;
+                }
+            }
+        }
+
+        // 6. Enviar usando MailService base
+        return $this->mailService->send($to, $subject, $bodyHtml, $empresaId, $attachments, $ccList);
     }
 
     /**

@@ -43,6 +43,10 @@ class EmpresaConfig
     public ?string $presupuesto_email_asunto = null;
     public ?string $impresion_header_url = null;
     public ?string $impresion_footer_url = null;
+
+    // CC automatico para correos de PDS y Presupuestos
+    public int $documentos_cc_enabled = 0;
+    public ?string $documentos_cc_emails = null;
     
     // Configuracion SMTP
     public int $usa_smtp_propio = 0;

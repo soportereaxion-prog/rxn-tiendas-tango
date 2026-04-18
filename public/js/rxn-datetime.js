@@ -36,6 +36,8 @@
         time_24hr: true,
         enableSeconds: true,
         dateFormat: 'Y-m-d H:i:S',
+        altInput: true,
+        altFormat: 'd/m/Y H:i:S',
         allowInput: true,
         locale: locale,
         onChange: function (selectedDates, dateStr, instance) {
@@ -46,6 +48,8 @@
 
     var dateConfig = {
         dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
         allowInput: true,
         locale: locale,
         onChange: function (selectedDates, dateStr, instance) {

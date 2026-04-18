@@ -145,6 +145,7 @@ ob_start();
                                 <th class="rxn-hide-mobile">Usuario</th>
                                 <th class="rxn-hide-mobile">Items</th>
                                 <th class="rxn-filter-col" data-filter-field="total"><?= $sortLink('total', 'Total') ?></th>
+                                <th class="rxn-hide-mobile text-center" style="width: 70px;" title="Envíos por correo">Correo</th>
                                 <th class="rxn-filter-col" data-filter-field="estado"><?= $sortLink('estado', 'Estado') ?></th>
                                 <th class="rxn-row-chevron-col"></th>
                             </tr>
@@ -159,7 +160,7 @@ ob_start();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($presupuestos as $presupuesto): ?>
-                                    <tr data-row-link="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" class="rxn-row-link" onclick="if(event.target.closest('.btn-group, .form-check-input') === null) { window.location.href = this.dataset.rowLink; }">
+                                    <tr data-row-link="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" data-copy-url="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/copiar" class="rxn-row-link" onclick="if(event.target.closest('.btn-group, .form-check-input') === null) { window.location.href = this.dataset.rowLink; }">
                                         <td><input type="checkbox" name="ids[]" value="<?= (int) $presupuesto['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk" data-row-link-ignore></td>
                                         <td class="fw-bold text-dark">#<?= (int) $presupuesto['numero'] ?></td>
                                         <td class="text-nowrap rxn-hide-mobile"><small><?= htmlspecialchars((string) $presupuesto['fecha']) ?></small></td>
@@ -167,6 +168,15 @@ ob_start();
                                         <td class="text-nowrap rxn-hide-mobile" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;"><small><?= htmlspecialchars((string) ($presupuesto['usuario_nombre'] ?? 'Sin asignar')) ?></small></td>
                                         <td class="rxn-hide-mobile"><span class="badge bg-light text-dark border"><?= (int) ($presupuesto['items_count'] ?? 0) ?> reng.</span></td>
                                         <td class="fw-semibold text-success">$<?= number_format((float) ($presupuesto['total'] ?? 0), 2, ',', '.') ?></td>
+                                        <td class="rxn-hide-mobile text-center" data-row-link-ignore>
+                                            <?php
+                                            $count = (int) ($presupuesto['correos_enviados_count'] ?? 0);
+                                            $ultimoEnvio = $presupuesto['correos_ultimo_envio_at'] ?? null;
+                                            $ultimoError = $presupuesto['correos_ultimo_error'] ?? null;
+                                            $ultimoErrorAt = $presupuesto['correos_ultimo_error_at'] ?? null;
+                                            include BASE_PATH . '/app/shared/views/components/correo_envio_badge.php';
+                                            ?>
+                                        </td>
                                         <td>
                                             <?php $estadoActual = (string) ($presupuesto['estado'] ?? 'borrador'); ?>
                                             <?php if ($estadoActual === 'emitido'): ?>
