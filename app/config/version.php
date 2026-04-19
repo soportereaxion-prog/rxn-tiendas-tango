@@ -1,9 +1,22 @@
 <?php
 
 return [
-    'current_version' => '1.15.0',
-    'current_build' => '20260418.4',
+    'current_version' => '1.15.1',
+    'current_build' => '20260419.1',
     'history' => [
+        [
+            'version' => '1.15.1',
+            'build' => '20260419.1',
+            'released_at' => '2026-04-19',
+            'title' => 'Hotfix release 1.15.0: compatibilidad MariaDB en migraciones Tango + filtro tango_sync_status corregido',
+            'summary' => 'Hotfix sobre release 1.15.0. Al deployar a prod, las 3 migraciones del paquete 1.15.0 quedaron pendientes porque la primera (add_tango_estado_to_crm_pedidos_servicio) falló con "Syntax error near CAST AS JSON". Causa raíz: el UPDATE de backfill usaba CAST(\'null\' AS JSON) como sentinel, sintaxis válida en MySQL 8+ pero NO soportada en MariaDB (donde el tipo JSON es alias de LONGTEXT). El MigrationRunner hace break al primer error — las otras 2 migraciones del release quedaron sin correr. Secundario: la misma migración filtraba el UPDATE con tango_sync_status = \'ok\' pero el valor real que persiste PedidoServicioRepository es \'success\'. Ese filtro nunca matchearía ninguna fila. Fix: reemplazado CAST(\'null\' AS JSON) por el patrón compatible JSON_UNQUOTE(JSON_EXTRACT(...)) comparado contra string \'null\' (funciona en MySQL y MariaDB). Corregido el filtro a \'success\'. Los ALTER TABLE de la migración ya habían corrido con éxito en prod (DDL auto-commit + guard por SHOW COLUMNS), así que al re-subir el OTA se skipean y solo corre el UPDATE arreglado.',
+            'items' => [
+                'database/migrations/2026_04_18_add_tango_estado_to_crm_pedidos_servicio.php: reemplazado CAST(\'null\' AS JSON) por NULLIF(JSON_UNQUOTE(JSON_EXTRACT(...)), \'null\') en los 3 paths de ID_GVA21. Filtro WHERE cambió de tango_sync_status = \'ok\' a \'success\' (valor real que escribe PedidoServicioRepository::markAsSentToTango).',
+                'database/migrations/2026_04_18_repair_tango_id_gva21_from_savedid.php: mismo fix del CAST — NULLIF(JSON_UNQUOTE(JSON_EXTRACT(tango_sync_response, \'$.data.savedId\')), \'null\'). El filtro ya estaba correcto en \'success\'.',
+                'app/config/version.php: bump a 1.15.1 / build 20260419.1.',
+                'docs/logs/2026-04-19_mañana_hotfix_1_15_1_mariadb_cast_json.md NUEVO: log del hotfix con el diagnóstico completo, causas raíz y pattern compatible.',
+            ],
+        ],
         [
             'version' => '1.15.0',
             'build' => '20260418.4',

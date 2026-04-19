@@ -37,17 +37,17 @@ return function (): void {
         }
 
         // Backfill desde tango_sync_response (JSON) para pedidos ya enviados.
-        // El response de Tango Create?process=19845 devuelve en data.value:
-        //   { ID_GVA21, NRO_PEDIDO, ... } o anidado según el wrapper.
-        // Buscamos ambas convenciones con JSON_EXTRACT.
+        // Se usa JSON_UNQUOTE + NULLIF(..., 'null') en vez de CAST('null' AS JSON)
+        // porque MariaDB NO soporta CAST AS JSON (el tipo JSON es alias de LONGTEXT).
+        // El patrón funciona en MariaDB y MySQL.
         $db->exec(<<<SQL
             UPDATE `{$table}`
             SET
                 tango_id_gva21 = COALESCE(
                     tango_id_gva21,
-                    NULLIF(JSON_EXTRACT(tango_sync_response, '$.data.value.ID_GVA21'), CAST('null' AS JSON)),
-                    NULLIF(JSON_EXTRACT(tango_sync_response, '$.value.ID_GVA21'), CAST('null' AS JSON)),
-                    NULLIF(JSON_EXTRACT(tango_sync_response, '$.ID_GVA21'), CAST('null' AS JSON))
+                    NULLIF(JSON_UNQUOTE(JSON_EXTRACT(tango_sync_response, '$.data.value.ID_GVA21')), 'null'),
+                    NULLIF(JSON_UNQUOTE(JSON_EXTRACT(tango_sync_response, '$.value.ID_GVA21')), 'null'),
+                    NULLIF(JSON_UNQUOTE(JSON_EXTRACT(tango_sync_response, '$.ID_GVA21')), 'null')
                 ),
                 tango_nro_pedido = COALESCE(
                     tango_nro_pedido,
@@ -55,7 +55,7 @@ return function (): void {
                     NULLIF(JSON_UNQUOTE(JSON_EXTRACT(tango_sync_response, '$.value.NRO_PEDIDO')), 'null'),
                     NULLIF(JSON_UNQUOTE(JSON_EXTRACT(tango_sync_response, '$.NRO_PEDIDO')), 'null')
                 )
-            WHERE tango_sync_status = 'ok'
+            WHERE tango_sync_status = 'success'
               AND tango_sync_response IS NOT NULL
         SQL);
     }

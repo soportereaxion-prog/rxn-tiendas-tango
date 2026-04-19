@@ -24,11 +24,12 @@ return function (): void {
         return;
     }
 
+    // MariaDB no soporta CAST('null' AS JSON) → usamos JSON_UNQUOTE + NULLIF(..., 'null').
     $db->exec(<<<SQL
         UPDATE crm_pedidos_servicio
         SET tango_id_gva21 = COALESCE(
                 tango_id_gva21,
-                NULLIF(JSON_EXTRACT(tango_sync_response, '$.data.savedId'), CAST('null' AS JSON))
+                NULLIF(JSON_UNQUOTE(JSON_EXTRACT(tango_sync_response, '$.data.savedId')), 'null')
             ),
             tango_estado = COALESCE(tango_estado, 2),
             tango_estado_sync_at = COALESCE(tango_estado_sync_at, NOW())
