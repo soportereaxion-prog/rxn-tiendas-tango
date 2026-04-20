@@ -272,9 +272,10 @@ ob_start();
                                 <div class="crm-picker-wrap" data-picker data-picker-url="/mi-empresa/crm/pedidos-servicio/clasificaciones/sugerencias" data-picker-allow-manual="1">
                                     <input type="hidden" name="clasificacion_id_tango" id="clasificacion_id_tango" data-picker-extra-hidden value="<?= htmlspecialchars((string) ($pedido['clasificacion_id_tango'] ?? '')) ?>">
                                     <input type="hidden" class="crm-picker-hidden" data-picker-hidden value="<?= htmlspecialchars((string) $pedido['clasificacion_codigo']) ?>">
-                                    <input type="text" class="form-control form-control-sm" id="clasificacion_codigo" name="clasificacion_codigo" value="<?= htmlspecialchars((string) $pedido['clasificacion_codigo']) ?>" autocomplete="off" placeholder="Clasificacion" data-picker-input>
+                                    <input type="text" class="form-control form-control-sm <?= isset($errors['clasificacion_codigo']) ? 'is-invalid' : '' ?>" id="clasificacion_codigo" name="clasificacion_codigo" value="<?= htmlspecialchars((string) $pedido['clasificacion_codigo']) ?>" autocomplete="off" placeholder="Clasificacion" data-picker-input required>
                                     <div class="rxn-search-suggestions d-none" data-picker-results></div>
                                 </div>
+                                <?php if (isset($errors['clasificacion_codigo'])): ?><div class="invalid-feedback d-block"><?= htmlspecialchars((string) $errors['clasificacion_codigo']) ?></div><?php endif; ?>
                             </div>
 
                             <div class="crm-col-2">
@@ -338,7 +339,8 @@ ob_start();
                         <div class="rxn-form-section-title">Diagnostico</div>
                         <div class="rxn-form-grid mb-1">
                             <div class="rxn-form-span-12">
-                                <textarea class="form-control border-secondary" id="diagnostico" name="diagnostico" rows="4" placeholder="Describe el contexto, pruebas, observaciones y resolucion prevista."><?= htmlspecialchars((string) $pedido['diagnostico']) ?></textarea>
+                                <textarea class="form-control border-secondary <?= isset($errors['diagnostico']) ? 'is-invalid' : '' ?>" id="diagnostico" name="diagnostico" rows="4" placeholder="Describe el contexto, pruebas, observaciones y resolucion prevista." required><?= htmlspecialchars((string) $pedido['diagnostico']) ?></textarea>
+                                <?php if (isset($errors['diagnostico'])): ?><div class="invalid-feedback d-block"><?= htmlspecialchars((string) $errors['diagnostico']) ?></div><?php endif; ?>
                             </div>
                         </div>
                         

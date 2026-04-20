@@ -561,6 +561,107 @@
             isDirty = true;
         });
 
+        // === INTERCEPTOR DE SUBMIT CLIENT-SIDE (1.16.4) ===============================
+        // Regla acordada con Charly: cualquier modificación sobre el form, al intentar Guardar,
+        // debe validar que los campos obligatorios estén completos. Si el form NO es dirty,
+        // se permite el submit sin validar (caso típico: usuario abrió un PDS válido y apretó
+        // F10 por reflejo sin tocar nada — no hay razón para bloquearlo).
+        //
+        // Por qué es NECESARIO el interceptor client-side además de la validación server-side:
+        //  - UX: feedback inmediato en pantalla sin round-trip.
+        //  - Garantía: si algo del server redirige antes de validar (ej: routing raro, sesión
+        //    expirada, o cualquier futuro bug), el form NO sale sin pasar por acá primero.
+        //
+        // Los campos obligatorios coinciden con los del validador server-side
+        // (RxnPedidoServicioController::validateRequest). Si se agrega un campo nuevo, actualizar
+        // ambos lados.
+        function collectClientSideErrors(action) {
+            var errs = [];
+            var fechaInicio = mainForm.querySelector('[name="fecha_inicio"]');
+            var solicito = mainForm.querySelector('[name="solicito"]');
+            var clienteId = mainForm.querySelector('[name="cliente_id"]');
+            var articuloId = mainForm.querySelector('[name="articulo_id"]');
+            var clasificacion = mainForm.querySelector('[name="clasificacion_codigo"]');
+            var diagnostico = mainForm.querySelector('[name="diagnostico"]');
+            var fechaFinal = mainForm.querySelector('[name="fecha_finalizado"]');
+
+            if (!fechaInicio || !fechaInicio.value.trim()) {
+                errs.push({field: fechaInicio, msg: 'Fecha y hora de inicio obligatoria.'});
+            }
+            if (!solicito || !solicito.value.trim()) {
+                errs.push({field: solicito, msg: 'Completá quién solicitó el servicio.'});
+            }
+            if (!clienteId || !clienteId.value.trim() || clienteId.value.trim() === '0') {
+                var clienteInput = mainForm.querySelector('#cliente_nombre');
+                errs.push({field: clienteInput, msg: 'Seleccioná un cliente desde la lista.'});
+            }
+            if (!articuloId || !articuloId.value.trim() || articuloId.value.trim() === '0') {
+                var articuloInput = mainForm.querySelector('#articulo_nombre');
+                errs.push({field: articuloInput, msg: 'Seleccioná un artículo desde la lista.'});
+            }
+            if (!clasificacion || !clasificacion.value.trim()) {
+                errs.push({field: clasificacion, msg: 'Indicá la clasificación del servicio.'});
+            }
+            if (!diagnostico || !diagnostico.value.trim()) {
+                errs.push({field: diagnostico, msg: 'Describí el diagnóstico del servicio.'});
+            }
+            if (action === 'tango' && (!fechaFinal || !fechaFinal.value.trim())) {
+                errs.push({field: fechaFinal, msg: 'La fecha de finalización es obligatoria para enviar a Tango.'});
+            }
+            return errs;
+        }
+
+        function clearInlineErrors() {
+            mainForm.querySelectorAll('.is-invalid').forEach(function(el) {
+                el.classList.remove('is-invalid');
+            });
+            mainForm.querySelectorAll('.rxn-client-error').forEach(function(el) {
+                el.remove();
+            });
+        }
+
+        function showInlineError(field, msg) {
+            if (!field) return;
+            field.classList.add('is-invalid');
+            var fb = document.createElement('div');
+            fb.className = 'invalid-feedback d-block rxn-client-error';
+            fb.textContent = msg;
+            var parent = field.closest('.crm-picker-wrap') || field.parentElement;
+            if (parent && parent.parentElement) {
+                parent.parentElement.insertBefore(fb, parent.nextSibling);
+            }
+        }
+
+        mainForm.addEventListener('submit', function(e) {
+            // Si el form no fue tocado, dejamos pasar (caso F10 accidental, o submit forzado
+            // por otros flujos como copiar que no queremos bloquear).
+            if (!isDirty) return;
+
+            // Detectar la acción del submitter. e.submitter es el botón que disparó el submit
+            // (soportado en Chrome desde 2020 — mismo horizon que requestSubmit).
+            var action = (e.submitter && e.submitter.name === 'action') ? e.submitter.value : 'save';
+
+            clearInlineErrors();
+            var errs = collectClientSideErrors(action);
+            if (errs.length === 0) return; // OK — deja pasar al server.
+
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            errs.forEach(function(err) {
+                showInlineError(err.field, err.msg);
+            });
+
+            // Scroll al primer error y foco.
+            var first = errs[0].field;
+            if (first && first.scrollIntoView) {
+                first.scrollIntoView({behavior: 'smooth', block: 'center'});
+                try { first.focus({preventScroll: true}); } catch(ex) { first.focus(); }
+            }
+
+            var summary = errs.map(function(x) { return '• ' + x.msg; }).join('\n');
+            (window.rxnAlert || alert)('Revisá los datos del formulario antes de guardar:\n\n' + summary, 'warning', 'Faltan campos obligatorios');
+        });
+
         // Interceptar el clic en el botón de enviar por correo ANTES de que se lance el confirm nativo
         if (emailForms.length > 0) {
             emailForms.forEach(function(form) {

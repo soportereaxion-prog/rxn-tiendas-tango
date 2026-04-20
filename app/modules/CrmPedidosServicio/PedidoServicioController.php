@@ -721,6 +721,22 @@ class PedidoServicioController extends \App\Core\Controller
             $errors['solicito'] = 'Debes indicar quien solicito el servicio.';
         }
 
+        // Diagnóstico obligatorio (≥1 char). Regla agregada en 1.16.4: cualquier modificación sobre el form
+        // debe obligar a tener diagnóstico. Sin mínimo estricto de longitud — Charly lo pidió chico para
+        // que PDS de 1 línea sigan siendo válidos, pero sin permitir vacío.
+        if ($diagnostico === '') {
+            $errors['diagnostico'] = 'Debes indicar el diagnóstico del servicio.';
+        }
+
+        // Clasificación obligatoria. Regla reportada desde prod en 1.16.4.
+        // - Para Guardar simple: alcanza con el código (permite tipeo manual).
+        // - Para enviar a Tango: obligatorio el id_tango numérico (sino Tango la rechaza).
+        if ($clasificacion === '') {
+            $errors['clasificacion_codigo'] = 'Debes indicar la clasificación del servicio.';
+        } elseif ($action === 'tango' && ($clasificacionIdTango === '' || !is_numeric($clasificacionIdTango))) {
+            $errors['clasificacion_codigo'] = 'La clasificación debe estar vinculada a un registro de Tango para poder enviar el pedido.';
+        }
+
         $descuentoSegundos = $this->parseDuration($descuentoInput);
         if ($descuentoSegundos === null) {
             $errors['descuento'] = 'El descuento debe respetar el formato HH:MM:SS.';

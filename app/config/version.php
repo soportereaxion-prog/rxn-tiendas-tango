@@ -1,9 +1,24 @@
 <?php
 
 return [
-    'current_version' => '1.16.3',
-    'current_build' => '20260420.2',
+    'current_version' => '1.16.4',
+    'current_build' => '20260420.3',
     'history' => [
+        [
+            'version' => '1.16.4',
+            'build' => '20260420.3',
+            'released_at' => '2026-04-20',
+            'title' => 'Hotfix PDS — validaciones endurecidas (diagnóstico + clasificación) + interceptor client-side',
+            'summary' => 'Charly reportó un bug crítico: en el form de PDS apretabas F10 sobre un pedido con cliente/artículo/solicito ya cargados, ponías algo trivial en diagnóstico (ej: "-") y el form "te sacaba" (grababa y redirigía) sin correr ninguna validación. Root cause: el server-side validateRequest NO exigía ni diagnóstico ni clasificación — como los otros campos ya venían del registro original en edit mode, no había errores y el submit pasaba. Además Charly pidió que cualquier modificación al form (dirty) obligue a validar antes de permitir Guardar. Fixes: (1) server-side exige diagnóstico con ≥1 char no-whitespace y clasificación_codigo no-vacía. (2) para action=tango se sigue exigiendo además el id_tango numérico para que Tango no rechace. (3) nuevo interceptor client-side de submit en el form PDS: si isDirty=true, corre validación integral (fecha_inicio, solicito, cliente_id, articulo_id, clasificacion, diagnostico) y bloquea con feedback inline + alert + scroll al primer error. Si no es dirty, permite el submit sin interceptar (para no estorbar en PDSs legacy). La hipótesis de Charly sobre el setInterval del cronómetro se descartó: solo lee DOM y actualiza textContent, no interfiere con submit.',
+            'items' => [
+                'app/modules/CrmPedidosServicio/PedidoServicioController.php::validateRequest: nueva validación obligatoria de diagnóstico (no-empty trim). Nueva validación obligatoria de clasificación_codigo. Para action=tango adicional exige clasificación_id_tango numérico.',
+                'app/modules/CrmPedidosServicio/views/form.php: atributos `required` + clase `is-invalid` + `invalid-feedback` en campos clasificación y diagnóstico. Feedback de error visible inline.',
+                'public/js/crm-pedidos-servicio-form.js::setupDirtyCheckAndEmailControl: nuevo submit interceptor. Si el form es dirty, corre `collectClientSideErrors(action)` y si hay errores: preventDefault + stopImmediatePropagation + alert consolidado + inline errors + scroll + foco al primer campo faltante. Los campos chequeados matchean los del validador server-side (fuente de verdad: server; client es UX + guard extra).',
+                'public/js/crm-pedidos-servicio-form.js: nuevas helpers clearInlineErrors / showInlineError para el feedback visual de errores client-side (clase rxn-client-error).',
+                'app/config/version.php: bump a 1.16.4 / build 20260420.3.',
+                'docs/logs/2026-04-20_release_1_16_4_hotfix_validaciones_pds.md NUEVO: log con root cause, decisión de por qué NO es culpa del setInterval, y alcance del interceptor client-side.',
+            ],
+        ],
         [
             'version' => '1.16.3',
             'build' => '20260420.2',
