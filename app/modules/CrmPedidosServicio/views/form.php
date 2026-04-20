@@ -290,7 +290,16 @@ ob_start();
                                     <input type="text" class="form-control form-control-sm <?= isset($errors['cliente_id']) ? 'is-invalid' : '' ?>" id="cliente_nombre" name="cliente_nombre" value="<?= htmlspecialchars((string) $pedido['cliente_nombre']) ?>" autocomplete="off" placeholder="Buscar cliente..." data-picker-input>
                                     <div class="rxn-search-suggestions d-none" data-picker-results></div>
                                 </div>
-                                <div class="form-text crm-picker-meta crm-compact-help text-truncate" data-picker-meta><?= $pedido['cliente_id'] !== '' ? 'Cliente vinculado #' . htmlspecialchars((string) $pedido['cliente_id']) : 'Snapshot local del cliente seleccionado.' ?></div>
+                                <?php
+                                $clienteMeta = 'Snapshot local del cliente seleccionado.';
+                                if ($pedido['cliente_id'] !== '') {
+                                    $clienteMeta = 'Cliente vinculado #' . htmlspecialchars((string) $pedido['cliente_id']);
+                                    if (!empty($pedido['cliente_codigo'])) {
+                                        $clienteMeta .= ' | ' . htmlspecialchars((string) $pedido['cliente_codigo']);
+                                    }
+                                }
+                                ?>
+                                <div class="form-text crm-picker-meta crm-compact-help text-truncate" data-picker-meta><?= $clienteMeta ?></div>
                             </div>
                         </div>
                     </div>
@@ -311,7 +320,16 @@ ob_start();
                                     <input type="text" class="form-control form-control-sm <?= isset($errors['articulo_id']) ? 'is-invalid' : '' ?>" id="articulo_nombre" name="articulo_nombre" value="<?= htmlspecialchars((string) $pedido['articulo_nombre']) ?>" autocomplete="off" placeholder="Buscar articulo por codigo, nombre o descripcion" data-picker-input>
                                     <div class="rxn-search-suggestions d-none" data-picker-results></div>
                                 </div>
-                                <div class="form-text crm-picker-meta crm-compact-help text-truncate" data-picker-meta><?= $pedido['articulo_id'] !== '' ? 'Articulo vinculado #' . htmlspecialchars((string) $pedido['articulo_id']) : 'Snapshot local del articulo operativo.' ?></div>
+                                <?php
+                                $articuloMeta = 'Snapshot local del articulo operativo.';
+                                if ($pedido['articulo_id'] !== '') {
+                                    $articuloMeta = 'Articulo vinculado #' . htmlspecialchars((string) $pedido['articulo_id']);
+                                    if (!empty($pedido['articulo_codigo'])) {
+                                        $articuloMeta .= ' | ' . htmlspecialchars((string) $pedido['articulo_codigo']);
+                                    }
+                                }
+                                ?>
+                                <div class="form-text crm-picker-meta crm-compact-help text-truncate" data-picker-meta><?= $articuloMeta ?></div>
                             </div>
                         </div>
                     </div>
@@ -494,6 +512,20 @@ ob_start();
                 action: (e) => {
                     e.preventDefault();
                     const btn = document.querySelector('form[action*="/enviar-correo"] button[type="submit"]:not([disabled])');
+                    if (btn) btn.click();
+                }
+            });
+
+            RxnShortcuts.register({
+                id: 'pds-copiar',
+                keys: ['Alt+O'],
+                description: 'Copiar este Pedido de Servicio',
+                group: 'Pedido de Servicio',
+                scope: 'global',
+                when: () => !!document.querySelector('form[action$="/copiar"] button[type="submit"]:not([disabled])'),
+                action: (e) => {
+                    e.preventDefault();
+                    const btn = document.querySelector('form[action$="/copiar"] button[type="submit"]:not([disabled])');
                     if (btn) btn.click();
                 }
             });

@@ -404,6 +404,26 @@ class PedidoServicioRepository
         $this->create($pedido);
     }
 
+    /**
+     * Lookup rápido del codigo_tango del cliente vinculado al PDS.
+     * Usado por hydrateFormState para rehidratar el meta del picker
+     * con "#id | codigo_tango" después de grabar.
+     */
+    public function findClientCodeTangoById(int $clienteId, int $empresaId): ?string
+    {
+        if ($clienteId <= 0) {
+            return null;
+        }
+        $stmt = $this->db->prepare('SELECT codigo_tango FROM crm_clientes WHERE id = :id AND empresa_id = :empresa_id LIMIT 1');
+        $stmt->execute([':id' => $clienteId, ':empresa_id' => $empresaId]);
+        $value = $stmt->fetchColumn();
+        if ($value === false || $value === null) {
+            return null;
+        }
+        $trim = trim((string) $value);
+        return $trim !== '' ? $trim : null;
+    }
+
     public function findClientSuggestions(int $empresaId, string $term, int $limit = 5): array
     {
         $termRaw = trim($term);

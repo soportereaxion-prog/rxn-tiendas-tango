@@ -271,9 +271,87 @@
             return;
         }
 
-        function recalc() {
-            var startDate = parseDateTime(start.value);
-            var endDate = parseDateTime(end.value);
+        // Overlay de diagnóstico persistente — activable con ?debug_calc=1 en la URL.
+        // Muestra en tiempo real el estado interno del calc para poder entender
+        // bugs del flatpickr sin depender de DevTools.
+        var debugMode = /[?&]debug_calc=1(&|$)/.test(window.location.search);
+        var debugBox = null;
+        if (debugMode) {
+            debugBox = document.createElement('div');
+            debugBox.id = 'rxn-debug-calc';
+            debugBox.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:99999;'
+                + 'background:#000;color:#0f0;font:11px/1.35 monospace;'
+                + 'padding:10px 12px;border:1px solid #0f0;border-radius:6px;'
+                + 'max-width:520px;white-space:pre-wrap;pointer-events:none;opacity:0.92;';
+            document.body.appendChild(debugBox);
+        }
+
+        function dbgDump(tag, extra) {
+            if (!debugBox) return;
+            var startAlt = (start._flatpickr && start._flatpickr.altInput) ? start._flatpickr.altInput.value : '(sin altInput)';
+            var endAlt   = (end._flatpickr && end._flatpickr.altInput)   ? end._flatpickr.altInput.value   : '(sin altInput)';
+            var startIn  = start.value;
+            var endIn    = end.value;
+            var startSel = (start._flatpickr && start._flatpickr.selectedDates[0]) ? start._flatpickr.selectedDates[0].toISOString() : 'vacío';
+            var endSel   = (end._flatpickr && end._flatpickr.selectedDates[0])   ? end._flatpickr.selectedDates[0].toISOString()   : 'vacío';
+            var sDate = readDate(start);
+            var eDate = readDate(end);
+            var now = new Date();
+            debugBox.textContent =
+                '[DEBUG CALC] ' + tag + ' @' + now.toLocaleTimeString() + '\n'
+              + '── START ──\n'
+              + '  altInput : ' + startAlt + '\n'
+              + '  input    : ' + startIn + '\n'
+              + '  selected : ' + startSel + '\n'
+              + '  readDate : ' + (sDate ? sDate.toLocaleString() : 'null') + '\n'
+              + '── END ──\n'
+              + '  altInput : ' + endAlt + '\n'
+              + '  input    : ' + endIn + '\n'
+              + '  selected : ' + endSel + '\n'
+              + '  readDate : ' + (eDate ? eDate.toLocaleString() : 'null') + '\n'
+              + '── STATE ──\n'
+              + '  descuento: ' + discount.value + '\n'
+              + (extra || '');
+        }
+
+        // Parser estricto del altInput de Flatpickr (formato fijo "d/m/Y H:i:S").
+        // Se hace a mano con regex porque fp.parseDate no devuelve consistente ante
+        // strings visibles que el usuario está tipeando. Con Enter/Blur Flatpickr
+        // sincroniza selectedDates por su cuenta, pero para edición EN VIVO necesitamos
+        // parsear sin depender del parser interno del picker.
+        function parseAltString(str) {
+            if (!str) return null;
+            var m = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*$/.exec(str);
+            if (!m) return null;
+            var d = new Date(
+                Number(m[3]),
+                Number(m[2]) - 1,
+                Number(m[1]),
+                Number(m[4]),
+                Number(m[5]),
+                Number(m[6])
+            );
+            return Number.isNaN(d.getTime()) ? null : d;
+        }
+
+        function readDate(el) {
+            if (!el) return null;
+            // Prioridad 1: parsear el texto VISIBLE del altInput con regex propio.
+            if (el._flatpickr && el._flatpickr.altInput && el._flatpickr.altInput.value) {
+                var parsedAlt = parseAltString(el._flatpickr.altInput.value);
+                if (parsedAlt) return parsedAlt;
+            }
+            // Prioridad 2: selectedDates de Flatpickr (post Enter/Blur).
+            if (el._flatpickr && el._flatpickr.selectedDates && el._flatpickr.selectedDates[0]) {
+                return el._flatpickr.selectedDates[0];
+            }
+            // Fallback: parseo del input nativo (value ISO "Y-m-d H:i:S").
+            return parseDateTime(el.value || '');
+        }
+
+        function render(liveEnd) {
+            var startDate = readDate(start);
+            var endDate = liveEnd ? new Date() : readDate(end);
             var discountSeconds = parseDuration(discount.value);
 
             discountPreview.textContent = discount.value && discountSeconds !== null ? discount.value : '--:--:--';
@@ -282,6 +360,13 @@
                 gross.textContent = '--:--:--';
                 net.textContent = '--:--:--';
                 sideNet.textContent = '--:--:--';
+                if (decimalOut) decimalOut.textContent = '0.0000';
+                dbgDump('render() EARLY-RETURN',
+                    '  motivo: '
+                    + (!startDate ? 'start=null ' : '')
+                    + (!endDate ? 'end=null ' : '')
+                    + (discountSeconds === null ? 'descuento-invalido ' : '')
+                    + (startDate && endDate && endDate < startDate ? 'end<start ' : '') + '\n');
                 return;
             }
 
@@ -294,23 +379,91 @@
             if (decimalOut) {
                 decimalOut.textContent = netSeconds >= 0 ? (netSeconds / 3600).toFixed(4) : '0.0000';
             }
+            dbgDump('render(' + (liveEnd ? 'LIVE' : 'FIJO') + ')',
+                '  gross    : ' + grossSeconds + 's → ' + gross.textContent + '\n'
+              + '  net      : ' + netSeconds + 's → ' + net.textContent + '\n');
         }
 
-        start.addEventListener('input', recalc);
-        end.addEventListener('input', recalc);
-        discount.addEventListener('input', recalc);
-        recalc();
+        // Evalúa estado del calc: si hay inicio sin fin → cronómetro vivo (endDate = ahora).
+        // Si hay ambos → snapshot con fecha fin. El refresh lo maneja un polling permanente
+        // (ver abajo) que corre cada 500ms sin depender de eventos de Flatpickr.
+        function evaluate() {
+            var hasStart = !!readDate(start);
+            var hasEnd = !!readDate(end);
+            if (hasStart && !hasEnd) {
+                render(true);
+            } else {
+                render(false);
+            }
+        }
+
+        // Listeners de eventos "clásicos" — reactivos, para inputs no-Flatpickr (descuento).
+        start.addEventListener('input', evaluate);
+        start.addEventListener('change', evaluate);
+        end.addEventListener('input', evaluate);
+        end.addEventListener('change', evaluate);
+        discount.addEventListener('input', evaluate);
+
+        // Hook directo en Flatpickr para cuando cambia el valor via picker gráfico o Enter.
+        function hookPicker(el) {
+            if (!el || !el._flatpickr) return;
+            var fp = el._flatpickr;
+            if (Array.isArray(fp.config.onChange)) {
+                fp.config.onChange.push(function () { evaluate(); });
+            }
+            if (fp.config && Array.isArray(fp.config.onClose)) {
+                fp.config.onClose.push(function () { evaluate(); });
+            }
+        }
+        hookPicker(start);
+        hookPicker(end);
+
+        // Polling permanente — la capa definitiva.
+        //
+        // Por qué: Flatpickr con `altInput: true` + `allowInput: true` hace switch de focus
+        // entre el altInput y su popup del calendario. Eso rompe cualquier polling basado
+        // en focus/blur (el blur se dispara al abrir el popup → clearInterval → polling muerto).
+        // Los listeners input/change/keyup sobre altInput tampoco llegan consistentes cuando
+        // el user interactúa con el popup.
+        //
+        // Solución robusta: setInterval permanente a 500ms. evaluate() + render() son baratos
+        // (solo lectura DOM y parse regex), sin allocs ni queries. No genera loops porque no
+        // dispara eventos; solo actualiza textContent y, en modo debug, el overlay.
+        // El ticker del cronómetro (cuando no hay fin) sale gratis con el mismo tick.
+        setInterval(evaluate, 500);
+        evaluate();
     }
 
     function setupCheckboxAhora() {
         var btn = document.getElementById('btn-finalizado-ahora');
         var endInput = document.getElementById('fecha_finalizado');
+        var startInput = document.getElementById('fecha_inicio');
         if (!btn || !endInput) return;
 
         btn.addEventListener('click', function() {
             var now = new Date();
             var pad = function (n) { return String(n).padStart(2, '0'); };
-            var localValue = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+
+            // Si fecha_inicio está cargada, usamos SU día + la hora actual.
+            // Así un PDS retroactivo (ej: inicio día 17) no termina con el día de hoy.
+            var y = now.getFullYear();
+            var m = now.getMonth() + 1;
+            var d = now.getDate();
+
+            var startDate = null;
+            if (startInput && startInput._flatpickr && startInput._flatpickr.selectedDates[0]) {
+                startDate = startInput._flatpickr.selectedDates[0];
+            } else if (startInput && startInput.value) {
+                var parsed = parseDateTime(startInput.value);
+                if (parsed) startDate = parsed;
+            }
+            if (startDate) {
+                y = startDate.getFullYear();
+                m = startDate.getMonth() + 1;
+                d = startDate.getDate();
+            }
+
+            var localValue = y + '-' + pad(m) + '-' + pad(d)
                 + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
             if (window.RxnDateTime && typeof window.RxnDateTime.setValue === 'function') {
                 window.RxnDateTime.setValue(endInput, localValue);

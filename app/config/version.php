@@ -1,9 +1,30 @@
 <?php
 
 return [
-    'current_version' => '1.16.0',
-    'current_build' => '20260419.2',
+    'current_version' => '1.16.1',
+    'current_build' => '20260419.3',
     'history' => [
+        [
+            'version' => '1.16.1',
+            'build' => '20260419.3',
+            'released_at' => '2026-04-19',
+            'title' => 'Hotfixes UX PDS — calc en vivo sobre Flatpickr + Alt+O copiar + códigos cliente/artículo persistentes',
+            'summary' => 'Release de pulido UX sobre el form de PDS (CrmPedidosServicio). (1) Al copiar un PDS ahora también se resetean los campos descuento y motivo_descuento, no solo las fechas y el estado Tango. (2) El botón "reloj" de Finalizado usa el día de fecha_inicio + hora actual, permitiendo cerrar PDS retroactivos sin saltar al día de hoy. (3) Cuando el PDS no tiene fecha fin, el Tiempo neto corre como cronómetro en vivo (se había perdido hace varias iteraciones). (4) Fix definitivo del cálculo bruto/neto mientras el usuario edita la fecha fin: el problema real era que Flatpickr con altInput + popup hace switch de focus que rompía el polling basado en focus/blur; se reemplazó por un setInterval permanente a 500ms, inmune al manejo de focus del picker. 4 iteraciones de fix antes de encontrar el rootcause — se llegó gracias al overlay de diagnóstico persistente ?debug_calc=1 que quedó como feature oculta para futuros debugs. (5) Nuevo atajo Alt+O para copiar desde el form de edición (antes solo funcionaba en listados con data-copy-url). (6) El meta debajo de los pickers de Cliente y Artículo ahora muestra siempre el código (codigo_tango del cliente, codigo_externo del artículo), persistente después de grabar — antes aparecía solo al seleccionar y se perdía al recargar. Resto del release son refuerzos defensivos del calc: parser regex propio del altInput, 3 capas de readDate (altText → selectedDates → parseISO), hook explícito en _flatpickr.config.onChange/onClose.',
+            'items' => [
+                'app/modules/CrmPedidosServicio/PedidoServicioController.php::copy(): resetea descuento=\'00:00:00\' y motivo_descuento=null además de fechas y flags Tango.',
+                'app/modules/CrmPedidosServicio/PedidoServicioController.php::hydrateFormState/defaultFormState: exponen articulo_codigo (ya estaba en DB, no se pasaba al form) y cliente_codigo (lookup en crm_clientes.codigo_tango via nuevo método del repo).',
+                'app/modules/CrmPedidosServicio/PedidoServicioRepository.php::findClientCodeTangoById(clienteId, empresaId): nuevo. Lookup rápido del codigo_tango multi-tenant, usado por hydrateFormState para rehidratar el meta post-grabar.',
+                'app/modules/CrmPedidosServicio/views/form.php: meta de cliente/artículo incluye "#ID | CODIGO" cuando el código existe. Registro de Alt+O (pds-copiar) que dispara el submit del form[action$="/copiar"].',
+                'public/js/crm-pedidos-servicio-form.js::setupCheckboxAhora(): el botón "reloj" de Finalizado usa el día de fecha_inicio (si está cargada) + hora actual del sistema. PDS retroactivo del 17 cierra día 17.',
+                'public/js/crm-pedidos-servicio-form.js::setupCalculator(): reemplazo total del mecanismo de refresh. setInterval permanente a 500ms (polling inmune al focus/blur que Flatpickr rompe al abrir el popup del calendario). Sin tickerId ni focusPollId — el cronómetro en vivo cuando no hay fin sale gratis en el mismo tick.',
+                'public/js/crm-pedidos-servicio-form.js::parseAltString() nuevo: parser regex estricto del formato fijo d/m/Y H:i:S del altInput. Reemplaza a fp.parseDate que no devolvía consistente durante tipeo en vivo.',
+                'public/js/crm-pedidos-servicio-form.js::readDate(): 3 capas de fallback (altInput.value via parseAltString → selectedDates[0] de Flatpickr → parseDateTime del input ISO nativo).',
+                'public/js/crm-pedidos-servicio-form.js::hookPicker(): apila callbacks en _flatpickr.config.onChange y onClose para responsividad instantánea ante interacción con el picker gráfico.',
+                'public/js/crm-pedidos-servicio-form.js: overlay de diagnóstico persistente activable con ?debug_calc=1 en la URL. Muestra altInput/input/selectedDates/readDate para ambos campos, descuento, segundos bruto/neto, textContent final y motivo de EARLY-RETURN. Queda como feature oculta para debugear futuros bugs del picker sin depender de DevTools.',
+                'app/config/version.php: bump a 1.16.1 / build 20260419.3.',
+                'docs/logs/2026-04-19_2359_release_1_16_1_hotfixes_ux_pds.md NUEVO: log detallado del iter, root cause real encontrado via overlay, lección meta sobre diagnóstico persistente > hipótesis.',
+            ],
+        ],
         [
             'version' => '1.16.0',
             'build' => '20260419.2',

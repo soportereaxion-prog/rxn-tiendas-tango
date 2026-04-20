@@ -353,6 +353,8 @@ class PedidoServicioController extends \App\Core\Controller
 
             $data['fecha_inicio'] = date('Y-m-d H:i:s');
             $data['fecha_finalizado'] = null;
+            $data['descuento'] = '00:00:00';
+            $data['motivo_descuento'] = null;
             $data['descuento_segundos'] = 0;
             $data['duracion_bruta_segundos'] = null;
             $data['duracion_neta_segundos'] = null;
@@ -877,9 +879,11 @@ class PedidoServicioController extends \App\Core\Controller
             'fecha_finalizado' => isset($_GET['fin']) ? trim($_GET['fin']) : '',
             'cliente_id' => $clienteId,
             'cliente_nombre' => $clienteNombre,
+            'cliente_codigo' => $clienteId !== '' ? (string) ($this->repository->findClientCodeTangoById((int) $clienteId, $empresaId) ?? '') : '',
             'solicito' => '',
             'nro_pedido' => '',
             'articulo_id' => '',
+            'articulo_codigo' => '',
             'articulo_nombre' => '',
             'clasificacion_codigo' => '',
             'clasificacion_id_tango' => '',
@@ -905,9 +909,11 @@ class PedidoServicioController extends \App\Core\Controller
             'fecha_finalizado' => $this->formatDateTimeForInput($pedido['fecha_finalizado'] ?? null),
             'cliente_id' => (string) ($pedido['cliente_id'] ?? ''),
             'cliente_nombre' => (string) ($pedido['cliente_nombre'] ?? ''),
+            'cliente_codigo' => (string) ($this->repository->findClientCodeTangoById((int) ($pedido['cliente_id'] ?? 0), (int) ($pedido['empresa_id'] ?? \App\Core\Context::getEmpresaId())) ?? ''),
             'solicito' => (string) ($pedido['solicito'] ?? ''),
             'nro_pedido' => (string) ($pedido['nro_pedido'] ?? ''),
             'articulo_id' => (string) ($pedido['articulo_id'] ?? ''),
+            'articulo_codigo' => (string) ($pedido['articulo_codigo'] ?? ''),
             'articulo_nombre' => (string) ($pedido['articulo_nombre'] ?? ''),
             'clasificacion_codigo' => (string) ($pedido['clasificacion_codigo'] ?? ''),
             'clasificacion_id_tango' => (string) ($pedido['clasificacion_id_tango'] ?? ''),
