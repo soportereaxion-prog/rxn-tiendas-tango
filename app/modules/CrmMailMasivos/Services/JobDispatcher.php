@@ -95,13 +95,20 @@ class JobDispatcher
     /**
      * Crea el job + items y dispara el webhook a n8n.
      *
+     * Si se pasa `$contentReportId > 0`, se ejecuta el "reporte de contenido"
+     * vía BlockRenderer y su HTML reemplaza al placeholder `{{Bloque.html}}`
+     * en el body del template ANTES de congelar el `body_snapshot`. Así el
+     * contenido broadcast viaja igual para todos los destinatarios y el
+     * BatchProcessor no necesita enterarse de nada especial.
+     *
      * @return array{job_id: int, total_destinatarios: int, n8n_response: ?array, warnings: list<string>}
      */
     public function dispatch(
         int $empresaId,
         int $usuarioId,
         int $reportId,
-        int $templateId
+        int $templateId,
+        int $contentReportId = 0
     ): array {
         $ctx = $this->repo->loadJobContext($empresaId, $usuarioId, $reportId, $templateId);
 
@@ -116,15 +123,27 @@ class JobDispatcher
             throw new InvalidArgumentException('El reporte no devolvió destinatarios. Revisá los filtros o el mail_field.');
         }
 
-        // 2. Crear cabecera job
+        // 2. Resolver bloque de contenido broadcast (opcional).
+        //    Renderizamos UNA sola vez acá y reemplazamos el placeholder en el
+        //    body del template. Así el snapshot queda con el HTML final listo
+        //    y el BatchProcessor sigue reemplazando sólo las variables per-row.
+        $bodyHtml = (string) $ctx['template']['body_html'];
+        if ($contentReportId > 0) {
+            $renderer = new BlockRenderer($this->meta);
+            $blockHtml = $renderer->renderContentReport($contentReportId, $empresaId);
+            $bodyHtml = str_replace('{{Bloque.html}}', $blockHtml, $bodyHtml);
+        }
+
+        // 3. Crear cabecera job
         $jobId = $this->repo->createJob([
             'empresa_id' => $empresaId,
             'usuario_id' => $usuarioId,
             'report_id' => $reportId,
+            'content_report_id' => $contentReportId > 0 ? $contentReportId : null,
             'template_id' => $templateId,
             'smtp_config_id' => (int) $ctx['smtp']['id'],
             'asunto' => (string) $ctx['template']['asunto'],
-            'body_snapshot' => (string) $ctx['template']['body_html'],
+            'body_snapshot' => $bodyHtml,
             'attachments_json' => null, // Fase 4b
             'total_destinatarios' => $preview['count'],
         ]);

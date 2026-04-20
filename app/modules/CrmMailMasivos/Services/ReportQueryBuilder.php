@@ -60,10 +60,17 @@ class ReportQueryBuilder
 
     /**
      * Construye SELECT completo para un reporte.
+     *
+     * $requireMailTarget:
+     *   true (default)  → el reporte actúa como fuente de destinatarios; si no
+     *                     se puede resolver un mail_field, se lanza excepción.
+     *   false           → el reporte actúa como fuente de CONTENIDO (bloque
+     *                     broadcast); mail_target puede quedar null sin tirar.
+     *
      * @param array<string, mixed> $config
-     * @return array{sql: string, params: array<string, mixed>, aliases: array<string, string>, mail_target: array{entity: string, field: string, alias: string}}
+     * @return array{sql: string, params: array<string, mixed>, aliases: array<string, string>, mail_target: array{entity: string, field: string, alias: string}|null, field_aliases: array<string, string>}
      */
-    public function build(array $config, int $empresaId, int $limit = 0): array
+    public function build(array $config, int $empresaId, int $limit = 0, bool $requireMailTarget = true): array
     {
         $this->aliases = [];
         $this->params = [];
@@ -86,8 +93,12 @@ class ReportQueryBuilder
         // Construir WHERE (filtros + empresa_scope + soft_delete)
         $whereSql = $this->buildWhere($config['filters'] ?? [], $empresaId);
 
-        // Resolver campo de mail (para después)
-        $mailTarget = $this->resolveMailTarget($config['mail_field'] ?? null, $rootEntity);
+        // Resolver campo de mail (null para reportes de contenido)
+        $mailTarget = $this->resolveMailTarget(
+            $config['mail_field'] ?? null,
+            $rootEntity,
+            $requireMailTarget
+        );
 
         // FROM
         $rootTable = $this->meta->getEntity($rootEntity)['table'];
@@ -361,7 +372,10 @@ class ReportQueryBuilder
      * @param array{entity?: string, field?: string}|null $userSpec
      * @return array{entity: string, field: string, alias: string}
      */
-    private function resolveMailTarget(?array $userSpec, string $rootEntity): array
+    /**
+     * @return array{entity: string, field: string, alias: string}|null
+     */
+    private function resolveMailTarget(?array $userSpec, string $rootEntity, bool $require = true): ?array
     {
         // Si el usuario especificó uno, validarlo
         if (is_array($userSpec) && !empty($userSpec['entity']) && !empty($userSpec['field'])) {
@@ -388,6 +402,10 @@ class ReportQueryBuilder
                 'field' => $auto,
                 'alias' => sprintf('%s_%s', $rootEntity, $auto),
             ];
+        }
+
+        if (!$require) {
+            return null;
         }
 
         throw new InvalidArgumentException(

@@ -157,11 +157,11 @@ class JobRepository
     {
         $stmt = $this->db->prepare(
             "INSERT INTO crm_mail_jobs
-                (empresa_id, usuario_id, report_id, template_id, smtp_config_id,
+                (empresa_id, usuario_id, report_id, content_report_id, template_id, smtp_config_id,
                  asunto, body_snapshot, attachments_json,
                  estado, total_destinatarios)
              VALUES
-                (:empresa_id, :usuario_id, :report_id, :template_id, :smtp_config_id,
+                (:empresa_id, :usuario_id, :report_id, :content_report_id, :template_id, :smtp_config_id,
                  :asunto, :body_snapshot, :attachments_json,
                  'queued', :total_destinatarios)"
         );
@@ -169,6 +169,7 @@ class JobRepository
             ':empresa_id' => $data['empresa_id'],
             ':usuario_id' => $data['usuario_id'],
             ':report_id' => $data['report_id'] ?? null,
+            ':content_report_id' => $data['content_report_id'] ?? null,
             ':template_id' => $data['template_id'] ?? null,
             ':smtp_config_id' => $data['smtp_config_id'],
             ':asunto' => $data['asunto'],

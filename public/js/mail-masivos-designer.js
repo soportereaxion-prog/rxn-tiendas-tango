@@ -632,11 +632,18 @@
         }
 
         let html = '<div class="alert alert-success py-2 small mb-3">';
-        html += '<strong>✓ OK</strong> — ' + data.row_count + ' fila(s), ' + data.mail_count + ' mail(s) único(s). ';
-        html += 'Destinatario: <code>' + escapeHtml(data.mail_target.entity + '.' + data.mail_target.field) + '</code>';
+        if (data.is_content_report) {
+            html += '<strong>✓ OK</strong> — ' + data.row_count + ' fila(s) de contenido. ';
+            html += '<span class="text-muted">Este reporte es de <strong>contenido broadcast</strong> — se elige en el paso "Bloque de contenido" al crear un envío y sus filas se renderizan dentro del cuerpo del mail.</span>';
+        } else {
+            html += '<strong>✓ OK</strong> — ' + data.row_count + ' fila(s), ' + data.mail_count + ' mail(s) único(s). ';
+            if (data.mail_target) {
+                html += 'Destinatario: <code>' + escapeHtml(data.mail_target.entity + '.' + data.mail_target.field) + '</code>';
+            }
+        }
         html += '</div>';
 
-        if (data.mails && data.mails.length > 0) {
+        if (!data.is_content_report && data.mails && data.mails.length > 0) {
             html += '<div class="mb-3"><strong>Mails:</strong><br><code>' + data.mails.map(escapeHtml).join(', ') + '</code></div>';
         }
 

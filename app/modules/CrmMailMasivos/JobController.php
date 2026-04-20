@@ -9,6 +9,7 @@ use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
 use App\Modules\CrmMailMasivos\Services\BatchProcessor;
+use App\Modules\CrmMailMasivos\Services\BlockRenderer;
 use App\Modules\CrmMailMasivos\Services\JobDispatcher;
 use InvalidArgumentException;
 use Throwable;
@@ -64,11 +65,27 @@ class JobController
 
         $choices = $this->repo->listChoices($empresaId);
 
+        // Separar reportes de destinatarios vs. reportes de contenido (broadcast).
+        // Los segundos son los que tienen root_entity registrada como "contenido"
+        // en BlockRenderer. Se ofrecen en el selector opcional "Bloque de contenido".
+        $contentEntities = array_flip(BlockRenderer::knownContentEntities());
+        $recipientReports = [];
+        $contentReports = [];
+        foreach ($choices['reports'] as $r) {
+            $root = (string) ($r['root_entity'] ?? '');
+            if (isset($contentEntities[$root])) {
+                $contentReports[] = $r;
+            } else {
+                $recipientReports[] = $r;
+            }
+        }
+
         // Cargar SMTP del usuario para mostrar en el form (confirmación visual)
         $ctx = $this->repo->loadJobContext($empresaId, $usuarioId, 0, 0);
 
         View::render('app/modules/CrmMailMasivos/views/envios/crear.php', [
-            'reports' => $choices['reports'],
+            'reports' => $recipientReports,
+            'contentReports' => $contentReports,
             'templates' => $choices['templates'],
             'smtp' => $ctx['smtp'],
         ]);
@@ -161,6 +178,7 @@ class JobController
 
         $reportId = (int) ($_POST['report_id'] ?? 0);
         $templateId = (int) ($_POST['template_id'] ?? 0);
+        $contentReportId = (int) ($_POST['content_report_id'] ?? 0);
         $confirm = (string) ($_POST['confirm'] ?? '');
 
         if ($confirm !== 'yes') {
@@ -171,7 +189,7 @@ class JobController
 
         try {
             $dispatcher = new JobDispatcher($this->repo);
-            $result = $dispatcher->dispatch($empresaId, $usuarioId, $reportId, $templateId);
+            $result = $dispatcher->dispatch($empresaId, $usuarioId, $reportId, $templateId, $contentReportId);
 
             $msg = 'Envío disparado. Job #' . $result['job_id']
                 . ' · ' . $result['total_destinatarios'] . ' destinatarios.';

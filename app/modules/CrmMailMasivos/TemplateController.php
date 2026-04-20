@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\CrmMailMasivos\Services\BlockRenderer;
 use App\Modules\CrmMailMasivos\Services\ReportMetamodel;
 use App\Modules\CrmMailMasivos\Services\ReportQueryBuilder;
 use InvalidArgumentException;
@@ -345,8 +346,12 @@ class TemplateController
         }
 
         try {
+            // Si el reporte asociado es de contenido (root broadcast), no
+            // exigir mail_field para obtener el row de muestra.
+            $rootEntity = (string) ($report['root_entity'] ?? $config['root_entity'] ?? '');
+            $requireMail = !BlockRenderer::isContentEntity($rootEntity);
             $builder = new ReportQueryBuilder($this->meta);
-            $built = $builder->build($config, $empresaId, 1);
+            $built = $builder->build($config, $empresaId, 1, $requireMail);
 
             $pdo = Database::getConnection();
             $stmt = $pdo->prepare($built['sql']);

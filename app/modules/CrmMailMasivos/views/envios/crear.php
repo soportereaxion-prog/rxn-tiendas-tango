@@ -3,6 +3,7 @@ $pageTitle = 'Nuevo Envío Masivo - rxn_suite';
 ob_start();
 $flash = \App\Core\Flash::get();
 $reports = $reports ?? [];
+$contentReports = $contentReports ?? [];
 $templates = $templates ?? [];
 $smtp = $smtp ?? null;
 ?>
@@ -83,7 +84,31 @@ $smtp = $smtp ?? null;
 
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-3-circle-fill text-primary"></i> SMTP que se va a usar</h6>
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-3-circle-fill text-primary"></i>
+                            Bloque de contenido <span class="text-muted fw-normal small">(opcional)</span>
+                        </h6>
+                        <select name="content_report_id" id="sel-content-report" class="form-select" <?= (!$smtp || empty($contentReports)) ? 'disabled' : '' ?>>
+                            <option value="">— Sin bloque (el mail viaja solo con la plantilla) —</option>
+                            <?php foreach ($contentReports as $r): ?>
+                                <option value="<?= (int) $r['id'] ?>">
+                                    <?= htmlspecialchars($r['nombre']) ?> (<?= htmlspecialchars($r['root_entity']) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">
+                            Reemplaza el placeholder <code>{{Bloque.html}}</code> del cuerpo por el render de las filas
+                            del reporte de contenido. Ideal para novedades, promos o listas de precios.
+                            <?php if (empty($contentReports)): ?>
+                                <br><em class="text-muted">Todavía no hay reportes de contenido creados.</em>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-4-circle-fill text-primary"></i> SMTP que se va a usar</h6>
                         <?php if ($smtp): ?>
                             <div class="rxn-envios-smtp-card">
                                 <div><strong>From:</strong> <?= htmlspecialchars((string) $smtp['from_email']) ?>
@@ -112,7 +137,7 @@ $smtp = $smtp ?? null;
             <div class="col-lg-6">
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-4-circle-fill text-primary"></i> Destinatarios</h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-5-circle-fill text-primary"></i> Destinatarios</h6>
 
                         <button type="button" class="btn btn-outline-primary btn-sm" id="btn-preview" <?= !$smtp ? 'disabled' : '' ?>>
                             <i class="bi bi-people-fill"></i> Ver destinatarios
@@ -125,7 +150,7 @@ $smtp = $smtp ?? null;
 
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-5-circle-fill text-primary"></i> Confirmar y disparar</h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-6-circle-fill text-primary"></i> Confirmar y disparar</h6>
 
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" name="confirm" value="yes" id="chk-confirm" required <?= !$smtp ? 'disabled' : '' ?>>

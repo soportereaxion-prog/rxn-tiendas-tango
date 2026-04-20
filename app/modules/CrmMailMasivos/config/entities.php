@@ -150,6 +150,41 @@ return [
         ],
     ],
 
+    // CustomerNotes — entidad de CONTENIDO broadcast.
+    //
+    // A diferencia de las otras entidades (relacionales, con mail_field para
+    // actuar como destinatario de un envío), CustomerNotes es una fuente de
+    // CONTENIDO: sus filas se renderizan como bloques HTML y se inyectan en el
+    // body del mail masivo reemplazando el placeholder `{{Bloque.html}}`.
+    //
+    // - empresa_scope=false → es una tabla global (novedades compartidas por
+    //   todas las empresas destino). El ReportQueryBuilder no inyecta filtro
+    //   de empresa_id sobre ella.
+    // - Sin mail_field y sin relations → no puede actuar como root de un
+    //   reporte de destinatarios; solo como root de un "reporte de contenido"
+    //   que se combina con un reporte de destinatarios al disparar un envío.
+    // - El renderizado HTML por fila lo hace
+    //   `Services\RowRenderers\CustomerNotesRenderer`, ruteado desde
+    //   `Services\BlockRenderer` según la root_entity del reporte de contenido.
+    'CustomerNotes' => [
+        'label' => 'Novedades',
+        'table' => 'customer_notes',
+        'primary_key' => 'id',
+        'empresa_scope' => false,
+        'soft_delete' => 'deleted_at',
+        'fields' => [
+            'id' => ['label' => 'ID Novedad', 'type' => 'int', 'filterable' => true],
+            'title' => ['label' => 'Título', 'type' => 'string', 'filterable' => true],
+            'body_html' => ['label' => 'Cuerpo (HTML)', 'type' => 'string', 'filterable' => false],
+            'category' => ['label' => 'Categoría', 'type' => 'string', 'filterable' => true],
+            'version_ref' => ['label' => 'Versión ref.', 'type' => 'string', 'filterable' => true],
+            'status' => ['label' => 'Estado', 'type' => 'string', 'filterable' => true],
+            'published_at' => ['label' => 'Publicada el', 'type' => 'datetime', 'filterable' => true],
+            'created_at' => ['label' => 'Creada', 'type' => 'datetime', 'filterable' => true],
+        ],
+        'relations' => [],
+    ],
+
     'CrmPedidosServicio' => [
         'label' => 'Pedidos de Servicio (PDS)',
         'table' => 'crm_pedidos_servicio',

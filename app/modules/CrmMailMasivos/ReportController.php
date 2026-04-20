@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\CrmMailMasivos\Services\BlockRenderer;
 use App\Modules\CrmMailMasivos\Services\ReportMetamodel;
 use App\Modules\CrmMailMasivos\Services\ReportQueryBuilder;
 use InvalidArgumentException;
@@ -234,8 +235,14 @@ class ReportController
         }
 
         try {
+            // Los reportes de contenido (root = entidad broadcast) NO requieren
+            // mail_field: su preview es simplemente la tabla de filas. Los de
+            // destinatarios sí — ahí mostramos conteo de mails únicos.
+            $rootEntity = (string) ($config['root_entity'] ?? '');
+            $isContent = BlockRenderer::isContentEntity($rootEntity);
+
             $builder = new ReportQueryBuilder($this->meta);
-            $built = $builder->build($config, $empresaId, 10);
+            $built = $builder->build($config, $empresaId, 10, !$isContent);
 
             $pdo = Database::getConnection();
             $stmt = $pdo->prepare($built['sql']);
@@ -254,12 +261,14 @@ class ReportController
             $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-            // Extraer los mails destinatarios
-            $mailAlias = $built['mail_target']['alias'];
+            // Extraer los mails destinatarios (solo si el reporte los tiene).
             $mails = [];
-            foreach ($rows as $r) {
-                if (!empty($r[$mailAlias]) && filter_var($r[$mailAlias], FILTER_VALIDATE_EMAIL)) {
-                    $mails[] = $r[$mailAlias];
+            if ($built['mail_target'] !== null) {
+                $mailAlias = $built['mail_target']['alias'];
+                foreach ($rows as $r) {
+                    if (!empty($r[$mailAlias]) && filter_var($r[$mailAlias], FILTER_VALIDATE_EMAIL)) {
+                        $mails[] = $r[$mailAlias];
+                    }
                 }
             }
 
@@ -270,6 +279,7 @@ class ReportController
                 'mail_count' => count(array_unique($mails)),
                 'mails' => array_values(array_unique($mails)),
                 'mail_target' => $built['mail_target'],
+                'is_content_report' => $isContent,
                 'sql_debug' => $built['sql'],
                 'params_debug' => $built['params'],
             ]);
@@ -341,10 +351,14 @@ class ReportController
         }
 
         if (is_array($config) && empty($errors['root_entity'])) {
-            // Intentar construir (dry-run) para validar todo el diseño
+            // Intentar construir (dry-run) para validar todo el diseño.
+            // Los reportes de contenido no requieren mail_field — se lo decimos
+            // al builder para que no tire la excepción "destinatario no resuelto".
+            $rootEntity = (string) ($payload['root_entity'] ?? '');
+            $requireMail = !BlockRenderer::isContentEntity($rootEntity);
             try {
                 $builder = new ReportQueryBuilder($this->meta);
-                $builder->build($config, $empresaId, 1);
+                $builder->build($config, $empresaId, 1, $requireMail);
             } catch (InvalidArgumentException $e) {
                 $errors['config_json'] = 'Diseño inválido: ' . $e->getMessage();
             } catch (Throwable $e) {
