@@ -1,9 +1,33 @@
 <?php
 
 return [
-    'current_version' => '1.15.1',
-    'current_build' => '20260419.1',
+    'current_version' => '1.16.0',
+    'current_build' => '20260419.2',
     'history' => [
+        [
+            'version' => '1.16.0',
+            'build' => '20260419.2',
+            'released_at' => '2026-04-19',
+            'title' => 'RXN Live: agrupación estilo Tango + paginación "Todos" + fix Tabla Dinámica + hotfix HY093 envío PDS',
+            'summary' => 'Release con dos núcleos. (1) RXN Live recibe tres mejoras de UX que lo acercan al feeling Tango: agrupación drag-to-group con hasta 3 niveles anidados y subtotales por columna numérica, selector de paginación con opción "Mostrar Todos", y fix de un bug donde la Tabla Dinámica perdía columnas declaradas en la view SQL pero no en pivot_metadata. La agrupación se activa arrastrando cualquier <th> a una zona dashed arriba de la grilla, soporta expand/collapse por nodo persistido en sessionStorage, fuerza per_page=all automáticamente cuando arranca con paginación parcial, y se persiste también en vistas guardadas. Coexiste sin romper sort, resize, filtros locales ni vistas. (2) Hotfix CRÍTICO de prod en envío PDS a Tango: PedidoServicioRepository::markAsSentToTango reusaba el placeholder PDO :nro_pedido en dos columnas, lo que las prepares nativas (default desde 03-2026) rechazan con HY093. El catch del PedidoServicioTangoService caía en markAsErrorToTango sin pasar el response del Tango exitoso, dejando pedidos creados en Tango pero marcados como error en rxn_suite (riesgo de duplicado al reintentar). Mismo patrón ya pisado dos veces en marzo, regla dura ahora documentada en código. Fix mínimo: agregar :tango_nro_pedido como placeholder distinto bindeado al mismo valor. Se incluye query de auditoría sugerida en el log para detectar PDS afectados entre 18-04 y 19-04 en prod. (3) Migración utilitaria resync_usuario_nombre que normaliza la denormalización de crm_pedidos_servicio.usuario_nombre cuando un usuario corrige su nombre después de generar PDS — defensiva, idempotente, multi-tenant-safe.',
+            'items' => [
+                'app/modules/RxnLive/RxnLiveService.php: pivot_metadata de pedidos_servicio extendido con id_tecnico, cod_tango, tango_estado_label, tango_estado_sync_at (4 columnas que la view SQL ya devolvía pero no estaban declaradas).',
+                'app/modules/RxnLive/views/dataset.php::getFieldOptions(): reescrito con fallback defensivo. Para purpose=group, columnas presentes en rawDatasetRows pero no en pivotMetadata se autoincluyen como groupable string, salvo que estén en PIVOT_INTERNAL_COLS=[empresa_id, cliente_id, id_pedidoservicio, diagnostico, tango_estado]. Para purpose=val sigue siendo declaración explícita (suma/promedio requiere intención).',
+                'app/modules/RxnLive/RxnLiveController.php::dataset: whitelist per_page=[50,100,250,500,all] aceptada vía GET. all → limit técnico 1.000.000 y page=1 forzado. Nuevo perPage en el array que va al view. per_page excluido del array de filters.',
+                'app/modules/RxnLive/views/dataset.php: footer del paginador rediseñado. Selector "Mostrar" siempre visible cuando hay registros, botones Ant/Sig solo cuando totalRegistros > limit. Contador "X registros". Nueva función JS changePerPage(newPerPage) que reload manteniendo filtros y reseteando page=1.',
+                'app/modules/RxnLive/views/dataset.php: HTML #groupByZone + #groupByChips insertado dentro del tab plana, antes de #planaResultContainer. CSS dedicado con .rxn-group-zone (estados is-active, is-dragover), .rxn-group-chip con badge numérico de nivel y X removible, tr.rxn-group-row.rxn-group-level-{0,1,2} con fondos azul progresivos.',
+                'app/modules/RxnLive/views/dataset.php: estado JS groupByCols (array hasta MAX_GROUP_LEVELS=3) + groupCollapseState (objeto que solo guarda paths COLAPSADOS para sessionStorage liviano).',
+                'app/modules/RxnLive/views/dataset.php: helpers nuevos rxnEscapeHtml, rxnEscapeJsArg, buildGroupChipHtml, renderGroupZone, handleHeaderDragStart/End, handleGroupZoneDragOver/Leave/Drop, removeGroupCol, toggleGroupCollapse, computeGroupSubtotals, formatGroupKey, buildDetailRowHtml (extraído del forEach plano), buildGroupedRowsHtml (recursiva — agrupa por nivel, emite group row con caret + label + count + subtotales en cells numéricas, recurse si no colapsado, hasta caso base que delega a buildDetailRowHtml).',
+                'app/modules/RxnLive/views/dataset.php: <th> ahora son draggables (atributos draggable + handlers) salvo los ya agrupados (evita doble agregado). Coexiste con onclick=sort y mousedown del rxn-col-resizer porque el resize hace preventDefault+stopPropagation.',
+                'app/modules/RxnLive/views/dataset.php: numMetricsSum del TFOOT pre-calculado una vez al inicio (antes se sumaba durante el forEach plano — incompatible con render agrupado).',
+                'app/modules/RxnLive/views/dataset.php::extractViewConfig + applyViewConfig: incluyen groupByCols y groupCollapseState para persistencia en sessionStorage y en vistas guardadas BD. Bloque "Vista Base" del DOMContentLoaded también hidrata defensivamente (whitelist de strings + cap a MAX_GROUP_LEVELS).',
+                'app/modules/RxnLive/views/dataset.php: handleGroupZoneDrop fuerza per_page=all si el primer chip se agrega estando paginado y faltan registros (rxnNeedsAllForGrouping). saveVolatileState antes del redirect garantiza que post-reload los chips se hidraten.',
+                'app/modules/CrmPedidosServicio/PedidoServicioRepository.php::markAsSentToTango: fix HY093. Placeholder :nro_pedido (para columna nro_pedido) y :tango_nro_pedido (para columna tango_nro_pedido) ahora son distintos pero bindeados al mismo $pedidoNumero. Comentario en código explicando ATTR_EMULATE_PREPARES=false + referencia a los antecedentes de marzo.',
+                'database/migrations/2026_04_19_resync_usuario_nombre_in_crm_pedidos_servicio.php NUEVO: UPDATE con INNER JOIN usuarios + WHERE ps.usuario_nombre <> u.nombre + filtros u.deleted_at IS NULL y multi-tenant por empresa_id. Guards SHOW TABLES y SHOW COLUMNS para que migración corra segura en cualquier instalación. Idempotente. error_log con cuántas filas tocó.',
+                'app/config/version.php: bump a 1.16.0 / build 20260419.2.',
+                'docs/logs/2026-04-19_2300_release_1_16_0_rxn_live_agrupacion_y_hotfix_hy093.md NUEVO: log detallado con causas raíz, decisiones, daño colateral en prod del HY093, query de auditoría sugerida y pendientes capturados en Engram.',
+            ],
+        ],
         [
             'version' => '1.15.1',
             'build' => '20260419.1',

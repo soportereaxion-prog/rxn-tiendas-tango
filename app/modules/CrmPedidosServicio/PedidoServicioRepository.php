@@ -720,6 +720,10 @@ class PedidoServicioRepository
 
     public function markAsSentToTango(int $id, int $empresaId, string $pedidoNumero, string $payload, string $response, ?int $tangoIdGva21 = null): void
     {
+        // PDO con ATTR_EMULATE_PREPARES=false (prepares nativas de MySQL/MariaDB) NO permite
+        // reutilizar el mismo placeholder nominal en una misma query — tira HY093.
+        // Por eso bindeamos `:nro_pedido` y `:tango_nro_pedido` por separado, ambos con el
+        // mismo valor (`$pedidoNumero`). Mismo patrón ya pisado en marzo en otros métodos.
         $stmt = $this->db->prepare('UPDATE crm_pedidos_servicio SET
             tango_sync_status = "success",
             tango_sync_error = NULL,
@@ -727,7 +731,7 @@ class PedidoServicioRepository
             tango_sync_response = :response,
             nro_pedido = :nro_pedido,
             tango_id_gva21 = COALESCE(:tango_id_gva21, tango_id_gva21),
-            tango_nro_pedido = :nro_pedido,
+            tango_nro_pedido = :tango_nro_pedido,
             tango_estado = COALESCE(tango_estado, 2),
             tango_estado_sync_at = COALESCE(tango_estado_sync_at, NOW())
             WHERE id = :id AND empresa_id = :empresa_id');
@@ -736,6 +740,7 @@ class PedidoServicioRepository
             ':id' => $id,
             ':empresa_id' => $empresaId,
             ':nro_pedido' => $pedidoNumero,
+            ':tango_nro_pedido' => $pedidoNumero,
             ':payload' => $payload,
             ':response' => $response,
             ':tango_id_gva21' => $tangoIdGva21,

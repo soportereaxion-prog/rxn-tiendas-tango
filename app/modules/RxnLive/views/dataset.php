@@ -189,6 +189,16 @@ ob_start();
                             No se encontraron resultados para los filtros actuales.
                         </div>
                     <?php else: ?>
+                        <div id="groupByZone" class="rxn-group-zone"
+                             ondragover="handleGroupZoneDragOver(event)"
+                             ondragleave="handleGroupZoneDragLeave(event)"
+                             ondrop="handleGroupZoneDrop(event)">
+                            <div class="rxn-group-zone-empty text-muted small">
+                                <i class="bi bi-arrows-move me-1"></i>
+                                Arrastrá aquí los encabezados de columna para agrupar (hasta <?= 3 /* MAX_GROUP_LEVELS */ ?> niveles).
+                            </div>
+                            <div id="groupByChips" class="d-flex flex-wrap gap-2 align-items-center" style="display: none;"></div>
+                        </div>
                         <div id="planaResultContainer"></div>
                     <?php endif; ?>
                 </div>
@@ -255,23 +265,44 @@ ob_start();
                 <?php endif; ?>
             </div>
             
-            <?php if ($totalRegistros > $limit): 
-                $totalPages = ceil($totalRegistros / $limit);
+            <?php
+                // Paginación + selector "Mostrar". El footer aparece siempre que haya registros.
+                // Si "Todos" está activo o el total entra en una página, se ocultan los botones Ant/Sig
+                // pero el selector queda para que el usuario pueda volver a paginar.
+                $perPageOptions = ['50' => '50', '100' => '100', '250' => '250', '500' => '500', 'all' => 'Todos'];
+                $isAll = ($perPage === 'all');
+                $totalPages = ($isAll || $limit <= 0) ? 1 : (int)max(1, ceil($totalRegistros / $limit));
+                $baseQs = http_build_query(array_merge($filters, ['dataset' => $datasetKey]));
+                $linkFor = function (array $extra) use ($filters, $datasetKey) {
+                    return '?' . http_build_query(array_merge($filters, ['dataset' => $datasetKey], $extra));
+                };
             ?>
-            <div class="card-footer border-top border-secondary border-opacity-50 bg-transparent d-flex justify-content-center py-2">
+            <?php if ($totalRegistros > 0): ?>
+            <div class="card-footer border-top border-secondary border-opacity-50 bg-transparent d-flex flex-wrap justify-content-between align-items-center py-2 gap-2">
+                <div class="d-flex align-items-center gap-2 text-white-50 small">
+                    <label for="perPageSelect" class="mb-0">Mostrar:</label>
+                    <select id="perPageSelect" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto;" onchange="changePerPage(this.value)">
+                        <?php foreach ($perPageOptions as $val => $lbl): ?>
+                            <option value="<?= htmlspecialchars($val) ?>" <?= ($perPage === $val) ? 'selected' : '' ?>><?= htmlspecialchars($lbl) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="ms-2"><?= number_format($totalRegistros, 0, ',', '.') ?> registro<?= $totalRegistros === 1 ? '' : 's' ?></span>
+                </div>
+                <?php if (!$isAll && $totalRegistros > $limit): ?>
                 <nav>
                     <ul class="pagination pagination-sm m-0">
                         <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link bg-dark text-white border-secondary" href="?dataset=<?= urlencode($datasetKey) ?>&page=<?= $page - 1 ?><?= http_build_query($filters) ? '&'.http_build_query($filters) : '' ?>">Ant</a>
+                            <a class="page-link bg-dark text-white border-secondary" href="<?= htmlspecialchars($linkFor(['page' => $page - 1, 'per_page' => $perPage])) ?>">Ant</a>
                         </li>
                         <li class="page-item disabled">
                             <span class="page-link bg-dark text-white border-secondary px-3"><?= $page ?> de <?= $totalPages ?></span>
                         </li>
                         <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                            <a class="page-link bg-dark text-white border-secondary" href="?dataset=<?= urlencode($datasetKey) ?>&page=<?= $page + 1 ?><?= http_build_query($filters) ? '&'.http_build_query($filters) : '' ?>">Sig</a>
+                            <a class="page-link bg-dark text-white border-secondary" href="<?= htmlspecialchars($linkFor(['page' => $page + 1, 'per_page' => $perPage])) ?>">Sig</a>
                         </li>
                     </ul>
                 </nav>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
         </div>
@@ -284,6 +315,97 @@ ob_start();
 .rxn-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .rxn-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 .rxn-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+/* === Agrupación estilo Tango === */
+.rxn-group-zone {
+    padding: 8px 14px;
+    border: 1px dashed rgba(255,255,255,0.18);
+    background-color: rgba(255,255,255,0.03);
+    border-radius: 4px;
+    margin: 8px 12px 4px 12px;
+    transition: background-color 120ms ease, border-color 120ms ease;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+}
+.rxn-group-zone.is-active {
+    border-color: rgba(13, 110, 253, 0.6);
+    background-color: rgba(13, 110, 253, 0.08);
+}
+.rxn-group-zone.is-dragover {
+    border-color: rgba(13, 202, 240, 0.85);
+    background-color: rgba(13, 202, 240, 0.12);
+    border-style: solid;
+}
+.rxn-group-zone-empty {
+    flex: 1;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0.7;
+}
+.rxn-group-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    background-color: rgba(13, 110, 253, 0.18);
+    border: 1px solid rgba(13, 110, 253, 0.45);
+    color: #fff;
+    border-radius: 16px;
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+.rxn-group-chip .rxn-group-chip-level {
+    background-color: rgba(255,255,255,0.18);
+    color: #fff;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+.rxn-group-chip .rxn-group-chip-remove {
+    cursor: pointer;
+    opacity: 0.7;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0 2px;
+}
+.rxn-group-chip .rxn-group-chip-remove:hover { opacity: 1; color: #ff8a8a; }
+.rxn-group-arrow {
+    color: rgba(255,255,255,0.35);
+    margin: 0 2px;
+    font-size: 0.7rem;
+}
+
+/* Cuando un header se está arrastrando, da feedback visual */
+th.rxn-th-dragging { opacity: 0.4; }
+
+/* Filas de grupo en la tabla agrupada */
+tr.rxn-group-row { cursor: pointer; user-select: none; }
+tr.rxn-group-row:hover td { background-color: rgba(13, 110, 253, 0.10) !important; }
+tr.rxn-group-row td {
+    background-color: rgba(13, 110, 253, 0.06);
+    font-weight: 600;
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+tr.rxn-group-row.rxn-group-level-0 td { background-color: rgba(13, 110, 253, 0.13); font-size: 0.88rem; }
+tr.rxn-group-row.rxn-group-level-1 td { background-color: rgba(13, 110, 253, 0.09); }
+tr.rxn-group-row.rxn-group-level-2 td { background-color: rgba(13, 110, 253, 0.05); font-weight: 500; }
+.rxn-group-caret { display: inline-block; width: 14px; transition: transform 120ms ease; }
+.rxn-group-label { color: rgba(255,255,255,0.95); }
+.rxn-group-fieldname { color: rgba(255,255,255,0.55); font-weight: normal; font-size: 0.75rem; margin-right: 4px; }
+.rxn-group-count {
+    color: rgba(255,255,255,0.55);
+    font-weight: normal;
+    font-size: 0.72rem;
+    margin-left: 6px;
+    background-color: rgba(255,255,255,0.08);
+    padding: 1px 7px;
+    border-radius: 9px;
+}
 </style>
 
 <?php
@@ -325,6 +447,15 @@ function changeGlobalDateFormat() {
         renderPlana();
         saveVolatileState();
     }
+}
+
+// Cambia el tamaño de página (incluido "Todos") sin perder filtros activos.
+// Resetea page=1 porque saltar de "50 → Todos" en page 7 deja un offset que devolvería 0 filas.
+function changePerPage(newPerPage) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', newPerPage);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
 }
 
 // --- LOGICA DE VISIBILIDAD DE PANELES ---
@@ -425,6 +556,16 @@ let flatDiscreteFilters = {};
 let colWidths = {};
 // Toggle global: false = truncar con ellipsis (default), true = wrap (ajustar al ancho, celda crece en alto).
 let wrapText = false;
+
+// --- AGRUPACIÓN ESTILO TANGO ---
+// Hasta 3 niveles de agrupación. Orden = anidación: groupByCols[0] es el grupo de mayor jerarquía.
+// Cuando hay agrupación activa se fuerza per_page=all (Charly: "que actúe sobre todos los registros").
+const MAX_GROUP_LEVELS = 3;
+let groupByCols = [];
+// Estado expand/collapse por path. Key = "valorN1|valorN2|valorN3" (hasta el nivel correspondiente).
+// Default = expandido (Charly: "no va a aparecer nada agrupado por defecto, todo expandido").
+// Solo guardamos los paths COLAPSADOS para no inflar sessionStorage con todos los expandidos.
+let groupCollapseState = {};
 
 function getValidOrderedCols(baseCols) {
     let valid = orderedCols.filter(c => baseCols.includes(c));
@@ -859,15 +1000,31 @@ function renderPlana() {
          return;
     }
 
+    // Refrescar la zona de agrupación (chips arriba) en cada render para mantenerla sincronizada
+    // con el estado y aplicar las clases visuales (is-active si hay chips).
+    renderGroupZone();
+
     let colsAll = orderedCols.length > 0 ? getValidOrderedCols(baseCols) : baseCols;
     let visibleCols = colsAll.filter(c => !hiddenCols.includes(c));
 
     let numMetricsSum = {};
+    let numericCols = [];
     visibleCols.forEach(c => {
         if (pivotMetadata[c] && pivotMetadata[c].type === 'numeric') {
             numMetricsSum[c] = 0;
+            numericCols.push(c);
         }
     });
+    // Pre-calcular el total general una sola vez. Antes lo iba sumando en el forEach del tbody,
+    // pero ahora con render agrupado el forEach ya no aplica — calculamos acá y reusamos.
+    if (numericCols.length > 0 && filteredDatasetRows && filteredDatasetRows.length > 0) {
+        filteredDatasetRows.forEach(row => {
+            numericCols.forEach(c => {
+                let n = parseFloat(row[c]);
+                if (!isNaN(n)) numMetricsSum[c] += n;
+            });
+        });
+    }
 
     // Estilos dependientes del modo wrap. table-layout fixed es clave para que el width aplicado
     // al <th> sea respetado — si no, el browser re-reparte ancho según contenido y se pierde el resize.
@@ -889,7 +1046,12 @@ function renderPlana() {
         // En modo wrap sacamos text-nowrap para que el label del header también pueda cortarse si es muy largo.
         let nowrapClass = wrapText ? '' : 'text-nowrap';
         let widthStyle = colWidths[col] ? `width: ${colWidths[col]}px; min-width: ${colWidths[col]}px; max-width: ${colWidths[col]}px;` : '';
-        html += `<th class="fw-bold ${nowrapClass} px-3 py-2 border-bottom-0 pb-1 ${thClass}" style="cursor: pointer; user-select: none; position: relative; ${widthStyle}" data-col="${col}" onclick="handleFlatSort('${col}')">
+        // Headers draggables hacia la rxn-group-zone. El click sigue funcionando para sort
+        // porque drag se dispara solo si hay movimiento real con el botón apretado.
+        // Si la columna ya está en groupByCols se deshabilita el drag (ya está agrupada).
+        let isAlreadyGrouped = groupByCols.includes(col);
+        let draggableAttr = isAlreadyGrouped ? '' : 'draggable="true" ondragstart="handleHeaderDragStart(event, this)" ondragend="handleHeaderDragEnd(event, this)"';
+        html += `<th class="fw-bold ${nowrapClass} px-3 py-2 border-bottom-0 pb-1 ${thClass}" style="cursor: pointer; user-select: none; position: relative; ${widthStyle}" data-col="${col}" onclick="handleFlatSort('${col}')" ${draggableAttr}>
                     <span class="align-middle">${(pivotMetadata[col] && pivotMetadata[col].label) ? pivotMetadata[col].label : col.toUpperCase()} <span class="ms-1">${sortIcon}</span></span>
                     <span class="rxn-col-resizer" data-col="${col}" onclick="event.stopPropagation()" onmousedown="startColResize(event, '${col}')" title="Arrastrar para ajustar ancho" style="position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none;"></span>
                  </th>`;
@@ -932,44 +1094,12 @@ function renderPlana() {
             <i class="bi bi-funnel mb-2 fs-3"></i><br>
             No hay resultados que coincidan con los filtros locales de columna.
         </td></tr>`;
+    } else if (groupByCols.length > 0) {
+        // Modo agrupado: render recursivo con expand/collapse + subtotales por grupo.
+        html += buildGroupedRowsHtml(filteredDatasetRows, 0, '', visibleCols, numericCols);
     } else {
         filteredDatasetRows.forEach(row => {
-            html += `<tr>`;
-            visibleCols.forEach(col => {
-                let val = row[col];
-                let rawNum = parseFloat(val);
-                if (numMetricsSum[col] !== undefined && !isNaN(rawNum)) {
-                    numMetricsSum[col] += rawNum;
-                }
-                
-                let isNumeric = (pivotMetadata[col] && pivotMetadata[col].type === 'numeric');
-                let tdClass = isNumeric ? 'text-end font-monospace' : '';
-                let printVal = val || '';
-
-                if (isNumeric && val !== null && val !== '') {
-                    printVal = Number(val).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                } else if (globalDateFormat !== 'Y-m-d' && pivotMetadata[col] && (pivotMetadata[col].type === 'date' || pivotMetadata[col].type === 'datetime' || pivotMetadata[col].type === 'timestamp') && val !== null && val !== '') {
-                    printVal = formatRxnDate(val, globalDateFormat);
-                }
-
-                // Modo wrap: celda crece en alto. Modo truncate (default): oculta overflow con ellipsis y tooltip.
-                let cellStyle;
-                let titleAttr = '';
-                if (wrapText) {
-                    cellStyle = 'white-space: normal; word-break: break-word; vertical-align: top;';
-                } else {
-                    cellStyle = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
-                    // Tooltip con el valor completo — clave cuando la columna está angosta y el texto queda cortado.
-                    if (printVal !== '' && printVal !== null) {
-                        let plain = String(printVal).replace(/"/g, '&quot;');
-                        titleAttr = ` title="${plain}"`;
-                    }
-                }
-                let cellWidthStyle = colWidths[col] ? `max-width: ${colWidths[col]}px;` : '';
-
-                html += `<td class="px-3 py-1 border-secondary border-opacity-25 ${tdClass}" style="${cellStyle} ${cellWidthStyle}"${titleAttr}>${printVal}</td>`;
-            });
-            html += `</tr>`;
+            html += buildDetailRowHtml(row, visibleCols, 0);
         });
     }
     html += `</tbody>`;
@@ -1009,6 +1139,301 @@ function renderPlana() {
     }
     
     updateExportForm();
+}
+
+// ===================================================================
+// === AGRUPACIÓN ESTILO TANGO — helpers, drag/drop y render        ===
+// ===================================================================
+
+function rxnEscapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function rxnEscapeJsArg(s) {
+    // Para inyectar dentro de un onclick="foo('...')". Escapamos backslash, comilla simple y newlines.
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
+}
+
+// Render del chip individual de la zona de agrupación.
+function buildGroupChipHtml(col, level) {
+    let label = (pivotMetadata[col] && pivotMetadata[col].label) ? pivotMetadata[col].label : col.toUpperCase();
+    return `<span class="rxn-group-chip" data-col="${rxnEscapeHtml(col)}" title="Quitar agrupación">
+                <span class="rxn-group-chip-level">${level + 1}</span>
+                <span>${rxnEscapeHtml(label)}</span>
+                <span class="rxn-group-chip-remove" onclick="removeGroupCol('${rxnEscapeJsArg(col)}'); event.stopPropagation();">&times;</span>
+            </span>`;
+}
+
+// Refresca el contenido visible de la rxn-group-zone (chips o placeholder).
+// Se llama desde renderPlana en cada render para mantener todo coherente.
+function renderGroupZone() {
+    const zone = document.getElementById('groupByZone');
+    const chips = document.getElementById('groupByChips');
+    const empty = zone ? zone.querySelector('.rxn-group-zone-empty') : null;
+    if (!zone || !chips || !empty) return;
+
+    if (groupByCols.length === 0) {
+        chips.innerHTML = '';
+        chips.style.display = 'none';
+        empty.style.display = '';
+        zone.classList.remove('is-active');
+        return;
+    }
+
+    let html = '';
+    groupByCols.forEach((col, i) => {
+        if (i > 0) html += `<span class="rxn-group-arrow"><i class="bi bi-chevron-right"></i></span>`;
+        html += buildGroupChipHtml(col, i);
+    });
+    chips.innerHTML = html;
+    chips.style.display = '';
+    empty.style.display = 'none';
+    zone.classList.add('is-active');
+}
+
+// Drag desde un <th> de la grilla.
+function handleHeaderDragStart(event, thEl) {
+    let col = thEl.getAttribute('data-col');
+    if (!col) return;
+    event.dataTransfer.effectAllowed = 'copyMove';
+    event.dataTransfer.setData('text/x-rxn-col', col);
+    // Fallback genérico — algunos browsers requieren text/plain para que el drag funcione.
+    event.dataTransfer.setData('text/plain', col);
+    thEl.classList.add('rxn-th-dragging');
+    // Marca la zone como receptiva visualmente desde que arranca el drag.
+    const zone = document.getElementById('groupByZone');
+    if (zone) zone.classList.add('is-active');
+}
+
+function handleHeaderDragEnd(event, thEl) {
+    if (thEl) thEl.classList.remove('rxn-th-dragging');
+    const zone = document.getElementById('groupByZone');
+    if (zone) {
+        zone.classList.remove('is-dragover');
+        // Si no hay agrupación activa, sacamos el highlight permanente.
+        if (groupByCols.length === 0) zone.classList.remove('is-active');
+    }
+}
+
+function handleGroupZoneDragOver(event) {
+    // Aceptar el drop solo si viene de un header de columna.
+    let types = event.dataTransfer.types;
+    if (types && (Array.from(types).includes('text/x-rxn-col') || Array.from(types).includes('text/plain'))) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        const zone = document.getElementById('groupByZone');
+        if (zone) zone.classList.add('is-dragover');
+    }
+}
+
+function handleGroupZoneDragLeave(event) {
+    const zone = document.getElementById('groupByZone');
+    if (!zone) return;
+    // dragleave dispara también al pasar por hijos — chequear que el cursor salió de la zone.
+    let related = event.relatedTarget;
+    if (!related || !zone.contains(related)) {
+        zone.classList.remove('is-dragover');
+    }
+}
+
+function handleGroupZoneDrop(event) {
+    event.preventDefault();
+    const zone = document.getElementById('groupByZone');
+    if (zone) zone.classList.remove('is-dragover');
+
+    let col = event.dataTransfer.getData('text/x-rxn-col') || event.dataTransfer.getData('text/plain');
+    if (!col) return;
+
+    // No duplicar.
+    if (groupByCols.includes(col)) return;
+    if (groupByCols.length >= MAX_GROUP_LEVELS) {
+        if (window.rxnAlert) {
+            window.rxnAlert(`Solo se pueden anidar ${MAX_GROUP_LEVELS} niveles de agrupación.`, 'warning', 'Límite alcanzado');
+        } else {
+            alert(`Solo se pueden anidar ${MAX_GROUP_LEVELS} niveles de agrupación.`);
+        }
+        return;
+    }
+
+    let wasFirstGroup = (groupByCols.length === 0);
+    groupByCols.push(col);
+    saveVolatileState();
+
+    // Si es el primer chip y todavía estamos paginados, redirigimos a per_page=all.
+    // Charly: la agrupación tiene que actuar sobre TODOS los registros, sin paginación.
+    if (wasFirstGroup && rxnNeedsAllForGrouping()) {
+        rxnRedirectToAllPages();
+        return;
+    }
+
+    renderPlana();
+}
+
+// True si hay más registros en el server de los que tenemos cargados en rawDatasetRows.
+// Ese gap es lo que justifica forzar per_page=all al activar la primera agrupación.
+function rxnNeedsAllForGrouping() {
+    const totalServer = <?= (int)$totalRegistros ?>;
+    const loaded = (rawDatasetRows && rawDatasetRows.length) || 0;
+    return totalServer > loaded;
+}
+
+function rxnRedirectToAllPages() {
+    // Persistimos el estado actual (incluyendo el chip recién agregado) para que al recargar
+    // la app se hidrate y re-renderice agrupado automáticamente.
+    saveVolatileState();
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', 'all');
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+}
+
+function removeGroupCol(col) {
+    let idx = groupByCols.indexOf(col);
+    if (idx === -1) return;
+    groupByCols.splice(idx, 1);
+    // Limpiar collapse states que dejaron de ser relevantes (los paths que arrancan con esta col en su nivel).
+    // Approach simple y seguro: si no hay más agrupaciones, limpiar todo. Si quedan, dejamos el state —
+    // las keys obsoletas no molestan porque `buildGroupedRowsHtml` solo consulta paths existentes.
+    if (groupByCols.length === 0) groupCollapseState = {};
+    saveVolatileState();
+    renderPlana();
+}
+
+function toggleGroupCollapse(path) {
+    if (groupCollapseState[path]) {
+        delete groupCollapseState[path];
+    } else {
+        groupCollapseState[path] = true;
+    }
+    saveVolatileState();
+    renderPlana();
+}
+
+// Suma cada columna numérica sobre las rows del grupo. Devuelve {col: sum}.
+function computeGroupSubtotals(rows, numericCols) {
+    let out = {};
+    numericCols.forEach(c => out[c] = 0);
+    rows.forEach(r => {
+        numericCols.forEach(c => {
+            let n = parseFloat(r[c]);
+            if (!isNaN(n)) out[c] += n;
+        });
+    });
+    return out;
+}
+
+// Aplica formato visual a la key de agrupación (sobre todo fechas si globalDateFormat != Y-m-d).
+function formatGroupKey(val, col) {
+    if (val === null || val === undefined || val === '') return '(Vacío)';
+    let isDate = pivotMetadata[col] && (pivotMetadata[col].type === 'date' || pivotMetadata[col].type === 'datetime' || pivotMetadata[col].type === 'timestamp');
+    if (isDate && globalDateFormat !== 'Y-m-d') {
+        return formatRxnDate(String(val), globalDateFormat);
+    }
+    return String(val);
+}
+
+// Construye una <tr> con las celdas de detalle. indentLevel agrega padding en la primera celda
+// para que las filas de detalle queden visualmente anidadas bajo su grupo padre.
+function buildDetailRowHtml(row, visibleCols, indentLevel) {
+    let indentPx = (indentLevel || 0) * 18;
+    let html = `<tr>`;
+    visibleCols.forEach((col, idx) => {
+        let val = row[col];
+        let isNumeric = (pivotMetadata[col] && pivotMetadata[col].type === 'numeric');
+        let tdClass = isNumeric ? 'text-end font-monospace' : '';
+        let printVal = val || '';
+
+        if (isNumeric && val !== null && val !== '') {
+            printVal = Number(val).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        } else if (globalDateFormat !== 'Y-m-d' && pivotMetadata[col] && (pivotMetadata[col].type === 'date' || pivotMetadata[col].type === 'datetime' || pivotMetadata[col].type === 'timestamp') && val !== null && val !== '') {
+            printVal = formatRxnDate(val, globalDateFormat);
+        }
+
+        let cellStyle, titleAttr = '';
+        if (wrapText) {
+            cellStyle = 'white-space: normal; word-break: break-word; vertical-align: top;';
+        } else {
+            cellStyle = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+            if (printVal !== '' && printVal !== null) {
+                titleAttr = ` title="${String(printVal).replace(/"/g, '&quot;')}"`;
+            }
+        }
+        let cellWidthStyle = colWidths[col] ? `max-width: ${colWidths[col]}px;` : '';
+        let firstColIndent = (idx === 0 && indentPx > 0) ? ` padding-left: ${12 + indentPx}px !important;` : '';
+
+        html += `<td class="px-3 py-1 border-secondary border-opacity-25 ${tdClass}" style="${cellStyle} ${cellWidthStyle}${firstColIndent}"${titleAttr}>${printVal}</td>`;
+    });
+    html += `</tr>`;
+    return html;
+}
+
+// Render recursivo: agrupa las rows por groupByCols[level] y emite una row de header por grupo
+// (con caret expand/collapse + subtotales de columnas numéricas) seguida de los hijos
+// (otro nivel de grupos o filas de detalle si llegamos al último nivel).
+function buildGroupedRowsHtml(rows, level, parentPath, visibleCols, numericCols) {
+    if (!rows || rows.length === 0) return '';
+
+    // Caso base: ya pasamos todos los niveles de agrupación → renderizamos detalle.
+    if (level >= groupByCols.length) {
+        return rows.map(row => buildDetailRowHtml(row, visibleCols, level)).join('');
+    }
+
+    let groupCol = groupByCols[level];
+    let groupLabel = (pivotMetadata[groupCol] && pivotMetadata[groupCol].label) ? pivotMetadata[groupCol].label : groupCol.toUpperCase();
+
+    // Agrupar por valor (con formato visual aplicado a fechas).
+    let groups = new Map();
+    rows.forEach(r => {
+        let key = formatGroupKey(r[groupCol], groupCol);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+    });
+
+    // Orden alfanumérico estable para que el usuario vea siempre el mismo orden.
+    let sortedKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' }));
+
+    let html = '';
+    sortedKeys.forEach(key => {
+        let groupRows = groups.get(key);
+        let path = parentPath ? (parentPath + '|||' + key) : key;
+        let isCollapsed = !!groupCollapseState[path];
+        let subtotals = computeGroupSubtotals(groupRows, numericCols);
+        let caretIcon = isCollapsed ? 'bi-caret-right-fill' : 'bi-caret-down-fill';
+        let indentPx = level * 18;
+
+        html += `<tr class="rxn-group-row rxn-group-level-${Math.min(level, 2)}" data-group-path="${rxnEscapeHtml(path)}" onclick="toggleGroupCollapse('${rxnEscapeJsArg(path)}')">`;
+        visibleCols.forEach((col, idx) => {
+            let widthStyle = colWidths[col] ? `max-width: ${colWidths[col]}px;` : '';
+            if (idx === 0) {
+                html += `<td class="px-3 py-2" style="${widthStyle} padding-left: ${12 + indentPx}px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <i class="rxn-group-caret bi ${caretIcon}"></i>
+                            <span class="rxn-group-fieldname">${rxnEscapeHtml(groupLabel)}:</span>
+                            <span class="rxn-group-label">${rxnEscapeHtml(key)}</span>
+                            <span class="rxn-group-count">${groupRows.length}</span>
+                         </td>`;
+            } else if (numericCols.includes(col)) {
+                let v = subtotals[col];
+                let formatted = (v !== undefined && v !== null) ? Number(v).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '';
+                html += `<td class="text-end font-monospace px-3 py-2" style="${widthStyle}">${formatted}</td>`;
+            } else {
+                html += `<td class="px-3 py-2" style="${widthStyle}"></td>`;
+            }
+        });
+        html += `</tr>`;
+
+        if (!isCollapsed) {
+            html += buildGroupedRowsHtml(groupRows, level + 1, path, visibleCols, numericCols);
+        }
+    });
+
+    return html;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1092,6 +1517,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (volatileBase.wrapText !== undefined) wrapText = !!volatileBase.wrapText;
         applyWrapBtnState();
+        // Agrupación estilo Tango (defensive: si el volatile state es viejo y no tiene estos campos, quedan vacíos).
+        if (Array.isArray(volatileBase.groupByCols)) {
+            let seenG = new Set();
+            groupByCols = volatileBase.groupByCols
+                .filter(c => typeof c === 'string')
+                .filter(c => { if (seenG.has(c)) return false; seenG.add(c); return true; })
+                .slice(0, MAX_GROUP_LEVELS);
+        }
+        if (volatileBase.groupCollapseState && typeof volatileBase.groupCollapseState === 'object' && !Array.isArray(volatileBase.groupCollapseState)) {
+            groupCollapseState = volatileBase.groupCollapseState;
+        }
         // Chart config
         if (volatileBase.chartConfig) {
             chartConfig = Object.assign(chartConfig, volatileBase.chartConfig);
@@ -1263,16 +1699,40 @@ let pivotState = {
     vals: []  // [{field: 'total', op: 'SUM'}]
 };
 
+// Columnas internas que NO deben aparecer nunca en el pivot (IDs técnicos, FK, texto libre largo).
+// Si una columna aparece en el dataset pero no está en pivotMetadata y tampoco está acá,
+// se la auto-incluye como groupable. Así, si mañana se agrega una columna útil a la view SQL
+// sin tocar el PHP, igual aparece en los selects del pivot. Si la nueva columna es ruido,
+// agregarla a esta lista.
+const PIVOT_INTERNAL_COLS = ['empresa_id', 'cliente_id', 'id_pedidoservicio', 'diagnostico', 'tango_estado'];
+
 function getFieldOptions(purpose) {
     let options = '<option value="">-- Seleccione --</option>';
+    let seen = new Set();
+
     for (let [key, meta] of Object.entries(pivotMetadata)) {
         if (purpose === 'group' && meta.groupable) {
             options += `<option value="${key}">${meta.label}</option>`;
+            seen.add(key);
         }
         if (purpose === 'val' && meta.aggregatable) {
             options += `<option value="${key}">${meta.label}</option>`;
+            seen.add(key);
         }
     }
+
+    // Fallback defensivo: columnas presentes en el dataset que no están declaradas en pivotMetadata
+    // se ofrecen como groupable (string). Para 'val' no aplica — sumar/promediar requiere que el
+    // usuario haya marcado explícitamente la columna como numérica en pivotMetadata.
+    if (purpose === 'group' && rawDatasetRows && rawDatasetRows.length > 0) {
+        for (let col of Object.keys(rawDatasetRows[0])) {
+            if (seen.has(col)) continue;
+            if (PIVOT_INTERNAL_COLS.includes(col)) continue;
+            if (pivotMetadata[col]) continue; // declarada pero no groupable: respetar la decisión
+            options += `<option value="${col}">${col.toUpperCase()}</option>`;
+        }
+    }
+
     return options;
 }
 
@@ -1752,6 +2212,8 @@ function extractViewConfig(overrideParams = null) {
         globalDateFormat: globalDateFormat,
         colWidths: colWidths,
         wrapText: wrapText,
+        groupByCols: groupByCols,
+        groupCollapseState: groupCollapseState,
         view_id: document.getElementById('savedViewsDropdown') ? document.getElementById('savedViewsDropdown').value : ''
     };
 }
@@ -2191,6 +2653,22 @@ function applyViewConfig(config, isVolatile = false) {
         orderedCols = config.orderedCols.filter(c => typeof c === 'string');
     } else {
         orderedCols = [];
+    }
+
+    // Hidratar groupByCols: capear a MAX_GROUP_LEVELS y deduplicar por las dudas.
+    if (Array.isArray(config.groupByCols)) {
+        let seenGroup = new Set();
+        groupByCols = config.groupByCols
+            .filter(c => typeof c === 'string')
+            .filter(c => { if (seenGroup.has(c)) return false; seenGroup.add(c); return true; })
+            .slice(0, MAX_GROUP_LEVELS);
+    } else {
+        groupByCols = [];
+    }
+    if (config.groupCollapseState && typeof config.groupCollapseState === 'object' && !Array.isArray(config.groupCollapseState)) {
+        groupCollapseState = config.groupCollapseState;
+    } else {
+        groupCollapseState = {};
     }
 
     // Hidratar widths y wrap toggle (features nuevas — defensive: si el config viejo no las tiene, quedan en defaults).

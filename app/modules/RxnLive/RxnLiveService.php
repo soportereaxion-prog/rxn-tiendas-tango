@@ -65,12 +65,16 @@ class RxnLiveService
             'pivot_metadata' => [
                 'fecha' => ['label' => 'Fecha', 'type' => 'date', 'groupable' => true, 'aggregatable' => false],
                 'usuario' => ['label' => 'Usuario', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'id_tecnico' => ['label' => 'ID Técnico', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
                 'razon_social' => ['label' => 'Cliente', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
                 'codigo_articulo' => ['label' => 'Cód. Artículo', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
                 'articulo_factura' => ['label' => 'Artículo', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'cod_tango' => ['label' => 'Cód. Tango', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
                 'nro_pedido_tango' => ['label' => 'Nro. Pedido (Tango)', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
                 'clasificacion' => ['label' => 'Clasificación', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
                 'solicitante' => ['label' => 'Solicitante', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'tango_estado_label' => ['label' => 'Estado Tango', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'tango_estado_sync_at' => ['label' => 'Última Sync Tango', 'type' => 'datetime', 'groupable' => true, 'aggregatable' => false],
                 'totalpds' => ['label' => 'Tiempo (Hs)', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true],
                 'cantidad' => ['label' => 'Cant. PDS', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true]
             ]

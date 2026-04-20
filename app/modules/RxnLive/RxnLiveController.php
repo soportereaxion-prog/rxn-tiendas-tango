@@ -78,19 +78,30 @@ class RxnLiveController
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         if ($page < 1) $page = 1;
 
+        // per_page: tamaño de página seleccionado por el usuario. Whitelist estricta.
+        // 'all' carga todo (limit técnico = 1.000.000 para evitar OOM en datasets monstruosos).
+        $allowedPerPage = ['50', '100', '250', '500', 'all'];
+        $perPageRaw = (string)($_GET['per_page'] ?? '50');
+        if (!in_array($perPageRaw, $allowedPerPage, true)) {
+            $perPageRaw = '50';
+        }
+        $perPage = $perPageRaw;
+        $limit = ($perPage === 'all') ? 1000000 : (int)$perPage;
+        // Cuando "Todos" está activo no hay paginación: forzamos page=1 para que la paginación
+        // del SQL no pida un offset que devolvería 0 filas.
+        if ($perPage === 'all') $page = 1;
+
         if ($safeMode) {
             // Descartar cualquier filtro GET en safe mode — cargamos dataset limpio.
             $filters = [];
         } else {
             $filters = $_GET;
             unset(
-                $filters['dataset'], $filters['page'], $filters['view_id'],
+                $filters['dataset'], $filters['page'], $filters['per_page'], $filters['view_id'],
                 $filters['reset_view'], $filters['reset_filters'],
                 $filters['b_query'], $filters['query'], $filters['estado'], $filters['razon_social']
             );
         }
-
-        $limit = 50;
 
         $data = $this->service->getDatasetData($datasetKey, $filters, $page, $limit);
         $totalRegistros = $this->service->getDatasetCount($datasetKey, $filters);
@@ -109,6 +120,7 @@ class RxnLiveController
             'totalRegistros' => $totalRegistros,
             'page' => $page,
             'limit' => $limit,
+            'perPage' => $perPage,
             'safeMode' => $safeMode,
         ]);
     }
