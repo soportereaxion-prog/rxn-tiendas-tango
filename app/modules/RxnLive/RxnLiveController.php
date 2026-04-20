@@ -106,7 +106,10 @@ class RxnLiveController
         $data = $this->service->getDatasetData($datasetKey, $filters, $page, $limit);
         $totalRegistros = $this->service->getDatasetCount($datasetKey, $filters);
 
-        $userId = (int)($_SESSION['usuario_id'] ?? 0);
+        // Clave de sesión: AuthService guarda 'user_id' (no 'usuario_id'). Este módulo estaba leyendo
+        // la clave incorrecta desde hace varias releases, lo que resultaba en usuario_id=0 en todas
+        // las vistas guardadas (bug silencioso hasta la release 1.16.2 — el scope empresa lo hizo visible).
+        $userId = (int)($_SESSION['user_id'] ?? 0);
         $empresaId = (int)($_SESSION['empresa_id'] ?? 0);
         // En safe mode no cargamos vistas — evita que el JS intente rehidratar
         // alguna configuración rota si el navegador tiene view_id cacheado en algún lado.
@@ -463,7 +466,7 @@ class RxnLiveController
             exit;
         }
 
-        $userId = (int)($_SESSION['usuario_id'] ?? 0);
+        $userId = (int)($_SESSION['user_id'] ?? 0);
         if ($userId <= 0) {
             echo json_encode(['success' => false, 'message' => 'Sesión inválida.']);
             exit;
@@ -492,8 +495,12 @@ class RxnLiveController
             exit;
         }
 
-        $userId = (int)($_SESSION['usuario_id'] ?? 0);
+        $userId = (int)($_SESSION['user_id'] ?? 0);
         $empresaId = (int)($_SESSION['empresa_id'] ?? 0);
+        if ($userId <= 0 || $empresaId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Sesión inválida. Volvé a iniciar sesión.']);
+            exit;
+        }
         $configArr = json_decode($configJson, true) ?? [];
 
         try {

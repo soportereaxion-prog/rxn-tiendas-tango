@@ -1,9 +1,26 @@
 <?php
 
 return [
-    'current_version' => '1.16.2',
-    'current_build' => '20260420.1',
+    'current_version' => '1.16.3',
+    'current_build' => '20260420.2',
     'history' => [
+        [
+            'version' => '1.16.3',
+            'build' => '20260420.2',
+            'released_at' => '2026-04-20',
+            'title' => 'Hotfix RXN Live — rescate de vistas huérfanas + fix de clave de sesión user_id',
+            'summary' => 'Hotfix sobre la release 1.16.2. Charly reportó que al subir 1.16.2 "se murieron todas las vistas anteriores". Root cause real: el RxnLiveController leía desde hace varias releases la clave de sesión incorrecta (`$_SESSION[\'usuario_id\']`), cuando AuthService siempre guardó `$_SESSION[\'user_id\']`. Efecto acumulado: TODAS las vistas históricas se grabaron con `usuario_id=0`. El bug era silencioso hasta 1.16.2 que agregó empresa_id con backfill vía INNER JOIN usuarios — como el id=0 no matcheaba ningún user, todas las vistas quedaron con empresa_id NULL y desaparecieron del dropdown. Fix: (1) controller lee ahora `user_id` correcto (2) nueva migración 2026_04_20_03 rescata las vistas huérfanas asignándoles empresa_id fallback (primer empresa_id no nulo de usuarios, típicamente 1) (3) guardarVista y saveUserView rechazan explícitamente user_id≤0 para prevenir reincidencia.',
+            'items' => [
+                'app/modules/RxnLive/RxnLiveController.php::dataset/eliminarVista/guardarVista: clave de sesión corregida de `usuario_id` → `user_id`. Comentario explicando el bug histórico.',
+                'app/modules/RxnLive/RxnLiveController.php::guardarVista: guard agregado — rechaza con mensaje "Sesión inválida" si userId o empresaId son ≤0.',
+                'app/modules/RxnLive/RxnLiveService.php::saveUserView: InvalidArgumentException si empresa_id o usuario_id son ≤0. Defensa en profundidad para que el bug no vuelva silencioso.',
+                'app/modules/Admin/Controllers/RxnLiveVistasController.php::importar: misma corrección `usuario_id` → `user_id` (encontrado al auditar grep transversal del bug).',
+                'app/modules/Pedidos/Controllers/PedidoWebController.php: misma corrección `usuario_id` → `user_id` en la lectura del tango_perfil_pedido_id del user activo (encontrado en la misma auditoría).',
+                'database/migrations/2026_04_20_03_rescue_orphan_rxn_live_vistas.php NUEVO: rescata vistas con empresa_id IS NULL asignándoles el primer empresa_id no nulo de usuarios (fallback=1). Idempotente, logea cantidad rescatada en error_log. Las vistas quedan con usuario_id=0 (read-only — nadie puede editarlas ni eliminarlas porque nadie es dueño; el user debe duplicar con "Nueva Vista" para apropiárselas).',
+                'app/config/version.php: bump a 1.16.3 / build 20260420.2.',
+                'docs/logs/2026-04-20_release_1_16_3_hotfix_vistas_rxn_live.md NUEVO: log con root cause, plan de rescate y learnings.',
+            ],
+        ],
         [
             'version' => '1.16.2',
             'build' => '20260420.1',

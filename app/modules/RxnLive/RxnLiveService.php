@@ -413,6 +413,13 @@ class RxnLiveService
      * La migración 2026_04_20_02 ya garantiza que exista la columna empresa_id.
      */
     public function saveUserView(int $empresaId, int $userId, string $datasetKey, string $nombre, array $config, ?int $viewId = null): int {
+        // Guard defensivo: antes de 1.16.3 el controller leía una clave de sesión incorrecta
+        // (`usuario_id` en lugar de `user_id`) y esto resultaba en usuario_id=0 en todas las vistas
+        // guardadas. El fix del controller ya está, pero este guard evita reincidencia si alguien
+        // llama al service con valores vacíos en el futuro.
+        if ($userId <= 0 || $empresaId <= 0) {
+            throw new \InvalidArgumentException('saveUserView requiere usuario_id y empresa_id > 0.');
+        }
         $db = \App\Core\Database::getConnection();
 
         // Auto-crear la tabla para facilitar el entorno de testing/produ local sin OTA.

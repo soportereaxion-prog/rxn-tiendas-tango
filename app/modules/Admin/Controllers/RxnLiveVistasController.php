@@ -206,7 +206,8 @@ class RxnLiveVistasController extends Controller
     {
         AuthService::requireRxnAdmin();
 
-        $currentUserId = (int)($_SESSION['usuario_id'] ?? 0);
+        // Clave de sesión correcta es `user_id` (AuthService::login la guarda así). Ver hotfix 1.16.3.
+        $currentUserId = (int)($_SESSION['user_id'] ?? 0);
         $ownerOverride = isset($_POST['owner_id']) && $_POST['owner_id'] !== ''
             ? (int)$_POST['owner_id']
             : null;

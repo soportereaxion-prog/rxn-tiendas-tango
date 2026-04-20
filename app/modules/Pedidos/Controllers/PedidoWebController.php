@@ -337,7 +337,8 @@ class PedidoWebController extends Controller
             ];
 
             $tangoPerfilPedidoId = null;
-            $activeUserId = $_SESSION['usuario_id'] ?? null;
+            // Clave de sesión correcta es `user_id` (AuthService::login la guarda así). Ver hotfix 1.16.3.
+            $activeUserId = $_SESSION['user_id'] ?? null;
             if ($activeUserId) {
                 $stmtUsr = $pdo->prepare("SELECT tango_perfil_pedido_id FROM usuarios WHERE id = :uid");
                 $stmtUsr->execute(['uid' => $activeUserId]);
