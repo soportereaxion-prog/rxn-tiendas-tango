@@ -13,6 +13,20 @@ $isAdmin = \App\Modules\Auth\AuthService::hasAdminPrivileges();
 $isRxnAdmin = \App\Modules\Auth\AuthService::isRxnAdmin();
 $hasTiendas = \App\Modules\Empresas\EmpresaAccessService::hasTiendasAccess();
 $hasCrm = \App\Modules\Empresas\EmpresaAccessService::hasCrmAccess();
+
+// DbSwitcher dev-only. En prod el archivo config no existe → $devDbSwitcherAvailable queda vacío
+// y el dropdown directamente no se renderiza.
+$devDbAvailable = [];
+$devDbActive = null;
+if (\App\Shared\Services\DevDbSwitcher::isEnabled() && $isRxnAdmin) {
+    $devDbAvailable = \App\Shared\Services\DevDbSwitcher::getAvailable();
+    $devDbActive = \App\Shared\Services\DevDbSwitcher::getActiveOverride();
+    // Si no hay override explícito, la DB activa es la primera del config (convención: debe
+    // coincidir con el DB_NAME del .env para que el badge refleje la realidad).
+    if ($devDbActive === null && !empty($devDbAvailable)) {
+        $devDbActive = array_key_first($devDbAvailable);
+    }
+}
 ?>
 <div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1" style="max-width: 1400px;">
     <!-- Left zone: hamburger (mobile) + topbar left content -->
@@ -26,6 +40,25 @@ $hasCrm = \App\Modules\Empresas\EmpresaAccessService::hasCrmAccess();
     </div>
     <!-- Right zone: user menu -->
     <div class="d-flex align-items-center justify-content-end gap-2 flex-grow-0">
+        <?php if (!empty($devDbAvailable)): ?>
+        <?php
+            // Badge visual permanente — en rojo si la DB activa NO es la primera del config
+            // (convención: la primera = DB de dev "limpia"). Ayuda a no confundirse cuando
+            // estamos trabajando sobre un snapshot de prod.
+            $firstDb = array_key_first($devDbAvailable);
+            $isDefaultDb = $devDbActive === $firstDb;
+            $badgeClass = $isDefaultDb ? 'bg-success-subtle text-success' : 'bg-danger text-white';
+            $activeLabel = $devDbAvailable[$devDbActive] ?? $devDbActive;
+        ?>
+        <form method="POST" action="/admin/dev-db-switch" class="d-flex align-items-center gap-1 bg-light border rounded-pill px-2 py-1 shadow-sm" title="Cambiar base de datos (dev only)">
+            <span class="small fw-semibold text-secondary d-none d-md-inline">DB:</span>
+            <select name="db" class="form-select form-select-sm border-0 bg-transparent fw-semibold py-0 <?= $isDefaultDb ? '' : 'text-danger' ?>" style="width: auto; min-width: 140px;" onchange="this.form.submit()">
+                <?php foreach ($devDbAvailable as $dbName => $label): ?>
+                    <option value="<?= htmlspecialchars($dbName) ?>" <?= $dbName === $devDbActive ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+        <?php endif; ?>
         <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 shadow-sm rxn-user-menu text-secondary">
         <button class="btn btn-sm btn-link p-0 text-decoration-none" id="backendThemeToggleBtn" title="Cambiar Tema" style="line-height:1; font-size:1.1rem; filter: grayscale(0.5);">
             <?= $oppositeThemeBtn ?>

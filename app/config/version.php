@@ -1,9 +1,29 @@
 <?php
 
 return [
-    'current_version' => '1.16.4',
-    'current_build' => '20260420.3',
+    'current_version' => '1.16.5',
+    'current_build' => '20260420.4',
     'history' => [
+        [
+            'version' => '1.16.5',
+            'build' => '20260420.4',
+            'released_at' => '2026-04-20',
+            'title' => 'DevDbSwitcher — dropdown en topbar admin para alternar bases de datos (dev only)',
+            'summary' => 'Feature chiquita pero útil para desarrollo. Nuevo dropdown en el topbar admin (al lado del toggle de tema) que permite a rxn_admin alternar la base de datos activa entre las declaradas en un archivo local (gitignored). Pensado para atacar bugs con snapshot de prod sin tener que editar el .env ni reiniciar Apache. El archivo de configuración `config/dev_databases.local.php` está FUERA del whitelist del ReleaseBuilder (solo sube `app|public|vendor|database|deploy_db|composer.*`), lo que garantiza que NO se incluye en el OTA. En prod el feature queda inerte porque DevDbSwitcher::isEnabled() chequea la existencia del archivo; si no existe, el dropdown no se renderiza y el endpoint responde 404. Badge visual en rojo cuando la DB activa no es la primera del config (convención: la primera debe matchear el .env) para que el dev no se confunda de dónde está trabajando.',
+            'items' => [
+                'app/shared/Services/DevDbSwitcher.php NUEVO: helper estático con isEnabled/getAvailable/getActiveOverride/setActive. Whitelist-based: setActive solo acepta nombres presentes en el archivo config local.',
+                'app/config/database.php: agrega lectura del override del DevDbSwitcher antes de construir el array de config. Si el override existe y es válido, reemplaza el dbname del .env. Host/user/pass siempre salen del .env (solo cambia dbname).',
+                'app/modules/Admin/Controllers/DevDbSwitchController.php NUEVO: endpoint POST /admin/dev-db-switch. Guard requireRxnAdmin + doble check de DevDbSwitcher::isEnabled (responde 404 en prod).',
+                'app/config/routes.php: ruta POST /admin/dev-db-switch registrada.',
+                'app/shared/views/components/backoffice_user_banner.php: renderiza dropdown solo si DevDbSwitcher::isEnabled() && isRxnAdmin. Select con auto-submit onchange. Texto del select en rojo cuando la DB activa no es la primera del config (indicador visual de "estoy trabajando sobre snapshot").',
+                'config/dev_databases.local.php.example NUEVO: plantilla con documentación inline. Commiteable.',
+                'config/dev_databases.local.php NUEVO: archivo local real con la config inicial del dev. Gitignored.',
+                '.gitignore: agrega /config/dev_databases.local.php al ignore. El .example sigue trackeado.',
+                'CLAUDE.md del proyecto: regla "Modus operandi de cierre de sesión" reinvertida — cerrar sesión = OTA siempre (vuelve a la convención pre 2026-04-18). Excepción inversa: Charly puede pedir OTA sin cierre. Historial de la regla documentado en la misma sección para no repetir el zigzag.',
+                'app/config/version.php: bump a 1.16.5 / build 20260420.4.',
+                'docs/logs/2026-04-20_release_1_16_5_dev_db_switcher.md NUEVO: log de release con arquitectura del feature, garantías de exclusión del OTA, y smoke test verificado.',
+            ],
+        ],
         [
             'version' => '1.16.4',
             'build' => '20260420.3',

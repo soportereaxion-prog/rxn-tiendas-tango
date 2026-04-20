@@ -1,7 +1,7 @@
 ## Reglas
 
 - Nunca agregar "Co-Authored-By" ni atribución AI a commits. Usar conventional commits (`feat:`, `fix:`, `chore:`, etc).
-- **No disparar builds automáticos** (npm, webpack, tsc, etc). **Factory OTA cuenta como build** — ejecutarlo **SOLO al cierre de sesión**, cuando Charly lo pide o lo confirma (ver "Modus operandi de cierre de sesión"). Nunca al apuro por iniciativa propia.
+- **No disparar builds automáticos** (npm, webpack, tsc, etc). **Factory OTA cuenta como build** — ejecutarlo al cierre de sesión (siempre) o cuando Charly lo pide explícito en medio del trabajo. Ver "Modus operandi de cierre de sesión". Nunca al apuro por iniciativa propia fuera de esos dos triggers.
 - Usar las tools dedicadas de Claude Code (Read, Grep, Glob, Edit, Write) en vez de invocar CLI genéricos por Bash. Reservar Bash solo para operaciones que requieran shell real (git, PHP CLI, runners, OTA builder).
 - Cuando hagas una pregunta, PARÁ y esperá la respuesta. Nunca continúes ni asumas.
 - Nunca coincidir con afirmaciones del usuario sin verificar. Decir "dejame verificar" y chequear código/docs primero.
@@ -384,25 +384,30 @@ Si la sesión empieza a complicarse con debugging infinito, algo está mal — p
 
 **Cuándo NO bumpear**: cambios puramente internos sin impacto funcional (refactor, tests, docs), hotfix ya cubierto por una release en curso que todavía no se subió. En esos casos el log de `docs/logs/` sigue siendo obligatorio, pero `version.php` puede esperar al siguiente push.
 
-### Modus operandi de cierre de sesión: Factory OTA solo si Charly lo pide (ajustado 2026-04-18)
+### Modus operandi de cierre de sesión: cerrar sesión = Factory OTA (reinvertido 2026-04-20)
 
-Cuando la sesión termina (Charly dice "cerremos", "mandá OTA", "subimos al reino", "listo por hoy", o similar), Lumi ejecuta el cierre completo **sin preguntar**:
+Cuando la sesión termina (Charly dice "cerremos", "cerremos sesión", "listo por hoy", "mandá OTA", "subimos al reino", o similar), Lumi ejecuta el cierre completo **sin preguntar**:
 
-1. **Bump version + log** (ya cubierto por la regla anterior — si no se hizo durante la sesión, hacerlo ahora).
+1. **Bump version + log** (si no se hizo durante la sesión, hacerlo ahora).
 2. **Commit con conventional commits**.
-3. **Factory OTA build SOLO si Charly lo pidió explícitamente** (ej: "mandá OTA", "dejalo listo para subir", "cerremos con OTA"). Si el cierre fue tipo "listo por hoy" sin mención del OTA → **NO buildear**, solo commitear y cerrar.
-   - Cuando corresponde, correr `tools/build_update_zip.php` (o el runner equivalente del `ReleaseBuilder`) desde CLI para generar el ZIP del OTA con las migraciones incluidas automáticamente. Es el equivalente CLI del botón "Compilar release" de `/admin/mantenimiento`.
-4. **Reportar a Charly**: path absoluto del ZIP generado + versión + build (si se buildeó). Con eso él lo sube a Plesk.
+3. **Factory OTA build SIEMPRE al cerrar sesión**. Cerrar sesión = OTA, por default. No hace falta que Charly lo pida explícito.
+   - Correr `tools/build_update_zip.php` desde CLI para generar el ZIP del OTA con las migraciones incluidas automáticamente.
+4. **Reportar a Charly**: path absoluto del ZIP generado + versión + build. Con eso él lo sube a Plesk.
 5. **Cerrar con `mem_session_summary`** como ya dicta el protocolo Engram.
 
-**Por qué se ajustó esta regla** (2026-04-18): la versión anterior disparaba Factory OTA automáticamente en todo cierre, lo que llevó a Lumi a buildear OTAs innecesarios cuando Charly dijo frases como "listo" que él usaba en un sentido más suelto. Ahora el trigger del build es explícito: solo si Charly menciona OTA / subir / Plesk. Para cualquier otra frase de cierre → solo commit + session_summary.
+**Excepción inversa — OTA sin cierre**: Charly puede pedir OTA en medio del trabajo (ej: "dale OTA", "compilá el release") sin que eso implique cerrar la sesión. En ese caso solo se buildea; el resto del ritual de cierre queda para cuando Charly diga "cerremos".
 
-**Cuándo NO disparar OTA al cierre** (además del criterio del punto 3):
+**Evolución histórica de la regla** (no repetir el zigzag):
+- Original: cierre = OTA siempre.
+- 2026-04-18: se relajó a "OTA solo si Charly lo pide" para evitar builds innecesarios cuando decía "listo" suelto.
+- 2026-04-20: se reinvertió a la versión original. En la práctica Charly siempre terminaba queriendo el ZIP listo, y pedirlo cada vez generaba más fricción que el costo de un OTA ocasional no aprovechado.
+
+**Cuándo NO disparar OTA al cierre** (excepciones explícitas):
 - La sesión fue puramente exploratoria (sin cambios a código ni migraciones).
-- Hay cambios pero Charly dijo explícitamente "no lo mandemos todavía" o "dejalo para otra sesión".
+- Charly dijo explícitamente "no lo mandemos todavía" o "dejalo para otra sesión".
 - La sesión terminó con algo roto o sin validar.
 
-Si hay duda, **preguntar antes de buildear**. Nunca disparar OTA al apuro o "por las dudas".
+Ante frases de cierre claras ("cerremos", "listo por hoy") → OTA automático sin preguntar. Si hay duda real sobre si Charly quiere cerrar o solo pausar (ej: "me voy a comer"), preguntar.
 
 ### Antipatrón histórico — olvidarse de crear/ejecutar la migración
 

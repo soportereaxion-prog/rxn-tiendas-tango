@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * DEV ONLY — NO SUBIR A PROD.
+ *
+ * Archivo de configuración local del DevDbSwitcher (ver
+ * `app/shared/Services/DevDbSwitcher.php`).
+ *
+ * Uso:
+ *   1) Copiar este archivo como `config/dev_databases.local.php` (sin .example).
+ *   2) Editar con las DBs que tengas levantadas en el MySQL local.
+ *   3) Reloadear y en el topbar aparece el dropdown "DB".
+ *
+ * El archivo `config/dev_databases.local.php` está gitignored y la carpeta
+ * `/config/` NO está en el whitelist del ReleaseBuilder → garantizado que
+ * no sube al OTA.
+ *
+ * Convención del array:
+ *   clave  = nombre real de la DB en MySQL (el que usás con `USE <nombre>`).
+ *   valor  = label humano para el dropdown (puede tener emojis/íconos).
+ *
+ * Las credenciales (host, user, pass, port) SIEMPRE salen del .env. Acá solo
+ * cambia el `dbname`. Si necesitás otro host/user/pass, crealo en el .env
+ * y no uses este switcher.
+ */
+return [
+    'rxn_suite'      => '🟢 Dev local',
+    'rxn_suite_prod' => '⚠ Snapshot prod',
+];

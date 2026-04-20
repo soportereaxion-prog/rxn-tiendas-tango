@@ -38,6 +38,10 @@ Thumbs.db
 # Backups locales (no viajan en OTA)
 /storage/backups/
 
+# DevDbSwitcher — config local del dropdown de bases de datos (dev only).
+# El .example se commitea como plantilla; el .php real es local de cada dev.
+/config/dev_databases.local.php
+
 # Basura típica que aparece en la raíz (dumps, diffs, tests sueltos)
 /*.zip
 /*.bak

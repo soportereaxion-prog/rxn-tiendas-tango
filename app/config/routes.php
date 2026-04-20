@@ -105,6 +105,9 @@ return function (Router $router): void {
     $router->get('/admin/mantenimiento/download-release', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'downloadRelease']);
     $router->post('/admin/mantenimiento/backup-db', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runDbBackup']);
     $router->post('/admin/mantenimiento/backup-files', [\App\Modules\Admin\Controllers\MantenimientoController::class, 'runFilesBackup']);
+
+    // --- ADMIN: DevDbSwitcher (dev only — inerte en prod por ausencia de config/dev_databases.local.php) ---
+    $router->post('/admin/dev-db-switch', [\App\Modules\Admin\Controllers\DevDbSwitchController::class, 'switch']);
     $router->get('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'showSmtpGlobal']);
     $router->post('/admin/smtp-global', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'updateSmtpGlobal']);
     $router->post('/admin/smtp-global/test', [\App\Modules\Admin\Controllers\GlobalConfigController::class, 'testConnection']);
