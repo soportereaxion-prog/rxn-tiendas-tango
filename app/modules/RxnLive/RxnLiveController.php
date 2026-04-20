@@ -106,14 +106,18 @@ class RxnLiveController
         $data = $this->service->getDatasetData($datasetKey, $filters, $page, $limit);
         $totalRegistros = $this->service->getDatasetCount($datasetKey, $filters);
 
-        $userId = $_SESSION['usuario_id'] ?? 0;
-        // En safe mode no cargamos vistas del user — evita que el JS intente rehidratar
+        $userId = (int)($_SESSION['usuario_id'] ?? 0);
+        $empresaId = (int)($_SESSION['empresa_id'] ?? 0);
+        // En safe mode no cargamos vistas — evita que el JS intente rehidratar
         // alguna configuración rota si el navegador tiene view_id cacheado en algún lado.
-        $myViews = $safeMode ? [] : $this->service->getUserViews($userId, $datasetKey);
+        // Las vistas se comparten a nivel empresa: todos los usuarios ven las mismas,
+        // pero solo el dueño puede editar o eliminar las suyas.
+        $myViews = $safeMode ? [] : $this->service->getUserViews($empresaId, $datasetKey);
 
         View::render('app/modules/RxnLive/views/dataset.php', [
             'datasetKey' => $datasetKey,
             'myViews' => $myViews,
+            'currentUserId' => $userId,
             'datasetInfo' => $this->service->getDatasetInfo($datasetKey),
             'filters' => $filters,
             'datasetRows' => $data,
@@ -489,10 +493,11 @@ class RxnLiveController
         }
 
         $userId = (int)($_SESSION['usuario_id'] ?? 0);
+        $empresaId = (int)($_SESSION['empresa_id'] ?? 0);
         $configArr = json_decode($configJson, true) ?? [];
-        
+
         try {
-            $insertedId = $this->service->saveUserView($userId, $datasetKey, $nombre, $configArr, $viewId);
+            $insertedId = $this->service->saveUserView($empresaId, $userId, $datasetKey, $nombre, $configArr, $viewId);
             echo json_encode(['success' => true, 'view_id' => $insertedId]);
         } catch (\Throwable $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);

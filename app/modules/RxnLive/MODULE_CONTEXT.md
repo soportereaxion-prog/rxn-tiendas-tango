@@ -42,8 +42,9 @@ Accesible desde cualquier área operativa (CRM, Tiendas, Admin) mediante paráme
 - **El export respeta los anchos de columna configurados por el user** (desde v1.9.1): `colWidths` del frontend se convierte a Excel width units (`px / 7`) y se aplica con `OpenSpout\Writer\XLSX\Options::setColumnWidth` antes de escribir filas.
 - **El export incluye fila de totales** (desde v1.9.1): sumatorias de columnas numéricas exportadas como valor precalculado (NO como fórmula Excel). Aplican a ambos formatos CSV y XLSX; en XLSX con estilo destacado.
 - **Los filtros client-side (flat + discrete) se envían al export** (desde v1.9.0): el JS empuja `flat_filters`, `discrete_filters` y `global_date_format` al form, y el controller los aplica en memoria replicando el formato visual de fechas.
-- Guardado y carga de "vistas" personalizadas por usuario y dataset (persistidas en `rxn_live_vistas`).
+- Guardado y carga de "vistas" personalizadas por dataset (persistidas en `rxn_live_vistas`). **Desde v1.16.2** el scope de lectura es por empresa: todos los usuarios de la misma empresa ven las mismas vistas, pero solo el dueño (usuario_id) puede sobrescribir o eliminar. En el dropdown, las vistas ajenas se muestran con el nombre del dueño al costado y los botones "Guardar" / "Eliminar" se ocultan (el user ajeno puede duplicarla con "Nueva Vista").
 - Vistas de sistema predefinidas (hardcodeadas en `getSystemDefaultViews()`).
+- **Formato numérico**: los valores de columnas `type: numeric` se muestran con 4 decimales fijos (en español-AR) en la vista plana, subtotales, totales del tfoot, pivot y tooltips de chart (desde v1.16.2).
 - Memoria de último estado de navegación por dataset en sesión.
 
 ### Qué NO hace
@@ -106,7 +107,7 @@ Accesible desde cualquier área operativa (CRM, Tiendas, Admin) mediante paráme
 
 | Tabla | Rol |
 |-------|-----|
-| `rxn_live_vistas` | Vistas guardadas por usuario y dataset (auto-creada on-the-fly) |
+| `rxn_live_vistas` | Vistas guardadas por dataset (scope lectura por `empresa_id`, ownership por `usuario_id`) |
 | `RXN_LIVE_VW_VENTAS` | Vista SQL sobre datos de ventas |
 | `RXN_LIVE_VW_CLIENTES` | Vista SQL sobre datos de clientes CRM |
 | `RXN_LIVE_VW_PEDIDOS_SERVICIO` | Vista SQL sobre pedidos de servicio con tiempos |

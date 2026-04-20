@@ -1,9 +1,29 @@
 <?php
 
 return [
-    'current_version' => '1.16.1',
-    'current_build' => '20260419.3',
+    'current_version' => '1.16.2',
+    'current_build' => '20260420.1',
     'history' => [
+        [
+            'version' => '1.16.2',
+            'build' => '20260420.1',
+            'released_at' => '2026-04-20',
+            'title' => 'RXN Live — vistas compartidas por empresa + 4 decimales default en numéricos',
+            'summary' => 'Release de mejoras UX sobre RXN Live. (1) Las vistas guardadas pasan de scope por usuario a scope por empresa: todos los usuarios de la misma empresa ven las mismas vistas en el dropdown de presets. El ownership sigue siendo del dueño (usuario_id): solo él puede sobrescribir con "Guardar" o eliminar. En vistas ajenas los botones "Guardar" y "Eliminar" se ocultan y el user puede duplicarla con "Nueva Vista". El dropdown muestra el nombre del dueño al costado de cada vista ajena para que quede claro. Migración idempotente agrega empresa_id a rxn_live_vistas con backfill desde usuarios y nuevo índice (empresa_id, dataset). (2) Todos los valores de columnas numéricas se muestran con 4 decimales fijos (antes 2) — aplica a filas de detalle, subtotales de grupo, totales del tfoot, celdas del pivot y tooltip del chart.',
+            'items' => [
+                'database/migrations/2026_04_20_02_add_empresa_id_to_rxn_live_vistas.php NUEVO: agrega empresa_id a rxn_live_vistas (idempotente via SHOW COLUMNS), backfill UPDATE con JOIN usuarios, nuevo índice idx_empresa_dataset.',
+                'app/modules/RxnLive/RxnLiveService.php::getUserViews(int $empresaId, string $datasetKey): cambia firma — recibe empresa en lugar de usuario. Devuelve usuario_id y usuario_nombre para que el frontend distinga vistas propias vs ajenas.',
+                'app/modules/RxnLive/RxnLiveService.php::saveUserView(int $empresaId, int $userId, ...): ahora persiste empresa_id en el INSERT. UPDATE sigue con guard usuario_id = dueño (ownership intacto).',
+                'app/modules/RxnLive/RxnLiveController.php::dataset: pasa $empresaId a getUserViews y expone currentUserId al view para que el frontend compare ownership al toggle de botones.',
+                'app/modules/RxnLive/RxnLiveController.php::guardarVista: pasa $empresaId a saveUserView.',
+                'app/modules/RxnLive/views/dataset.php: dropdown de vistas renderiza data-owner-id + data-is-mine y suffixea "— nombre del dueño" en vistas ajenas. Expone window.rxnCurrentUserId para el JS.',
+                'app/modules/RxnLive/views/dataset.php::toggleDeleteViewButton: ampliado para controlar también el botón Guardar. Se ocultan Guardar y Eliminar cuando la vista seleccionada es ajena o del sistema. En Vista Base queda visible Guardar (crea nueva). Botón btnSaveView con id para poder targetearlo.',
+                'app/modules/RxnLive/views/dataset.php: 5 lugares de formateo numérico pasan de 2 a 4 decimales fijos (tfoot totals, celdas de detalle, subtotales de grupo, pivot formatVal, tooltip de chart).',
+                'app/modules/RxnLive/MODULE_CONTEXT.md actualizado: descripción de scope empresa para vistas + nota de 4 decimales default.',
+                'app/config/version.php: bump a 1.16.2 / build 20260420.1.',
+                'docs/logs/2026-04-20_release_1_16_2_rxn_live_vistas_compartidas_4_decimales.md NUEVO: log de la iteración.',
+            ],
+        ],
         [
             'version' => '1.16.1',
             'build' => '20260419.3',

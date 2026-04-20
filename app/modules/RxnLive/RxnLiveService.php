@@ -245,18 +245,34 @@ class RxnLiveService
         return [];
     }
 
-    public function getUserViews(int $userId, string $datasetKey): array {
+    /**
+     * Devuelve las vistas de un dataset para el usuario actual, con scope de lectura por empresa:
+     * todos los usuarios de la misma empresa ven las mismas vistas. El ownership para editar/borrar
+     * sigue siendo por `usuario_id` (guard aplicado en saveUserView/deleteUserView).
+     *
+     * Cada vista incluye `usuario_id` y `usuario_nombre` para que el frontend pueda distinguir
+     * entre vistas propias y ajenas (solo el dueño ve los botones de guardar/eliminar).
+     */
+    public function getUserViews(int $empresaId, string $datasetKey): array {
         try {
             $db = \App\Core\Database::getConnection();
-            $stmt = $db->prepare("SELECT id, nombre, config FROM rxn_live_vistas WHERE usuario_id = ? AND dataset = ? ORDER BY nombre ASC");
-            $stmt->execute([$userId, $datasetKey]);
+            $stmt = $db->prepare("
+                SELECT v.id, v.nombre, v.config, v.usuario_id,
+                       COALESCE(u.nombre, '') AS usuario_nombre
+                  FROM rxn_live_vistas v
+             LEFT JOIN usuarios u ON u.id = v.usuario_id
+                 WHERE v.empresa_id = ? AND v.dataset = ?
+              ORDER BY v.nombre ASC
+            ");
+            $stmt->execute([$empresaId, $datasetKey]);
             $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             $userViews = [];
-            foreach ($res as $v) {                
+            foreach ($res as $v) {
                 $v['config'] = json_decode($v['config'], true);
+                $v['usuario_id'] = (int)$v['usuario_id'];
                 $userViews[] = $v;
             }
-            
+
             $systemViews = $this->getSystemDefaultViews($datasetKey);
             return array_merge($systemViews, $userViews);
         } catch (\Exception $e) {
@@ -391,19 +407,27 @@ class RxnLiveService
         return (int)$db->lastInsertId();
     }
 
-    public function saveUserView(int $userId, string $datasetKey, string $nombre, array $config, ?int $viewId = null): int {
+    /**
+     * Guarda una vista. El UPDATE aplica guard de ownership (usuario_id = dueño original);
+     * si un usuario ajeno intenta sobrescribir una vista de otro, el UPDATE no afecta filas.
+     * La migración 2026_04_20_02 ya garantiza que exista la columna empresa_id.
+     */
+    public function saveUserView(int $empresaId, int $userId, string $datasetKey, string $nombre, array $config, ?int $viewId = null): int {
         $db = \App\Core\Database::getConnection();
-        
-        // Auto-crear la tabla para facilitar el entorno de testing/produ local sin OTA
+
+        // Auto-crear la tabla para facilitar el entorno de testing/produ local sin OTA.
+        // La migración 2026_04_20_02 agrega empresa_id en instalaciones existentes.
         $db->exec("
             CREATE TABLE IF NOT EXISTS rxn_live_vistas (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 usuario_id INT NOT NULL,
+                empresa_id INT NULL DEFAULT NULL,
                 dataset VARCHAR(100) NOT NULL,
                 nombre VARCHAR(150) NOT NULL,
                 config JSON NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                KEY idx_usuario_dataset (usuario_id, dataset)
+                KEY idx_usuario_dataset (usuario_id, dataset),
+                KEY idx_empresa_dataset (empresa_id, dataset)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
@@ -417,11 +441,12 @@ class RxnLiveService
             ]);
             return $viewId;
         } else {
-            $stmt = $db->prepare("INSERT INTO rxn_live_vistas (usuario_id, dataset, nombre, config) VALUES (?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO rxn_live_vistas (usuario_id, empresa_id, dataset, nombre, config) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([
-                $userId, 
-                $datasetKey, 
-                $nombre, 
+                $userId,
+                $empresaId,
+                $datasetKey,
+                $nombre,
                 json_encode($config)
             ]);
             return (int)$db->lastInsertId();

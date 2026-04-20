@@ -24,18 +24,31 @@ ob_start();
     <div class="d-flex gap-2 align-items-center">
         <!-- SELECT DE VISTAS (PRESETS) -->
         <?php if (!empty($myViews)): ?>
-            <select id="savedViewsDropdown" class="form-select form-select-sm bg-dark text-white border-secondary" style="max-width: 200px;" onchange="loadSelectedView()">
+            <select id="savedViewsDropdown" class="form-select form-select-sm bg-dark text-white border-secondary" style="max-width: 240px;" onchange="loadSelectedView()">
                 <option value="">[ Vista Base ]</option>
-                <?php 
+                <?php
                 $activeViewId = $_GET['view_id'] ?? '';
-                foreach($myViews as $v): 
+                $currentUserId = (int)($currentUserId ?? 0);
+                foreach($myViews as $v):
                     $isSelected = ((string)$v['id'] === (string)$activeViewId) ? 'selected' : '';
+                    $viewOwnerId = isset($v['usuario_id']) ? (int)$v['usuario_id'] : 0;
+                    $ownerName = $v['usuario_nombre'] ?? '';
+                    $isSystem = str_starts_with((string)$v['id'], 'default_');
+                    $isMine = !$isSystem && $viewOwnerId === $currentUserId && $currentUserId > 0;
+                    // Las vistas del sistema y las propias se muestran con el nombre a secas.
+                    // Las ajenas se prefijan con el nombre del dueño entre paréntesis para que quede claro que no son propias.
+                    $displayLabel = $v['nombre'] ?? 'Vista Sin Nombre';
+                    if (!$isSystem && !$isMine && $ownerName !== '') {
+                        $displayLabel .= ' — ' . $ownerName;
+                    }
                 ?>
-                    <option value="<?= htmlspecialchars((string)$v['id']) ?>" 
-                            data-config="<?= htmlspecialchars(json_encode($v['config']), ENT_QUOTES) ?>" 
+                    <option value="<?= htmlspecialchars((string)$v['id']) ?>"
+                            data-config="<?= htmlspecialchars(json_encode($v['config']), ENT_QUOTES) ?>"
                             data-nombre="<?= htmlspecialchars($v['nombre'] ?? 'Vista Sin Nombre', ENT_QUOTES) ?>"
+                            data-owner-id="<?= htmlspecialchars((string)$viewOwnerId) ?>"
+                            data-is-mine="<?= $isMine ? '1' : '0' ?>"
                             <?= $isSelected ?>>
-                        <?= htmlspecialchars($v['nombre'] ?? 'Vista Sin Nombre') ?>
+                        <?= htmlspecialchars($displayLabel) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -43,7 +56,7 @@ ob_start();
 
         <!-- BTN GUARDAR VISTA -->
         <div class="btn-group">
-            <button type="button" class="btn btn-primary btn-sm" onclick="saveCurrentView()" title="Sobrescribir vista actual">
+            <button type="button" id="btnSaveView" class="btn btn-primary btn-sm" onclick="saveCurrentView()" title="Sobrescribir vista actual">
                 <i class="bi bi-floppy"></i> Guardar
             </button>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="promptSaveView()" title="Guardar como nueva vista">
@@ -53,6 +66,7 @@ ob_start();
                 <i class="bi bi-trash"></i> Eliminar
             </button>
         </div>
+        <script>window.rxnCurrentUserId = <?= (int)($currentUserId ?? 0) ?>;</script>
 
         <!-- EXPORT BAR -->
         <form method="POST" action="/rxn_live/exportar" id="exportDatasetForm" class="d-inline">
@@ -1109,7 +1123,7 @@ function renderPlana() {
         html += `<tfoot style="position: sticky; bottom: 0; background-color: #2b3035; z-index: 1;"><tr>`;
         visibleCols.forEach(col => {
             if (numMetricsSum[col] !== undefined) {
-                html += `<td class="text-nowrap px-3 py-2 border-secondary text-end fw-bold text-info font-monospace">${numMetricsSum[col].toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>`;
+                html += `<td class="text-nowrap px-3 py-2 border-secondary text-end fw-bold text-info font-monospace">${numMetricsSum[col].toLocaleString('es-AR', {minimumFractionDigits:4, maximumFractionDigits:4})}</td>`;
             } else {
                 html += `<td class="border-secondary ${col === visibleCols[0] ? 'px-3 py-2 fw-bold text-white' : ''}">${col === visibleCols[0] ? 'TOTAL' : ''}</td>`;
             }
@@ -1351,7 +1365,7 @@ function buildDetailRowHtml(row, visibleCols, indentLevel) {
         let printVal = val || '';
 
         if (isNumeric && val !== null && val !== '') {
-            printVal = Number(val).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            printVal = Number(val).toLocaleString('es-AR', {minimumFractionDigits: 4, maximumFractionDigits: 4});
         } else if (globalDateFormat !== 'Y-m-d' && pivotMetadata[col] && (pivotMetadata[col].type === 'date' || pivotMetadata[col].type === 'datetime' || pivotMetadata[col].type === 'timestamp') && val !== null && val !== '') {
             printVal = formatRxnDate(val, globalDateFormat);
         }
@@ -1420,7 +1434,7 @@ function buildGroupedRowsHtml(rows, level, parentPath, visibleCols, numericCols)
                          </td>`;
             } else if (numericCols.includes(col)) {
                 let v = subtotals[col];
-                let formatted = (v !== undefined && v !== null) ? Number(v).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '';
+                let formatted = (v !== undefined && v !== null) ? Number(v).toLocaleString('es-AR', {minimumFractionDigits: 4, maximumFractionDigits: 4}) : '';
                 html += `<td class="text-end font-monospace px-3 py-2" style="${widthStyle}">${formatted}</td>`;
             } else {
                 html += `<td class="px-3 py-2" style="${widthStyle}"></td>`;
@@ -1812,7 +1826,7 @@ function readPivotState() {
 function formatVal(n, op) {
     if (isNaN(n) || n === null) return '';
     const count = (op === 'COUNT' || isNaN(n));
-    return Number(n).toLocaleString('es-AR', {minimumFractionDigits: count ? 0 : 2, maximumFractionDigits: count ? 0 : 2});
+    return Number(n).toLocaleString('es-AR', {minimumFractionDigits: count ? 0 : 4, maximumFractionDigits: count ? 0 : 4});
 }
 
 function aggArray(arr, op) {
@@ -2129,7 +2143,7 @@ function renderDynamicChart() {
                     callbacks: {
                         label: function(context) {
                             let val = context.raw;
-                            return ' ' + Number(val).toLocaleString('es-AR', {minimumFractionDigits: chartConfig.op === 'COUNT' ? 0 : 2, maximumFractionDigits: chartConfig.op === 'COUNT' ? 0 : 2});
+                            return ' ' + Number(val).toLocaleString('es-AR', {minimumFractionDigits: chartConfig.op === 'COUNT' ? 0 : 4, maximumFractionDigits: chartConfig.op === 'COUNT' ? 0 : 4});
                         }
                     }
                 }
@@ -2226,18 +2240,34 @@ function saveVolatileState(overrideParams = null) {
 let viewSaveModalInstance = null;
 
 /**
- * Muestra/oculta el botón Eliminar según la vista seleccionada en el dropdown.
- * Solo visible cuando hay vista de USUARIO seleccionada (no Vista Base, no system defaults "default_*").
- * Llamado al cargar y cada vez que cambia el dropdown.
+ * Muestra/oculta los botones Guardar y Eliminar según la vista seleccionada en el dropdown.
+ * Reglas (las vistas se comparten por empresa, pero el ownership para editar/borrar es del dueño):
+ *  - Vista Base (sin value) → Guardar visible (crea nueva), Eliminar oculto.
+ *  - Vista del sistema (id "default_*") → Guardar oculto, Eliminar oculto.
+ *  - Vista propia (data-is-mine="1") → Guardar visible (sobrescribe), Eliminar visible.
+ *  - Vista ajena (data-is-mine="0") → Guardar oculto, Eliminar oculto. Para modificar, usar "Nueva Vista".
  */
 function toggleDeleteViewButton() {
-    const btn = document.getElementById('btnDeleteView');
-    if (!btn) return;
+    const btnDelete = document.getElementById('btnDeleteView');
+    const btnSave = document.getElementById('btnSaveView');
     const dropdown = document.getElementById('savedViewsDropdown');
-    if (!dropdown) { btn.style.display = 'none'; return; }
-    const val = dropdown.value;
-    const isUserView = val && !String(val).startsWith('default_');
-    btn.style.display = isUserView ? '' : 'none';
+    if (!btnDelete && !btnSave) return;
+
+    const val = dropdown ? dropdown.value : '';
+    const opt = (dropdown && dropdown.selectedOptions && dropdown.selectedOptions[0]) || null;
+    const isSystem = val && String(val).startsWith('default_');
+    const isMine = opt ? opt.getAttribute('data-is-mine') === '1' : false;
+    const hasSelection = !!val;
+
+    // Delete solo si es vista propia.
+    if (btnDelete) btnDelete.style.display = (hasSelection && !isSystem && isMine) ? '' : 'none';
+
+    // Guardar (sobrescribir) solo tiene sentido si es propia. En Vista Base también lo dejamos visible
+    // porque allí crea una nueva. En system y ajenas se oculta.
+    if (btnSave) {
+        const showSave = !hasSelection || (!isSystem && isMine);
+        btnSave.style.display = showSave ? '' : 'none';
+    }
 }
 
 function promptDeleteView() {
