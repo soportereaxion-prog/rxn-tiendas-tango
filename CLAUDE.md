@@ -409,6 +409,21 @@ Cuando la sesión termina (Charly dice "cerremos", "cerremos sesión", "listo po
 
 Ante frases de cierre claras ("cerremos", "listo por hoy") → OTA automático sin preguntar. Si hay duda real sobre si Charly quiere cerrar o solo pausar (ej: "me voy a comer"), preguntar.
 
+### Regla de release: novedades de `customer_notes` viajan en migración de seed (2026-04-20, Fase 6)
+
+A partir del release 1.17.0, **cada bump de versión genera su propia migración de seed en `customer_notes`** — Lumi la crea automáticamente durante el ritual de cierre, sin pedir permiso.
+
+**Por qué**: la tabla `customer_notes` es GLOBAL (sin `empresa_id`) y alimenta los envíos masivos de novedades a clientes finales. Si Lumi edita notas en dev y no crea la migración de seed, las notas quedan solo en dev y no llegan a prod via OTA. El schema viaja, la data no — hay que empaquetarla explícitamente.
+
+**Patrón canónico**: por cada bump, sumar una migración `NNNN_seed_customer_notes_release_X_Y_Z.php` idempotente. Idempotencia por `(title, version_ref)`: se chequea `SELECT COUNT(*)` antes de cada INSERT; si ya existe, skip. Así la misma migración puede correrse 2 veces sin duplicar filas, y el patrón soporta que dev y prod converjan aunque empiecen en estados distintos.
+
+**Qué redactar en cada release**: para cada release que tenga impacto visible para el cliente final (feature nueva, mejora UX, refuerzo de seguridad, ajuste), Lumi redacta una nota en lenguaje de usuario final y la suma al array de la migración de ese release. Reglas editoriales (ver `app/modules/CrmMailMasivos/MODULE_CONTEXT.md`):
+- Lenguaje de capacidad, no de defecto (seguridad).
+- Sin nombres de archivos, endpoints, librerías, versiones de dependencias, CVEs.
+- Foco en beneficio para el cliente: qué puede hacer hoy que ayer no.
+
+**Cuándo NO sumar nota**: releases puramente internos (refactor, hardening interno sin capacidad visible, docs) pueden tener migración vacía — pero la migración se crea igual, vacía, así el patrón queda visible en el repo (placeholder explícito > omisión).
+
 ### Antipatrón histórico — olvidarse de crear/ejecutar la migración
 
 El problema que generó líos en el pasado: hacer cambios de DB "a mano" durante el desarrollo (con HeidiSQL, phpMyAdmin, o un `ALTER` ad-hoc) y no crear la migración correspondiente. Eso dejaba el dev funcionando y el prod roto post-deploy.

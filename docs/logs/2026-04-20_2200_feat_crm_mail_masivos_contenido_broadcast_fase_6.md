@@ -4,7 +4,9 @@
 
 Sesión dedicada a diseñar e implementar el mecanismo de "reportes de contenido broadcast" sobre el módulo `CrmMailMasivos`. El objetivo: poder seleccionar filas de una tabla (arrancando con novedades de producto para clientes finales) y renderizarlas como bloques HTML dentro del cuerpo de un envío masivo, sin romper el builder relacional existente.
 
-Cierre de sesión con feature **implementada, commiteada, migraciones ejecutadas en local y seed sembrado**, pero **pendiente de validación end-to-end** por Charly (que cerró por agenda). Sin bump de versión y sin OTA hasta que la validación confirme que el flow funciona.
+Cierre de sesión con feature **implementada, commiteada, migraciones ejecutadas en local y seed sembrado**. Charly decidió al cierre bumpear igual y disparar OTA (la valida post-deploy, confía en lo implementado). Release empaquetada como **1.17.0 / build 20260420.5**.
+
+**Nueva regla establecida al cierre**: a partir de esta release, cada bump de versión genera su propia migración de seed en `customer_notes` para que la data viaje en el OTA junto con el código. La regla quedó documentada en `CLAUDE.md` del proyecto.
 
 ## Qué se hizo
 
@@ -88,10 +90,13 @@ Al intentar previsualizar/guardar el reporte "Novedades Abril" con root=`Custome
 
 ## Validación
 
-- ✅ `php -l` limpio en los 12 archivos nuevos/modificados.
-- ✅ 2 migraciones ejecutadas en local (`run_migrations.php`) sin errores.
-- ✅ Seed sembró 4 novedades correctamente.
-- ⚠️ **PENDIENTE**: Charly no llegó a probar end-to-end el preview/guardado del reporte después del bugfix final. Próxima sesión arranca validando esto.
+- ✅ `php -l` limpio en los 16 archivos nuevos/modificados.
+- ✅ 3 migraciones ejecutadas en local (`run_migrations.php`) sin errores.
+- ✅ Seed inicial sembró 4 novedades correctamente.
+- ✅ Migración de seed 1.17.0 sumó la 5ª novedad (idempotente — las 4 previas quedaron skip).
+- ✅ Bump a 1.17.0 / build 20260420.5 aplicado en `app/config/version.php` con history entry completo.
+- ✅ Regla "cada release genera migración de seed de customer_notes" documentada en `CLAUDE.md` del proyecto.
+- ⚠️ **Validación end-to-end post-deploy**: Charly cerró con la feature implementada pero sin probar el flow completo (reporte de novedades → guardar → combinar con reporte destinatarios → disparar envío real). Confía en la implementación y valida en producción con un envío de prueba a una casilla propia.
 
 ## Pendiente
 

@@ -1,9 +1,38 @@
 <?php
 
 return [
-    'current_version' => '1.16.5',
-    'current_build' => '20260420.4',
+    'current_version' => '1.17.0',
+    'current_build' => '20260420.5',
     'history' => [
+        [
+            'version' => '1.17.0',
+            'build' => '20260420.5',
+            'released_at' => '2026-04-20',
+            'title' => 'CrmMailMasivos Fase 6 — contenido broadcast + canal oficial de novedades',
+            'summary' => 'Feature grande sobre el módulo de envíos masivos: introduce el concepto de "reporte de contenido broadcast". Una root_entity registrada como contenido (hoy CustomerNotes; mañana listas de precios, promos, artículos) cuyas filas se renderizan como cards HTML email-safe y se inyectan en el cuerpo del mail reemplazando el placeholder {{Bloque.html}}. El admin combina en el form de "Nuevo envío" un reporte de destinatarios + un reporte de contenido opcional + un template. Pipeline extensible: sumar una entidad nueva es declarar en config/entities.php + crear un RowRenderer + registrar en BlockRenderer. Incluye tabla global customer_notes (novedades de producto en lenguaje de cliente final), ALTER de crm_mail_jobs con content_report_id, selector opcional en el form de envío, banner distinto para reportes de contenido en el designer, fix de los callsites del designer/template-editor que aún exigían mail_field, y seed con 5 notas iniciales (4 históricas + la propia del release 1.17.0). A partir de esta release, cada bump genera su propia migración de seed de customer_notes para que la data viaje al reino junto con el código — el ReleaseBuilder ya incluye database/migrations/ automáticamente.',
+            'items' => [
+                'database/migrations/2026_04_20_00_create_customer_notes.php NUEVO: tabla global customer_notes (sin empresa_id). Campos: title, body_html, category ENUM(feature|mejora|seguridad|performance|fix_visible), version_ref, status (draft|published), published_at, soft delete, timestamps e índices.',
+                'database/migrations/2026_04_20_01_alter_crm_mail_jobs_add_content_report_id.php NUEVO: suma content_report_id INT NULL a crm_mail_jobs de forma idempotente (INFORMATION_SCHEMA).',
+                'database/migrations/2026_04_20_02_seed_customer_notes_release_1_17_0.php NUEVO: siembra 5 novedades idempotentes (por title + version_ref). Patrón canónico — cada release próximo generará su propia migración de seed para viajar en el OTA.',
+                'app/modules/CrmMailMasivos/config/entities.php: sumada entidad CustomerNotes (empresa_scope=false, sin mail_field, sin relations). Disponible como root de "reportes de contenido" en el designer.',
+                'app/modules/CrmMailMasivos/Services/ReportQueryBuilder.php: build() acepta nuevo flag requireMailTarget (default true). resolveMailTarget devuelve null cuando require=false en lugar de tirar excepción. mail_target en el return pasa a array|null.',
+                'app/modules/CrmMailMasivos/Services/BlockRenderer.php NUEVO: dispatcher por root_entity. Carga el reporte, ejecuta query con requireMailTarget=false, despacha al RowRenderer correspondiente. Expone knownContentEntities() e isContentEntity() como helpers públicos.',
+                'app/modules/CrmMailMasivos/Services/RowRenderers/RowRenderer.php NUEVO: interfaz renderRows(array $rows): string. Define el contract de renderers.',
+                'app/modules/CrmMailMasivos/Services/RowRenderers/CustomerNotesRenderer.php NUEVO: HTML email-safe con cards por categoría (colores verde/azul/dorado/violeta/gris), fecha es-AR, wrapper de 600px. Compatible Gmail / Outlook / Apple Mail.',
+                'app/modules/CrmMailMasivos/Services/JobDispatcher.php::dispatch: 5to parámetro opcional $contentReportId. Si se pasa, llama BlockRenderer::renderContentReport() y hace str_replace de {{Bloque.html}} en el body ANTES de createJob. BatchProcessor NO cambia — sigue resolviendo variables per-row.',
+                'app/modules/CrmMailMasivos/JobRepository.php::createJob: suma content_report_id en el INSERT.',
+                'app/modules/CrmMailMasivos/JobController.php::create: separa reports de destinatarios vs. de contenido usando knownContentEntities(). store() lee content_report_id del POST y lo pasa a dispatch.',
+                'app/modules/CrmMailMasivos/ReportController.php::preview y validatePayload: derivan requireMailTarget de BlockRenderer::isContentEntity(root_entity). Preview ahora expone is_content_report para que el JS muestre banner distinto.',
+                'app/modules/CrmMailMasivos/TemplateController.php::previewRender: idem — previewRender respeta isContentEntity.',
+                'app/modules/CrmMailMasivos/views/envios/crear.php: nuevo paso 3 "Bloque de contenido (opcional)" con selector de content reports. Pasos 4/5/6 renumerados (SMTP / Destinatarios / Confirmar).',
+                'public/js/mail-masivos-designer.js::renderPreviewResult: tolera mail_target=null. Banner alternativo para reportes de contenido ("N fila(s) de contenido — reporte broadcast").',
+                'app/modules/CrmMailMasivos/MODULE_CONTEXT.md: sección Fase 6 documentada — alcance, piezas, reglas editoriales para customer_notes (lenguaje de capacidad no de defecto), backlog (override editable, plantillas-de-bloque, CRUD UI, preview del bloque en crear-envío), checklist post-cambio.',
+                'tools/seed_customer_notes.php NUEVO: seed idempotente para dev. Útil al bootstrapear un entorno nuevo; la migración ya cubre el OTA.',
+                'CLAUDE.md del proyecto: nueva regla "Cada release genera su migración de seed de customer_notes" — a partir de 1.17.0 Lumi crea automáticamente en el ritual de cierre una migración `NNNN_seed_customer_notes_release_X_Y_Z.php` idempotente con las novedades del release. El ReleaseBuilder las incluye sin intervención.',
+                'app/config/version.php: bump a 1.17.0 / build 20260420.5.',
+                'docs/logs/2026-04-20_2200_feat_crm_mail_masivos_contenido_broadcast_fase_6.md: log detallado de la sesión con arquitectura, decisiones tomadas, validación pendiente y backlog documentado.',
+            ],
+        ],
         [
             'version' => '1.16.5',
             'build' => '20260420.4',
