@@ -135,6 +135,95 @@ class UploadValidator
     }
 
     /**
+     * Valida un upload genérico (cualquier archivo) contra una whitelist de MIMEs
+     * y una blacklist dura de extensiones ejecutables.
+     *
+     * Diferencia con image()/favicon(): acá la whitelist y el tope de tamaño
+     * vienen por parámetro (el caller usa app/config/attachments.php).
+     *
+     * Defense in depth:
+     *  1. MIME real detectado con finfo contra $allowedMimes.
+     *  2. Extensión del filename ORIGINAL contra $blockedExts (rechaza aunque MIME pase).
+     *  3. Extensión declarada debe matchear la canónica del MIME (o ser un alias común).
+     *
+     * @param array<string,string> $allowedMimes  mime => extension canónica
+     * @param string[]             $blockedExts   extensiones siempre prohibidas (lowercase, sin punto)
+     * @return array{tmp_name:string,ext:string,mime:string,size:int,original_name:string}|null
+     */
+    public static function anyFile(?array $file, array $allowedMimes, array $blockedExts, int $maxBytes): ?array
+    {
+        if (!is_array($file)) {
+            return null;
+        }
+
+        $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($error === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if ($error !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('No se pudo procesar el archivo subido (error ' . $error . ').');
+        }
+
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+            throw new RuntimeException('Archivo temporal de upload inválido.');
+        }
+
+        $size = (int) ($file['size'] ?? 0);
+        if ($size <= 0) {
+            throw new RuntimeException('El archivo subido está vacío.');
+        }
+        if ($size > $maxBytes) {
+            $maxMb = number_format($maxBytes / (1024 * 1024), 1);
+            throw new RuntimeException('El archivo supera el tamaño máximo permitido (' . $maxMb . ' MB).');
+        }
+
+        $originalName = (string) ($file['name'] ?? '');
+        if ($originalName === '') {
+            throw new RuntimeException('El archivo no tiene nombre.');
+        }
+
+        $declaredExt = strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
+        if ($declaredExt === '') {
+            throw new RuntimeException('El archivo no tiene extensión reconocible.');
+        }
+
+        // Red 1 — extensión del filename contra blacklist dura.
+        $blockedLower = array_map('strtolower', $blockedExts);
+        if (in_array($declaredExt, $blockedLower, true)) {
+            throw new RuntimeException('Tipo de archivo no permitido por seguridad (' . $declaredExt . ').');
+        }
+
+        // Red 2 — MIME real contra whitelist.
+        $mime = self::detectMime($tmpName);
+        if ($mime === null || !isset($allowedMimes[$mime])) {
+            throw new RuntimeException('Tipo de archivo no permitido. MIME detectado: ' . ($mime ?? 'desconocido') . '.');
+        }
+
+        $canonicalExt = $allowedMimes[$mime];
+
+        // Red 3 — la extensión declarada debe ser coherente con el MIME detectado
+        // (aliases comunes permitidos: jpeg↔jpg, tar.gz fuera de scope, etc).
+        $aliases = [
+            'jpg'  => ['jpeg'],
+            'jpeg' => ['jpg'],
+            'htm'  => ['html'], // aunque estas dos están en blocked, no deberían llegar acá
+        ];
+        $acceptableExts = array_merge([$canonicalExt], $aliases[$canonicalExt] ?? []);
+        if (!in_array($declaredExt, $acceptableExts, true)) {
+            throw new RuntimeException('La extensión del archivo (.' . $declaredExt . ') no coincide con su contenido real (' . $mime . ').');
+        }
+
+        return [
+            'tmp_name'      => $tmpName,
+            'ext'           => $canonicalExt,
+            'mime'          => $mime,
+            'size'          => $size,
+            'original_name' => $originalName,
+        ];
+    }
+
+    /**
      * Prepara un directorio de upload con permisos seguros.
      * Reemplaza el patrón `mkdir($dir, 0777, true)` que aparecía antes en los uploaders.
      */

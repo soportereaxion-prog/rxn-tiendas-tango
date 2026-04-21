@@ -91,7 +91,14 @@ ob_start();
                 </div>
             </div>
         </div>
-        
+
+        <?php
+            $ownerType = 'crm_nota';
+            $ownerId   = (int) $nota->id;
+            $panelTitle = 'Archivos adjuntos';
+            include BASE_PATH . '/app/shared/views/partials/attachments-panel.php';
+        ?>
+
     </main>
     
 <?php

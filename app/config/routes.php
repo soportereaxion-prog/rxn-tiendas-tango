@@ -535,6 +535,12 @@ return function (Router $router): void {
     $router->get('/{slug}/checkout', [\App\Modules\Store\Controllers\CheckoutController::class, 'index']);
     $router->post('/{slug}/checkout/confirmar', [\App\Modules\Store\Controllers\CheckoutController::class, 'confirm']);
 
+    // --- ATTACHMENTS (adjuntos polimórficos reusables por cualquier módulo) ---
+    $router->post('/attachments/upload', [\App\Shared\Controllers\AttachmentsController::class, 'upload']);
+    $router->post('/attachments/{id}/delete', [\App\Shared\Controllers\AttachmentsController::class, 'delete']);
+    $router->get('/attachments/{id}/download', [\App\Shared\Controllers\AttachmentsController::class, 'download']);
+    $router->get('/attachments/{id}/preview', [\App\Shared\Controllers\AttachmentsController::class, 'preview']);
+
     // --- INTEGRACIONES (WEBHOOKS) ---
     $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);
     // Hook de prueba interno (emulación manual vía navegador)

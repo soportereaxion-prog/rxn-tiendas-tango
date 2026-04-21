@@ -183,6 +183,13 @@ ob_start();
                     </div>
                     
                 </form>
+
+                <?php
+                    $ownerType = 'crm_nota';
+                    $ownerId   = $isEdit && isset($nota->id) ? (int) $nota->id : null;
+                    $panelTitle = 'Archivos adjuntos';
+                    include BASE_PATH . '/app/shared/views/partials/attachments-panel.php';
+                ?>
             </div>
         </div>
     </main>

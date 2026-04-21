@@ -1,9 +1,33 @@
 <?php
 
 return [
-    'current_version' => '1.17.0',
-    'current_build' => '20260420.5',
+    'current_version' => '1.18.0',
+    'current_build' => '20260421.1',
     'history' => [
+        [
+            'version' => '1.18.0',
+            'build' => '20260421.1',
+            'released_at' => '2026-04-21',
+            'title' => 'Adjuntos polimórficos reusables — Notas y Presupuestos con archivos + preview de imágenes',
+            'summary' => 'Nueva capa transversal de adjuntos polimórficos. Una sola tabla (attachments) + un solo service (App\\Core\\Services\\AttachmentService) + un solo endpoint (POST /attachments/upload, POST /attachments/{id}/delete, GET /attachments/{id}/download, GET /attachments/{id}/preview) sirven a cualquier módulo que quiera archivos asociados a una entidad. Debut del feature en Notas (CrmNotas) y Presupuestos (CrmPresupuestos, a nivel cabecera). Defensa en profundidad: MIME real detectado por finfo contra whitelist (PDF/DOC/XLS/PPT/ODT/imágenes/ZIP/RAR/7Z/MP4/MP3/WAV/TXT/CSV), blacklist dura de extensiones ejecutables (php/phtml/phar/exe/bat/sh/html/svg/js/etc) aplicada sobre el filename original, filename regenerado por sistema, path con empresa_id para aislamiento multi-tenant, .htaccess "Require all denied" autoinyectado en la carpeta attachments/ de cada empresa para que los archivos sólo sean servibles vía endpoint con IDOR check. Descargas con Content-Disposition attachment + X-Content-Type-Options nosniff. Preview separado solo para imágenes (no PDF) con CSP default-src none + img-src self, modal in-page con overlay oscuro y cierre por click/ESC. Límites parametrizables: 10 archivos por registro, 100MB por archivo, 100MB total acumulado por registro. Partial reusable (app/shared/views/partials/attachments-panel.php) con drag&drop, progreso inline, delete con confirmación y botón 👁 solo para imágenes. Hooks en forceDelete de CrmNota y forceDeleteByIds de Presupuesto para borrar archivos físicos sin dejar huérfanos (soft-delete NO borra archivos, por si se restaura).',
+            'items' => [
+                'database/migrations/2026_04_21_00_create_attachments.php NUEVO: tabla polimórfica attachments (empresa_id, owner_type, owner_id, original_name, stored_name, mime, size_bytes, path, uploaded_by, timestamps, deleted_at). Índice compuesto (empresa_id, owner_type, owner_id, deleted_at). FK cascade sobre empresas.',
+                'app/config/attachments.php NUEVO: config central (10 archivos, 100MB/archivo, 100MB total, whitelist MIME→ext, blacklist extensiones ejecutables, allowed_owner_types [crm_nota, crm_presupuesto]).',
+                'app/core/UploadValidator.php: nuevo método anyFile() con 3 redes de validación (blacklist extensión → whitelist MIME real → alineación ext↔MIME anti-polyglot). Reutiliza detectMime/prepareDir/generateFilename existentes.',
+                'app/core/Services/AttachmentService.php NUEVO: API pública attach/listByOwner/delete/deleteByOwner/getForDownload/getForPreview/getLimits. ensureSchema() idempotente como red de seguridad. ensureDenyHtaccess() auto-crea .htaccess Require-all-denied en la raíz attachments/ de cada empresa.',
+                'app/shared/Controllers/AttachmentsController.php NUEVO: endpoints upload (JSON), delete (JSON), download (stream forzado attachment con nosniff), preview (stream inline solo para image/*, con CSP default-src none + img-src self). Valida CSRF en POST. ownerBelongsToEmpresa() antes de attach para prevenir IDOR cruzado.',
+                'app/shared/views/partials/attachments-panel.php NUEVO: partial reusable con drag&drop, lista, delete inline, botón 👁 solo para imágenes, modal singleton inyectado en body (cierra con click overlay / botón × / tecla ESC). Idempotente si se incluye múltiples veces en la misma página. Config inyectada via data-* para que el JS respete los límites del backend.',
+                'app/config/routes.php: rutas POST /attachments/upload, POST /attachments/{id}/delete, GET /attachments/{id}/download, GET /attachments/{id}/preview registradas bajo \\App\\Shared\\Controllers\\AttachmentsController.',
+                'app/modules/CrmNotas/views/form.php: partial embebido debajo del form (solo en edit mode — en create muestra aviso "guardá primero").',
+                'app/modules/CrmNotas/views/show.php: partial embebido al final del main para que los adjuntos sean visibles al ver la nota.',
+                'app/modules/CrmNotas/CrmNotaRepository.php::forceDelete: hook agregado que llama a AttachmentService::deleteByOwner(empresa_id, crm_nota, id) antes de DELETE. Soft-delete NO borra adjuntos.',
+                'app/modules/CrmPresupuestos/views/form.php: partial embebido después del form principal (nivel cabecera del presupuesto, no por línea).',
+                'app/modules/CrmPresupuestos/PresupuestoRepository.php::forceDeleteByIds: hook que itera los ids y borra adjuntos por cada uno via AttachmentService::deleteByOwner(empresa_id, crm_presupuesto, id).',
+                'database/migrations/2026_04_21_01_seed_customer_notes_release_1_18_0.php NUEVO: seed idempotente (por title + version_ref) con la novedad visible del release — "Ahora podés adjuntar archivos a tus notas y presupuestos" en lenguaje de cliente final.',
+                'app/config/version.php: bump a 1.18.0 / build 20260421.1.',
+                'docs/logs/2026-04-21_release_1_18_0_attachments_polimorficos.md NUEVO: log del release con arquitectura (polimórfica vs. tabla-por-módulo), capas de seguridad, y pendiente explícito de switch para enviar adjuntos en mail de presupuestos (decisión diferida a demanda).',
+            ],
+        ],
         [
             'version' => '1.17.0',
             'build' => '20260420.5',

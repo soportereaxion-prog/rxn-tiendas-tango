@@ -598,9 +598,16 @@ ob_start();
             </div>
             </fieldset>
         </form>
+
+        <?php
+            $ownerType = 'crm_presupuesto';
+            $ownerId   = ($formMode === 'edit' && !empty($presupuesto['id'])) ? (int) $presupuesto['id'] : null;
+            $panelTitle = 'Archivos adjuntos del presupuesto';
+            include BASE_PATH . '/app/shared/views/partials/attachments-panel.php';
+        ?>
     </div>
 
-<?php 
+<?php
 $tangoPayload = '';
 $tangoResponse = '';
 if (!empty($presupuesto['tango_sync_log'])) {

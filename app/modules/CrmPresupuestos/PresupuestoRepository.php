@@ -177,6 +177,18 @@ class PresupuestoRepository
     public function forceDeleteByIds(array $ids, int $empresaId): int
     {
         if (empty($ids)) return 0;
+
+        // Primero adjuntos físicos (archivos + filas) para no dejar huérfanos.
+        // Soft delete NO borra adjuntos — sólo el force delete.
+        try {
+            $attachments = new \App\Core\Services\AttachmentService();
+            foreach ($ids as $presId) {
+                $attachments->deleteByOwner($empresaId, 'crm_presupuesto', (int) $presId);
+            }
+        } catch (\Throwable) {
+            // Best-effort: si el service falla seguimos con el delete de presupuestos.
+        }
+
         $inQuery = implode(',', array_fill(0, count($ids), '?'));
         $sql = "DELETE FROM crm_presupuestos WHERE id IN ($inQuery) AND empresa_id = ?";
         $stmt = $this->db->prepare($sql);

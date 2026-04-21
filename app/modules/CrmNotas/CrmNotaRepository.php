@@ -312,6 +312,15 @@ class CrmNotaRepository
 
     public function forceDelete(int $id, int $empresaId): void
     {
+        // Primero los adjuntos físicos (archivos + filas) para no dejar huérfanos.
+        // Soft delete NO borra adjuntos (el usuario puede restaurar la nota).
+        try {
+            (new \App\Core\Services\AttachmentService())->deleteByOwner($empresaId, 'crm_nota', $id);
+        } catch (\Throwable) {
+            // Si el service falla, seguimos con el delete de la nota igual —
+            // los archivos huérfanos son recuperables por GC; la fila huérfana no.
+        }
+
         $sql = "DELETE FROM crm_notas WHERE id = :id AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
