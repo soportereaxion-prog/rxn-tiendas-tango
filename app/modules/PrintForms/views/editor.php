@@ -220,9 +220,9 @@ ob_start();
             </div>
             <div class="rxn-module-actions">
                 
-                <button type="submit" form="print-form-editor-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar version</button>
-                <a href="/mi-empresa/crm/presupuestos" class="btn btn-outline-secondary">Ir a Presupuestos</a>
-                <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a Formularios</a>
+                <button type="submit" form="print-form-editor-form" class="btn btn-primary btn-sm"><i class="bi bi-check2-circle"></i> Guardar version</button>
+                <a href="/mi-empresa/crm/presupuestos" class="btn btn-outline-secondary btn-sm" title="Ir a Presupuestos"><i class="bi bi-box-arrow-up-right"></i> Ir a Presupuestos</a>
+                <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver a Formularios"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

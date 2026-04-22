@@ -14,7 +14,7 @@ ob_start();
                 El diseñador visual "Links" llega en Fase 2b. Por ahora editás el JSON crudo del diseño y probás el preview.
             </p>
         </div>
-        <a href="/mi-empresa/crm/mail-masivos/reportes" class="btn btn-outline-secondary">← Volver al listado</a>
+        <a href="/mi-empresa/crm/mail-masivos/reportes" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Reportes"><i class="bi bi-arrow-left"></i> Volver</a>
     </div>
 
     <?php if (!empty($errors)): ?>

@@ -64,7 +64,7 @@ ob_start();
                 
             </div>
             <div class="d-flex gap-2">
-                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver a Notas</a>
+                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver a Notas"><i class="bi bi-arrow-left"></i> Volver</a>
                 <?php if ($isEdit && isset($nota->id)): ?>
                     <form action="<?= htmlspecialchars($indexPath) ?>/<?= $nota->id ?>/copiar" method="POST" class="d-inline">
                         <button type="submit" class="btn btn-outline-success" title="Duplicar">

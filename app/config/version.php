@@ -1,9 +1,32 @@
 <?php
 
 return [
-    'current_version' => '1.18.0',
-    'current_build' => '20260421.1',
+    'current_version' => '1.19.0',
+    'current_build' => '20260422.1',
     'history' => [
+        [
+            'version' => '1.19.0',
+            'build' => '20260422.1',
+            'released_at' => '2026-04-22',
+            'title' => 'UX — unificación transversal del botón "Volver" + retorno contextual PDS/Tratativas + fixes en Mantenimiento',
+            'summary' => 'Iteración de correcciones UX transversales para alinear la navegación entre módulos. (1) PDS abierto desde Tratativa: el botón Volver lleva a la Tratativa origen; el botón Guardar queda en el propio PDS (el usuario va guardando mientras compone). (2) Estándar único de botón Volver en todo el backoffice: clase btn-outline-secondary + btn-sm + icono bi-arrow-left + texto "Volver" a secas + title con el destino específico. Se unificaron ~30 vistas (Dashboard tenant/admin, RxnSync, RxnLive dataset, PDS form+index, Presupuestos form+index, Tratativas index+form, Agenda index+form, Llamadas, Notas form+show+import, Mail Masivos envios/reportes, Clientes CRM index+form, Articulos index+form, Pedidos, ClientesWeb, Categorias, Empresas, Usuarios, PrintForms, Admin Mantenimiento/Notes/SMTP/RxnLiveVistas, Help, EmpresaConfig). El partial global page_header.php quedó como fuente de verdad — cualquier vista que use $usePageHeader=true hereda el botón unificado. (3) PDS form: el Volver y la Ayuda se sacaron del topbar de acciones del documento y se movieron a un header de página propio con título "PDS #N", dejando el topbar solo para acciones que modifican el documento (Tango, Copy, Mail, Imprimir, Form, Guardar). (4) Presupuestos form: se agregó título "Presupuesto #N" con badge de estado y se unificaron clases. (5) RxnLive dataset: el link "Volver a Datasets" en text-muted se reemplazó por botón estándar alineado a la derecha de la toolbar, con flex-md-nowrap para mantener todas las acciones en una sola fila en desktop. (6) Mantenimiento (admin/mantenimiento): el botón Volver ahora apunta a /admin/dashboard (Backoffice) en lugar de /mi-empresa/configuracion (Tiendas). (7) Fix del indicador "Versión App: Desconocida" en Mantenimiento — MantenimientoController leía versionData[version]/[build] pero las claves reales son current_version/current_build.',
+            'items' => [
+                'app/modules/CrmPedidosServicio/PedidoServicioController.php::resolveReturnPath: siempre vuelve al /editar del PDS al guardar (antes si había tratativa_id volvía a la tratativa). El usuario va componiendo el PDS y guarda varias veces sin ser sacado.',
+                'app/modules/CrmPedidosServicio/views/form.php: botón Volver contextual a la Tratativa si hay $pedido[tratativa_id], sino al listado. Se sacaron Volver+Ayuda del topbar y se pusieron en un header de página propio con título "PDS #N". Alert-info ahora dice "Usá Volver para regresar a la tratativa" en lugar de mentir sobre el Guardar.',
+                'app/modules/CrmPresupuestos/views/form.php: título "Presupuesto #N" + badge de estado, clases unificadas a btn-sm, "Volver al listado" → "Volver" con title.',
+                'app/modules/RxnLive/views/dataset.php: link text-muted "Volver a Datasets" reemplazado por botón btn-outline-secondary btn-sm. El header pasó a d-flex gap-2 flex-md-nowrap para que select de Vistas + Guardar/Nueva/Eliminar + CSV/Excel + Volver convivan en una sola fila en desktop.',
+                'app/shared/views/partials/page_header.php: botón Volver del partial unificado a btn-sm + display="Volver" + title=backLabel. Toda vista que use $usePageHeader=true hereda el estándar automáticamente (RxnLive index, Dashboard CRM, RxnGeoTracking config, Usuarios crear, etc).',
+                'app/modules/Dashboard/views/tenant_dashboard.php + admin_dashboard.php: "Volver al Launcher" → "Volver" + title, btn-sm en lugar de rounded-pill px-4.',
+                'app/modules/RxnSync/views/index.php, CrmClientes/views/index.php+form.php, CrmPresupuestos/views/index.php, CrmTratativas/views/index.php+form.php, CrmAgenda/views/index.php+form.php, CrmLlamadas/views/index.php, CrmNotas/views/form.php+show.php+import.php, CrmMailMasivos/views/reportes/form.php+envios/crear.php+envios/monitor.php, CrmPedidosServicio/views/index.php: todos unificados al estándar (btn-outline-secondary btn-sm + icono + "Volver" + title=destino).',
+                'app/modules/Articulos/views/index.php+form.php, Pedidos/views/index.php+show.php, ClientesWeb/views/index.php, Categorias/views/index.php+crear.php+editar.php, Empresas/views/index.php+editar.php+crear.php, Usuarios/views/mi_perfil.php+index.php+editar.php, PrintForms/views/index.php+editor.php, EmpresaConfig/views/index.php, Help/views/operational_help.php: idem unificación.',
+                'app/modules/Admin/views/mantenimiento.php: botón Volver apunta a /admin/dashboard (Backoffice) en lugar de /mi-empresa/configuracion (Tiendas). Unifica convención: Mantenimiento es un módulo admin y su destino natural es el dashboard de admin.',
+                'app/modules/Admin/views/module_notes_index.php, smtp_global.php, rxn_live_vistas.php: idem unificación al estándar.',
+                'app/modules/Admin/Controllers/MantenimientoController.php::index: fix del indicador "Versión App". Antes leía $versionData[version]/[build] — las claves reales son current_version/current_build, así que el fallback "Desconocida" se disparaba siempre. Ahora lee las claves correctas y el panel muestra la versión + build reales.',
+                'database/migrations/2026_04_22_00_seed_customer_notes_release_1_19_0.php NUEVO: seed idempotente con la novedad del release — "Navegación más prolija en toda la suite" en lenguaje de cliente final.',
+                'app/config/version.php: bump a 1.19.0 / build 20260422.1.',
+                'docs/logs/2026-04-22_release_1_19_0_ux_volver_unificado.md NUEVO: log del release con patrón fijado, lista completa de vistas tocadas, convención del topbar de documento vs header de página.',
+            ],
+        ],
         [
             'version' => '1.18.0',
             'build' => '20260421.1',

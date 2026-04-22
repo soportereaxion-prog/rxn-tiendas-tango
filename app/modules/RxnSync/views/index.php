@@ -14,7 +14,7 @@ ob_start();
             <p class="text-muted">Consola central de sincronización bidireccional RXN ↔ Tango.</p>
         </div>
         <div class="rxn-module-actions d-flex gap-2">
-            <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
+            <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al Panel"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
     </div>
 

@@ -60,8 +60,8 @@ ob_start();
                 
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <a href="/" class="btn btn-outline-secondary">Volver al Inicio</a>
-                <a href="/empresas/crear" class="btn btn-primary fw-bold shadow-sm">+ Nueva Empresa</a>
+                <a href="/empresas/crear" class="btn btn-primary btn-sm fw-bold shadow-sm"><i class="bi bi-plus-lg"></i> Nueva Empresa</a>
+                <a href="/" class="btn btn-outline-secondary btn-sm" title="Volver al Inicio"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

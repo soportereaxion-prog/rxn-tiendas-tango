@@ -32,7 +32,7 @@ ob_start();
             <p class="text-muted small mb-0">Agrupá un cliente, un estado comercial y vinculá tus PDS y Presupuestos bajo un mismo caso.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al listado</a>
+            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Tratativas"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
     </div>
 

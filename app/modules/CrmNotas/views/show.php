@@ -23,8 +23,8 @@ ob_start();
                 </p>
             </div>
             <div class="d-flex gap-2">
-                <a href="<?= htmlspecialchars($indexPath) ?>/<?= $nota->id ?>/editar" class="btn btn-outline-info"><i class="bi bi-pencil"></i> Editar</a>
-                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+                <a href="<?= htmlspecialchars($indexPath) ?>/<?= $nota->id ?>/editar" class="btn btn-outline-info btn-sm"><i class="bi bi-pencil"></i> Editar</a>
+                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver a Notas"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

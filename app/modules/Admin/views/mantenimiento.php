@@ -21,8 +21,8 @@ ob_start();
             <h2 class="mb-1">Central de Operaciones (Admin)</h2>
         </div>
         <div class="rxn-module-actions">
-            <a href="/mi-empresa/configuracion" class="btn btn-outline-secondary shadow-sm">
-                <i class="bi bi-arrow-left"></i> Volver a Configuración
+            <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm shadow-sm" title="Volver al Backoffice">
+                <i class="bi bi-arrow-left"></i> Volver
             </a>
         </div>
     </div>

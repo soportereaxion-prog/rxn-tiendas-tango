@@ -70,9 +70,9 @@ ob_start();
                 
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer">Ayuda</a>
-                <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary">Volver al Entorno</a>
-                <a href="<?= htmlspecialchars($basePath) ?>/crear?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" class="btn btn-primary fw-bold">+ Nuevo Usuario</a>
+                <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="<?= htmlspecialchars($basePath) ?>/crear?<?= htmlspecialchars(http_build_query(['area' => $area])) ?>" class="btn btn-primary btn-sm fw-bold"><i class="bi bi-plus-lg"></i> Nuevo Usuario</a>
+                <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al Entorno"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

@@ -33,7 +33,7 @@ ob_start();
                         <button type="submit" class="btn <?= $pedido['estado_tango'] === 'error_envio_tango' ? 'btn-warning' : ($pedido['estado_tango'] === 'enviado_tango' ? 'btn-outline-success shadow-sm' : 'btn-success shadow-sm') ?> text-dark " data-rxn-confirm="¿Reintentar envío a Tango con los datos comerciales resueltos?" data-confirm-type="warning"><i class="bi bi-arrow-repeat"></i> Enviar a Tango</button>
                     </form>
                 <?php endif; ?>
-                <a href="/mi-empresa/pedidos" class="btn btn-outline-secondary">← Volver al Listado</a>
+                <a href="/mi-empresa/pedidos" class="btn btn-outline-secondary btn-sm" title="Volver al listado de pedidos"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

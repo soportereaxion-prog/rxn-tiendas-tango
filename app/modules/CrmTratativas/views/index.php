@@ -55,10 +55,10 @@ ob_start();
             <h1 class="h3 fw-bold mb-1"><i class="bi bi-briefcase-fill"></i> Tratativas CRM</h1>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= htmlspecialchars($dashboardPath ?? '/') ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
             <?php if (!$isPapelera): ?>
-                <a href="<?= htmlspecialchars($basePath) ?>/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nueva Tratativa</a>
+                <a href="<?= htmlspecialchars($basePath) ?>/crear" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Nueva Tratativa</a>
             <?php endif; ?>
+            <a href="<?= htmlspecialchars($dashboardPath ?? '/') ?>" class="btn btn-outline-secondary btn-sm" title="Volver al CRM"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
     </div>
 

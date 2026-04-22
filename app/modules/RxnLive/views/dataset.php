@@ -18,10 +18,9 @@ ob_start();
 <?php endif; ?>
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
-        <a href="/rxn_live" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left"></i> Volver a Datasets</a>
         <h1 class="h3 mb-0 text-white mt-1"><?= htmlspecialchars($datasetInfo['name']) ?></h1>
     </div>
-    <div class="d-flex gap-2 align-items-center">
+    <div class="d-flex gap-2 align-items-center flex-wrap flex-md-nowrap">
         <!-- SELECT DE VISTAS (PRESETS) -->
         <?php if (!empty($myViews)): ?>
             <select id="savedViewsDropdown" class="form-select form-select-sm bg-dark text-white border-secondary" style="max-width: 240px;" onchange="loadSelectedView()">
@@ -91,6 +90,7 @@ ob_start();
                 <button type="submit" name="format" value="xlsx" class="btn btn-success btn-sm bg-gradient" style="border-radius: 0 0.25rem 0.25rem 0; border-left: 1px solid rgba(255,255,255,0.2);"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel</button>
             </div>
         </form>
+        <a href="/rxn_live" class="btn btn-outline-secondary btn-sm" title="Volver a Datasets"><i class="bi bi-arrow-left"></i> Volver</a>
     </div>
 </div>
 

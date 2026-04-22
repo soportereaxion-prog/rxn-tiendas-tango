@@ -20,9 +20,9 @@ ob_start();
             <p class="text-muted small mb-0">Eventos de PDS, Presupuestos y Tratativas en un solo calendario, con sync push a Google.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= htmlspecialchars($dashboardPath ?? '/') ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
-            <button type="button" id="btn-fullscreen" class="btn btn-outline-info" title="Pantalla completa (Alt+A)"><i class="bi bi-arrows-fullscreen"></i></button>
-            <a href="<?= htmlspecialchars($basePath) ?>/crear" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nuevo Evento</a>
+            <button type="button" id="btn-fullscreen" class="btn btn-outline-info btn-sm" title="Pantalla completa (Alt+A)"><i class="bi bi-arrows-fullscreen"></i></button>
+            <a href="<?= htmlspecialchars($basePath) ?>/crear" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Nuevo Evento</a>
+            <a href="<?= htmlspecialchars($dashboardPath ?? '/') ?>" class="btn btn-outline-secondary btn-sm" title="Volver al CRM"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
     </div>
 

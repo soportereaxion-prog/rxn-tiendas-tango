@@ -12,8 +12,8 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <h2 class="mb-0"><?= htmlspecialchars((string) ($editTitle ?? 'Modificar Articulo')) ?></h2>
             <div class="d-flex gap-2">
-                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> <?= htmlspecialchars((string) ($backLabel ?? 'Volver')) ?>
+                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="<?= htmlspecialchars((string) ($backLabel ?? 'Volver al listado')) ?>">
+                    <i class="bi bi-arrow-left"></i> Volver
                 </a>
                 <?php if (isset($articulo->id)): ?>
                     <?php if (!empty($articulo->codigo_externo) && ($showSyncActions ?? false)): ?>

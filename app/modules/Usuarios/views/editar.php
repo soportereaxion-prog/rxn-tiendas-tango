@@ -16,7 +16,7 @@ ob_start();
                     <span class="badge bg-secondary ms-2 align-middle">Empresa #<?= $usuario->empresa_id ?></span>
                 </p>
             </div>
-            <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary">Volver al listado</a>
+            <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Usuarios"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
 
         <?php

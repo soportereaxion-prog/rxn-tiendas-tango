@@ -10,8 +10,8 @@ ob_start();
                 
             </div>
             <div class="d-flex gap-2">
-                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left me-1"></i> Volver a Categorias
+                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Categorías">
+                    <i class="bi bi-arrow-left"></i> Volver
                 </a>
                 <form action="<?= htmlspecialchars($basePath) ?>/<?= htmlspecialchars((string) $categoria->id) ?>/copiar" method="POST" class="d-inline">
                     <button type="submit" class="btn btn-outline-success" title="Duplicar">

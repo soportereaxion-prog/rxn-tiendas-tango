@@ -847,14 +847,13 @@ class PedidoServicioController extends \App\Core\Controller
     }
 
     /**
-     * Si el PDS vive bajo una tratativa, al guardar volvemos al detalle de la tratativa.
-     * En caso contrario, caemos al editar del propio PDS como siempre.
+     * Al guardar siempre quedamos en el propio PDS en modo edición — el usuario va
+     * componiendo el PDS y guarda varias veces mientras trabaja, no queremos sacarlo
+     * de ahí cada vez. El botón "Volver" del form es el que decide si vuelve a la
+     * Tratativa o al listado de PDS según el contexto (ver views/form.php).
      */
     private function resolveReturnPath(int $pedidoId, int $tratativaId): string
     {
-        if ($tratativaId > 0) {
-            return '/mi-empresa/crm/tratativas/' . $tratativaId;
-        }
         return '/mi-empresa/crm/pedidos-servicio/' . $pedidoId . '/editar';
     }
 

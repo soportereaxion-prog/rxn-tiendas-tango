@@ -18,8 +18,8 @@ ob_start();
             <p class="text-muted small mb-0">Gestión cross-user de configuraciones de RXN Live &mdash; útil para destrabar datasets con vistas corruptas.</p>
         </div>
         <div class="rxn-module-actions">
-            <a href="/rxn_live" class="btn btn-outline-secondary shadow-sm">
-                <i class="bi bi-arrow-left"></i> Volver a RXN Live
+            <a href="/rxn_live" class="btn btn-outline-secondary btn-sm shadow-sm" title="Volver a RXN Live">
+                <i class="bi bi-arrow-left"></i> Volver
             </a>
         </div>
     </div>

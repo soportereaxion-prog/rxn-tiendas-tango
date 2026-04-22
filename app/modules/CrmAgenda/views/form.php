@@ -24,7 +24,7 @@ ob_start();
             <p class="text-muted small mb-0">Los eventos manuales se crean directamente desde acá. Los de PDS, Presupuestos y Tratativas se proyectan automáticamente.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al calendario</a>
+            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al calendario"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
     </div>
 

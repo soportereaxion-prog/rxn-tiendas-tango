@@ -45,7 +45,7 @@ $isFinal = in_array($job['estado'], ['completed', 'cancelled', 'failed'], true);
             <p class="text-muted mb-0 small">Disparado el <?= htmlspecialchars((string) $job['created_at']) ?></p>
         </div>
         <div class="rxn-module-actions">
-            <a href="/mi-empresa/crm/mail-masivos/envios" class="btn btn-outline-secondary btn-sm">← Listado</a>
+            <a href="/mi-empresa/crm/mail-masivos/envios" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Envíos"><i class="bi bi-arrow-left"></i> Volver</a>
             <?php if (!$isFinal): ?>
                 <?php
                     // Si está en queued con cancel_flag=1 → es un zombie (webhook falló,

@@ -11,7 +11,7 @@ ob_start();
             <div class="rxn-module-actions">
                 
                 <span class="badge text-bg-dark px-3 py-2"><?= (int) ($totalNotes ?? 0) ?> notas</span>
-                <a href="/admin/dashboard" class="btn btn-outline-secondary">Volver al Backoffice</a>
+                <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm" title="Volver al Backoffice"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

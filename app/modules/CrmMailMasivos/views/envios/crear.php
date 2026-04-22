@@ -18,7 +18,7 @@ $smtp = $smtp ?? null;
             </p>
         </div>
         <div class="rxn-module-actions">
-            <a href="/mi-empresa/crm/mail-masivos/envios" class="btn btn-outline-secondary btn-sm">← Volver al listado</a>
+            <a href="/mi-empresa/crm/mail-masivos/envios" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Envíos"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
     </div>
 

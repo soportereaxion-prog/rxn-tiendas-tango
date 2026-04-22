@@ -29,12 +29,15 @@ class MantenimientoController extends Controller
         $errorMigrations = $migrationRunner->getErrorMigrations();
         $backupsHistory = $backupManager->listHistory();
 
-        // Extraer Version si está disponible
+        // Extraer Version si está disponible.
+        // version.php expone las claves `current_version` y `current_build` (el bloque `history`
+        // es el changelog). Un bug previo leía `version`/`build` contra este array y devolvía
+        // "Desconocida" siempre aunque el archivo estuviese OK.
         $appVersion = 'Desconocida';
         if (file_exists(__DIR__ . '/../../../config/version.php')) {
             $versionData = require __DIR__ . '/../../../config/version.php';
-            if (is_array($versionData) && isset($versionData['build'])) {
-                $appVersion = $versionData['version'] . ' (Build ' . $versionData['build'] . ')';
+            if (is_array($versionData) && isset($versionData['current_version'], $versionData['current_build'])) {
+                $appVersion = $versionData['current_version'] . ' (Build ' . $versionData['current_build'] . ')';
             }
         }
 

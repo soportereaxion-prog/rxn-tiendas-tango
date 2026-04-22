@@ -255,8 +255,11 @@ ob_start();
     <div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-budget-shell">
         <div class="rxn-module-header mb-2">
             <div>
-                
-                
+                <h1 class="h3 fw-bold mb-0">
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>
+                    <?= $formMode === 'edit' ? 'Presupuesto #' . (int) ($presupuesto['numero'] ?? $presupuesto['id'] ?? 0) : 'Nuevo Presupuesto' ?>
+                    <span class="badge bg-secondary-subtle text-secondary ms-1 align-middle" style="font-size: 0.55em;"><?= htmlspecialchars($estadoLabel) ?></span>
+                </h1>
             </div>
             <div class="rxn-module-actions">
 
@@ -300,8 +303,8 @@ ob_start();
                 <?php if (($presupuesto['estado'] ?? '') !== 'emitido'): ?>
                     <button type="submit" form="crm-presupuesto-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar</button>
                 <?php endif; ?>
-                <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al listado</a>
+                <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Presupuestos"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

@@ -35,8 +35,8 @@ ob_start();
             </div>
             <div class="rxn-module-actions">
 
-                <a href="/mi-empresa/ayuda" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="/mi-empresa/dashboard" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Panel</a>
+                <a href="/mi-empresa/ayuda" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="/mi-empresa/dashboard" class="btn btn-outline-secondary btn-sm" title="Volver al Panel"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

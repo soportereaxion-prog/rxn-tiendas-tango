@@ -17,7 +17,7 @@ ob_start();
                 
             </div>
             <div>
-                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver a Notas"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

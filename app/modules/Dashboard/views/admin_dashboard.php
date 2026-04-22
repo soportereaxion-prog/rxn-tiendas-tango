@@ -22,7 +22,7 @@ ob_start();
             </div>
             <div class="rxn-module-actions">
                 
-                <a href="/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
+                <a href="/" class="btn btn-outline-secondary btn-sm" title="Volver al Launcher"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

@@ -108,8 +108,8 @@ ob_start();
             <div class="rxn-module-actions">
 
                 
-                <a href="/mi-empresa/ayuda?area=tiendas" class="btn btn-outline-info rounded-pill px-4" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="/" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Volver al Launcher</a>
+                <a href="/mi-empresa/ayuda?area=tiendas" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda del Entorno de Tiendas"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="/" class="btn btn-outline-secondary btn-sm" title="Volver al Launcher"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

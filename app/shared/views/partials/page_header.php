@@ -36,7 +36,7 @@ if ($mode === 'compact') {
     <div class="rxn-module-actions d-flex flex-wrap gap-2 align-items-center">
         <?= $actionsHtml ?>
         <?php if ($backUrl): ?>
-            <a href="<?= htmlspecialchars($backUrl) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> <?= htmlspecialchars($backLabel) ?></a>
+            <a href="<?= htmlspecialchars($backUrl) ?>" class="btn btn-outline-secondary btn-sm" title="<?= htmlspecialchars($backLabel) ?>"><i class="bi bi-arrow-left"></i> Volver</a>
         <?php endif; ?>
     </div>
 </div>

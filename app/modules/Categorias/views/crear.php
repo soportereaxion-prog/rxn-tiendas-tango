@@ -9,7 +9,7 @@ ob_start();
                 <h2 class="fw-bold mb-1">Nueva Categoria</h2>
                 
             </div>
-            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">Volver al listado</a>
+            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Categorías"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
 
         <?php

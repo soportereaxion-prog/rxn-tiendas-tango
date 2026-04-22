@@ -18,7 +18,7 @@ ob_start();
             <div class="rxn-module-actions">
 
                 <span class="text-muted small">Hola, <?= htmlspecialchars((string) $userName) ?></span>
-                <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al Entorno</a>
+                <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al Entorno"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

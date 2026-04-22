@@ -19,8 +19,8 @@ ob_start();
                 
             </div>
             <div class="d-flex gap-2">
-                <a href="/empresas" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left me-1"></i> Volver a Empresas
+                <a href="/empresas" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Empresas">
+                    <i class="bi bi-arrow-left"></i> Volver
                 </a>
                 <form action="/empresas/<?= $empresa->id ?>/copiar" method="POST" class="d-inline">
                     <button type="submit" class="btn btn-outline-success" title="Duplicar Empresa">

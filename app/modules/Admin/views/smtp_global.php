@@ -8,7 +8,7 @@ ob_start();
                 <h2 class="text-warning mb-1">⚙️ SMTP Master RXN</h2>
                 
             </div>
-            <a href="/admin/dashboard" class="btn btn-outline-light">Volver al Backoffice</a>
+            <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm" title="Volver al Backoffice"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
 
         <?php

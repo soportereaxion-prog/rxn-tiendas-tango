@@ -34,8 +34,8 @@ ob_start();
             </div>
             <div class="rxn-module-actions">
 
-                <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info shadow-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary shadow-sm"><i class="bi bi-arrow-left"></i> Volver al Entorno</a>
+                <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info btn-sm shadow-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary btn-sm shadow-sm" title="Volver al Entorno"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

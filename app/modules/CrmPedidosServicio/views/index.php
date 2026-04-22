@@ -33,9 +33,9 @@ ob_start();
             </div>
             <div class="rxn-module-actions">
 
-                <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="/mi-empresa/crm/pedidos-servicio/crear" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nuevo pedido</a>
-                <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver al CRM</a>
+                <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="/mi-empresa/crm/pedidos-servicio/crear" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Nuevo pedido</a>
+                <a href="<?= htmlspecialchars((string) $dashboardPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al CRM"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

@@ -10,8 +10,8 @@ ob_start();
                 
             </div>
             <div class="d-flex gap-2">
-                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Volver al listado
+                <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Clientes">
+                    <i class="bi bi-arrow-left"></i> Volver
                 </a>
                 <?php if (!empty($cliente['id'])): ?>
                     <button type="button" id="btn-form-push"

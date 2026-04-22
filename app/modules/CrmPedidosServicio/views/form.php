@@ -2,6 +2,16 @@
 $pageTitle = $formMode === 'edit' ? 'Editar Pedido de Servicio - rxn_suite' : 'Nuevo Pedido de Servicio - rxn_suite';
 $usePageHeader = false; // Mantiene el layout header apagado explícitamente
 
+$pdsBackHref = (string) $basePath;
+$pdsBackTitle = 'Volver al listado de PDS';
+if (!empty($pedido['tratativa_id'])) {
+    $pdsBackHref = '/mi-empresa/crm/tratativas/' . (int) $pedido['tratativa_id'];
+    $pdsBackTitle = 'Volver a la Tratativa #' . (int) $pedido['tratativa_id'];
+}
+$pdsHeaderTitle = $formMode === 'edit'
+    ? 'Pedido de Servicio #' . (int) ($pedido['numero'] ?? 0)
+    : 'Nuevo Pedido de Servicio';
+
 ob_start();
 ?>
     <style>
@@ -188,8 +198,6 @@ ob_start();
 
                 <div class="d-flex align-items-center gap-2 ps-1">
                     <a href="/mi-empresa/crm/formularios-impresion" class="btn btn-outline-light btn-sm text-body border-secondary shadow-sm" title="Formulario Impresión"><i class="bi bi-pc-display"></i> Form.</a>
-                    <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i></a>
-                    <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Volver</a>
                     <?php if (empty($pedido['nro_pedido'])): ?>
                     <button type="submit" form="crm-pedido-servicio-form" name="action" value="save" class="btn btn-primary btn-sm rounded-pill shadow px-4"><i class="bi bi-check2-circle"></i> Guardar</button>
                     <?php endif; ?>
@@ -201,6 +209,14 @@ $topbarLeftHtml = ob_get_clean();
 ob_start();
 ?>
 <div class="container-fluid mt-2 mb-3 rxn-responsive-container crm-service-shell">
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+            <h1 class="h3 fw-bold mb-0"><i class="bi bi-tools me-2"></i><?= htmlspecialchars($pdsHeaderTitle) ?></h1>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
+                <a href="<?= htmlspecialchars($pdsBackHref) ?>" class="btn btn-outline-secondary btn-sm" title="<?= htmlspecialchars($pdsBackTitle) ?>"><i class="bi bi-arrow-left"></i> Volver</a>
+            </div>
+        </div>
 
         <?php require BASE_PATH . '/app/shared/views/components/module_notes_panel.php'; ?>
 
@@ -239,7 +255,7 @@ ob_start();
                         <div class="alert alert-info border-0 small mb-3">
                             <i class="bi bi-briefcase-fill"></i> Este PDS forma parte de la
                             <a href="/mi-empresa/crm/tratativas/<?= (int) $pedido['tratativa_id'] ?>" class="alert-link">Tratativa #<?= (int) $pedido['tratativa_id'] ?></a>.
-                            Al guardar volverás al detalle de la tratativa.
+                            Usá <i class="bi bi-arrow-left"></i> <strong>Volver</strong> para regresar a la tratativa.
                         </div>
                     <?php endif; ?>
                     <div class="rxn-form-section mb-2">

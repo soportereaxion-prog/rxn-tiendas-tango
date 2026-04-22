@@ -8,7 +8,7 @@ ob_start();
                 <h2 class="mb-1">Alta de Empresa</h2>
                 
             </div>
-            <a href="/empresas" class="btn btn-outline-secondary">Volver al listado</a>
+            <a href="/empresas" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Empresas"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
 
         <?php
