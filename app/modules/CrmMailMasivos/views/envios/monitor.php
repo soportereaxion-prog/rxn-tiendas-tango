@@ -38,7 +38,7 @@ $isFinal = in_array($job['estado'], ['completed', 'cancelled', 'failed'], true);
 ?>
 <link rel="stylesheet" href="/css/mail-masivos-envios.css">
 
-<div class="container mt-4 mb-5 rxn-responsive-container">
+<div class="container-fluid mt-4 mb-5 rxn-responsive-container">
     <div class="rxn-module-header mb-3">
         <div>
             <h2 class="fw-bold mb-1"><i class="bi bi-activity"></i> Monitor de Envío #<?= (int) $job['id'] ?></h2>

@@ -98,7 +98,7 @@ foreach ($defaultCards as $cardId => $cardData) {
 $pageTitle = 'RXN Suite';
 ob_start();
 ?>
-<div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">
+<div class="container-fluid rxn-responsive-container">
         
         <div class="rxn-module-header mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
@@ -125,7 +125,7 @@ ob_start();
         <!-- El grid sortable -->
         <div id="dashboard-grid" class="row g-4">
             <?php foreach ($finalCards as $id => $data): ?>
-                <div class="col-sm-6 col-lg-4 rxn-sortable-col" data-id="<?= htmlspecialchars($id) ?>">
+                <div class="col-sm-6 col-lg-4 col-xl-3 rxn-sortable-col" data-id="<?= htmlspecialchars($id) ?>">
                     <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm" style="cursor: grab;">
                         <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                             <div class="rxn-module-icon text-primary"><?= $data['icon'] ?></div>

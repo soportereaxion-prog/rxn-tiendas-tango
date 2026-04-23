@@ -698,14 +698,21 @@
                 // Ignorar si el Spotlight Modal está abierto (tiene su propio manejo de Escape)
                 if (document.querySelector('.rxn-spotlight-dialog.show')) return;
 
+                // Resolver destino contextual: prioriza [data-rxn-back] (href declarado por
+                // la vista, p.ej. la tratativa de origen) y cae a la heurística legacy si
+                // no existe. NUNCA cae a history.back() — eso genera loops con el referrer
+                // de un POST+redirect.
+                var backBtn = document.querySelector('[data-rxn-back]') ||
+                              document.querySelector('.rxn-module-actions a.btn-outline-secondary') ||
+                              document.querySelector('a.btn-outline-secondary[href*="/mi-empresa"]');
+                var backHref = backBtn ? backBtn.getAttribute('href') : null;
+
                 // Si el PDS ya fue enviado a Tango + mail → salir sin preguntar.
                 if (isFlowCompleted()) {
-                    var backBtnQuick = document.querySelector('.rxn-module-actions a.btn-outline-secondary') ||
-                                       document.querySelector('a.btn-outline-secondary[href*="/mi-empresa"]');
-                    if (backBtnQuick && backBtnQuick.href) {
+                    if (backHref) {
                         e.preventDefault();
                         e.stopImmediatePropagation();
-                        window.location.href = backBtnQuick.href;
+                        window.location.href = backHref;
                     }
                     return;
                 }
@@ -720,14 +727,7 @@
                         okText: 'Sí, salir',
                         cancelText: 'Cancelar',
                         onConfirm: function() {
-                            // Navegar directo al href del botón "Volver al listado"
-                            var backBtn = document.querySelector('.rxn-module-actions a.btn-outline-secondary') ||
-                                          document.querySelector('a.btn-outline-secondary[href*="/mi-empresa"]');
-                            if (backBtn && backBtn.href) {
-                                window.location.href = backBtn.href;
-                            } else {
-                                window.history.back();
-                            }
+                            if (backHref) { window.location.href = backHref; }
                         }
                     });
                 }

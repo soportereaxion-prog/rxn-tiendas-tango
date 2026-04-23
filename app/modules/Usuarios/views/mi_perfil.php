@@ -14,7 +14,7 @@ ob_start();
         ? 'Guardada. Tipeá para reemplazarla.'
         : 'Contraseña / App Password';
     ?>
-    <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 720px;">
+    <div class="container-fluid mt-2 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="rxn-module-header mb-4">
             <h2 class="fw-bold m-0">Mi Perfil B2B</h2>
             <div class="rxn-module-actions">

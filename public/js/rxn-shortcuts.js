@@ -363,13 +363,29 @@
             const activeEl = document.activeElement;
             const isInput = activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName);
             if (isInput) { activeEl.blur(); return; }
-            if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
-                e.preventDefault(); window.history.back(); return;
+
+            // Prioridad 1: botón Volver explícito declarado por la vista con data-rxn-back.
+            // El href es la dirección contextual decidida por el server (ej: la tratativa
+            // de origen, o el listado si no había origen). Esto evita el bug de
+            // history.back() después de un POST+redirect, que lleva al mismo /editar en vez
+            // de al destino correcto.
+            const backLink = document.querySelector('[data-rxn-back]');
+            if (backLink && backLink.getAttribute('href')) {
+                e.preventDefault();
+                window.location.href = backLink.getAttribute('href');
+                return;
             }
+
+            // Prioridad 2: heurística por clase (flecha izquierda en rxn-module-actions).
             const backBtn = document.querySelector('.rxn-module-actions a.btn-outline-secondary') ||
                             document.querySelector('a.btn-outline-secondary i.bi-arrow-left')?.closest('a') ||
                             document.querySelector('.rxn-module-actions a[href*="/mi-empresa"]');
-            if (backBtn) { e.preventDefault(); backBtn.click(); }
+            if (backBtn) { e.preventDefault(); backBtn.click(); return; }
+
+            // Prioridad 3: history.back() sólo si venimos del mismo host (last resort).
+            if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+                e.preventDefault(); window.history.back();
+            }
         }
     });
 

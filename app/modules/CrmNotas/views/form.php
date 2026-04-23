@@ -49,6 +49,22 @@ if (isset($nota) && $nota !== null) {
 // Si venimos pre-cargados desde una tratativa (alta con ?tratativa_id=), mostramos un chip
 // informativo para que el usuario entienda el contexto.
 $showTratativaPrefillChip = !isset($nota) && !empty($prefill['tratativa_id']);
+
+// Volver contextual: si la nota vive bajo una tratativa (ya vinculada o via prefill),
+// el Volver lleva al detalle de la tratativa. Si no, al listado de notas.
+// Mismo patrón que PDS v1.19.0.
+$notaBackHref = (string) $indexPath;
+$notaBackTitle = 'Volver a Notas';
+$notaTratativaContext = 0;
+if (isset($nota) && !empty($nota->tratativa_id)) {
+    $notaTratativaContext = (int) $nota->tratativa_id;
+} elseif (!empty($prefill['tratativa_id'])) {
+    $notaTratativaContext = (int) $prefill['tratativa_id'];
+}
+if ($notaTratativaContext > 0) {
+    $notaBackHref = '/mi-empresa/crm/tratativas/' . $notaTratativaContext;
+    $notaBackTitle = 'Volver a la Tratativa #' . $notaTratativaContext;
+}
 ?>
 <?php
 $pageTitle = 'RXN Suite';
@@ -64,7 +80,7 @@ ob_start();
                 
             </div>
             <div class="d-flex gap-2">
-                <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver a Notas"><i class="bi bi-arrow-left"></i> Volver</a>
+                <a href="<?= htmlspecialchars($notaBackHref) ?>" class="btn btn-outline-secondary btn-sm" title="<?= htmlspecialchars($notaBackTitle) ?>" data-rxn-back><i class="bi bi-arrow-left"></i> Volver</a>
                 <?php if ($isEdit && isset($nota->id)): ?>
                     <form action="<?= htmlspecialchars($indexPath) ?>/<?= $nota->id ?>/copiar" method="POST" class="d-inline">
                         <button type="submit" class="btn btn-outline-success" title="Duplicar">
@@ -176,7 +192,7 @@ ob_start();
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary border-opacity-25">
-                        <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-outline-secondary px-4"><i class="bi bi-x-circle"></i> Cancelar</a>
+                        <a href="<?= htmlspecialchars($notaBackHref) ?>" class="btn btn-outline-secondary px-4"><i class="bi bi-x-circle"></i> Cancelar</a>
                         <button type="submit" class="btn btn-primary px-5 fw-bold text-white shadow-sm">
                             <i class="bi <?= $isEdit ? 'bi-save2' : 'bi-plus-circle' ?>"></i> <?= $isEdit ? 'Actualizar Nota' : 'Guardar Nueva Nota' ?>
                         </button>

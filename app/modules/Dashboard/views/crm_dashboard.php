@@ -211,7 +211,7 @@ $pageHeaderActions = ob_get_clean();
 
         <div id="dashboard-grid-crm" class="row g-4">
             <?php foreach ($finalCards as $id => $card): ?>
-                <div class="col-sm-6 col-lg-4 rxn-sortable-col" data-id="<?= htmlspecialchars((string) $id) ?>">
+                <div class="col-sm-6 col-lg-4 col-xl-3 rxn-sortable-col" data-id="<?= htmlspecialchars((string) $id) ?>">
                     <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
                         <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                             <div class="rxn-module-icon text-primary"><?= $card['icon'] ?></div>

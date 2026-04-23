@@ -352,6 +352,10 @@ class UsuarioPerfilController
             $stmt = $pdo->prepare("UPDATE usuarios SET preferencia_tema = ? WHERE id = ?");
             $stmt->execute([$newTheme, $_SESSION['user_id']]);
             $_SESSION['pref_theme'] = $newTheme;
+            // Liberar el lock de sesión inmediatamente — evita que otras pestañas
+            // queden esperando bloqueadas y que escrituras paralelas sobrescriban
+            // este cambio con un snapshot stale.
+            session_write_close();
             echo json_encode(['success' => true, 'theme' => $newTheme]);
         } catch (\Exception $e) {
             http_response_code(500);

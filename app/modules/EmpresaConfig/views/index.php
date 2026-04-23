@@ -22,7 +22,7 @@ ob_start();
     $smtpSectionTitle = $smtpSectionTitle ?? '5. Transmision de Correo Electronico (SMTP)';
     $smtpIntroText = $smtpIntroText ?? 'Fallback Automatico de RXN: Si la llave SMTP esta apagada, el sistema utilizara de forma totalmente transparente nuestro SMTP Global de alta reputacion garantizando que los correos logisticos lleguen a la bandeja de entrada de tus clientes.';
     ?>
-    <div class="container-xl mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 1280px;">
+    <div class="container-fluid mt-2 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="mb-4 rxn-module-header">
             <div>
                 <h2 class="fw-bold mb-1"><?= htmlspecialchars((string) $headerTitle) ?></h2>

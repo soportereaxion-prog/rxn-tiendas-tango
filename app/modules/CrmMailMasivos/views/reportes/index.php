@@ -4,7 +4,7 @@ ob_start();
 
 $flash = \App\Core\Flash::get();
 ?>
-<div class="container mt-5 mb-5 rxn-responsive-container">
+<div class="container-fluid mt-2 mb-5 rxn-responsive-container">
     <div class="rxn-module-header mb-4">
         <div>
             <h2 class="fw-bold mb-1"><i class="bi bi-diagram-3"></i> Reportes de Mail Masivos</h2>

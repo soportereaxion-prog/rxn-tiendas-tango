@@ -2,7 +2,7 @@
 $pageTitle = 'Mail Masivos - rxn_suite';
 ob_start();
 ?>
-<div class="container mt-5 mb-5 rxn-responsive-container">
+<div class="container-fluid mt-2 mb-5 rxn-responsive-container">
     <div class="rxn-module-header mb-4">
         <div>
             <h2 class="fw-bold mb-1"><i class="bi bi-envelope-paper-fill"></i> Mail Masivos</h2>

@@ -13,7 +13,7 @@ $usuariosCrm = $usuariosCrm ?? [];
 ob_start();
 ?>
 
-<main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1600px;">
+<main class="container-fluid flex-grow-1 px-4 mb-5 crm-agenda-shell">
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1"><i class="bi bi-calendar-event"></i> Agenda CRM</h1>

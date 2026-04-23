@@ -10,7 +10,7 @@ ob_start();
 ?>
     <style>
         .crm-monitoreo-shell {
-            max-width: 1400px;
+            max-width: 100%;
         }
 
         .user-grid {

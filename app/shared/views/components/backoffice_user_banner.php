@@ -28,7 +28,7 @@ if (\App\Shared\Services\DevDbSwitcher::isEnabled() && $isRxnAdmin) {
     }
 }
 ?>
-<div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1" style="max-width: 1400px;">
+<div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1">
     <!-- Left zone: hamburger (mobile) + topbar left content -->
     <div class="d-flex align-items-center gap-2">
         <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-pill px-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#rxnMobileNav" aria-controls="rxnMobileNav" aria-label="Menú">
@@ -194,17 +194,34 @@ if (\App\Shared\Services\DevDbSwitcher::isEnabled() && $isRxnAdmin) {
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const rootHtml = document.documentElement;
+
+    function applyTheme(theme) {
+        if (theme !== 'light' && theme !== 'dark') return;
+        rootHtml.setAttribute('data-theme', theme);
+        const btn = document.getElementById('backendThemeToggleBtn');
+        if (btn) btn.innerText = theme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Sincronización entre pestañas: si otra pestaña cambió el tema, aplicarlo
+    // acá sin necesidad de reload (storage event dispara en las OTRAS pestañas).
+    window.addEventListener('storage', function (ev) {
+        if (ev.key === 'rxn_theme' && ev.newValue) {
+            applyTheme(ev.newValue);
+        }
+    });
+
     const themeBtn = document.getElementById('backendThemeToggleBtn');
     if (themeBtn && !themeBtn.dataset.bound) {
         themeBtn.dataset.bound = "true";
         themeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            const rootHtml = document.documentElement;
             const isDark = rootHtml.getAttribute('data-theme') === 'dark';
             const newTheme = isDark ? 'light' : 'dark';
-            
-            rootHtml.setAttribute('data-theme', newTheme);
-            themeBtn.innerText = newTheme === 'dark' ? '☀️' : '🌙';
+
+            applyTheme(newTheme);
+            // Broadcast a otras pestañas via localStorage → storage event.
+            try { localStorage.setItem('rxn_theme', newTheme); } catch (_) {}
 
             fetch('/mi-perfil/toggle-theme', {
                 method: 'POST',

@@ -8,7 +8,7 @@ ob_start();
     $moduleNotesLabel = $moduleNotesLabel ?? 'Articulos';
     $showCategories = $showCategories ?? true;
     ?>
-    <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
+    <div class="container-fluid mt-2 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="rxn-module-header mb-4">
             <h2 class="mb-0"><?= htmlspecialchars((string) ($editTitle ?? 'Modificar Articulo')) ?></h2>
             <div class="d-flex gap-2">

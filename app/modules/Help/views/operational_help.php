@@ -8,7 +8,7 @@ ob_start();
     $area = $area ?? 'tiendas';
     $isCrm = $area === 'crm';
     ?>
-    <div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 1160px;">
+    <div class="container-fluid mt-2 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="rxn-module-header mb-4">
             <div>
                 <span class="help-kicker mb-3"><i class="bi bi-life-preserver"></i> Ayuda para humanos</span>

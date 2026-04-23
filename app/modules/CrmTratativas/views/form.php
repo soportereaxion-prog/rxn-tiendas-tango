@@ -22,7 +22,7 @@ $estadoOpciones = [
 ob_start();
 ?>
 
-<main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1100px;">
+<main class="container-fluid flex-grow-1 px-4 mb-5 crm-tratativas-shell">
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1">
@@ -32,7 +32,7 @@ ob_start();
             <p class="text-muted small mb-0">Agrupá un cliente, un estado comercial y vinculá tus PDS y Presupuestos bajo un mismo caso.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Tratativas"><i class="bi bi-arrow-left"></i> Volver</a>
+            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Tratativas" data-rxn-back><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
     </div>
 

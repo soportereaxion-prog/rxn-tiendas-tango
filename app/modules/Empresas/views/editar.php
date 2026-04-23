@@ -2,7 +2,7 @@
 $pageTitle = 'RXN Suite';
 ob_start();
 ?>
-<div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
+<div class="container-fluid mt-2 mb-5 rxn-responsive-container rxn-form-shell">
         <?php
         $activaActual = isset($old) ? isset($old['activa']) : (bool) $empresa->activa;
         $tiendasActual = $activaActual && (isset($old) ? isset($old['modulo_tiendas']) : (bool) ($empresa->modulo_tiendas ?? 0));

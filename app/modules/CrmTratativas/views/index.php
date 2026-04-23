@@ -49,7 +49,7 @@ $estadoBadges = [
 ob_start();
 ?>
 
-<main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1400px;">
+<main class="container-fluid flex-grow-1 px-4 mb-5 crm-tratativas-shell">
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1"><i class="bi bi-briefcase-fill"></i> Tratativas CRM</h1>

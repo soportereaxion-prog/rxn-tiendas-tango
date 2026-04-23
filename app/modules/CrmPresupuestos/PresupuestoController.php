@@ -681,14 +681,11 @@ class PresupuestoController extends \App\Core\Controller
     }
 
     /**
-     * Si el Presupuesto vive bajo una tratativa, al guardar volvemos al detalle de la tratativa.
-     * En caso contrario, caemos al editar del propio Presupuesto como siempre.
+     * Guardar = quedarse en el presupuesto (coherente con PDS v1.19.0). El botón Volver
+     * del form es el que lleva a la tratativa si el presupuesto vive bajo una tratativa.
      */
     private function resolveReturnPath(int $presupuestoId, int $tratativaId): string
     {
-        if ($tratativaId > 0) {
-            return '/mi-empresa/crm/tratativas/' . $tratativaId;
-        }
         return '/mi-empresa/crm/presupuestos/' . $presupuestoId . '/editar';
     }
 

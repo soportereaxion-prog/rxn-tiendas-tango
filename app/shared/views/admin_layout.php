@@ -72,7 +72,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>
 
     <!-- Contenido principal -->
-    <main class="container-fluid flex-grow-1 px-4 mb-4" style="max-width: 1400px;">
+    <main class="container-fluid flex-grow-1 px-4 mb-4" style="min-width: 0;">
         <?php 
         $usePageHeader = $usePageHeader ?? false;
         $headerMode = $headerMode ?? 'standard';

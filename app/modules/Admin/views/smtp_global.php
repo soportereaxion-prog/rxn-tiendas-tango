@@ -2,7 +2,7 @@
 $pageTitle = 'RXN Suite';
 ob_start();
 ?>
-<div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell" style="max-width: 900px;">
+<div class="container-fluid mt-2 mb-5 rxn-responsive-container rxn-form-shell">
         <div class="mb-4 rxn-module-header">
             <div>
                 <h2 class="text-warning mb-1">⚙️ SMTP Master RXN</h2>

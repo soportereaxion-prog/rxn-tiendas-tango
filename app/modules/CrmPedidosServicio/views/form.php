@@ -16,12 +16,21 @@ ob_start();
 ?>
     <style>
         .crm-service-shell {
-            max-width: 1460px;
+            max-width: 100%;
         }
 
         .crm-service-form .card-body {
             padding: 0.95rem 1.05rem;
         }
+
+        /* Compactar separación vertical entre secciones del form — evita el hueco
+           que se veía entre Encabezado / Detalle / Diagnóstico / Summary / Motivo. */
+        .crm-service-shell .rxn-form-section + .rxn-form-section {
+            margin-top: 0.35rem;
+        }
+        .crm-service-shell .rxn-form-section.mb-2 { margin-bottom: 0 !important; }
+        .crm-service-shell .rxn-form-section.mb-4 { margin-bottom: 0.35rem !important; }
+        .crm-service-shell .rxn-form-section .rxn-surface.mb-4 { margin-bottom: 0.35rem !important; }
 
         .crm-picker-wrap {
             position: relative;
@@ -214,7 +223,7 @@ ob_start();
             <h1 class="h3 fw-bold mb-0"><i class="bi bi-tools me-2"></i><?= htmlspecialchars($pdsHeaderTitle) ?></h1>
             <div class="d-flex gap-2 flex-wrap">
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="<?= htmlspecialchars($pdsBackHref) ?>" class="btn btn-outline-secondary btn-sm" title="<?= htmlspecialchars($pdsBackTitle) ?>"><i class="bi bi-arrow-left"></i> Volver</a>
+                <a href="<?= htmlspecialchars($pdsBackHref) ?>" class="btn btn-outline-secondary btn-sm" title="<?= htmlspecialchars($pdsBackTitle) ?>" data-rxn-back><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 

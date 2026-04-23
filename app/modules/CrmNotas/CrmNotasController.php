@@ -155,13 +155,9 @@ class CrmNotasController extends Controller
 
             $this->repository->save($nota);
 
-            // Si la nota quedó vinculada a una tratativa, volvemos al detalle de la tratativa
-            // (mismo patrón que PDS/Presupuestos creados desde una tratativa).
-            // Si no, volvemos al split view con la nota recién creada seleccionada (?n=ID).
-            $redirectPath = $nota->tratativa_id !== null
-                ? '/mi-empresa/crm/tratativas/' . $nota->tratativa_id
-                : $ui['indexPath'] . '?n=' . (int) $nota->id;
-
+            // Guardar = quedarse en la nota (coherente con PDS v1.19.0). El botón Volver
+            // es el que lleva a la tratativa si la nota vive bajo una tratativa.
+            $redirectPath = $ui['indexPath'] . '/' . (int) $nota->id . '/editar';
             header('Location: ' . $this->withSuccess($redirectPath, 'Nota creada exitosamente.'));
             exit;
         } catch (\Exception $e) {
@@ -221,8 +217,9 @@ class CrmNotasController extends Controller
             }
 
             $this->repository->save($nota);
-            // Volvemos al split view parado en la nota recién editada (?n=ID).
-            header('Location: ' . $this->withSuccess($ui['indexPath'] . '?n=' . (int) $nota->id, 'Nota actualizada.'));
+            // Guardar = quedarse en la nota (coherente con PDS/Presupuestos). El Volver
+            // del form lleva a la tratativa si corresponde, o al split view si no.
+            header('Location: ' . $this->withSuccess($ui['indexPath'] . '/' . (int) $nota->id . '/editar', 'Nota actualizada.'));
             exit;
         } catch (\Exception $e) {
             $nota = clone $this->repository->findByIdAndEmpresa((int) $id, $empresaId);

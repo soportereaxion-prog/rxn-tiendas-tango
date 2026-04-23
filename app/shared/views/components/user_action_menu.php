@@ -19,17 +19,33 @@ $oppositeThemeBtn = $currentTheme === 'dark' ? '☀️' : '🌙';
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const rootHtml = document.documentElement;
+
+    function applyTheme(theme) {
+        if (theme !== 'light' && theme !== 'dark') return;
+        rootHtml.setAttribute('data-theme', theme);
+        const btn = document.getElementById('backendThemeToggleBtn');
+        if (btn) btn.innerText = theme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Si otra pestaña cambió el tema, aplicarlo acá sin reload.
+    window.addEventListener('storage', function (ev) {
+        if (ev.key === 'rxn_theme' && ev.newValue) {
+            applyTheme(ev.newValue);
+        }
+    });
+
     const themeBtn = document.getElementById('backendThemeToggleBtn');
     if (themeBtn && !themeBtn.dataset.bound) {
         themeBtn.dataset.bound = "true";
         themeBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            const rootHtml = document.documentElement;
             const isDark = rootHtml.getAttribute('data-theme') === 'dark';
             const newTheme = isDark ? 'light' : 'dark';
-            
-            rootHtml.setAttribute('data-theme', newTheme);
-            themeBtn.innerText = newTheme === 'dark' ? '☀️' : '🌙';
+
+            applyTheme(newTheme);
+            // Broadcast a otras pestañas via storage event.
+            try { localStorage.setItem('rxn_theme', newTheme); } catch (_) {}
 
             fetch('/mi-perfil/toggle-theme', {
                 method: 'POST',

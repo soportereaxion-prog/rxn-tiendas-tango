@@ -5,6 +5,31 @@ $groupableFields = array_filter($pivotMetadata, fn($m) => !empty($m['groupable']
 $aggregatableFields = array_filter($pivotMetadata, fn($m) => !empty($m['aggregatable']));
 ob_start();
 ?>
+<style>
+    /* min-width:0 en la cadena Flex para que el contenido intrínseco no infle
+       a los ancestros — comportamiento nativo de .table-responsive (overflow-x
+       auto de Bootstrap) toma la responsabilidad del scroll horizontal. */
+    .rxn-live-shell,
+    .rxn-live-shell [class^="col-"],
+    .rxn-live-shell [class*=" col-"],
+    .rxn-live-shell .card,
+    .rxn-live-shell .card-body,
+    .rxn-live-shell .tab-content,
+    .rxn-live-shell .tab-pane,
+    .rxn-live-shell .table-responsive {
+        min-width: 0;
+    }
+    /* Scroll VERTICAL interno del tab-pane: Bootstrap .table-responsive solo
+       declara overflow-x:auto, sin overflow-y. Con el max-height:70vh inline
+       del tab-pane, sin overflow-y explícito el contenido se derrama abajo del
+       cap (visible por default). Datasets con pocas filas (Ventas: 14) nunca
+       alcanzan el cap y no se nota; datasets densos (PDS: 104) se derraman.
+       Agregando overflow-y:auto, el tab-pane scrollea internamente. */
+    .rxn-live-shell .tab-pane.table-responsive {
+        overflow-y: auto;
+    }
+</style>
+<div class="rxn-live-shell">
 <?php if (!empty($safeMode)): ?>
 <div class="alert alert-warning d-flex align-items-center justify-content-between mb-3 py-2" role="alert">
     <div>
@@ -179,8 +204,8 @@ ob_start();
     </div>
 
     <!-- TABLE SECTION -->
-    <div class="col-lg-8" id="tableSectionCol">
-        <div class="card bg-dark border-secondary border-opacity-50 h-100 shadow-sm">
+    <div class="col-lg-8" id="tableSectionCol" style="min-width: 0;">
+        <div class="card bg-dark border-secondary border-opacity-50 h-100 shadow-sm" style="max-width: 100%;">
             <div class="card-header border-secondary border-opacity-50 bg-transparent px-0 pt-0 pb-0 d-flex justify-content-between align-items-end">
                 <ul class="nav nav-tabs px-3 m-0" id="datasetTabs" role="tablist" style="border-bottom: none;">
                     <li class="nav-item" role="presentation">
@@ -196,7 +221,7 @@ ob_start();
             </div>
             <div class="card-body p-0 tab-content rxn-scrollbar" id="datasetTabsContent">
                 <!-- TAB PLANA -->
-                <div class="tab-pane fade show active table-responsive rxn-scrollbar" id="plana" role="tabpanel" style="min-height: 520px; max-height: 70vh;">
+                <div class="tab-pane fade show active table-responsive rxn-scrollbar" id="plana" role="tabpanel" style="min-height: 520px; max-height: 70vh; overflow-y: auto;">
                     <?php if (empty($datasetRows)): ?>
                         <div class="text-center p-5 text-muted">
                             <i class="bi bi-inboxes mb-2 fs-3"></i><br>
@@ -272,7 +297,7 @@ ob_start();
                             </div>
                         </div>
                     </div>
-                    <div class="table-responsive p-0 rxn-scrollbar" id="pivotResultContainer" style="min-height: 520px; max-height: 70vh;">
+                    <div class="table-responsive p-0 rxn-scrollbar" id="pivotResultContainer" style="min-height: 520px; max-height: 70vh; overflow-y: auto;">
                         <div class="text-center p-5 text-muted">Configurá los campos arriba y pulsá Renderizar Matriz.</div>
                     </div>
                 </div>
@@ -421,6 +446,7 @@ tr.rxn-group-row.rxn-group-level-2 td { background-color: rgba(13, 110, 253, 0.0
     border-radius: 9px;
 }
 </style>
+</div><!-- /.rxn-live-shell -->
 
 <?php
 $content = ob_get_clean();

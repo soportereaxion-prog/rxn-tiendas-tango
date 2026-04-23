@@ -50,7 +50,7 @@ if ($hasCrmAccess) {
 $pageTitle = 'RXN Suite';
 ob_start();
 ?>
-<div class="container rxn-responsive-container" style="max-width: 1100px;">
+<div class="container-fluid rxn-responsive-container">
         <div class="text-center mb-5 pb-3">
             <img src="/uploads/empresas/1/branding/logo_1774467026.png" alt="Reaxion Soluciones Inteligentes" class="rxn-auth-logo mb-3" style="max-height: 50px;">
             <p class="hero-subtitle">-Suite Re@xion para administrar tu empresa con centralización en Tango-</p>

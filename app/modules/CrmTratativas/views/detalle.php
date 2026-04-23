@@ -51,7 +51,7 @@ $formatFecha = static function ($value): string {
 ob_start();
 ?>
 
-<main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 1400px;">
+<main class="container-fluid flex-grow-1 px-4 mb-5 crm-tratativas-shell">
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1">
@@ -62,7 +62,7 @@ ob_start();
             <p class="text-muted small mb-0"><?= htmlspecialchars((string) ($tratativa['titulo'] ?? '')) ?></p>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Listado</a>
+            <a href="<?= htmlspecialchars($basePath) ?>" class="btn btn-outline-secondary" title="Volver al listado de Tratativas" data-rxn-back><i class="bi bi-arrow-left"></i> Listado</a>
             <a href="<?= htmlspecialchars($basePath) ?>/<?= $tratativaId ?>/editar" class="btn btn-outline-primary"><i class="bi bi-pencil"></i> Editar</a>
         </div>
     </div>

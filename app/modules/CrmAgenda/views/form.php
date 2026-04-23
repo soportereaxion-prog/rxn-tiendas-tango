@@ -14,7 +14,7 @@ $fieldError = static function (string $field) use ($errors): string {
 ob_start();
 ?>
 
-<main class="container-fluid flex-grow-1 px-4 mb-5" style="max-width: 900px;">
+<main class="container-fluid flex-grow-1 px-4 mb-5">
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1">

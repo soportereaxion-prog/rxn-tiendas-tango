@@ -2,11 +2,20 @@
 $pageTitle = $formMode === 'edit' ? 'Editar Presupuesto CRM - rxn_suite' : 'Nuevo Presupuesto CRM - rxn_suite';
 $usePageHeader = false;
 
+// Volver contextual: si el presupuesto vive bajo una tratativa, el Volver lleva a la
+// tratativa. Si no, al listado. Mismo patrón que PDS v1.19.0.
+$presupuestoBackHref = (string) $basePath;
+$presupuestoBackTitle = 'Volver al listado de Presupuestos';
+if (!empty($presupuesto['tratativa_id'])) {
+    $presupuestoBackHref = '/mi-empresa/crm/tratativas/' . (int) $presupuesto['tratativa_id'];
+    $presupuestoBackTitle = 'Volver a la Tratativa #' . (int) $presupuesto['tratativa_id'];
+}
+
 ob_start();
 ?>
     <style>
         .crm-budget-shell {
-            max-width: 1480px;
+            max-width: 100%;
         }
 
         .crm-budget-form .card-body {
@@ -304,7 +313,7 @@ ob_start();
                     <button type="submit" form="crm-presupuesto-form" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Guardar</button>
                 <?php endif; ?>
                 <a href="<?= htmlspecialchars((string) $helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer" title="Ayuda"><i class="bi bi-question-circle"></i> Ayuda</a>
-                <a href="<?= htmlspecialchars((string) $basePath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al listado de Presupuestos"><i class="bi bi-arrow-left"></i> Volver</a>
+                <a href="<?= htmlspecialchars($presupuestoBackHref) ?>" class="btn btn-outline-secondary btn-sm" title="<?= htmlspecialchars($presupuestoBackTitle) ?>" data-rxn-back><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
         </div>
 
@@ -352,7 +361,7 @@ ob_start();
                 <div class="alert alert-info border-0 small mb-3">
                     <i class="bi bi-briefcase-fill"></i> Este presupuesto forma parte de la
                     <a href="/mi-empresa/crm/tratativas/<?= (int) $presupuesto['tratativa_id'] ?>" class="alert-link">Tratativa #<?= (int) $presupuesto['tratativa_id'] ?></a>.
-                    Al guardar volverás al detalle de la tratativa.
+                    Usá ← Volver para regresar a la tratativa.
                 </div>
             <?php endif; ?>
             <fieldset <?= ($presupuesto['estado'] ?? '') === 'emitido' ? 'disabled' : '' ?>>

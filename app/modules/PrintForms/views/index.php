@@ -2,7 +2,7 @@
 $pageTitle = 'Formularios de Impresion - rxn_suite';
 ob_start();
 ?>
-    <div class="container mt-5 rxn-responsive-container">
+    <div class="container-fluid mt-2 rxn-responsive-container">
         <div class="rxn-module-header mb-4">
             <div>
                 <h2>CRM - Formularios de Impresion</h2>

@@ -63,7 +63,7 @@ ob_start();
         return '<a class="rxn-sort-link" href="' . htmlspecialchars($sortUrl($column)) . '"><span>' . htmlspecialchars($label) . '</span><span class="rxn-sort-indicator">' . htmlspecialchars($sortIndicator($column)) . '</span></a>';
     };
     ?>
-    <div class="container mt-5 rxn-responsive-container">
+    <div class="container-fluid mt-2 rxn-responsive-container">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
             <div>
                 <h2 class="fw-bold mb-1">Gestión de Usuarios</h2>

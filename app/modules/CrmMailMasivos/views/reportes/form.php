@@ -2,7 +2,7 @@
 $pageTitle = ($mode === 'edit' ? 'Editar Reporte' : 'Nuevo Reporte') . ' - rxn_suite';
 ob_start();
 ?>
-<div class="container mt-5 mb-5 rxn-responsive-container rxn-form-shell">
+<div class="container-fluid mt-2 mb-5 rxn-responsive-container rxn-form-shell">
     <div class="rxn-module-header mb-4">
         <div>
             <h2 class="fw-bold mb-1">

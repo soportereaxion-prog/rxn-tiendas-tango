@@ -9,8 +9,11 @@ use PDO;
 class UIHelper
 {
     /**
-     * Computa los datos de sesión para escupir los atributos dinámicos
-     * del tag <HTML> en el Admin (B2B). Fallback default 'light' y 'md'.
+     * Computa los atributos dinámicos del tag <HTML> en el Admin (B2B).
+     * Lee SIEMPRE de DB — no usar `$_SESSION` como caché: el snapshot de sesión
+     * entre pestañas genera race condition (pestaña A cambia tema → pestaña B
+     * al cerrar su request sobrescribe la sesión con valores stale y el cambio
+     * se pierde). La DB es la única fuente de verdad. Costo: 1 query por render.
      */
     public static function getHtmlAttributes(): string
     {
@@ -18,23 +21,19 @@ class UIHelper
         $font = 'md';
 
         if (!empty($_SESSION['user_id'])) {
-            if (isset($_SESSION['pref_theme']) && isset($_SESSION['pref_font'])) {
-                $theme = $_SESSION['pref_theme'];
-                $font = $_SESSION['pref_font'];
-            } else {
-                try {
-                    $pdo = Database::getConnection();
-                    $stmt = $pdo->prepare("SELECT preferencia_tema, preferencia_fuente FROM usuarios WHERE id = ?");
-                    $stmt->execute([$_SESSION['user_id']]);
-                    if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $theme = $row['preferencia_tema'] ?: 'light';
-                        $font = $row['preferencia_fuente'] ?: 'md';
-                        // Cacheamos localmente
-                        $_SESSION['pref_theme'] = $theme;
-                        $_SESSION['pref_font'] = $font;
-                    }
-                } catch (\Exception $e) {}
-            }
+            try {
+                $pdo = Database::getConnection();
+                $stmt = $pdo->prepare("SELECT preferencia_tema, preferencia_fuente FROM usuarios WHERE id = ?");
+                $stmt->execute([$_SESSION['user_id']]);
+                if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $theme = $row['preferencia_tema'] ?: 'light';
+                    $font = $row['preferencia_fuente'] ?: 'md';
+                    // Mantenemos la sesión sincronizada para componentes que todavía
+                    // leen de `$_SESSION['pref_theme']` (user_action_menu.php, etc.).
+                    $_SESSION['pref_theme'] = $theme;
+                    $_SESSION['pref_font'] = $font;
+                }
+            } catch (\Exception $e) {}
         }
 
         return sprintf('data-theme="%s" data-font="%s"', htmlspecialchars($theme), htmlspecialchars($font));

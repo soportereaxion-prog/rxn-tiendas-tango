@@ -13,7 +13,7 @@ if ($canViewRelease) {
 $pageTitle = 'RXN Suite';
 ob_start();
 ?>
-<div class="container-fluid rxn-responsive-container" style="max-width: 1200px;">
+<div class="container-fluid rxn-responsive-container">
         
         <div class="rxn-module-header mb-5 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
@@ -37,7 +37,7 @@ ob_start();
 
         <div class="row g-4 justify-content-center">
             
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-4 col-xl-3">
                 <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                         <div class="rxn-module-icon text-primary"><i class="bi bi-buildings"></i></div>
@@ -48,7 +48,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-4 col-xl-3">
                 <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm" style="opacity: 0.6;">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                         <div class="rxn-module-icon text-secondary"><i class="bi bi-gear"></i></div>
@@ -59,7 +59,7 @@ ob_start();
                 </div>
             </div>
             
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-4 col-xl-3">
                 <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                         <div class="rxn-module-icon text-danger"><i class="bi bi-tools"></i></div>
@@ -70,7 +70,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-4 col-xl-3">
                 <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                         <div class="rxn-module-icon text-success"><i class="bi bi-graph-up-arrow"></i></div>
@@ -81,7 +81,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-4 col-xl-3">
                 <div class="card rxn-module-card text-center p-4 h-100 position-relative shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center p-0">
                         <div class="rxn-module-icon text-info"><i class="bi bi-collection-fill"></i></div>
