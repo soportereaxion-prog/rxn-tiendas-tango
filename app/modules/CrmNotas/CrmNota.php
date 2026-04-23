@@ -18,9 +18,11 @@ class CrmNota
     public ?string $updated_at = null;
     public ?string $deleted_at = null;
 
-    // Campos virtuales
+    // Campos virtuales (resueltos por JOIN en findByIdAndEmpresa)
     public ?string $cliente_nombre = null;
     public ?string $cliente_codigo = null;
-    public ?string $tratativa_numero = null;
+    // OJO: t.numero es INT en crm_tratativas — si se declara ?string, el foreach de asignación
+    // en findByIdAndEmpresa tira TypeError con strict_types=1. Histórico del hotfix 1.20.1.
+    public ?int $tratativa_numero = null;
     public ?string $tratativa_titulo = null;
 }

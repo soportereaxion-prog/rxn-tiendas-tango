@@ -1,9 +1,22 @@
 <?php
 
 return [
-    'current_version' => '1.20.0',
-    'current_build' => '20260423.1',
+    'current_version' => '1.20.1',
+    'current_build' => '20260423.2',
     'history' => [
+        [
+            'version' => '1.20.1',
+            'build' => '20260423.2',
+            'released_at' => '2026-04-23',
+            'title' => 'CRM Notas — hotfix tipado CrmNota::$tratativa_numero (TypeError 500 en prod)',
+            'summary' => 'Hotfix del release 1.20.0. En prod el listado de Notas CRM tiraba HTTP 500 con "Cannot assign int to property App\\Modules\\CrmNotas\\CrmNota::$tratativa_numero of type ?string" apenas entraba al listado una empresa que tuviera al menos una nota vinculada a una tratativa. Root cause: CrmNota declaraba la propiedad virtual tratativa_numero como ?string, pero el JOIN con crm_tratativas trae t.numero que es INT. Con declare(strict_types=1) en el repositorio, PHP 8 no coerciona int → string y la asignación explota con TypeError. El bug ya estaba latente en el modelo pero nunca se había disparado porque la vista show() clásica rara vez se usaba con notas vinculadas a tratativas; el rework 1.20.0 pasó a ejecutar findByIdAndEmpresa en cada render del listado (para precargar activeNota en el panel derecho) y destapó la inconsistencia. Fix: declarar tratativa_numero como ?int (su tipo real en DB).',
+            'items' => [
+                'app/modules/CrmNotas/CrmNota.php: propiedad tratativa_numero cambiada de ?string a ?int. Comentario inline con el histórico del hotfix para que no se revierta por "coherencia" con los otros ?string. El resto de consumers (show.php, detail_panel.php, list_items.php) ya hacían (int) ($nota->tratativa_numero ?? 0) o leen del array asociativo, no requieren cambios.',
+                'database/migrations/2026_04_23_01_seed_customer_notes_release_1_20_1.php NUEVO: migración de seed con array vacío. Hotfix puramente interno sin capacidad visible para el cliente, pero se crea el archivo como placeholder explícito (regla canónica: cada bump genera su migración, vacía o no).',
+                'app/config/version.php: bump a 1.20.1 / build 20260423.2.',
+                'docs/logs/2026-04-23_release_1_20_1_hotfix_tratativa_numero.md NUEVO: log del hotfix.',
+            ],
+        ],
         [
             'version' => '1.20.0',
             'build' => '20260423.1',
