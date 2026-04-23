@@ -1,9 +1,25 @@
 <?php
 
 return [
-    'current_version' => '1.21.0',
-    'current_build' => '20260423.3',
+    'current_version' => '1.22.0',
+    'current_build' => '20260423.4',
     'history' => [
+        [
+            'version' => '1.22.0',
+            'build' => '20260423.4',
+            'released_at' => '2026-04-23',
+            'title' => 'RXN Live — encuadre pleno de vistas analíticas en cualquier viewport',
+            'summary' => 'Rework del layout vertical de RxnLive (la herramienta analítica más usada de la suite — el "PowerBI interno"). El fix del release 1.21.0 (agregar overflow-y:auto al tab-pane) no resolvía el problema raíz: el cap hardcodeado max-height:70vh en el tab-pane derramaba el contenido fuera del viewport en datasets densos (PDS con 45+ filas) porque no contemplaba el alto real de topbar + header + barra de filtros + tabs + paginación + footer global. En datasets livianos (Ventas Histórico con 14 filas) el bug era invisible porque el contenido no llegaba al cap. Nuevo approach: (1) el card completo de la tabla se convierte en flex-column (card-header + card-body.tab-content.flex-grow-1 + card-footer), de modo que el tab-pane activo ocupa EXACTAMENTE el espacio disponible entre tabs y paginación sin dejar hueco, pase lo que pase con el chart-card del col vecino (que por align-items:stretch de Bootstrap podía forzar al col-lg-8 a ser más alto); (2) un sizer JS de dos pases (installRxnLivePaneSizer) setea max-height al card de la tabla Y al card del chart en runtime, midiendo el viewport real — primer pase estimativo (innerHeight − card.top − 12px), segundo pase correctivo con doble rAF que descuenta cualquier overflow residual del <html> (footer global "Re@xion Soluciones", copyrights, márgenes). El sizer dispara en load, resize (debounced 60ms), shown.bs.tab (cambio entre Vista Plana y Tabla Dinámica) y en el toggle de chart/tabla (via el dispatch("resize") que ya hacía applyViewVisibility). MODULE_CONTEXT.md del RxnLive quedó con el setup CSS completo + historia evolutiva v0→v3 del fix para que no se repita el zigzag en próximas iteraciones. También se elevó la criticidad percibida de RxnLive en Engram — aunque el MODULE_CONTEXT lo etiqueta como MEDIO (porque no muta datos de negocio), desde usabilidad es CRÍTICO. Esta release también habilita el OTA del release 1.21.0 que había quedado SIN OTA esperando este fix.',
+            'items' => [
+                'app/modules/RxnLive/views/dataset.php: el tab-pane #plana y #pivotResultContainer perdieron el max-height:70vh inline; ahora llevan la clase .rxn-live-pane + min-height:260px. El <style> del .rxn-live-shell agrega reglas flex-column: #tableSectionCol > .card (display:flex; flex-direction:column), .card-body.tab-content (flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden), .tab-pane.active (flex:1 1 auto; min-height:0). El .rxn-live-pane queda overflow-y:auto.',
+                'app/modules/RxnLive/views/dataset.php: nueva IIFE installRxnLivePaneSizer al final del <script>, antes de installResizeWatchdog. Setea max-height a #tableSectionCol > .card y a #chartSectionCol > .card con el mismo valor en dos pases (estimativo + correctivo con doble rAF). Constantes: BOTTOM_RESERVE=12, MIN_CARD_HEIGHT=320, SAFETY_MARGIN=4. Triggers: DOMContentLoaded, window.load, resize (debounced), shown.bs.tab. Expone window.rxnLiveResizePanes() para forzar desde afuera.',
+                'app/modules/RxnLive/MODULE_CONTEXT.md: nueva sección "Layout / Viewport — sizer dinámico del card de la tabla" con el setup CSS completo, parámetros del sizer, triggers y la historia evolutiva v0→v3 del bug. Ítems 5 y 6 en "No romper" (mantener clase .rxn-live-pane, no re-hardcodear max-height:Nvh). Checklist post-cambio ampliado (validar PDS denso + Ventas liviano con footer pegado al borde).',
+                'database/migrations/2026_04_23_03_seed_customer_notes_release_1_22_0.php NUEVO: seed idempotente con la novedad para el cliente final — lenguaje de capacidad, foco en beneficio visible ("vistas analíticas encuadradas al viewport en cualquier monitor").',
+                'database/migrations/2026_04_23_02_seed_customer_notes_release_1_21_0.php: la nota seguía vacía (placeholder) porque la 1.21.0 había quedado sin OTA esperando este fix; se mantiene así — la novedad unificada viaja en la nota de 1.22.0.',
+                'app/config/version.php: bump a 1.22.0 / build 20260423.4.',
+                'docs/logs/2026-04-23_release_1_22_0_rxnlive_viewport_sizer.md NUEVO: log del release.',
+            ],
+        ],
         [
             'version' => '1.21.0',
             'build' => '20260423.3',

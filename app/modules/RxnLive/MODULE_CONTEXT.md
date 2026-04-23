@@ -165,12 +165,78 @@ No hay guard explícito de autenticación en `RxnLiveController`. La protección
 
 ---
 
+## Layout / Viewport — sizer dinámico del card de la tabla
+
+**Regla global de RxnLive** (aplica a todos los datasets: Ventas Histórico, Integración Tango, Clientes, Pedidos de Servicio, y cualquier dataset futuro).
+
+Los tab-panes (`#plana` y `#pivotResultContainer`) **no deben tener `max-height` hardcodeado**. El alto se controla sobre el **card completo del table-section-col** (no sobre el tab-pane interno), usando layout flex para que el pane ocupe sin hueco lo que sobra entre header y footer.
+
+### Setup CSS (en el `<style>` de `views/dataset.php`)
+
+```css
+.rxn-live-shell #tableSectionCol > .card {
+    display: flex;
+    flex-direction: column;
+}
+.rxn-live-shell #tableSectionCol > .card > .card-body.tab-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.rxn-live-shell #tableSectionCol > .card > .card-body.tab-content > .tab-pane.active {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.rxn-live-shell .rxn-live-pane {
+    overflow-y: auto;
+}
+```
+
+Con esto el card funciona como un contenedor flex-column donde el tab-pane activo rellena exactamente el espacio que queda entre los tabs y la paginación; nunca hay hueco muerto, independientemente de si el chart-card del col vecino fuerza más alto al row.
+
+### Sizer JS (`installRxnLivePaneSizer`, dos pases)
+
+1. **Pase estimativo**: `maxHeight = innerHeight − card.top − BOTTOM_RESERVE (12px)`. Aplicado al `#tableSectionCol > .card` **y** al `#chartSectionCol > .card` con el mismo valor (si el chart fuera más alto que el table-card, el row `align-items:stretch` de Bootstrap estiraría el table-card y el max-height del card interno generaría hueco en el col — sincronizar ambos evita eso).
+2. **Pase correctivo** (doble `requestAnimationFrame`): si `documentElement.scrollHeight − clientHeight > 0`, descuenta ese overflow al max-height de ambos cards. Captura footers globales ("Re@xion Soluciones"), copyrights, márgenes del `<main>` — cualquier cosa debajo del row, sin enumerar.
+
+El doble rAF es obligatorio: el primero deja que el browser aplique el max-height nuevo, el segundo mide el overflow ya sobre el layout actualizado. Sin eso, la corrección se calcula contra el layout previo y sobre-corrige.
+
+Parámetros: `MIN_CARD_HEIGHT = 320px`, `SAFETY_MARGIN = 4px` (colchón anti-scroll por sub-pixel).
+
+### Marcadores HTML
+
+Los dos panes deben llevar la clase **`.rxn-live-pane`** (selector del `overflow-y: auto`) y un `min-height` inline de **260px** para que el empty-state se renderice centrado cuando no hay datos.
+
+### Triggers
+
+- `DOMContentLoaded` / load (según readyState) + `window.load` (altos de imágenes/fuentes tardías).
+- `resize` de `window` (debounced 60ms).
+- `shown.bs.tab` (al cambiar entre Vista Plana y Tabla Dinámica).
+- Indirecto en toggle chart/tabla: `applyViewVisibility` ya hace `window.dispatchEvent(new Event('resize'))` con `setTimeout(50)`.
+
+### Evolución (por qué este approach y no los previos)
+
+1. **v0 (hardcoded)**: `max-height: 70vh` inline en los panes. Derramaba en datasets densos porque el 30vh restante no alcanzaba para topbar + filtros + tabs + paginación + footer global.
+2. **v1 (sizer sobre el pane, pase único)**: medía `innerHeight − pane.top − cardFooter.offsetHeight`. Mejoraba pero seguía derramando: no consideraba el footer global de la app, y el body scrolleaba.
+3. **v2 (sizer sobre el pane, doble pase)**: agregó corrección por overflow del `<html>`. Quedaba bien el viewport, pero al achicar el pane dejaba hueco enorme dentro del card cuando el chart-card del col vecino forzaba más altura (Bootstrap `align-items:stretch`).
+4. **v3 (actual — sizer sobre el card, flex-column)**: max-height al card completo + layout flex interno. El tab-pane ocupa sin hueco el espacio entre header y footer, y la sincronización del max-height con el chart-card evita que el row se estire más allá de lo permitido.
+
+**Forzar re-sizing manual** (ej: tras un render async que cambie el layout interno): `window.rxnLiveResizePanes()`.
+
+**Interacción con el watchdog de resize**: el sizer se suscribe como listener normal (`addEventListener('resize', ...)`) — no dispatcha resize nunca, así que no hay riesgo de loop con `installResizeWatchdog`.
+
+---
+
 ## No romper
 
 1. **Nombres de vistas SQL**: los datasets referencian `RXN_LIVE_VW_VENTAS`, `RXN_LIVE_VW_CLIENTES`, `RXN_LIVE_VW_PEDIDOS_SERVICIO`. Renombrar una vista sin actualizar el catálogo rompe el dataset.
 2. **Metadata de pivot**: cada dataset tiene `pivot_metadata` que define las columnas disponibles para agrupación y agregación. Cambiar los nombres de columna en las vistas SQL sin actualizar el pivot_metadata rompe la UI de pivot.
 3. **Exportación CSV con BOM**: el BOM UTF-8 es necesario para que Excel interprete correctamente los acentos. No eliminarlo.
 4. **Formato JSON de `guardarVista()`**: la configuración de vistas se almacena como JSON. Cambiar la estructura sin migrar los registros existentes rompe las vistas guardadas de los usuarios.
+5. **Clase `.rxn-live-pane` en tab-panes scrolleables**: `#plana` y `#pivotResultContainer` la necesitan para que `installRxnLivePaneSizer` los encuentre. Si se agrega un tab-pane scrolleable nuevo al dataset.php, sumarle la clase; caso contrario no se va a redimensionar al viewport.
+6. **No volver a hardcodear `max-height: Nvh`** en los tab-panes de RxnLive — ver sección "Layout / Viewport".
 
 ---
 
@@ -195,6 +261,7 @@ No hay guard explícito de autenticación en `RxnLiveController`. La protección
 - [ ] La exportación XLSX genera archivo válido (si OpenSpout está instalado).
 - [ ] El guardado de vista retorna JSON `success: true` y la vista aparece al recargar.
 - [ ] Si se tocaron vistas SQL: verificar que el filtrado por `empresa_id` sigue activo.
+- [ ] Abrir un dataset denso (PDS — 45+ filas) y uno liviano (Ventas — 14 filas). En ambos, el card-footer con la paginación debe pegar contra el borde inferior del viewport, sin desborde. Redimensionar la ventana y togglear chart/tabla para verificar que el sizer re-mide.
 
 ---
 

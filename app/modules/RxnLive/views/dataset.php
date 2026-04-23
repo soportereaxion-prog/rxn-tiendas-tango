@@ -19,13 +19,32 @@ ob_start();
     .rxn-live-shell .table-responsive {
         min-width: 0;
     }
-    /* Scroll VERTICAL interno del tab-pane: Bootstrap .table-responsive solo
-       declara overflow-x:auto, sin overflow-y. Con el max-height:70vh inline
-       del tab-pane, sin overflow-y explícito el contenido se derrama abajo del
-       cap (visible por default). Datasets con pocas filas (Ventas: 14) nunca
-       alcanzan el cap y no se nota; datasets densos (PDS: 104) se derraman.
-       Agregando overflow-y:auto, el tab-pane scrollea internamente. */
-    .rxn-live-shell .tab-pane.table-responsive {
+    /* Layout flex del card de la tabla: garantiza que el tab-pane ocupe
+       EXACTAMENTE lo que sobra entre card-header (tabs) y card-footer
+       (paginación), sin hueco cuando el chart-card del col de al lado
+       fuerza al col-lg-8 a ser más alto que el contenido natural de la
+       tabla. El max-height del card (no del pane) se setea en JS según
+       el viewport real.
+       Ver installRxnLivePaneSizer al final del archivo. */
+    .rxn-live-shell #tableSectionCol > .card {
+        display: flex;
+        flex-direction: column;
+    }
+    .rxn-live-shell #tableSectionCol > .card > .card-body.tab-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    /* El tab-pane activo se estira al alto disponible del tab-content y
+       es el que scrollea internamente. Los inactivos (display:none) no
+       afectan layout. */
+    .rxn-live-shell #tableSectionCol > .card > .card-body.tab-content > .tab-pane.active {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    .rxn-live-shell .rxn-live-pane {
         overflow-y: auto;
     }
 </style>
@@ -221,7 +240,7 @@ ob_start();
             </div>
             <div class="card-body p-0 tab-content rxn-scrollbar" id="datasetTabsContent">
                 <!-- TAB PLANA -->
-                <div class="tab-pane fade show active table-responsive rxn-scrollbar" id="plana" role="tabpanel" style="min-height: 520px; max-height: 70vh; overflow-y: auto;">
+                <div class="tab-pane fade show active table-responsive rxn-scrollbar rxn-live-pane" id="plana" role="tabpanel" style="min-height: 260px; overflow-y: auto;">
                     <?php if (empty($datasetRows)): ?>
                         <div class="text-center p-5 text-muted">
                             <i class="bi bi-inboxes mb-2 fs-3"></i><br>
@@ -297,7 +316,7 @@ ob_start();
                             </div>
                         </div>
                     </div>
-                    <div class="table-responsive p-0 rxn-scrollbar" id="pivotResultContainer" style="min-height: 520px; max-height: 70vh; overflow-y: auto;">
+                    <div class="table-responsive p-0 rxn-scrollbar rxn-live-pane" id="pivotResultContainer" style="min-height: 260px; overflow-y: auto;">
                         <div class="text-center p-5 text-muted">Configurá los campos arriba y pulsá Renderizar Matriz.</div>
                     </div>
                 </div>
@@ -2947,6 +2966,103 @@ function loadSelectedView() {
         try { renderPlana(); } catch (e2) {}
     }
 }
+
+/**
+ * Sizer dinámico del card de la tabla de RxnLive. Reemplaza el `max-height: 70vh`
+ * inline que derramaba en datasets densos (ej: PDS con 45 filas).
+ *
+ * Approach: setear max-height al CARD (no al tab-pane interno). El card es
+ * flex-column (ver <style> arriba), así que el tab-pane se acomoda entre
+ * header y footer sin dejar hueco, aun cuando el chart-card del col vecino
+ * fuerce al col-lg-8 a ser más alto. El chart-card también recibe el mismo
+ * max-height para que el row no se estire más allá de lo disponible.
+ *
+ * Dos pases:
+ *   1) Estimativo: maxHeight = innerHeight − card.top − BOTTOM_RESERVE.
+ *   2) Correctivo (doble rAF): si el <html> todavía desborda el viewport
+ *      (footer global de la app, copyrights, márgenes), descuenta ese
+ *      overflow del maxHeight. Así nunca aparece scroll vertical del body.
+ *
+ * Se dispara en load, resize (debounced), shown.bs.tab, y cuando se togglea
+ * chart/tabla (via el dispatch('resize') que ya hace applyViewVisibility).
+ */
+(function installRxnLivePaneSizer() {
+    const BOTTOM_RESERVE = 12;
+    const MIN_CARD_HEIGHT = 320;
+    const SAFETY_MARGIN = 4;
+
+    function getCards() {
+        return {
+            table: document.querySelector('#tableSectionCol > .card'),
+            chart: document.querySelector('#chartSectionCol > .card'),
+        };
+    }
+
+    function applyMaxHeight(height) {
+        const { table, chart } = getCards();
+        if (table) table.style.maxHeight = height + 'px';
+        // Sincronizamos el chart para que el row no se estire más de lo que
+        // el table-card soporta (por align-items:stretch de Bootstrap .row).
+        if (chart) chart.style.maxHeight = height + 'px';
+    }
+
+    function sizeInitial() {
+        const { table } = getCards();
+        if (!table) return 0;
+        const top = table.getBoundingClientRect().top;
+        const estimate = window.innerHeight - top - BOTTOM_RESERVE;
+        const finalH = Math.max(MIN_CARD_HEIGHT, Math.round(estimate));
+        applyMaxHeight(finalH);
+        return finalH;
+    }
+
+    function correctForBodyOverflow() {
+        const { table } = getCards();
+        if (!table) return;
+        const html = document.documentElement;
+        const overflow = html.scrollHeight - html.clientHeight;
+        if (overflow <= 0) return;
+        const current = parseFloat(table.style.maxHeight) || 0;
+        const adjusted = Math.max(MIN_CARD_HEIGHT, Math.round(current - overflow - SAFETY_MARGIN));
+        applyMaxHeight(adjusted);
+    }
+
+    function sizeAll() {
+        sizeInitial();
+        // Doble rAF: el primero deja al browser aplicar el maxHeight nuevo;
+        // el segundo mide scrollHeight sobre el layout ya actualizado. Sin
+        // esto, la corrección se calcula contra el layout previo.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(correctForBodyOverflow);
+        });
+    }
+
+    let resizeTimer = null;
+    function scheduleSize() {
+        if (resizeTimer) return;
+        resizeTimer = window.setTimeout(() => {
+            resizeTimer = null;
+            sizeAll();
+        }, 60);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', sizeAll);
+    } else {
+        sizeAll();
+    }
+    // Pase extra tras 'load' para capturar altos de imágenes / fuentes que
+    // resuelven tarde y pueden alterar el scrollHeight.
+    window.addEventListener('load', sizeAll);
+    window.addEventListener('resize', scheduleSize);
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(t => {
+        t.addEventListener('shown.bs.tab', sizeAll);
+    });
+
+    // Exponer para forzar re-sizing desde afuera (ej: tras renderizar pivot
+    // o cargar filas asíncronas que cambien el layout interno).
+    window.rxnLiveResizePanes = sizeAll;
+})();
 
 /**
  * Watchdog contra loops de resize. Algunos configs rotos de Chart.js pueden disparar
