@@ -9,7 +9,10 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 ## Alcance
 **QUÉ HACE:**
 - ABM completo de Notas (Listado, Creación, Edición, Soft-Delete, Restauración).
-- Búsqueda avanzada, ordenamiento y filtros (por estado, texto, etc.).
+- **Listado en layout split master-detail** (estilo GroupOffice/Explorer): columna izquierda con la lista de notas + columna derecha con el detalle en vivo. Permite recorrer notas con j/k sin salir del listado.
+- Búsqueda en vivo (debounce 250ms) que recarga sólo la columna izquierda sin tocar el panel derecho.
+- Paginación AJAX sobre la columna izquierda (25 notas por página).
+- Filtros avanzados, ordenamiento y filtros por estado (activos/papelera).
 - Permite copiado rápido de una nota existente (acción `copy`).
 - Brinda autocompletado rápido de Etiquetas (`tagsSuggestions`), Clientes (`clientSuggestions`) y Tratativas (`tratativaSuggestions`).
 - Vinculación opcional de cada nota con una Tratativa del CRM (mismo patrón de FK blanda que PDS y Presupuestos).
@@ -22,11 +25,12 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 - No impone obligatoriedad de asignación a un cliente (una nota puede ser "huérfana").
 
 ## Piezas principales
-- **Controladores:** `CrmNotasController`.
+- **Controladores:** `CrmNotasController` (incluye los endpoints AJAX `panel($id)` y `listPartial()` del split view).
 - **Repositorios:** `CrmNotaRepository` (gestiona persistencia y búsquedas con joins al cliente).
 - **Modelos:** `CrmNota`.
-- **Vistas:** `views/index.php`, `views/form.php`, `views/show.php`, `views/import.php`.
-- **Rutas/Pantallas:** `/mi-empresa/crm/notas`.
+- **Vistas:** `views/index.php` (split master-detail), `views/form.php`, `views/show.php` (legacy full page, se mantiene por compat), `views/import.php`, `views/partials/detail_panel.php` (HTML del panel derecho), `views/partials/list_items.php` (HTML de la columna izquierda).
+- **JS de página:** `public/js/crm-notas-split.js` (controlador del split: fetch panel, navegación j/k, búsqueda en vivo, paginación AJAX).
+- **Rutas/Pantallas:** `/mi-empresa/crm/notas`. Endpoints AJAX internos: `GET /mi-empresa/crm/notas/lista` (partial lista) y `GET /mi-empresa/crm/notas/panel/{id}` (partial detalle). Registradas en `app/config/routes.php` **antes** de `/{id}` para evitar que el catch-all se las coma.
 - **Tablas/Persistencia:** `crm_notas`, `crm_notas_tags_diccionario`.
 - **Migraciones relevantes:**
     - `database/migrations/2026_04_15_add_tratativa_id_to_crm_notas.php` — agrega `tratativa_id INT NULL` a `crm_notas` con índice `(empresa_id, tratativa_id)`. FK blanda (sin constraint duro).
@@ -48,6 +52,22 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 - Un cambio radical en cómo se persiste `CrmClientes` puede impactar en las consultas Join del listado de notas (`findAllWithClientName`).
 
 ## Reglas operativas del módulo
+- **Layout split (master-detail)**: el listado de notas usa un layout de dos columnas. La columna izquierda (col-lg-4) lista hasta 25 notas con checkbox para bulk, y la derecha (col-lg-8) muestra el detalle de la nota seleccionada. El detalle se carga vía `GET /panel/{id}` (HTML parcial, sin `admin_layout`) y se inyecta con `innerHTML` en el contenedor `[data-notas-panel]`. La URL se sincroniza con `history.replaceState` agregando `?n={id}` para que F5 / link compartido preserve la nota activa. El controller `index()` resuelve la nota activa inicial en este orden: (1) `?n={id}` si es válido para la empresa, (2) primer item del listado, (3) null → placeholder.
+- **Edición en full page (decisión MVP)**: el botón "Editar" del panel derecho navega a `/notas/{id}/editar` (reusando el form existente con `admin_layout`). NO se edita inline en el panel para evitar duplicar autocompletes (cliente, tratativa, tags). Se prioriza minimizar deuda sobre la fluidez de edición — se pierde el split al editar, pero los beneficios de revisión siguen intactos. Si en el futuro se quiere edición inline, hacer una fase 2 extrayendo el form a un partial.
+- **Redirects post-mutación con `?n={id}`**: `store()` (después de crear), `update()` (después de editar) y `copy()` redirigen a `indexPath?n={id}` en lugar del `indexPath` pelado, para que al volver al split la lista quede parada en la nota resultante. La regla de `store()` de redirigir a la tratativa cuando la nota tiene `tratativa_id` no pierde prioridad (se aplica primero).
+- **Persistencia del último seleccionado (localStorage)**: `public/js/crm-notas-split.js` guarda cada `activeNotaId` en `localStorage` bajo la key `rxn_crm_notas_active::{empresaId}::{status}` (scope por empresa Y por tab activos/papelera). Al cargar el listado sin `?n=` explícito, el JS compara el valor del storage con la nota que eligió el server (primera del listado); si difieren, intenta cargar la del storage via `GET /panel/{id}`. Si el endpoint devuelve 404 (nota borrada o fuera de scope), limpia el storage y vuelve a cargar la que había elegido el server. Eso mantiene el comportamiento del resto del sistema donde los listados "recuerdan dónde estabas parado".
+- **Búsqueda en vivo**: el input de búsqueda de la columna izquierda dispara un fetch debounced (250ms) a `GET /notas/lista` que devuelve sólo el HTML de los items. No toca el panel derecho salvo que la nota activa haya quedado fuera de los resultados, en cuyo caso el JS carga el primer item del nuevo listado (o el placeholder de "sin resultados"). Los filtros avanzados BD siguen funcionando por el ciclo tradicional (recarga completa) — sólo la búsqueda de texto y la paginación son AJAX.
+- **Hotkeys (registradas en `RxnShortcuts` vía `public/js/crm-notas-split.js`)**:
+    - `↓` / `j` → siguiente nota en la lista.
+    - `↑` / `k` → nota anterior.
+    - `Enter` (con foco fuera de inputs) → editar la nota activa.
+    - Todas con `scope: 'no-input'` y `when: () => document.querySelector('.notas-split')` para no pelear con otros módulos.
+    - Las flechas son el canal canónico (coherencia con el resto del sistema); `j`/`k` quedan como alias estilo vim para usuarios que los prefieren.
+- **Enter y ArrowDown desde el input de búsqueda**:
+    - `Enter` en el search dispara la búsqueda inmediata (flushea el debounce pendiente), activa la primera nota del resultado y mueve el foco del input al row del primer item. Desde ahí las flechas ya navegan la lista vía `RxnShortcuts`.
+    - `ArrowDown` en el search (sin Enter) también baja al primer item — patrón combobox/omnibox. No dispara refresh; sólo mueve el foco.
+    - Ambos casos hacen `searchInput.blur()` antes de `row.focus()` para que las hotkeys de `scope: 'no-input'` tomen control.
+- **Re-inyección de HTML**: el `detail_panel.php` incluye forms con `rxn-confirm-form` (copiar, eliminar/papelera/restore). Estos funcionan sin re-bindeo porque `rxn-confirm-modal.js` usa delegación de eventos en `document`. Idem los botones de paginación y los checkboxes bulk (delegación via listener en `listContainer`).
 - **Vínculo con Tratativa**: `tratativa_id` es opcional (FK blanda). Si viene por query param `?tratativa_id=X`, el controller valida que exista y pertenezca a la empresa; si no pasa la validación se ignora silenciosamente (la nota se crea sin vínculo). Al guardar una nota que tiene `tratativa_id`, el redirect vuelve a `/mi-empresa/crm/tratativas/{id}` en lugar del listado por defecto.
 - **Herencia de cliente desde Tratativa**: cuando se crea una nota desde el detalle de una tratativa (query param), el `cliente_id` se hereda automáticamente del cliente de la tratativa. El usuario puede sobrescribirlo desde el form. Si se pasa también `?cliente_id=Y` por URL, ese valor tiene prioridad sobre el heredado.
 - Durante la importación de Excel, si el "Código Tango" no matchea ningún cliente en la base local de la empresa, la nota se crea igualmente pero de forma huérfana (sin `cliente_id`).
@@ -66,9 +86,18 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 ## Riesgos conocidos
 - **Inyección de memoria en importación**: Aunque usa OpenSpout (que es stream-based), importar Excels colosales podría llegar a saturar el worker.
 - **Integridad Referencial**: El guardado de las tags se hace en string texto plano (`tags`), no tiene tabla pivot normalizada. Facilita la carga pero dificulta búsquedas estructurales complejas.
+- **Orden de rutas en router**: `/notas/lista` y `/notas/panel/{id}` deben declararse **antes** de `/notas/{id}` en `app/config/routes.php`. Si se mueven, el catch-all `/{id}` se las come y los partials rompen silenciosamente (404 en fetch). El split view deja de funcionar sin error visible en UI, sólo panel vacío.
 
 ## Checklist post-cambio
 - [ ] Formularios de Creación/Edición guardan y asocian el cliente correctamente.
 - [ ] Soft delete masivo y singular responden únicamente a los IDs de la empresa en sesión.
 - [ ] Descarga de la matriz de ejemplo y exportación no arrojan error fatal de dependencias de clases.
 - [ ] Endpoints JSON de sugerencias devuelven array válido de autocompletado en ms.
+- [ ] El split view carga el detalle al clickear un item de la lista sin recargar la página.
+- [ ] Las hotkeys j/k navegan la lista y Enter abre el form de edición.
+- [ ] La búsqueda en vivo filtra la lista sin romper la paginación.
+- [ ] Los endpoints `/panel/{id}` y `/lista` aparecen en `routes.php` ANTES de `/notas/{id}` (sino el catch-all se los come).
+- [ ] Al crear una nota, el redirect vuelve al split parado en la nota recién creada (salvo si tiene `tratativa_id`).
+- [ ] Al editar una nota, el redirect vuelve al split parado en la nota editada.
+- [ ] Salir del listado y volver sin `?n=` restaura la última nota vista (localStorage per empresa+tab).
+- [ ] Si la última nota guardada fue borrada, el cliente detecta el 404 del panel, limpia el storage y cae a la primera del listado sin loopear.

@@ -1,9 +1,28 @@
 <?php
 
 return [
-    'current_version' => '1.19.0',
-    'current_build' => '20260422.1',
+    'current_version' => '1.20.0',
+    'current_build' => '20260423.1',
     'history' => [
+        [
+            'version' => '1.20.0',
+            'build' => '20260423.1',
+            'released_at' => '2026-04-23',
+            'title' => 'CRM Notas — rework a split view master-detail (estilo Explorer/GroupOffice)',
+            'summary' => 'Rework completo de la UX del listado de Notas CRM. Se pasó de una tabla tradicional con CRUD entrar/salir a un layout split master-detail: columna izquierda con la lista (col-4) + columna derecha con el detalle en vivo (col-8). Permite recorrer notas sin salir del listado — eliminá ida y vuelta. Búsqueda en vivo con debounce 250ms que filtra solo la columna izquierda sin tocar el panel, paginación AJAX, navegación completa por teclado (↑/↓ canónico + j/k alias vim), y Enter en el search salta al primer resultado y pasa el foco a la lista para seguir navegando con flechas. Modo edición: el botón Editar del panel derecho navega al form existente en pantalla completa (decisión MVP opción B — 30% del trabajo, 80% del beneficio; sin duplicar autocompletes de cliente/tratativa/tags). Los redirects de store/update/copy ahora incluyen ?n={id} para que el split vuelva parado en la nota resultante. Persistencia del último activeNotaId en localStorage scopeado por empresa_id + status (activos/papelera) — al volver al listado sin query string, el JS recupera la última nota vista; si fue borrada, detecta el 404 del endpoint panel(), limpia storage y cae a la primera sin loopear. Bug de layout detectado y arreglado durante validación: el .card-body de Bootstrap tiene flex:1 1 auto por default y absorbía todo el espacio vertical cuando el panel derecho era largo, empujando tabs+bulk+lista al final del card; se reemplazó por un <div> plano y .notas-list-scroll ahora es el elemento flex-grow. Bonus: se sumaron al router las rutas POST /{id}/restore y /{id}/force-delete individuales que faltaban (bug latente del código viejo — los forms existían en la vista pero las rutas no). MODULE_CONTEXT.md completamente actualizado con el patrón split, gotcha del orden de rutas y checklist post-cambio ampliado.',
+            'items' => [
+                'app/modules/CrmNotas/CrmNotasController.php: nuevos endpoints AJAX panel($id) (devuelve HTML parcial del detalle con 404 si no existe) y listPartial() (HTML parcial de la lista para búsqueda en vivo + paginación). index() ahora precarga activeNota (deep link ?n=ID > primera del listado) y sube a 25 por página. store()/update()/copy() redirigen con ?n={id} para parar el split en la nota resultante.',
+                'app/modules/CrmNotas/views/index.php NUEVO LAYOUT: split master-detail (col-lg-4 lista + col-lg-8 detalle), card con d-flex flex-column, search en div plano (no .card-body), tabs Activos/Papelera, bulk actions, .notas-list-scroll con flex:1 1 auto + min-height + max-height calc(100vh-260px). data-attrs con empresa_id, status, sort, dir, tratativa_id, active_nota_id, explicit_n para que el JS scopee persistencia.',
+                'app/modules/CrmNotas/views/partials/detail_panel.php NUEVO: detalle reusable (se inyecta via innerHTML y también en primer render server-side). Acciones Editar/Copiar/Papelera-Restore + cards de cliente/tratativa/tags + contenido con botón copy + partial de adjuntos embebido.',
+                'app/modules/CrmNotas/views/partials/list_items.php NUEVO: items reusables (primer render + cada fetch de /lista). Cada item con data-nota-id, checkbox para bulk, título + cliente + tratativa + tags (top 3 + contador) + fecha + paginación AJAX al pie.',
+                'public/js/crm-notas-split.js NUEVO: controlador del split. Helpers saveLastActive/readLastActive/clearLastActive para persistencia en localStorage con key rxn_crm_notas_active::{empresaId}::{status}. loadPanel() idempotente que devuelve {ok, status} y maneja 404 limpiando storage. loadList() para búsqueda en vivo + paginación. Hotkeys registradas en RxnShortcuts: ↓/j siguiente, ↑/k anterior, Enter editar (scope no-input, when: split presente). handleSearchSubmit async flushea debounce, activa primer resultado y pasa foco a la lista. handleSearchKeydown detecta ArrowDown desde input y baja a la lista (patrón combobox). IIFE restoreLastActive al final del init.',
+                'app/config/routes.php: GET /notas/lista y GET /notas/panel/{id} registradas ANTES de /notas/{id} (sino el catch-all se las come). Agregadas POST /{id}/restore y POST /{id}/force-delete individuales que faltaban — bug latente del código viejo.',
+                'app/modules/CrmNotas/MODULE_CONTEXT.md: reescrita la sección de alcance, piezas principales, reglas operativas (split, redirects post-mutación, persistencia, hotkeys ↑↓ + j/k + Enter y ArrowDown desde search), riesgos (orden de rutas) y checklist post-cambio ampliado con 4 nuevos items.',
+                'database/migrations/2026_04_23_00_seed_customer_notes_release_1_20_0.php NUEVO: seed idempotente con la novedad del release — "Nueva forma de trabajar con Notas CRM" en lenguaje de cliente final.',
+                'app/config/version.php: bump a 1.20.0 / build 20260423.1.',
+                'docs/logs/2026-04-23_release_1_20_0_crm_notas_split_view.md NUEVO: log del release con decisiones arquitectónicas, bugs encontrados durante validación (el .card-body flex-grow), patrón canónico para futuros splits en otros módulos.',
+            ],
+        ],
         [
             'version' => '1.19.0',
             'build' => '20260422.1',

@@ -307,6 +307,9 @@ return function (Router $router): void {
 
     // --- MODULO CRM NOTAS ---
     $router->get('/mi-empresa/crm/notas', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'index', $requireCrmNotas));
+    // Split view: partials AJAX (panel derecho + lista izquierda). Deben ir antes de /{id}.
+    $router->get('/mi-empresa/crm/notas/lista', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'listPartial', $requireCrmNotas));
+    $router->get('/mi-empresa/crm/notas/panel/{id}', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'panel', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/eliminar-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'eliminarMasivo', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/restore-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'restoreMasivo', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/force-delete-masivo', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'forceDeleteMasivo', $requireCrmNotas));
@@ -324,6 +327,8 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/notas/{id}/editar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'update', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/{id}/copiar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'copy', $requireCrmNotas));
     $router->post('/mi-empresa/crm/notas/{id}/eliminar', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'eliminar', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/{id}/restore', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'restore', $requireCrmNotas));
+    $router->post('/mi-empresa/crm/notas/{id}/force-delete', $action(\App\Modules\CrmNotas\CrmNotasController::class, 'forceDelete', $requireCrmNotas));
     // --- MODULO CRM PRESUPUESTOS ---
     $router->get('/mi-empresa/crm/presupuestos', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'index', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/eliminar-masivo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'eliminarMasivo', $requireCrm));

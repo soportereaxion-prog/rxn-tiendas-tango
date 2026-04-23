@@ -42,7 +42,7 @@ class CrmNotasController extends Controller
         $sortDir = strtoupper($_GET['dir'] ?? 'DESC');
 
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 15;
+        $perPage = 25;
         $offset = ($page - 1) * $perPage;
 
         $status = $_GET['status'] ?? 'activos';
@@ -73,16 +73,43 @@ class CrmNotasController extends Controller
         $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted, $advancedFilters, $tratativaIdFilter);
         $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted, $advancedFilters, $tratativaIdFilter);
 
+        // Resolver nota activa para el panel derecho:
+        //   1) ?n={id} en la URL (deep link / recarga conservando selección)
+        //   2) primera nota del listado si existe
+        //   3) null → el panel muestra placeholder
+        $activeNota = null;
+        $activeNotaId = null;
+        if (!empty($_GET['n'])) {
+            $candidate = (int) $_GET['n'];
+            if ($candidate > 0) {
+                $activeNota = $this->repository->findByIdAndEmpresa($candidate, $empresaId, true);
+                if ($activeNota !== null) {
+                    $activeNotaId = $activeNota->id;
+                }
+            }
+        }
+        if ($activeNota === null && !empty($items)) {
+            $firstId = (int) $items[0]['id'];
+            $activeNota = $this->repository->findByIdAndEmpresa($firstId, $empresaId, $onlyDeleted);
+            if ($activeNota !== null) {
+                $activeNotaId = $activeNota->id;
+            }
+        }
+
         View::render('app/modules/CrmNotas/views/index.php', array_merge($ui, [
             'notas' => $items,
             'search' => $search,
             'page' => $page,
-            'totalPages' => max(1, ceil($totalItems / $perPage)),
+            'totalPages' => max(1, (int) ceil($totalItems / $perPage)),
             'totalItems' => $totalItems,
             'status' => $status,
             'sort' => $sortColumn,
             'dir' => $sortDir,
             'tratativaFiltroInfo' => $tratativaFiltroInfo,
+            'activeNota' => $activeNota,
+            'activeNotaId' => $activeNotaId,
+            'empresaId' => $empresaId,
+            'hasExplicitNotaParam' => !empty($_GET['n']),
         ]));
     }
 
@@ -130,9 +157,10 @@ class CrmNotasController extends Controller
 
             // Si la nota quedó vinculada a una tratativa, volvemos al detalle de la tratativa
             // (mismo patrón que PDS/Presupuestos creados desde una tratativa).
+            // Si no, volvemos al split view con la nota recién creada seleccionada (?n=ID).
             $redirectPath = $nota->tratativa_id !== null
                 ? '/mi-empresa/crm/tratativas/' . $nota->tratativa_id
-                : $ui['indexPath'];
+                : $ui['indexPath'] . '?n=' . (int) $nota->id;
 
             header('Location: ' . $this->withSuccess($redirectPath, 'Nota creada exitosamente.'));
             exit;
@@ -193,7 +221,8 @@ class CrmNotasController extends Controller
             }
 
             $this->repository->save($nota);
-            header('Location: ' . $this->withSuccess($ui['indexPath'], 'Nota actualizada.'));
+            // Volvemos al split view parado en la nota recién editada (?n=ID).
+            header('Location: ' . $this->withSuccess($ui['indexPath'] . '?n=' . (int) $nota->id, 'Nota actualizada.'));
             exit;
         } catch (\Exception $e) {
             $nota = clone $this->repository->findByIdAndEmpresa((int) $id, $empresaId);
@@ -227,6 +256,79 @@ class CrmNotasController extends Controller
         ]));
     }
 
+    /**
+     * Endpoint AJAX: devuelve el HTML parcial del detalle de una nota para el panel derecho
+     * del split view. NO envuelve en admin_layout — se inyecta con innerHTML en el cliente.
+     */
+    public function panel(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+
+        $nota = $this->repository->findByIdAndEmpresa((int) $id, $empresaId, true);
+
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-store');
+
+        if (!$nota) {
+            http_response_code(404);
+            echo '<div class="alert alert-warning m-3">Nota no encontrada o fuera de esta empresa.</div>';
+            exit;
+        }
+
+        $indexPath = $ui['indexPath'];
+        include BASE_PATH . '/app/modules/CrmNotas/views/partials/detail_panel.php';
+        exit;
+    }
+
+    /**
+     * Endpoint AJAX: devuelve el HTML parcial con los items de la lista (columna izquierda)
+     * aplicando los mismos filtros que index(). Se usa para búsqueda en vivo y paginación.
+     */
+    public function listPartial(): void
+    {
+        AuthService::requireLogin();
+        $empresaId = $this->getEmpresaIdOrDie();
+        $ui = $this->buildUiContext();
+
+        $search = $_GET['search'] ?? '';
+        $sortColumn = $_GET['sort'] ?? 'created_at';
+        $sortDir = strtoupper($_GET['dir'] ?? 'DESC');
+
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 25;
+        $offset = ($page - 1) * $perPage;
+
+        $status = $_GET['status'] ?? 'activos';
+        $onlyDeleted = $status === 'papelera';
+
+        $advancedFilters = $this->handleCrudFilters('crm_notas');
+
+        $tratativaIdFilter = null;
+        if (!empty($_GET['tratativa_id'])) {
+            $candidate = (int) $_GET['tratativa_id'];
+            if ($candidate > 0) {
+                $tratativaRepo = new \App\Modules\CrmTratativas\TratativaRepository();
+                if ($tratativaRepo->findById($candidate, $empresaId) !== null) {
+                    $tratativaIdFilter = $candidate;
+                }
+            }
+        }
+
+        $totalItems = $this->repository->countAll($empresaId, $search, $onlyDeleted, $advancedFilters, $tratativaIdFilter);
+        $items = $this->repository->findAllWithClientName($empresaId, $perPage, $offset, $search, $sortColumn, $sortDir, $onlyDeleted, $advancedFilters, $tratativaIdFilter);
+        $totalPages = max(1, (int) ceil($totalItems / $perPage));
+
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-store');
+
+        $indexPath = $ui['indexPath'];
+        $isPapelera = $onlyDeleted;
+        include BASE_PATH . '/app/modules/CrmNotas/views/partials/list_items.php';
+        exit;
+    }
+
     public function copy(string $id): void
     {
         AuthService::requireLogin();
@@ -250,7 +352,8 @@ class CrmNotasController extends Controller
 
         $this->repository->save($notaCopy);
 
-        header('Location: ' . $this->withSuccess($ui['indexPath'], 'Nota copiada exitosamente.'));
+        // Parar el split en la copia recién creada.
+        header('Location: ' . $this->withSuccess($ui['indexPath'] . '?n=' . (int) $notaCopy->id, 'Nota copiada exitosamente.'));
         exit;
     }
 
