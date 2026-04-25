@@ -39,6 +39,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <?php if ($empresaId): ?>
     <meta name="rxn-empresa-id" content="<?= (int) $empresaId ?>">
     <?php endif; ?>
+    <meta name="csrf-token" content="<?= htmlspecialchars(\App\Core\CsrfHelper::generateToken()) ?>">
     <?php
     // Geo-tracking: si hay un evento pendiente de reportar posición (típicamente
     // el login recién hecho, o la creación de un presupuesto/tratativa/PDS que
@@ -64,6 +65,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
     <link href="/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">
     <link href="/css/rxn-shortcuts.css?v=<?= time() ?>" rel="stylesheet">
+    <link href="/css/rxn-notifications.css?v=<?= time() ?>" rel="stylesheet">
     <?= $extraHead ?? '' ?>
 </head>
 <body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-2">
@@ -110,6 +112,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <script src="/js/rxn-geo-tracking.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-shortcuts.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-list-shortcuts.js?v=<?= time() ?>"></script>
+    <script src="/js/rxn-notifications.js?v=<?= time() ?>"></script>
     <?= $extraScripts ?? '' ?>
     <script>
     // Table scroll indicator for mobile

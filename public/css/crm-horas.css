@@ -1,0 +1,30 @@
+/* CrmHoras — turnero mobile-first */
+
+.crm-horas-shell {
+    max-width: 720px;
+}
+
+.crm-horas-shell .display-5 {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+}
+
+/* Botones grandes pulgar-friendly */
+.crm-horas-shell .btn-lg {
+    min-height: 56px;
+    font-size: 1.15rem;
+}
+
+/* Tema claro override (módulo dark-first por convención visual) */
+[data-theme="light"] .crm-horas-shell .card {
+    background-color: #fff;
+    color: var(--bs-body-color);
+}
+
+/* En mobile el listado no debe oprimirse */
+@media (max-width: 576px) {
+    .crm-horas-shell {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+}

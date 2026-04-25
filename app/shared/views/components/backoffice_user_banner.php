@@ -60,6 +60,8 @@ if (\App\Shared\Services\DevDbSwitcher::isEnabled() && $isRxnAdmin) {
         </form>
         <?php endif; ?>
         <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 shadow-sm rxn-user-menu text-secondary">
+        <?php \App\Core\View::render('app/shared/views/components/notifications_bell.php'); ?>
+        <div class="vr mx-1 opacity-25"></div>
         <button class="btn btn-sm btn-link p-0 text-decoration-none" id="backendThemeToggleBtn" title="Cambiar Tema" style="line-height:1; font-size:1.1rem; filter: grayscale(0.5);">
             <?= $oppositeThemeBtn ?>
         </button>
@@ -132,6 +134,9 @@ if (\App\Shared\Services\DevDbSwitcher::isEnabled() && $isRxnAdmin) {
             </a>
             <a href="/mi-empresa/crm/agenda" class="rxn-mobile-nav-item">
                 <i class="bi bi-calendar-event"></i> Agenda
+            </a>
+            <a href="/mi-empresa/crm/horas" class="rxn-mobile-nav-item">
+                <i class="bi bi-stopwatch"></i> Horas (turnero)
             </a>
             <a href="/mi-empresa/crm/notas" class="rxn-mobile-nav-item">
                 <i class="bi bi-journal-text"></i> Notas

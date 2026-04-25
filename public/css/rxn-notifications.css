@@ -1,0 +1,79 @@
+/* Estilos del componente de notificaciones — campanita topbar + página listado. */
+
+.rxn-notif-wrapper {
+    display: inline-block;
+    margin-right: 0.25rem;
+}
+
+.rxn-notif-trigger {
+    border: 0;
+    background: transparent;
+}
+
+.rxn-notif-trigger:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.rxn-notif-dropdown {
+    padding: 0;
+    overflow: hidden;
+}
+
+.rxn-notif-item {
+    color: inherit;
+    transition: background-color 0.15s;
+}
+
+.rxn-notif-item:hover {
+    background-color: rgba(var(--bs-secondary-rgb), 0.08);
+    color: inherit;
+}
+
+.rxn-notif-item-unread {
+    background-color: rgba(var(--bs-warning-rgb), 0.08);
+}
+
+.rxn-notif-item-unread:hover {
+    background-color: rgba(var(--bs-warning-rgb), 0.16);
+}
+
+.rxn-notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--bs-warning);
+    flex-shrink: 0;
+}
+
+.rxn-notif-dot.is-read {
+    background-color: transparent;
+    border: 1px solid rgba(var(--bs-secondary-rgb), 0.4);
+}
+
+.rxn-notif-list .list-group-item.rxn-notif-unread {
+    background-color: rgba(var(--bs-warning-rgb), 0.06);
+}
+
+[data-theme="dark"] .rxn-notif-item-unread {
+    background-color: rgba(var(--bs-warning-rgb), 0.12);
+}
+
+[data-theme="dark"] .rxn-notif-item-unread:hover {
+    background-color: rgba(var(--bs-warning-rgb), 0.20);
+}
+
+/* Celulares muy angostos (iPhone SE / Android mini): el dropdown con
+   min-width 340px se apretujaba contra el borde. Relajamos a ancho de viewport
+   menos un respiro lateral, y reducimos el max-height para que entre en
+   pantallas bajas en landscape. */
+@media (max-width: 400px) {
+    .rxn-notif-dropdown {
+        min-width: calc(100vw - 1.5rem) !important;
+        max-width: calc(100vw - 1.5rem) !important;
+    }
+
+    .rxn-notif-dropdown .rxn-notif-items {
+        max-height: 60vh !important;
+    }
+}

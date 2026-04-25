@@ -1,5 +1,6 @@
 <?php
 $pageTitle = 'RXN Suite';
+$extraHead = '<link rel="stylesheet" href="/css/mi-perfil.css?v=' . time() . '">';
 ob_start();
 ?>
 <?php
@@ -78,6 +79,7 @@ ob_start();
                     Solo afecta tu experiencia dentro del panel administrativo. No impacta en la portada pública.
                 </div>
 
+                <?php if (!empty($canSeeMailMasivos)): ?>
                 <div class="rxn-form-section mt-4">
                     <div class="rxn-form-section-title">SMTP para Mail Masivos</div>
                     <div class="rxn-form-section-text">
@@ -182,6 +184,7 @@ ob_start();
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="rxn-form-actions">
                     <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-light">Cancelar</a>
@@ -190,7 +193,94 @@ ob_start();
             </form>
             </div>
         </div>
+
+        <?php /* ====== HORARIO LABORAL (orientativo, alimenta notificaciones) ====== */ ?>
+        <div class="card rxn-form-card mt-4" id="horario-laboral">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h5 fw-bold mb-1"><i class="bi bi-calendar2-week text-info"></i> Horario laboral</h2>
+                <p class="text-muted small mb-4">
+                    Es <strong>orientativo</strong>: no bloquea nada, solo se usa para que el sistema te avise si te olvidaste de iniciar o cerrar el turno (módulo Horas).
+                    Podés cargar varios bloques por día (ej: turno mañana 9-13 + tarde 14-18).
+                </p>
+
+                <form method="POST" action="/mi-perfil/horario" class="rxn-horario-form">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(\App\Core\CsrfHelper::generateToken()) ?>">
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle rxn-horario-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 130px;">Día</th>
+                                    <th>Bloques (HH:MM)</th>
+                                    <th style="width: 110px;" class="text-end">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($diasSemana as $diaNum => $diaLabel): ?>
+                                <?php $bloques = $horarioPorDia[$diaNum] ?? []; ?>
+                                <tr data-dia="<?= (int) $diaNum ?>">
+                                    <td><strong><?= htmlspecialchars($diaLabel) ?></strong></td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2 rxn-bloques-wrapper">
+                                            <?php if (empty($bloques)): ?>
+                                                <div class="text-muted small fst-italic rxn-bloques-empty">— sin bloques —</div>
+                                            <?php else: ?>
+                                                <?php foreach ($bloques as $b): ?>
+                                                <div class="d-flex gap-2 align-items-center rxn-bloque-row">
+                                                    <input type="time" name="bloques[<?= (int) $diaNum ?>][<?= uniqid() ?>][inicio]" value="<?= htmlspecialchars($b['bloque_inicio']) ?>" class="form-control form-control-sm" style="max-width: 130px;">
+                                                    <span>→</span>
+                                                    <input type="time" name="bloques[<?= (int) $diaNum ?>][<?= uniqid() ?>][fin]" value="<?= htmlspecialchars($b['bloque_fin']) ?>" class="form-control form-control-sm" style="max-width: 130px;">
+                                                    <input type="hidden" name="bloques[<?= (int) $diaNum ?>][<?= uniqid() ?>][activo]" value="1">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger rxn-bloque-remove" title="Quitar bloque"><i class="bi bi-x"></i></button>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-info rxn-bloque-add" data-dia="<?= (int) $diaNum ?>"><i class="bi bi-plus-lg"></i> Bloque</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <h3 class="h6 fw-bold mb-2"><i class="bi bi-bell text-warning"></i> Avisos del módulo Horas</h3>
+                    <div class="row g-3 align-items-center">
+                        <div class="col-12 col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="notif_no_iniciaste" name="notif_no_iniciaste_activa" <?= !empty($usuario['notif_no_iniciaste_activa']) ? 'checked' : '' ?>>
+                                <label class="form-check-label small" for="notif_no_iniciaste">
+                                    Avisarme si <strong>no abrí turno</strong> al inicio de un bloque
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small mb-1">Tolerancia para "olvidaste cerrar" (minutos después del fin)</label>
+                            <input type="number" name="minutos_tolerancia_olvido" class="form-control form-control-sm" min="5" max="240" step="5" value="<?= htmlspecialchars((string) ($usuario['minutos_tolerancia_olvido'] ?? 30)) ?>" style="max-width: 130px;">
+                        </div>
+                    </div>
+
+                    <div class="rxn-form-actions mt-4">
+                        <button type="submit" class="btn btn-primary">💾 Guardar horario laboral</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+
+    <template id="rxn-bloque-template">
+        <div class="d-flex gap-2 align-items-center rxn-bloque-row">
+            <input type="time" name="bloques[__DIA__][__UID__][inicio]" value="" class="form-control form-control-sm" style="max-width: 130px;">
+            <span>→</span>
+            <input type="time" name="bloques[__DIA__][__UID__][fin]" value="" class="form-control form-control-sm" style="max-width: 130px;">
+            <input type="hidden" name="bloques[__DIA__][__UID__][activo]" value="1">
+            <button type="button" class="btn btn-sm btn-outline-danger rxn-bloque-remove" title="Quitar bloque"><i class="bi bi-x"></i></button>
+        </div>
+    </template>
     
 <?php
 $content = ob_get_clean();
@@ -203,6 +293,46 @@ ob_start();
         if (picker && preview) {
             picker.addEventListener('input', (e) => { preview.style.background = e.target.value; });
         }
+    })();
+
+    // Horario laboral: agregar/quitar bloques inline.
+    (function () {
+        const tpl = document.getElementById('rxn-bloque-template');
+        if (!tpl) return;
+
+        function uniq() {
+            return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        }
+
+        document.querySelectorAll('.rxn-bloque-add').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const dia = btn.dataset.dia;
+                const tr = btn.closest('tr');
+                const wrapper = tr.querySelector('.rxn-bloques-wrapper');
+                const empty = wrapper.querySelector('.rxn-bloques-empty');
+                if (empty) empty.remove();
+
+                const html = tpl.innerHTML.replaceAll('__DIA__', dia).replaceAll('__UID__', uniq());
+                const div = document.createElement('div');
+                div.innerHTML = html.trim();
+                wrapper.appendChild(div.firstChild);
+            });
+        });
+
+        // Delegación para los botones X (incluso los nuevos)
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.rxn-bloque-remove');
+            if (!btn) return;
+            const row = btn.closest('.rxn-bloque-row');
+            const wrapper = row?.parentElement;
+            row?.remove();
+            if (wrapper && !wrapper.querySelector('.rxn-bloque-row')) {
+                const empty = document.createElement('div');
+                empty.className = 'text-muted small fst-italic rxn-bloques-empty';
+                empty.textContent = '— sin bloques —';
+                wrapper.appendChild(empty);
+            }
+        });
     })();
 
     // Botón "Probar conexión" SMTP Masivo

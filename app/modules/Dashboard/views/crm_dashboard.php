@@ -1,4 +1,17 @@
 <?php
+// Hooks de notificaciones del módulo CrmHoras: chequea turno olvidado, olvidaste
+// cerrar y no iniciaste. Idempotente vía dedupeKey de NotificationService — corre
+// en cada render del dashboard sin spamear (NO usamos cron, decisión de Charly).
+try {
+    $_chkEmpresaId = (int) (\App\Core\Context::getEmpresaId() ?? 0);
+    $_chkUserId = (int) ($_SESSION['user_id'] ?? 0);
+    if ($_chkEmpresaId > 0 && $_chkUserId > 0) {
+        (new \App\Modules\CrmHoras\HoraNotificationDispatcher())->checkAndNotify($_chkEmpresaId, $_chkUserId);
+    }
+} catch (\Throwable) {
+    // Best-effort. Nunca debe romper el render del dashboard.
+}
+
 $orderJson = $_SESSION['dashboard_order'] ?? '[]';
 $decodedOrder = json_decode($orderJson, true);
 
@@ -80,6 +93,12 @@ $defaultCards = [
         'desc' => 'Historial de llamadas de la central telefónica con reproducción de audios.',
         'icon' => '<i class="bi bi-telephone-fill"></i>',
         'link' => '/mi-empresa/crm/llamadas',
+    ],
+    'horas' => [
+        'title' => 'Horas (Turnero)',
+        'desc' => 'Registro de tiempo trabajado: turnero mobile-first, geo opcional, vínculo a tratativas y reflejo en agenda.',
+        'icon' => '<i class="bi bi-stopwatch"></i>',
+        'link' => '/mi-empresa/crm/horas',
     ],
     'mail_masivos' => [
         'title' => 'Mail Masivos',

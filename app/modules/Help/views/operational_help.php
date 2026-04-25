@@ -87,25 +87,39 @@ ob_start();
                     <?php if ($isCrm): ?>
                         <a href="#modulo-tratativas" class="help-anchor"><strong>Tratativas</strong><br><small class="text-muted">Oportunidades comerciales, estados, cliente y vínculo con PDS/Presupuestos.</small></a>
                         <a href="#modulo-agenda" class="help-anchor"><strong>Agenda CRM</strong><br><small class="text-muted">Calendario unificado, filtros, fullscreen, Google Calendar y colores.</small></a>
+                        <a href="#modulo-horas" class="help-anchor"><strong>Horas (Turnero)</strong><br><small class="text-muted">Registro de tiempo trabajado, mobile-first, carga diferida y vínculo a tratativas.</small></a>
+                        <a href="#modulo-mail-masivos" class="help-anchor"><strong>Mail Masivos</strong><br><small class="text-muted">Plantillas, reportes, envíos y bloque de novedades.</small></a>
                     <?php endif; ?>
+                    <a href="#modulo-notificaciones" class="help-anchor"><strong>Notificaciones</strong><br><small class="text-muted">Campanita, inbox, marcar como leídas y filtros.</small></a>
+                    <a href="#modulo-mobile" class="help-anchor"><strong>Uso desde el celular</strong><br><small class="text-muted">Menú hamburguesa, navegación y tips mobile.</small></a>
+                    <a href="#modulo-rxnlive" class="help-anchor"><strong>RXN Live (Analítica)</strong><br><small class="text-muted">Tableros, vistas guardadas, pivot, chart y export.</small></a>
+                    <a href="#modulo-mi-perfil" class="help-anchor"><strong>Mi Perfil</strong><br><small class="text-muted">Tema claro/oscuro, color de calendario y preferencias.</small></a>
                     <a href="#modulo-configuracion" class="help-anchor"><strong>Configuracion</strong><br><small class="text-muted"><?= $isCrm ? 'Parametros operativos propios de CRM, SMTP, Tango y Google Calendar.' : 'Slug, branding, SMTP y Tango.' ?></small></a>
                     <a href="#modulo-orden-tarjetas" class="help-anchor"><strong>Orden de Tarjetas</strong><br><small class="text-muted">Como acomodar el menu sin afectar otros entornos.</small></a>
                     <a href="#modulo-buscadores" class="help-anchor"><strong>Buscadores y Atajos</strong><br><small class="text-muted">Como buscar bien sin perder tiempo usando el teclado.</small></a>
-                    <a href="#novedades" class="help-anchor"><strong>Novedades</strong><br><small class="text-muted">Multi-empresa, seguridad, zoom e impresión.</small></a>
+                    <a href="#novedades" class="help-anchor"><strong>Novedades</strong><br><small class="text-muted">Lo último: split view, adjuntos, RxnLive, tema claro y más.</small></a>
                 </div>
             </div>
         </div>
 
-        <div class="card rxn-form-card help-card" id="novedades" data-help-item data-help-text="lo nuevo novedades actualizacion mejoras atajo teclado multiempresa multi-empresa zoom printforms csrf token expirado seguridad ingresar correo email outlook copiar duplicar pds dropddown selectores">
+        <div class="card rxn-form-card help-card" id="novedades" data-help-item data-help-text="lo nuevo novedades actualizacion mejoras atajo teclado multiempresa multi-empresa zoom printforms csrf token expirado seguridad ingresar correo email outlook copiar duplicar pds dropddown selectores split view notas explorer adjuntos archivos rxnlive analitica vistas compartidas tema claro oscuro escape volver unificado fullwidth ancho">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Novedades (¡Lo último!)</h2>
-                <p class="text-muted">Un resumen súper fácil de las nuevas funcionalidades agregadas para ahorrarte clics y protegerte mejor.</p>
+                <p class="text-muted">Un resumen súper fácil de las funcionalidades agregadas en las últimas releases para ahorrarte clics, ordenar la operación y mejorar la lectura.</p>
                 <ul class="help-list-tight mb-0">
-                    <li><strong>Clonación Automática de PDS:</strong> Olvidate de reescribir todo cuando vayas de la tienda matriz de un cliente a sus sucursales. Ahora podés "Copiar" un pedido de servicio ya finalizado y crear uno idéntico con un clic (sin copiar su historial aburrido ni el cierre de horas de Tango).</li>
-                    <li><strong>Correos blindados en Microsoft Outlook:</strong> Se terminaron los textos desfasados amontonados. Los emails que manda el sistema ahora toleran que el viejo Outlook los reciba y que el Modo Oscuro no te invierta el "hoja blanca a hoja negra".</li>
-                    <li><strong>Selectores rápidos con teclado:</strong> Los menús desplegables (Dropdowns) para buscar clientes o artículos ahora se dejan domar con las flechas del teclado y la tecla <code>Enter</code>. ¡Listas larguísimas de clientes, ya no asustan!</li>
-                    <li><strong>Zoom en impresión:</strong> Para los que sufren diseñando formularios (PrintForms), agregamos controles de Zoom (acercar, alejar, ajustar ventana). Ya no hay que pelear para ver la hoja A4 completa.</li>
-                    <li><strong>Seguridad vigilando (Token Expirado):</strong> Hay nuevos guardias ciegos cuidando tu sesión. Si vas a buscarte un café, volves a la hora e intentas modificar un pedido y te sale "Token Expirado", es normal, ¡no rompiste nada! Sólo apretá <kbd>F5</kbd> para recargar la página e intentar de nuevo.</li>
+                    <li><strong>Turnero mobile-first (Horas CRM):</strong> Módulo nuevo para que los operadores registren tiempo de trabajo desde el celular: botón grande <em>Iniciar/Cerrar</em>, contador en vivo del día, geolocalización opcional, vínculo a tratativa y reflejo automático en la Agenda CRM (color teal). También permite carga diferida (post-facto) para turnos olvidados. Accesible desde el menú hamburguesa del topbar.</li>
+                    <li><strong>Notificaciones in-app (campanita 🔔):</strong> Sistema nuevo de avisos internos. Aparece en el topbar con badge rojo cuando hay no leídas. Click → dropdown con las últimas 8. "Ver todas" te lleva al inbox completo en <code>/notifications</code> con filtros <em>Todas / No leídas / Leídas</em>, marcar como leídas en bloque y soft-delete. Anti-duplicado de 24hs — nada de spam.</li>
+                    <li><strong>Notas estilo Explorer (Split View):</strong> El listado de Notas pasó a un modo master-detail: a la izquierda buscás y elegís, a la derecha se abre el contenido al toque, sin recargar la página. Te movés con las flechas <kbd>↑</kbd> <kbd>↓</kbd> (o <kbd>j</kbd>/<kbd>k</kbd>), abrís a editar con <kbd>Enter</kbd> y la nota activa queda recordada al volver al listado.</li>
+                    <li><strong>Adjuntos en Notas y Presupuestos:</strong> Ya podés subir archivos (hasta 10 por registro, 100 MB c/u) por arrastrar y soltar. Las imágenes tienen vista previa con un click 👁. El sistema rechaza archivos peligrosos (.exe, .php, etc.) y guarda todo aislado por empresa.</li>
+                    <li><strong>RXN Live (Analítica) más prolijo:</strong> El tablero ya no se desborda del viewport — el footer de paginación queda siempre pegado abajo. Las vistas guardadas ahora se ven entre todos los usuarios de la misma empresa (cada uno ve quién es el dueño y solo el dueño puede pisar/borrar). Los números muestran 4 decimales por defecto.</li>
+                    <li><strong>Tema claro/oscuro por usuario:</strong> Desde <em>Mi Perfil</em> elegís tu tema preferido. Se sincroniza al toque entre pestañas abiertas y queda guardado en tu cuenta — no en el navegador.</li>
+                    <li><strong>Botón Volver unificado y Escape contextual:</strong> En toda la suite el botón <em>Volver</em> está en el mismo lugar (arriba a la derecha) y con el mismo estilo. Apretar <kbd>Esc</kbd> hace lo mismo que el Volver — si tenés cambios sin guardar te pregunta antes para que no pierdas nada.</li>
+                    <li><strong>Flujo Tratativa → PDS/Presupuesto/Nota:</strong> Cuando creás un documento desde una tratativa, el botón <em>Guardar</em> te deja en el documento (para que sigas trabajando) y el <em>Volver</em> te lleva al detalle de la tratativa. Cero saltos accidentales.</li>
+                    <li><strong>Mail Masivos con bloque de novedades:</strong> En el form de "Nuevo envío" hay un paso opcional <em>"Bloque de contenido"</em> que mete las novedades del producto como cards prolijas en el cuerpo del mail. Compatible con Outlook, Gmail y Apple Mail.</li>
+                    <li><strong>Vistas a ancho completo:</strong> Liberamos el cap de 1100/1400 px que tenían los formularios y listados. Ahora aprovechás toda la pantalla en monitores grandes.</li>
+                    <li><strong>Clonación Automática de PDS:</strong> Olvidate de reescribir todo cuando vayas de la tienda matriz de un cliente a sus sucursales. Podés "Copiar" un pedido de servicio finalizado y crear uno idéntico con un clic.</li>
+                    <li><strong>Selectores rápidos con teclado:</strong> Los menús desplegables (Dropdowns) para buscar clientes o artículos se dejan domar con las flechas y <kbd>Enter</kbd>.</li>
+                    <li><strong>Seguridad vigilando (Token Expirado):</strong> Si volvés del café y te sale "Token Expirado" al modificar un pedido, no rompiste nada — apretá <kbd>F5</kbd> para recargar e intentar de nuevo.</li>
                 </ul>
             </div>
         </div>
@@ -151,7 +165,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="card rxn-form-card help-card" id="modulo-presupuestos" data-help-item data-help-text="crm presupuestos presupuesto cotizacion articulo teclado carga rapida sync catalogos sincronizar listas precios vendedores condicion venta">
+            <div class="card rxn-form-card help-card" id="modulo-presupuestos" data-help-item data-help-text="crm presupuestos presupuesto cotizacion articulo teclado carga rapida sync catalogos sincronizar listas precios vendedores condicion venta adjuntos archivos arrastrar imagenes preview tratativa volver guardar">
                 <div class="card-body p-4 p-lg-5">
                     <h2 class="h4 fw-bold mb-3">Presupuestos</h2>
                     <p class="text-muted">Este módulo te permite armar propuestas comerciales ágiles para tus clientes y prospectos.</p>
@@ -160,6 +174,17 @@ ob_start();
                         <li><strong>Apertura rápida de selectores con Enter:</strong> Al apretar <kbd>Enter</kbd> sobre los buscadores de Cliente o Artículo aparecen directamente los primeros resultados sin necesidad de escribir. Navegás con ↑ ↓ y confirmás con <kbd>Enter</kbd>.</li>
                         <li><strong>Botón Sync Catálogos:</strong> Está en las opciones del presupuesto. Úsalo para actualizar rápido de Tango las Listas de Precios, Vendedores, Condiciones de Venta y Transporte. El sistema asume tu última elección.</li>
                         <li><strong>Resolución de precio:</strong> Si el artículo que buscaste tiene precio en la lista de precios seleccionada, la barra de carga te lo autocompleta al instante. Si no, queda en "0" para edición manual.</li>
+                        <li><strong>Salida segura con Escape:</strong> Apretar <kbd>Esc</kbd> dentro del presupuesto te lleva a Volver. Si tenés cambios sin guardar, el sistema te pregunta antes de salir.</li>
+                        <li><strong>Si venís desde una Tratativa:</strong> El botón <em>Guardar</em> te deja en el presupuesto (para que sigas trabajando) y el <em>Volver</em> te lleva al detalle de la tratativa.</li>
+                    </ul>
+
+                    <h3 class="h6 fw-bold mb-2">Adjuntos</h3>
+                    <ul class="help-list-tight mb-0">
+                        <li><strong>Cómo subir:</strong> Arrastrá los archivos al panel de adjuntos al final del formulario, o clickeá para abrir el explorador.</li>
+                        <li><strong>Límites:</strong> Hasta 10 archivos por presupuesto, 100 MB por archivo, 100 MB acumulados.</li>
+                        <li><strong>Imágenes con preview:</strong> Las imágenes tienen botón 👁 para verlas en grande sin descargar.</li>
+                        <li><strong>Seguridad:</strong> Archivos ejecutables o sospechosos (.exe, .php, .html, .svg, etc.) son rechazados automáticamente.</li>
+                        <li><strong>Uso interno por ahora:</strong> Los adjuntos quedan dentro del CRM (no se mandan automáticamente por mail al cliente). Si querés enviarlos, descargalos y adjuntalos manualmente al correo.</li>
                     </ul>
                 </div>
             </div>
@@ -221,14 +246,41 @@ ob_start();
             </div>
         </div>
 
-        <div class="card rxn-form-card help-card" id="modulo-notas" data-help-item data-help-text="notas bitacora anotador interno conversacion seguimiento registro interno comercial crm">
+        <div class="card rxn-form-card help-card" id="modulo-notas" data-help-item data-help-text="notas bitacora anotador interno conversacion seguimiento registro interno comercial crm split view master detail explorer flechas teclado adjuntos archivos arrastrar imagenes preview vista previa papelera importar exportar xlsx tratativa cliente tags etiquetas">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Notas Internas (Bitácora)</h2>
-                <p class="text-muted">Es un cuaderno digital interno para la empresa. Útil para dejar constancia de seguimientos o temas administrativos rápidos.</p>
+                <p class="text-muted">Es un cuaderno digital interno para la empresa. Útil para dejar constancia de seguimientos, conversaciones con clientes o temas administrativos.</p>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Para qué sirve</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Bitácora interna:</strong> Registrar un "llamó el cliente consultando", "hay que revisar el stock", "quedó pendiente de respuesta", etc.</li>
+                    <li><strong>Privacidad:</strong> Todo lo que escribís en las Notas es <strong>puramente interno</strong>. El cliente nunca lo ve en la parte pública.</li>
+                    <li><strong>Vinculación opcional:</strong> Una nota puede ir asociada a un cliente, a una tratativa o quedar suelta. Se le pueden poner etiquetas (tags) para clasificar.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Vista Split (master-detail estilo Explorer)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Cómo se ve:</strong> A la izquierda la lista de notas con su buscador, tabs Activos/Papelera y paginación. A la derecha el detalle de la nota seleccionada, en vivo, sin recargar.</li>
+                    <li><strong>Click en una nota:</strong> Se abre en el panel derecho al instante.</li>
+                    <li><strong>Búsqueda en vivo:</strong> Mientras escribís, la lista filtra sola con un pequeño retraso para no marear. Apretás <kbd>Enter</kbd> y saltás directo a la primera coincidencia.</li>
+                    <li><strong>Persistencia:</strong> Al volver al listado desde otro lado, la última nota que estabas mirando queda seleccionada.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Atajos de teclado</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><kbd>↓</kbd> / <kbd>j</kbd>: ir a la nota siguiente.</li>
+                    <li><kbd>↑</kbd> / <kbd>k</kbd>: ir a la nota anterior.</li>
+                    <li><kbd>Enter</kbd> (con foco fuera del buscador): editar la nota activa.</li>
+                    <li><kbd>Enter</kbd> en el buscador: aplicar filtro y bajar el foco a la lista.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Adjuntos</h3>
                 <ul class="help-list-tight mb-0">
-                    <li><strong>Para qué sirve:</strong> Para registrar un "llamó el cliente consultando", "hay que revisar el stock", etc.</li>
-                    <li><strong>Privacidad:</strong> Todo lo que escribís en las Notas es puramente <strong>interno</strong>. El cliente nunca verá esto en la parte pública.</li>
-                    <li><strong>Búsqueda combinada:</strong> Cuenta con un buscador súper rápido para no perder de vista ninguna anotación histórica importante.</li>
+                    <li><strong>Arrastrar y soltar:</strong> Soltá los archivos sobre el panel de adjuntos del detalle de la nota. También podés clickear el área para abrir el explorador.</li>
+                    <li><strong>Límites:</strong> Hasta 10 archivos por nota, 100 MB por archivo, 100 MB acumulados.</li>
+                    <li><strong>Vista previa:</strong> Las imágenes tienen botón 👁 para verlas en grande sin descargar. El resto se descarga directo.</li>
+                    <li><strong>Seguridad:</strong> Los archivos peligrosos (.exe, .php, .bat, .html, .svg, etc.) son rechazados automáticamente, aunque les cambien la extensión.</li>
+                    <li><strong>Borrado:</strong> Mover una nota a la papelera <strong>NO</strong> borra los adjuntos. Sólo el borrado definitivo desde la papelera elimina los archivos físicamente.</li>
                 </ul>
             </div>
         </div>
@@ -245,19 +297,69 @@ ob_start();
             </div>
         </div>
 
+        <div class="card rxn-form-card help-card" id="modulo-rxnlive" data-help-item data-help-text="rxn live analitica analytics tablero dashboard powerbi datos pivot tabla dinamica chart grafico vista guardada compartida empresa duenio export excel xlsx columnas filtros ventas pedidos servicio clientes integracion tango decimales viewport pantalla completa">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">RXN Live (Analítica)</h2>
+                <p class="text-muted">RXN Live es el módulo analítico de la suite — pensalo como el "PowerBI interno" para mirar datos de la operación: ventas históricas, pedidos de servicio, clientes, integración con Tango y más. Cada dataset se ve en tabla plana o tabla dinámica (pivot), con chart al costado.</p>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Datasets disponibles</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Ventas Histórico:</strong> Análisis de ventas por período, cliente, vendedor o artículo.</li>
+                    <li><strong>Pedidos de Servicio (PDS):</strong> Tiempos, técnicos, estados y descuentos.</li>
+                    <li><strong>Análisis de Clientes:</strong> Segmentación por compras, frecuencia y comportamiento.</li>
+                    <li><strong>Integración Tango:</strong> Estado del intercambio de datos con el ERP.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Vista Plana y Tabla Dinámica</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Vista Plana:</strong> Las filas tal cual están en la base, con orden, filtros y totales en el pie.</li>
+                    <li><strong>Tabla Dinámica (Pivot):</strong> Cruzás dimensiones (filas/columnas) y aplicás operaciones (suma, promedio, count). Tipo Excel.</li>
+                    <li><strong>Chart al costado:</strong> Gráfico interactivo que se actualiza con la pivot. Podés mostrar/ocultar la tabla o el chart con los toggles.</li>
+                    <li><strong>Decimales:</strong> Por defecto se muestran 4 decimales para no perder precisión (excepto la operación COUNT, que va en enteros).</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Vistas guardadas (compartidas por empresa)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Qué es una vista:</strong> Una combinación de filtros, columnas visibles, anchos, orden y configuración de pivot/chart, guardada con un nombre.</li>
+                    <li><strong>Compartidas:</strong> Todos los usuarios de la misma empresa ven las mismas vistas guardadas. El dueño aparece al costado del nombre (ej: <em>Mis PDS — Gaby</em>).</li>
+                    <li><strong>Quién puede pisar/borrar:</strong> Sólo el dueño. Si querés modificar una vista ajena, usá <em>Nueva Vista</em> para duplicarla y trabajar sobre tu propia copia.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Exportar a Excel</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Botón Exportar:</strong> Genera un <code>.xlsx</code> con las columnas visibles, en el orden que tenés configurado, respetando los anchos de columna que ajustaste.</li>
+                    <li><strong>Filtros aplicados:</strong> Lo que exportás es exactamente lo que ves filtrado — no el dataset completo.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Encuadre del viewport</h3>
+                <ul class="help-list-tight mb-0">
+                    <li>El tablero se ajusta automáticamente para que el footer de paginación quede pegado al borde inferior de la ventana, sin scroll del cuerpo. Funciona igual con tablas chicas (Ventas Histórico) o densas (PDS con muchas filas).</li>
+                    <li>Si redimensionás la ventana o cambiás entre tabla y pivot, el encuadre se recalcula solo.</li>
+                </ul>
+            </div>
+        </div>
+
         <?php if ($isCrm): ?>
-        <div class="card rxn-form-card help-card" id="modulo-tratativas" data-help-item data-help-text="tratativas tratativa oportunidad deal negociacion caso comercial cliente pds presupuesto vincular estado ganada perdida pausada probabilidad valor cierre">
+        <div class="card rxn-form-card help-card" id="modulo-tratativas" data-help-item data-help-text="tratativas tratativa oportunidad deal negociacion caso comercial cliente pds presupuesto nota vincular estado ganada perdida pausada probabilidad valor cierre flujo contextual guardar volver escape">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Tratativas (Oportunidades Comerciales)</h2>
-                <p class="text-muted">Una tratativa agrupa bajo un mismo caso comercial los PDS y Presupuestos que hacen a una negociacion con un cliente.</p>
-                <ul class="help-list-tight mb-0">
+                <p class="text-muted">Una tratativa agrupa bajo un mismo caso comercial los PDS, Presupuestos y Notas que hacen a una negociacion con un cliente.</p>
+                <ul class="help-list-tight mb-3">
                     <li><strong>Crear tratativa:</strong> Desde el dashboard CRM, click en <em>Tratativas</em> y luego <em>Nueva Tratativa</em>. Titulo obligatorio, cliente opcional.</li>
-                    <li><strong>Vincular PDS o Presupuestos:</strong> Desde el <em>detalle</em> de una tratativa, usa los botones <em>Nuevo PDS</em> o <em>Nuevo Presupuesto</em>. Se crean ya vinculados y al guardar volves al detalle.</li>
+                    <li><strong>Vincular PDS, Presupuestos o Notas:</strong> Desde el <em>detalle</em> de una tratativa, usa los botones <em>Nuevo PDS</em>, <em>Nuevo Presupuesto</em> o <em>Nueva Nota</em>. Se crean ya vinculados.</li>
                     <li><strong>Estados:</strong> Nueva, En curso, Ganada, Perdida, Pausada. Si cerras como <em>ganada</em> o <em>perdida</em>, el sistema te pide un motivo de cierre obligatorio.</li>
                     <li><strong>Probabilidad y valor:</strong> Campos opcionales que te ayudan a priorizar. La probabilidad va de 0 a 100%.</li>
-                    <li><strong>Papelera:</strong> Al eliminar una tratativa definitivamente, los PDS y Presupuestos vinculados NO se borran, solo se desvinculan (quedan con tratativa_id = null).</li>
+                    <li><strong>Papelera:</strong> Al eliminar una tratativa definitivamente, los PDS, Presupuestos y Notas vinculados NO se borran, solo se desvinculan (quedan sueltos).</li>
                     <li><strong>Buscar cliente:</strong> En el formulario de tratativa, presiona <kbd>Enter</kbd>, <kbd>F3</kbd> o hace doble click en el campo Cliente para abrir el buscador Spotlight.</li>
                     <li><strong>Filtros:</strong> El listado tiene tabs por estado (Nueva, En curso, etc.) y papelera, ademas del buscador F3 universal. Los filtros persisten al navegar.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Flujo contextual desde una tratativa</h3>
+                <p class="text-muted mb-2">Cuando creás un PDS, Presupuesto o Nota desde el detalle de una tratativa, el sistema entiende que estás trabajando dentro de ese caso:</p>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Botón Guardar:</strong> Te deja en el documento (PDS / Presupuesto / Nota) para que sigas editando. No te saca al toque.</li>
+                    <li><strong>Botón Volver:</strong> Te lleva al detalle de la tratativa de origen. Es el camino explícito para regresar.</li>
+                    <li><strong>Tecla Escape:</strong> Hace lo mismo que Volver. Si tenés cambios sin guardar, te pregunta antes de salir para que no pierdas trabajo.</li>
                 </ul>
             </div>
         </div>
@@ -328,7 +430,171 @@ ob_start();
                 </ul>
             </div>
         </div>
+
+        <div class="card rxn-form-card help-card" id="modulo-mail-masivos" data-help-item data-help-text="mail masivos email broadcast envio masivo plantilla template reporte destinatarios bloque contenido novedades cliente final smtp variables placeholder bloque html outlook gmail apple mail">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Mail Masivos (CRM)</h2>
+                <p class="text-muted">Módulo para diseñar y disparar envíos masivos de correo a tus clientes o prospectos. Trabaja en tres piezas: <em>Reportes</em> (de quién a quién), <em>Plantillas</em> (qué y cómo se ve) y <em>Envíos</em> (cuándo se manda y desde qué SMTP).</p>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Reportes</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Reporte de destinatarios:</strong> Define a quiénes se les manda. El editor visual te deja elegir entidad raíz (clientes, contactos, etc.) y filtros para acotar el universo.</li>
+                    <li><strong>Reporte de contenido (broadcast):</strong> Trae las filas que se renderizan como bloque dentro del cuerpo del mail. El más usado es <em>Novedades del producto</em> (tabla <code>customer_notes</code>).</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Plantillas</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Editor visual:</strong> Diseñás el HTML del mail con variables del destinatario (ej: <code>{{nombre}}</code>, <code>{{email}}</code>) que el sistema reemplaza por fila al disparar.</li>
+                    <li><strong>Placeholder de bloque de contenido:</strong> Si insertás <code>{{Bloque.html}}</code> en el cuerpo, el sistema reemplaza eso una sola vez con las cards renderizadas del reporte de contenido elegido.</li>
+                    <li><strong>Compatible con Outlook/Gmail/Apple Mail:</strong> Las cards de novedades usan tablas inline y colores por categoría (feature, mejora, seguridad, performance, fix visible) — todo email-safe.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Crear un envío</h3>
+                <ol class="help-list-tight mb-3">
+                    <li><strong>Paso 1 — Datos básicos:</strong> Nombre del envío, asunto del mail, plantilla.</li>
+                    <li><strong>Paso 2 — Destinatarios:</strong> Reporte que define a quiénes se manda.</li>
+                    <li><strong>Paso 3 — Bloque de contenido (opcional):</strong> Reporte broadcast que se inyecta en <code>{{Bloque.html}}</code>. Si no elegís ninguno, el placeholder queda vacío.</li>
+                    <li><strong>Paso 4 — SMTP:</strong> Servidor desde el cual se mandan los mails (configurado en <em>Configuración CRM</em>).</li>
+                    <li><strong>Paso 5 — Confirmar y disparar.</strong></li>
+                </ol>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Monitor y reportes</h3>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Estado del envío:</strong> En el monitor ves cuántos mails se mandaron, cuántos quedaron pendientes y cuántos fallaron, en vivo.</li>
+                    <li><strong>Historial:</strong> Todos los envíos quedan registrados con fecha, plantilla usada y estadísticas de entrega.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card rxn-form-card help-card" id="modulo-horas" data-help-item data-help-text="horas turnero turno tiempo trabajado registro operador vivo en vivo iniciar cerrar contador geolocalizacion geo ubicacion diferido diferida post facto concepto tratativa vinculo agenda teal mobile celular celu movil anular listado inconsistencia">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Horas (Turnero CRM)</h2>
+                <p class="text-muted">Módulo mobile-first para que los operadores registren el tiempo que laburan. Pensado para abrir desde el celular en la calle: botón grande, contador en vivo y geolocalización opcional.</p>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Para qué sirve</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Registro vivo:</strong> Tocás <em>Iniciar turno</em>, el sistema guarda la hora y arranca un contador "Hoy llevás X:XX:XX". Cuando terminás, tocás <em>Cerrar turno</em> y confirmás.</li>
+                    <li><strong>Un solo turno abierto a la vez:</strong> Si ya tenés uno abierto y tratás de abrir otro, el sistema te frena — evita el típico "me olvidé que tenía uno corriendo".</li>
+                    <li><strong>Concepto opcional:</strong> Al iniciar podés describir qué estás haciendo (ej: <em>"Visita técnica — Cliente X"</em>). Se muestra en el listado del día y en la agenda.</li>
+                    <li><strong>Vincular a tratativa (opcional):</strong> Si el turno es parte de una negociación en curso, elegís la tratativa del dropdown. Después aparece consolidado en el detalle de la tratativa (Fase 4).</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Geolocalización (opcional)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Consentimiento del browser:</strong> La primera vez el celu te pregunta si permitís compartir ubicación. Si decís que sí, el sistema guarda lat/lng al iniciar y al cerrar.</li>
+                    <li><strong>Si negás permiso:</strong> El turno se guarda igual, solo sin coordenadas. No bloquea la operación.</li>
+                    <li><strong>Indicador visible:</strong> Abajo del botón principal te muestra el estado ("Pidiendo ubicación…" / "Ubicación lista" / "Sin ubicación").</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Cargar turno diferido (post-facto)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Cuándo:</strong> Si trabajaste un turno y te olvidaste de registrarlo en vivo. Desde el turnero entrás a <em>Cargar turno diferido</em>.</li>
+                    <li><strong>Qué carga:</strong> Inicio y fin manuales (datetime), concepto y tratativa opcional. El sistema valida que no se solape con otros turnos ya cargados.</li>
+                    <li><strong>Geo inconsistente:</strong> Si cargás diferido más de 24hs después del turno real, se marca la fila con un flag <em>inconsistencia_geo</em> para que admin revise. Aparece como aviso amarillo en el listado.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Cruce de medianoche</h3>
+                <p class="mb-3">Si empezás antes de las 00:00 y cerrás después, el turno se guarda como uno solo. El contador del día siguiente arranca en cero — no suma el resto de la jornada anterior.</p>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Reflejo automático en la Agenda CRM</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Color teal:</strong> Cada turno cerrado se proyecta en la agenda como evento de tipo <em>hora</em> (teal <code>#20c997</code>), al lado de PDS, Presupuestos y Tratativas.</li>
+                    <li><strong>Google Calendar:</strong> Si tenés Google Calendar conectado, el turno también sube a tu calendario personal o corporativo (según el modo configurado).</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Listado admin</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Filtros:</strong> Desde / Hasta / Operador (ID). Por defecto muestra el mes en curso.</li>
+                    <li><strong>Columnas:</strong> ID, operador, inicio, fin, duración, modo (vivo/diferido), estado (abierto/cerrado/anulado) y concepto.</li>
+                    <li><strong>Operador ve lo suyo, admin ve todo:</strong> Un operador normal solo ve sus propios turnos. Admin y RXN Admin ven los de toda la empresa.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Anular un turno</h3>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Motivo obligatorio:</strong> Al anular se pide motivo. Queda en la tabla de auditoría (<code>crm_horas_audit</code>) para trazabilidad.</li>
+                    <li><strong>No se borra:</strong> La fila queda visible en el listado en gris con badge <em>ANULADO</em>. Nunca desaparece.</li>
+                    <li><strong>Sin edición por operador:</strong> Después de cerrar un turno, solo admin puede ajustarlo. Si te equivocaste, avisá al admin.</li>
+                </ul>
+            </div>
+        </div>
         <?php endif; ?>
+
+        <div class="card rxn-form-card help-card" id="modulo-notificaciones" data-help-item data-help-text="notificaciones campanita campana bell badge rojo inbox aviso aviso interno alerta dropdown leer marcar leida leidas no leidas todas filtros eliminar borrar soft delete olvido turno turno abierto abiertos dedupe anti spam polling">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Notificaciones</h2>
+                <p class="text-muted">Sistema de avisos internos de la suite. Cada vez que el sistema detecta algo que te conviene saber (un turno abierto desde ayer, un recordatorio, etc.) te lo manda al inbox personal.</p>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Campanita en el topbar</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Dónde está:</strong> En la barra superior, al lado de tu nombre y el toggle de tema. Ícono de campana 🔔.</li>
+                    <li><strong>Badge rojo:</strong> Si tenés notificaciones sin leer aparece un círculo rojo con el número. Si todas están leídas, el badge desaparece.</li>
+                    <li><strong>Click → dropdown:</strong> Se abre un panel con las últimas 8 notificaciones. Las no leídas tienen un puntito amarillo y fondo suavemente resaltado.</li>
+                    <li><strong>No polea:</strong> La campanita carga al entrar a cualquier página y al abrir el dropdown. No hace polling en background — si querés refrescar, recargá o abrí/cerrá el panel.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Qué hacés desde el dropdown</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Click en una notif:</strong> Si tiene link asociado (ej: "te lleva al turno olvidado"), navega al lugar correspondiente y la marca como leída.</li>
+                    <li><strong>Marcar todas como leídas:</strong> Botón al pie del dropdown. Limpia el badge de un saque.</li>
+                    <li><strong>Ver todas:</strong> Link arriba a la derecha — te lleva a la página <code>/notifications</code> con el listado completo.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Página de Notificaciones (inbox)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Filtros:</strong> Pills arriba para alternar <em>Todas</em> / <em>No leídas</em> / <em>Leídas</em>.</li>
+                    <li><strong>Por fila:</strong> Tres botones a la derecha — <em>Abrir</em> (va al link), <em>Marcar leída</em> (✓ verde) y <em>Eliminar</em> (✗ rojo, soft-delete).</li>
+                    <li><strong>Eliminar ≠ borrar definitivo:</strong> "Eliminar" es soft-delete (queda oculto para vos). No hay purga automática; el sistema no borra notificaciones por TTL.</li>
+                    <li><strong>Paginación:</strong> 30 por página. Si acumulás mucho, usá los filtros para achicar.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Tipos de notificaciones (hoy)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Turno olvidado:</strong> Si tenías un turno abierto ayer y no lo cerraste, al volver te lo avisa con link para cerrarlo o anularlo.</li>
+                    <li><strong>Ajuste de admin:</strong> Si admin te modifica un turno, te llega la notificación con el detalle del cambio.</li>
+                    <li><strong>Próximos tipos (roadmap):</strong> Tratativas próximas a vencer, recordatorios de agenda, mensajes del sistema.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Anti-duplicados</h3>
+                <p class="mb-0">El sistema usa una clave de deduplicación por 24hs. Si un hook intenta mandarte la misma notificación varias veces en un día, la ves una sola vez. No hay spam ni repeticiones molestas.</p>
+            </div>
+        </div>
+
+        <div class="card rxn-form-card help-card" id="modulo-mobile" data-help-item data-help-text="mobile celular celu movil responsive tablet smartphone hamburguesa hamburguer menu offcanvas navegacion touch tactil pulgar viewport iphone android chrome safari campanita tema claro oscuro turnero">
+            <div class="card-body p-4 p-lg-5">
+                <h2 class="h4 fw-bold mb-3">Uso desde el celular (mobile)</h2>
+                <p class="text-muted">La suite está pensada para trabajar cómoda desde PC pero también desde el celular. Estos son los detalles clave para el uso mobile.</p>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Menú hamburguesa</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Dónde:</strong> Arriba a la izquierda, el ícono de tres rayitas ☰. Aparece solo en pantallas chicas (menos de ~992px de ancho).</li>
+                    <li><strong>Qué tiene:</strong> Panel lateral con todas las secciones — CRM (Clientes, Presupuestos, PDS, Tratativas, Agenda, Horas, Notas, Llamadas), Tiendas, Administración (si sos admin) y Cuenta.</li>
+                    <li><strong>Entrar al turnero:</strong> Tap en ☰ → <em>Horas (turnero)</em>. Es el camino más rápido desde cualquier pantalla del CRM.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Turnero optimizado para celular</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Botones grandes:</strong> 56px mínimo, pulgar-friendly. No hace falta hacer zoom para iniciar o cerrar.</li>
+                    <li><strong>Layout one-column:</strong> Todo apilado verticalmente. Sin menús desplegables extra ni contenido que se desborde.</li>
+                    <li><strong>Contador siempre visible:</strong> Arriba, en grande, con el tiempo del día sumado y corriendo en vivo.</li>
+                    <li><strong>Geo pide permiso automáticamente:</strong> El browser te pregunta una vez y guarda la decisión.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Tips generales para mobile</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Listados largos:</strong> Algunas tablas (ej: listado de Horas admin, Notas) tienen scroll horizontal. Deslizá con el dedo para ver columnas de la derecha.</li>
+                    <li><strong>Formularios:</strong> Los campos se apilan en una sola columna en mobile (row g-3 / col-12). En tablet en landscape se acomodan en dos columnas automáticamente.</li>
+                    <li><strong>Tema claro/oscuro:</strong> El toggle está en el topbar (☀️ / 🌙). Se sincroniza con tu cuenta, así que si cambiás en el celu, también se cambia en la PC.</li>
+                    <li><strong>Notificaciones:</strong> La campanita del topbar funciona igual en celu. El dropdown se abre al tap, al lado izquierdo (para no taparse con el borde de la pantalla).</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Qué módulos están optimizados mobile-first</h3>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Horas (Turnero):</strong> Diseñado desde cero para usar en la calle desde el celular.</li>
+                    <li><strong>Notificaciones:</strong> Campanita + inbox responsive.</li>
+                    <li><strong>Resto de la suite:</strong> Funciona en mobile, pero está pensada principalmente para escritorio o tablet en landscape. Listados grandes y editores densos (RxnLive, Presupuestos con muchos renglones) conviene hacerlos desde la PC.</li>
+                </ul>
+            </div>
+        </div>
 
         <div class="card rxn-form-card help-card" id="modulo-configuracion" data-help-item data-help-text="configuracion empresa slug branding smtp tango connect mail tienda url publica identidad logo colores google calendar oauth">
             <div class="card-body p-4 p-lg-5">
@@ -346,10 +612,48 @@ ob_start();
             </div>
         </div>
 
-        <div class="card rxn-form-card help-card" data-help-item data-help-text="perfil preferencias visuales tema fuente panel personal usuario apariencia entorno">
+        <div class="card rxn-form-card help-card" id="modulo-mi-perfil" data-help-item data-help-text="perfil mi perfil preferencias visuales tema claro oscuro dark light fuente panel personal usuario apariencia entorno color calendario agenda contraseña password datos">
             <div class="card-body p-4 p-lg-5">
                 <h2 class="h4 fw-bold mb-3">Mi Perfil</h2>
-                
+                <p class="text-muted">Pantalla personal del operador. Acá ajustás tus datos, tu apariencia y tus preferencias visuales. Lo que cambies acá viaja con tu cuenta — no depende del navegador ni de la PC desde la que entres.</p>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Datos personales</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Nombre y email:</strong> Visibles para el resto del equipo en listados y filtros por operador.</li>
+                    <li><strong>Cambiar contraseña:</strong> Te pide la actual y la nueva dos veces como confirmación.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Tema claro / oscuro</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Toggle por usuario:</strong> Elegís claro u oscuro y queda guardado en tu cuenta.</li>
+                    <li><strong>Sincronización entre pestañas:</strong> Si tenés la app abierta en varias pestañas, al cambiar el tema se actualiza todo al instante, sin necesidad de recargar.</li>
+                    <li><strong>Coherencia visual:</strong> Todos los módulos respetan tu elección — incluyendo Notas, Agenda CRM, Tratativas, Llamadas y RXN Live, que originalmente eran solo oscuros.</li>
+                </ul>
+
+                <?php if ($isCrm): ?>
+                <h3 class="h6 fw-bold mt-4 mb-2">Color de calendario (Agenda CRM)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Para qué sirve:</strong> Es el color con el que aparecen tus eventos en la <em>Agenda CRM</em>. Si en tu equipo cada uno tiene un color, identificás de un vistazo qué carga es de quién.</li>
+                    <li><strong>Cómo elegirlo:</strong> En la sección <em>Agenda CRM</em> de Mi Perfil, abrís el selector de color y guardás. Se aplica al toque sobre los eventos nuevos y existentes.</li>
+                    <li><strong>Combinación con el origen:</strong> El fondo del evento es tu color (operador) y el borde izquierdo es el color del tipo (PDS azul, Presupuesto verde, etc.). Así ves operador + tipo en una sola mirada.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">Horario laboral (alimenta avisos del Turnero)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>Es orientativo:</strong> Lo que cargás acá no te bloquea — es la base para que el sistema te avise si te olvidaste de iniciar o cerrar un turno.</li>
+                    <li><strong>Bloques por día:</strong> De lunes a domingo podés cargar uno o varios bloques (ej: lunes 09:00 → 13:00 + 14:00 → 18:00). Click en <em>+ Bloque</em> para sumar uno.</li>
+                    <li><strong>Desde el celular:</strong> En pantalla chica cada día se muestra como una card apilada con sus bloques y el botón <em>+ Bloque</em> abajo. Sin scroll horizontal molesto.</li>
+                    <li><strong>Avisar si no abrí turno:</strong> Switch opcional que te pincha una notificación cuando arranca un bloque y no abriste turno del turnero.</li>
+                    <li><strong>Tolerancia para "olvidaste cerrar":</strong> Minutos que el sistema espera después del fin de un bloque antes de avisarte que quedó abierto. Default 30 min; rango 5–240.</li>
+                </ul>
+                <?php endif; ?>
+
+                <h3 class="h6 fw-bold mt-4 mb-2">SMTP personal para Mail Masivos (solo admins)</h3>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Quién lo ve:</strong> Esta sección aparece solo si tu cuenta tiene privilegios de administrador — es el SMTP que usa el módulo <em>Mail Masivos</em> para disparar envíos desde tu identidad.</li>
+                    <li><strong>Por qué está oculta para operadores:</strong> Los operadores no necesitan configurar SMTP; mostrarlo generaba ruido y exponía campos que no tenían que tocar (especialmente desde el celular).</li>
+                    <li><strong>Cómo probarla:</strong> Una vez cargados host, puerto, usuario y password, el botón <em>Probar conexión</em> hace un handshake real con el server y te devuelve OK o el error exacto. Queda registrado el último test.</li>
+                </ul>
             </div>
         </div>
 
@@ -366,8 +670,11 @@ ob_start();
                 </ul>
                 <h3 class="h6 fw-bold mb-2">Atajos de Teclado (¡Chau Mouse!)</h3>
                 <ul class="help-list-tight mb-4">
-                    <li><strong>Buscar rápido:</strong> En cualquier pantalla, tocá la tecla `F3` o la barra `/` y vas directo a la caja de búsqueda.</li>
-                    <li><strong>Moverse en el Dashboard:</strong> Cuando buscás un módulo en las tarjetas de inicio, usa las <strong>flechas para arriba/abajo o los lados</strong> para saltar entre las opciones coloreadas y tocá `Enter` para entrar directo al que elegiste.</li>
+                    <li><strong>Buscar rápido:</strong> En cualquier pantalla, tocá la tecla <kbd>F3</kbd> o la barra <kbd>/</kbd> y vas directo a la caja de búsqueda.</li>
+                    <li><strong>Moverse en el Dashboard:</strong> Cuando buscás un módulo en las tarjetas de inicio, usa las <strong>flechas ↑ ↓ ← →</strong> para saltar entre las opciones coloreadas y tocá <kbd>Enter</kbd> para entrar directo al que elegiste.</li>
+                    <li><strong>Volver con Escape:</strong> En cualquier formulario, apretar <kbd>Esc</kbd> hace lo mismo que el botón <em>Volver</em>. Si tenés cambios sin guardar, te pregunta antes de salir para que no pierdas trabajo.</li>
+                    <li><strong>Ver todos los atajos disponibles:</strong> Apretá <kbd>Shift</kbd> + <kbd>?</kbd> en cualquier pantalla y se abre un panel con la lista completa de atajos activos en ese contexto, agrupados por módulo. Súper útil para descubrir las hotkeys del módulo en el que estás.</li>
+                    <li><strong>Copiar fila en listados:</strong> En tablas con copia rápida (PDS, Presupuestos, Notas), pasá el mouse sobre una fila y apretá <kbd>Alt</kbd> + <kbd>O</kbd> para clonar el registro sin abrir el form.</li>
                 </ul>
                 <h3 class="h6 fw-bold mb-2">Que significa “Buscar por”</h3>
                 <p class="mb-0">Te deja decirle al sistema donde queres buscar: por ejemplo por ID, nombre, email, SKU, documento o todos los campos disponibles segun el modulo.</p>

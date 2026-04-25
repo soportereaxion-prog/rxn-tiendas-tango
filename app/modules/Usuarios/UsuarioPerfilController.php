@@ -7,6 +7,7 @@ use App\Core\View;
 use App\Core\Database;
 use App\Core\Context;
 use App\Core\Services\MailService;
+use App\Modules\Auth\AuthService;
 use App\Shared\Services\OperationalAreaService;
 use PDO;
 use PHPMailer\PHPMailer\PHPMailer;
@@ -27,10 +28,17 @@ class UsuarioPerfilController
         $stmt->execute([$_SESSION['user_id']]);
         $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Cargar config SMTP de mail masivos del usuario (si existe)
+        // El bloque SMTP de Mail Masivos es propio del vendedor/admin que
+        // dispara envíos. Los operadores comunes no necesitan verlo y, si lo
+        // vieran, sería ruido en la pantalla (especialmente desde el celular).
+        // Gated por hasAdminPrivileges — mismo criterio que otras acciones
+        // sensibles del backoffice.
+        $canSeeMailMasivos = AuthService::hasAdminPrivileges();
+
+        // Cargar config SMTP solo si va a ser visible (evita consulta innecesaria)
         $smtpConfig = null;
         $empresaId = Context::getEmpresaId();
-        if ($empresaId) {
+        if ($canSeeMailMasivos && $empresaId) {
             $stmtSmtp = $pdo->prepare(
                 "SELECT * FROM crm_mail_smtp_configs
                  WHERE empresa_id = ? AND usuario_id = ? AND deleted_at IS NULL
@@ -40,14 +48,98 @@ class UsuarioPerfilController
             $smtpConfig = $stmtSmtp->fetch(PDO::FETCH_ASSOC) ?: null;
         }
 
+        // Horario laboral declarado por el usuario (orientativo) — alimenta las
+        // notificaciones del módulo Horas y futuros reportes "horas previstas vs reales".
+        $horarioRepo = new UsuarioHorarioLaboralRepository($pdo);
+        $horarioPorDia = $horarioRepo->findByUserGroupedByDay((int) $_SESSION['user_id']);
+        $diasSemana = UsuarioHorarioLaboralRepository::DIAS;
+
         View::render('app/modules/Usuarios/views/mi_perfil.php', [
             'usuario' => $usuario,
             'smtpConfig' => $smtpConfig,
+            'canSeeMailMasivos' => $canSeeMailMasivos,
             'area' => $area,
             'dashboardPath' => OperationalAreaService::dashboardPath($area),
             'helpPath' => OperationalAreaService::helpPath($area),
             'formPath' => OperationalAreaService::profilePath($area),
+            'horarioPorDia' => $horarioPorDia,
+            'diasSemana' => $diasSemana,
         ]);
+    }
+
+    /**
+     * POST /mi-perfil/horario
+     * Recibe la grilla L-D con bloques y los flags de notificación.
+     * Hace replace-all del horario del usuario (estrategia documentada en el repo).
+     */
+    public function guardarHorario(): void
+    {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        // CSRF check delegado vía pattern del proyecto
+        $token = $_POST['csrf_token'] ?? null;
+        if (!\App\Core\CsrfHelper::validate(is_string($token) ? $token : null)) {
+            http_response_code(419);
+            exit('Token expirado');
+        }
+
+        $area = OperationalAreaService::resolveFromRequest();
+        $userId = (int) $_SESSION['user_id'];
+
+        // bloques[diaSemana][] = ['inicio' => 'HH:MM', 'fin' => 'HH:MM', 'activo' => 1]
+        $rawBloques = $_POST['bloques'] ?? [];
+        $byDay = [];
+        if (is_array($rawBloques)) {
+            foreach ($rawBloques as $dia => $items) {
+                $dia = (int) $dia;
+                if ($dia < 1 || $dia > 7 || !is_array($items)) {
+                    continue;
+                }
+                $byDay[$dia] = [];
+                foreach ($items as $b) {
+                    if (!is_array($b)) {
+                        continue;
+                    }
+                    $inicio = trim((string) ($b['inicio'] ?? ''));
+                    $fin    = trim((string) ($b['fin'] ?? ''));
+                    if ($inicio === '' && $fin === '') {
+                        continue; // bloque vacío, lo ignoramos
+                    }
+                    $byDay[$dia][] = [
+                        'bloque_inicio' => $inicio,
+                        'bloque_fin'    => $fin,
+                        'activo'        => isset($b['activo']) && $b['activo'] ? 1 : 0,
+                    ];
+                }
+            }
+        }
+
+        $repo = new UsuarioHorarioLaboralRepository();
+        $repo->replaceForUser($userId, $byDay);
+
+        // Flags de notificación
+        $notifNoIniciaste = isset($_POST['notif_no_iniciaste_activa']) ? 1 : 0;
+        $minutosTolerancia = max(5, min(240, (int) ($_POST['minutos_tolerancia_olvido'] ?? 30)));
+
+        $pdo = Database::getConnection();
+        $upd = $pdo->prepare('
+            UPDATE usuarios SET
+                notif_no_iniciaste_activa = :n,
+                minutos_tolerancia_olvido = :m
+            WHERE id = :id
+        ');
+        $upd->execute([
+            ':n'  => $notifNoIniciaste,
+            ':m'  => $minutosTolerancia,
+            ':id' => $userId,
+        ]);
+
+        $redirect = OperationalAreaService::profilePath($area);
+        $separator = str_contains($redirect, '?') ? '&' : '?';
+        header('Location: ' . $redirect . $separator . 'success=Horario+laboral+actualizado#horario-laboral');
+        exit;
     }
 
     public function guardar(): void
@@ -77,8 +169,12 @@ class UsuarioPerfilController
         $_SESSION['pref_font'] = $fuente;
         $_SESSION['color_calendario'] = $colorCalendario;
 
-        // Persistir config SMTP para mail masivos (si vino en el form)
-        $this->persistSmtpFromPost($pdo, (int) $_SESSION['user_id']);
+        // Persistir config SMTP para mail masivos (si vino en el form).
+        // Solo usuarios con privilegios de admin pueden tocar el SMTP personal;
+        // si un operador postea campos smtp_* manualmente los ignoramos.
+        if (AuthService::hasAdminPrivileges()) {
+            $this->persistSmtpFromPost($pdo, (int) $_SESSION['user_id']);
+        }
 
         $redirect = OperationalAreaService::profilePath($area);
         $separator = str_contains($redirect, '?') ? '&' : '?';
@@ -212,6 +308,14 @@ class UsuarioPerfilController
         header('Content-Type: application/json; charset=utf-8');
 
         if (empty($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'No autorizado']);
+            exit;
+        }
+
+        // El test de SMTP es una función del admin que configura Mail Masivos;
+        // bloqueamos el endpoint para usuarios sin privilegios.
+        if (!AuthService::hasAdminPrivileges()) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'No autorizado']);
             exit;

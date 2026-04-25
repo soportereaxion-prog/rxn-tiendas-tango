@@ -79,6 +79,7 @@ return function (Router $router): void {
     $router->post('/mi-perfil/toggle-theme', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'toggleTheme']);
     $router->post('/mi-perfil/dashboard-order', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardarOrdenDashboard']);
     $router->post('/mi-perfil/smtp/test', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'testSmtp']);
+    $router->post('/mi-perfil/horario', [\App\Modules\Usuarios\UsuarioPerfilController::class, 'guardarHorario']);
 
     // --- MODULO EMPRESAS ---
     $router->get('/empresas', [\App\Modules\Empresas\EmpresaController::class, 'index']);
@@ -545,6 +546,30 @@ return function (Router $router): void {
     $router->post('/attachments/{id}/delete', [\App\Shared\Controllers\AttachmentsController::class, 'delete']);
     $router->get('/attachments/{id}/download', [\App\Shared\Controllers\AttachmentsController::class, 'download']);
     $router->get('/attachments/{id}/preview', [\App\Shared\Controllers\AttachmentsController::class, 'preview']);
+
+    // --- CRM TRATATIVAS ↔ HORAS (vincular/desvincular existentes) ---
+    $router->get('/mi-empresa/crm/tratativas/{id}/horas-sueltas.json', $action(\App\Modules\CrmTratativas\TratativaController::class, 'listarHorasSueltas', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/{id}/vincular-hora', $action(\App\Modules\CrmTratativas\TratativaController::class, 'vincularHora', $requireCrm));
+    $router->post('/mi-empresa/crm/tratativas/{id}/desvincular-hora/{horaId}', $action(\App\Modules\CrmTratativas\TratativaController::class, 'desvincularHora', $requireCrm));
+
+    // --- CRM HORAS (turnero) ---
+    $router->get('/mi-empresa/crm/horas', $action(\App\Modules\CrmHoras\HoraController::class, 'turnero', $requireCrm));
+    $router->post('/mi-empresa/crm/horas/iniciar', $action(\App\Modules\CrmHoras\HoraController::class, 'iniciar', $requireCrm));
+    $router->post('/mi-empresa/crm/horas/cerrar', $action(\App\Modules\CrmHoras\HoraController::class, 'cerrar', $requireCrm));
+    $router->get('/mi-empresa/crm/horas/diferido', $action(\App\Modules\CrmHoras\HoraController::class, 'diferido', $requireCrm));
+    $router->post('/mi-empresa/crm/horas/diferido', $action(\App\Modules\CrmHoras\HoraController::class, 'diferidoStore', $requireCrm));
+    $router->get('/mi-empresa/crm/horas/listado', $action(\App\Modules\CrmHoras\HoraController::class, 'listado', $requireCrm));
+    $router->post('/mi-empresa/crm/horas/{id}/anular', $action(\App\Modules\CrmHoras\HoraController::class, 'anular', $requireCrm));
+
+    // --- CRM HORAS — Audit log (super admin) ---
+    $router->get('/admin/horas/audit', [\App\Modules\CrmHoras\HoraAuditController::class, 'index']);
+
+    // --- NOTIFICACIONES (sistema global in-app, sirve a toda la suite) ---
+    $router->get('/notifications', [\App\Modules\Notifications\NotificationController::class, 'index']);
+    $router->get('/notifications/feed.json', [\App\Modules\Notifications\NotificationController::class, 'feed']);
+    $router->post('/notifications/marcar-todas-leidas', [\App\Modules\Notifications\NotificationController::class, 'markAllRead']);
+    $router->post('/notifications/{id}/leer', [\App\Modules\Notifications\NotificationController::class, 'markRead']);
+    $router->post('/notifications/{id}/eliminar', [\App\Modules\Notifications\NotificationController::class, 'softDelete']);
 
     // --- INTEGRACIONES (WEBHOOKS) ---
     $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);

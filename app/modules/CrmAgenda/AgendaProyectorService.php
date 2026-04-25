@@ -258,6 +258,62 @@ class AgendaProyectorService
         } catch (\Throwable) {}
     }
 
+    /**
+     * Hook disparado por HoraService cuando se cierra (o carga diferido) un turno.
+     * Solo proyecta turnos cerrados — los abiertos no tienen end y no son representables
+     * como evento de calendario. Se proyecta una sola vez al cerrar.
+     */
+    public function onHoraSaved(array $hora): void
+    {
+        try {
+            $horaId = (int) ($hora['id'] ?? 0);
+            $empresaId = (int) ($hora['empresa_id'] ?? 0);
+            if ($horaId <= 0 || $empresaId <= 0 || empty($hora['ended_at']) || empty($hora['started_at'])) {
+                return;
+            }
+            if (($hora['estado'] ?? '') !== 'cerrado') {
+                return;
+            }
+
+            $concepto = trim((string) ($hora['concepto'] ?? ''));
+            $titulo = 'Turno' . ($concepto !== '' ? ' — ' . $concepto : '');
+
+            $descripcionParts = [];
+            if (($hora['modo'] ?? '') === 'diferido') {
+                $descripcionParts[] = '(Cargado a posteriori)';
+            }
+            try {
+                $sec = (new \DateTimeImmutable((string) $hora['ended_at']))->getTimestamp() - (new \DateTimeImmutable((string) $hora['started_at']))->getTimestamp();
+                if ($sec > 0) {
+                    $h = intdiv($sec, 3600);
+                    $m = intdiv($sec % 3600, 60);
+                    $descripcionParts[] = sprintf('Duración: %dh %02dm', $h, $m);
+                }
+            } catch (\Throwable) {}
+
+            $this->upsertEvent([
+                'empresa_id'     => $empresaId,
+                'usuario_id'     => $hora['usuario_id'] ?? null,
+                'usuario_nombre' => $hora['usuario_nombre'] ?? null,
+                'titulo'         => $titulo,
+                'descripcion'    => implode("\n", $descripcionParts),
+                'inicio'         => (string) $hora['started_at'],
+                'fin'            => (string) $hora['ended_at'],
+                'origen_tipo'    => 'hora',
+                'origen_id'      => $horaId,
+                'color'          => AgendaRepository::defaultColorFor('hora'),
+                'estado'         => 'completado',
+            ]);
+        } catch (\Throwable) {}
+    }
+
+    public function onHoraDeleted(int $horaId, int $empresaId): void
+    {
+        try {
+            $this->softDeleteAndMaybeRemote('hora', $horaId, $empresaId);
+        } catch (\Throwable) {}
+    }
+
     private function upsertEvent(array $data): void
     {
         $empresaId = (int) $data['empresa_id'];

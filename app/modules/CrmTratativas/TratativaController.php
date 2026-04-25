@@ -130,11 +130,30 @@ class TratativaController extends \App\Core\Controller
         $presupuestos = $this->repository->findPresupuestosByTratativaId((int) $tratativa['id'], $empresaId);
         $notas = $this->repository->findNotasByTratativaId((int) $tratativa['id'], $empresaId);
 
+        // Horas trabajadas vinculadas a esta tratativa (módulo CrmHoras).
+        $horas = (new \App\Modules\CrmHoras\HoraRepository())
+            ->findByTratativa($empresaId, (int) $tratativa['id']);
+
+        // Total de segundos trabajados (suma de duraciones de turnos cerrados).
+        $horasTotalSeg = 0;
+        foreach ($horas as $h) {
+            if (($h['estado'] ?? '') !== 'cerrado' || empty($h['ended_at']) || empty($h['started_at'])) {
+                continue;
+            }
+            try {
+                $sec = (new \DateTimeImmutable((string) $h['ended_at']))->getTimestamp()
+                     - (new \DateTimeImmutable((string) $h['started_at']))->getTimestamp();
+                $horasTotalSeg += max(0, $sec);
+            } catch (\Throwable) {}
+        }
+
         View::render('app/modules/CrmTratativas/views/detalle.php', array_merge($this->buildUiContext(), [
             'tratativa' => $tratativa,
             'pds' => $pds,
             'presupuestos' => $presupuestos,
             'notas' => $notas,
+            'horas' => $horas,
+            'horasTotalSeg' => $horasTotalSeg,
         ]));
     }
 
@@ -576,6 +595,114 @@ class TratativaController extends \App\Core\Controller
         } catch (\Exception) {
             return null;
         }
+    }
+
+    /**
+     * GET /mi-empresa/crm/tratativas/{id}/horas-sueltas.json
+     * Lista los turnos del usuario activo que no están vinculados a ninguna tratativa.
+     * Lo consume el modal "Vincular hora existente" en el detalle de la tratativa.
+     */
+    public function listarHorasSueltas(string $id): void
+    {
+        AuthService::requireLogin();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $empresaId = (int) Context::getEmpresaId();
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        if ($empresaId <= 0 || $userId <= 0) {
+            http_response_code(401);
+            echo json_encode(['ok' => false]);
+            return;
+        }
+
+        // Validar que la tratativa exista y pertenezca a la empresa.
+        $tratativa = $this->repository->findById((int) $id, $empresaId);
+        if ($tratativa === null) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'tratativa_no_encontrada']);
+            return;
+        }
+
+        $sueltos = (new \App\Modules\CrmHoras\HoraRepository())
+            ->findSueltosByUser($empresaId, $userId, 50);
+
+        echo json_encode(['ok' => true, 'items' => $sueltos], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * POST /mi-empresa/crm/tratativas/{id}/vincular-hora
+     * Asocia un turno existente (de cualquier operador con acceso al CRM) a esta tratativa.
+     */
+    public function vincularHora(string $id): void
+    {
+        AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
+
+        $empresaId = (int) Context::getEmpresaId();
+        $tratativaId = (int) $id;
+        $horaId = (int) ($_POST['hora_id'] ?? 0);
+
+        if ($horaId <= 0) {
+            Flash::set('danger', 'Falta el ID del turno a vincular.');
+            header('Location: /mi-empresa/crm/tratativas/' . $tratativaId);
+            return;
+        }
+
+        // Validar tratativa
+        $tratativa = $this->repository->findById($tratativaId, $empresaId);
+        if ($tratativa === null) {
+            Flash::set('danger', 'La tratativa no existe.');
+            header('Location: /mi-empresa/crm/tratativas');
+            return;
+        }
+
+        $horasRepo = new \App\Modules\CrmHoras\HoraRepository();
+        $hora = $horasRepo->findById($horaId, $empresaId);
+        if ($hora === null) {
+            Flash::set('danger', 'El turno no existe o no pertenece a tu empresa.');
+            header('Location: /mi-empresa/crm/tratativas/' . $tratativaId);
+            return;
+        }
+
+        $horasRepo->setTratativa($horaId, $empresaId, $tratativaId);
+
+        // Re-proyectar el turno a la agenda con los datos actualizados (no afecta el evento, pero es prolijo).
+        try {
+            $horaActualizada = $horasRepo->findById($horaId, $empresaId);
+            if ($horaActualizada !== null) {
+                (new \App\Modules\CrmAgenda\AgendaProyectorService())->onHoraSaved($horaActualizada);
+            }
+        } catch (\Throwable) {}
+
+        Flash::set('success', 'Turno vinculado a la tratativa.');
+        header('Location: /mi-empresa/crm/tratativas/' . $tratativaId);
+    }
+
+    /**
+     * POST /mi-empresa/crm/tratativas/{id}/desvincular-hora/{horaId}
+     * Quita el vínculo de un turno con la tratativa (queda suelto, NO se borra).
+     */
+    public function desvincularHora(string $id, string $horaId): void
+    {
+        AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
+
+        $empresaId = (int) Context::getEmpresaId();
+        $tratativaId = (int) $id;
+        $horaIdInt = (int) $horaId;
+
+        $tratativa = $this->repository->findById($tratativaId, $empresaId);
+        if ($tratativa === null) {
+            Flash::set('danger', 'La tratativa no existe.');
+            header('Location: /mi-empresa/crm/tratativas');
+            return;
+        }
+
+        (new \App\Modules\CrmHoras\HoraRepository())
+            ->setTratativa($horaIdInt, $empresaId, null);
+
+        Flash::set('success', 'Turno desvinculado (sigue existiendo, ahora suelto).');
+        header('Location: /mi-empresa/crm/tratativas/' . $tratativaId);
     }
 }
 
