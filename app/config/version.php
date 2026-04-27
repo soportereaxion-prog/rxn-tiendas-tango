@@ -1,9 +1,38 @@
 <?php
 
 return [
-    'current_version' => '1.23.0',
-    'current_build' => '20260425.1',
+    'current_version' => '1.24.0',
+    'current_build' => '20260427.1',
     'history' => [
+        [
+            'version' => '1.24.0',
+            'build' => '20260427.1',
+            'released_at' => '2026-04-27',
+            'title' => 'Zoom personal (Mi Perfil) + Llamadas vinculadas a PDS + Edición admin de turnos',
+            'summary' => 'Tres mejoras de UX y trazabilidad pedidas para el día a día. (1) Zoom personal global por usuario en Mi Perfil con grilla [75, 80, 90, 100, 110, 125, 150]: equivalente a la lupa nativa del navegador pero persistido por usuario, aplicado a toda la app (Tiendas + CRM). Implementación final con font-size: X% en el <html> — Bootstrap 5 usa rem para todo el spacing/dimensiones de componentes, así que cambiar el font-size root reflowea proporcional sin tocar el viewport (los containers siguen ocupando 100% del ancho, los cards no quedan flotando chicos sin centrar como pasaba con CSS zoom o transform: scale). UIHelper::clampZoom valida server-side contra la grilla. (2) Vínculo formal Llamadas → PDS: nueva columna crm_pedidos_servicio.llamada_id NULL con índice. El botón "Generar PDS" del listado de Llamadas pasa &llamada_id=X a la URL → el controller valida pertenencia a la empresa (anti-IDOR) → persiste el vínculo. El listado de Llamadas muestra columna nueva "PDS" con badge clickable PDS #N (link al editar) o guion, y filtro avanzado pds_estado (Con PDS / Sin PDS) en el embudo de la columna, mismo patrón que grabacion_estado. Backfill heurístico conservador en la migración (mismo cliente + ventana 2hs entre fin de llamada y inicio de PDS) — matchea pocos pero seguros, hacia adelante el flujo persiste automático. (3) Edición admin de turnos: HoraService::editar valida solapamientos, actualiza started_at/ended_at/concepto, registra SIEMPRE en crm_horas_audit (incluso si admin edita su propio turno) y notifica al dueño si actor ≠ owner via NotificationService. Nuevo endpoint /mi-empresa/crm/horas/{id}/editar (GET + POST) gateado por hasAdminPrivileges + CSRF + validación de pertenencia. Vista nueva editar.php con motivo obligatorio. Botón lápiz amarillo en cada fila del listado solo para admin. Visibilidad inline del cambio: cada <tr> con audit muestra icono bi-pencil-square al lado del ID con tooltip "Editado por X el DD/MM HH:MM — Motivo: ..." cargado en una sola query batch (loadLastAudits). (4) Bonus: el form diferido del turnero ahora incluye selector "Cargar para…" gateado por hasAdminPrivileges con la lista de usuarios activos del tenant, permitiendo cargar turnos en nombre de otro usuario con audit (acción cargar_diferido) + notificación al owner — IDOR-safe contrastando target_user_id con loadUsuariosActivos(empresa).',
+            'items' => [
+                'app/core/Helpers/UIHelper.php: refactor en loadUserUiPrefs() privado + getHtmlAttributes() ahora inyecta data-zoom + style="font-size: X%" en el <html>. clampZoom() valida contra grilla [75, 80, 90, 100, 110, 125, 150]. getBodyZoomStyle() quedó como no-op. Discovery anotado: usar zoom o transform:scale rompía el viewport; font-size es lo único que replica Ctrl+/Ctrl- de Chrome.',
+                'app/modules/Usuarios/views/mi_perfil.php: nuevo selector "Zoom de la Interfaz" al lado del de tipografía con grilla de 7 valores y form-text explicativo.',
+                'app/modules/Usuarios/UsuarioPerfilController.php: guardar() persiste preferencia_zoom (clamp server-side) + actualiza $_SESSION[\'pref_zoom\'].',
+                'app/shared/views/admin_layout.php: <body> recibe getBodyZoomStyle() (no-op tras la última iteración).',
+                'database/migrations/2026_04_27_00_alter_usuarios_add_preferencia_zoom.php NUEVO: ALTER usuarios ADD COLUMN preferencia_zoom TINYINT UNSIGNED NOT NULL DEFAULT 100 idempotente.',
+                'database/migrations/2026_04_27_01_alter_crm_pds_add_llamada_id.php NUEVO: ALTER crm_pedidos_servicio ADD COLUMN llamada_id INT NULL + idx_pds_llamada + UPDATE backfill heurístico que matchea PDS huérfanos contra llamadas del mismo cliente cerradas en la ventana de 2hs previas al inicio del PDS, con elección de la llamada más cercana en el tiempo. Idempotente (WHERE llamada_id IS NULL).',
+                'app/modules/CrmPedidosServicio/PedidoServicioRepository.php: INSERT/UPDATE/buildPayload extendidos con llamada_id (mismo patrón que tratativa_id).',
+                'app/modules/CrmPedidosServicio/PedidoServicioController.php: validateRequest valida llamada_id contra crm_llamadas WHERE empresa_id (anti-IDOR). defaultFormState lee $_GET[\'llamada_id\'] al crear PDS desde Llamadas. hydrateFormState/buildFormStateFromPost incluyen el campo.',
+                'app/modules/CrmPedidosServicio/views/form.php: hidden input <input type="hidden" name="llamada_id" value="..."> condicional al pedido[\'llamada_id\'].',
+                'app/modules/CrmLlamadas/views/index.php: URL del botón "Generar PDS" suma &llamada_id=X. Nueva columna PDS con badge bg-primary clickable o guion. Reordenado <td> de PDS para que coincida con el orden del header (bug fix: estaba antes que Grabación en el body).',
+                'app/modules/CrmLlamadas/CrmLlamadaRepository.php: SELECT con subselects pds_id + pds_numero. filterMap suma pds_estado (CASE WHEN EXISTS → "Con PDS" / "Sin PDS") usable desde el embudo de filtro avanzado.',
+                'app/modules/CrmHoras/HoraService.php: nuevo método editar() con validación de solapamientos, audit obligatorio (acción "editar"), notify al owner si actor ≠ owner, re-proyección a la agenda. cargarDiferido() suma param actorUserId — si difiere del owner, audit (acción "cargar_diferido") + notify.',
+                'app/modules/CrmHoras/HoraController.php: editarForm() (GET) + editarStore() (POST) gateados por hasAdminPrivileges + CSRF. listado() enriquecido con loadLastAudits() — query batch que devuelve el último audit por hora_id de toda la página. diferido() pasa usuariosTenant + esAdmin al view. diferidoStore() acepta target_user_id y lo valida contra loadUsuariosActivos antes de usar.',
+                'app/modules/CrmHoras/views/editar.php NUEVO: form de edición con datetime-local nativos + concepto + motivo obligatorio + alert warning de sensibilidad.',
+                'app/modules/CrmHoras/views/index.php: header suma columna Acciones (solo admin). Cada <tr> muestra icono bi-pencil-square si tiene audit, con tooltip completo (acción + autor + fecha + motivo). Botón lápiz amarillo de edición por fila (solo admin).',
+                'app/modules/CrmHoras/views/diferido.php: nuevo selector "Cargar turno para" arriba del form (visible solo para admin) con la lista de usuarios activos del tenant, opción "— Yo mismo —" por default, form-text aclarando que queda en audit y notifica al usuario.',
+                'app/config/routes.php: nuevas rutas GET /mi-empresa/crm/horas/{id}/editar y POST /mi-empresa/crm/horas/{id}/editar.',
+                'database/migrations/2026_04_27_02_seed_customer_notes_release_1_24_0.php NUEVO: notas de novedad para clientes finales (zoom personal, llamadas vinculadas a PDS, edición administrativa de turnos).',
+                'app/config/version.php: bump a 1.24.0 / build 20260427.1.',
+                'docs/logs/2026-04-27_release_1_24_0_zoom_llamadas_pds_editar_horas.md NUEVO: log del release.',
+            ],
+        ],
         [
             'version' => '1.23.0',
             'build' => '20260425.1',

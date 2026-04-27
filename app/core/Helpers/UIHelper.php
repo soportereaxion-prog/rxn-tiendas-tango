@@ -17,26 +17,81 @@ class UIHelper
      */
     public static function getHtmlAttributes(): string
     {
+        [$theme, $font, $zoom] = self::loadUserUiPrefs();
+        // El "zoom" se aplica como font-size: X% en el <html>. Bootstrap usa
+        // rem extensivamente (botones, padding, spacing, breakpoints), así
+        // que cambiar el font-size root reflowea todo el layout PROPORCIONAL
+        // sin tocar el viewport — los containers siguen ocupando 100%, pero
+        // el contenido se hace más chico/grande y entra/sale más en la
+        // pantalla. Es exactamente el comportamiento del Ctrl+/Ctrl- nativo
+        // de Chrome.
+        //
+        // Por qué NO usar `zoom` ni `transform: scale`:
+        //   - `zoom` escala todo incluido el viewport efectivo → los cards
+        //     se achican pero no llenan el ancho.
+        //   - `transform: scale` deja el espacio reservado original → genera
+        //     bandas vacías y rompe fixed positioning.
+        $style = $zoom !== 100 ? sprintf(' style="font-size: %d%%;"', $zoom) : '';
+        return sprintf(
+            'data-theme="%s" data-font="%s" data-zoom="%d"%s',
+            htmlspecialchars($theme),
+            htmlspecialchars($font),
+            $zoom,
+            $style
+        );
+    }
+
+    /**
+     * No-op. El zoom se inyecta en el <html> via getHtmlAttributes() como
+     * font-size. Se mantiene el método para no romper el call site en
+     * admin_layout.php.
+     */
+    public static function getBodyZoomStyle(): string
+    {
+        return '';
+    }
+
+    /**
+     * Lectura única de las prefs visuales del usuario en sesión. Lee SIEMPRE de
+     * DB — `$_SESSION` se usa solo como sync para componentes legacy.
+     *
+     * @return array{0:string,1:string,2:int} [tema, fuente, zoom]
+     */
+    private static function loadUserUiPrefs(): array
+    {
         $theme = 'light';
         $font = 'md';
+        $zoom = 100;
 
         if (!empty($_SESSION['user_id'])) {
             try {
                 $pdo = Database::getConnection();
-                $stmt = $pdo->prepare("SELECT preferencia_tema, preferencia_fuente FROM usuarios WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT preferencia_tema, preferencia_fuente, preferencia_zoom FROM usuarios WHERE id = ?");
                 $stmt->execute([$_SESSION['user_id']]);
                 if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $theme = $row['preferencia_tema'] ?: 'light';
-                    $font = $row['preferencia_fuente'] ?: 'md';
-                    // Mantenemos la sesión sincronizada para componentes que todavía
-                    // leen de `$_SESSION['pref_theme']` (user_action_menu.php, etc.).
+                    $font  = $row['preferencia_fuente'] ?: 'md';
+                    $zoom  = self::clampZoom((int) ($row['preferencia_zoom'] ?? 100));
                     $_SESSION['pref_theme'] = $theme;
-                    $_SESSION['pref_font'] = $font;
+                    $_SESSION['pref_font']  = $font;
+                    $_SESSION['pref_zoom']  = $zoom;
                 }
             } catch (\Exception $e) {}
         }
 
-        return sprintf('data-theme="%s" data-font="%s"', htmlspecialchars($theme), htmlspecialchars($font));
+        return [$theme, $font, $zoom];
+    }
+
+    /**
+     * Clampea el zoom a la grilla de valores permitidos. Cualquier valor fuera
+     * de rango cae a 100 — defensivo ante manipulación del POST o data legacy.
+     *
+     * @return int
+     */
+    public static function clampZoom(int $zoom): int
+    {
+        $allowed = [75, 80, 90, 100, 110, 125, 150];
+        return in_array($zoom, $allowed, true) ? $zoom : 100;
     }
 
     /**

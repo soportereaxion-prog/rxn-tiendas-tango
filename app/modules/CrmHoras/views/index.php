@@ -49,11 +49,15 @@ ob_start();
                         <th>Modo</th>
                         <th>Estado</th>
                         <th>Concepto</th>
+                        <?php if (!empty($esAdmin)): ?>
+                            <th class="text-end" style="width: 80px;">Acciones</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
+                    <?php $cols = !empty($esAdmin) ? 9 : 8; ?>
                     <?php if (empty($items)): ?>
-                        <tr><td colspan="8" class="text-center text-muted py-4">Sin turnos para los filtros aplicados.</td></tr>
+                        <tr><td colspan="<?= $cols ?>" class="text-center text-muted py-4">Sin turnos para los filtros aplicados.</td></tr>
                     <?php else: foreach ($items as $i): ?>
                         <?php
                         $duracion = '—';
@@ -66,8 +70,34 @@ ob_start();
                             } catch (\Throwable) {}
                         }
                         ?>
-                        <tr>
-                            <td><?= (int) $i['id'] ?></td>
+                        <?php
+                        $audit = $i['last_audit'] ?? null;
+                        if ($audit) {
+                            $accionLabel = match ($audit['accion']) {
+                                'editar'         => 'Editado',
+                                'cargar_diferido'=> 'Cargado por admin',
+                                'anular'         => 'Anulado',
+                                default          => ucfirst((string) $audit['accion']),
+                            };
+                            $auditAt = '';
+                            try { $auditAt = (new DateTime((string) $audit['performed_at']))->format('d/m/Y H:i'); } catch (\Throwable) {}
+                            $auditTitle = sprintf(
+                                '%s por %s el %s%s',
+                                $accionLabel,
+                                $audit['performed_by_nombre'] ?? ('Usuario #' . (int) ($audit['performed_by'] ?? 0)),
+                                $auditAt,
+                                !empty($audit['motivo']) ? ' — Motivo: ' . $audit['motivo'] : ''
+                            );
+                        }
+                        ?>
+                        <tr <?= $audit ? 'title="' . htmlspecialchars($auditTitle) . '"' : '' ?>>
+                            <td>
+                                <?= (int) $i['id'] ?>
+                                <?php if ($audit): ?>
+                                    <i class="bi bi-pencil-square text-warning ms-1" style="cursor: help;"
+                                       title="<?= htmlspecialchars($auditTitle) ?>"></i>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars((string) ($i['usuario_nombre'] ?? '—')) ?></td>
                             <td><?= htmlspecialchars((new DateTime((string) $i['started_at']))->format('d/m/Y H:i')) ?></td>
                             <td><?= $i['ended_at'] ? htmlspecialchars((new DateTime((string) $i['ended_at']))->format('d/m/Y H:i')) : '<em class="text-muted">abierto</em>' ?></td>
@@ -85,6 +115,15 @@ ob_start();
                             <td class="text-truncate" style="max-width: 240px;" title="<?= htmlspecialchars((string) ($i['concepto'] ?? '')) ?>">
                                 <?= htmlspecialchars((string) ($i['concepto'] ?? '—')) ?>
                             </td>
+                            <?php if (!empty($esAdmin)): ?>
+                                <td class="text-end">
+                                    <a href="/mi-empresa/crm/horas/<?= (int) $i['id'] ?>/editar"
+                                       class="btn btn-sm btn-outline-warning"
+                                       title="Editar turno (admin)">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; endif; ?>
                 </tbody>

@@ -559,6 +559,8 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/horas/diferido', $action(\App\Modules\CrmHoras\HoraController::class, 'diferido', $requireCrm));
     $router->post('/mi-empresa/crm/horas/diferido', $action(\App\Modules\CrmHoras\HoraController::class, 'diferidoStore', $requireCrm));
     $router->get('/mi-empresa/crm/horas/listado', $action(\App\Modules\CrmHoras\HoraController::class, 'listado', $requireCrm));
+    $router->get('/mi-empresa/crm/horas/{id}/editar', $action(\App\Modules\CrmHoras\HoraController::class, 'editarForm', $requireCrm));
+    $router->post('/mi-empresa/crm/horas/{id}/editar', $action(\App\Modules\CrmHoras\HoraController::class, 'editarStore', $requireCrm));
     $router->post('/mi-empresa/crm/horas/{id}/anular', $action(\App\Modules\CrmHoras\HoraController::class, 'anular', $requireCrm));
 
     // --- CRM HORAS — Audit log (super admin) ---

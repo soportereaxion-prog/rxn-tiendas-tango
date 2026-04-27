@@ -154,6 +154,7 @@ class UsuarioPerfilController
         $tema = $_POST['preferencia_tema'] ?? 'light';
         $fuente = $_POST['preferencia_fuente'] ?? 'md';
         $colorCalendario = $_POST['color_calendario'] ?? '#007bff';
+        $zoom = \App\Core\Helpers\UIHelper::clampZoom((int) ($_POST['preferencia_zoom'] ?? 100));
 
         // Validar color hex
         if (!preg_match('/^#[0-9a-fA-F]{6}$/', $colorCalendario)) {
@@ -161,12 +162,13 @@ class UsuarioPerfilController
         }
 
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("UPDATE usuarios SET preferencia_tema = ?, preferencia_fuente = ?, color_calendario = ? WHERE id = ?");
-        $stmt->execute([$tema, $fuente, $colorCalendario, $_SESSION['user_id']]);
+        $stmt = $pdo->prepare("UPDATE usuarios SET preferencia_tema = ?, preferencia_fuente = ?, preferencia_zoom = ?, color_calendario = ? WHERE id = ?");
+        $stmt->execute([$tema, $fuente, $zoom, $colorCalendario, $_SESSION['user_id']]);
 
         // Actualizar caché de sesión en vivo
         $_SESSION['pref_theme'] = $tema;
         $_SESSION['pref_font'] = $fuente;
+        $_SESSION['pref_zoom'] = $zoom;
         $_SESSION['color_calendario'] = $colorCalendario;
 
         // Persistir config SMTP para mail masivos (si vino en el form).

@@ -122,12 +122,13 @@ ob_start();
                             <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="usuario_nombre"><?= $sortLink('usuario_nombre', 'Interno (Usuario)') ?></th>
                             <th class="rxn-filter-col" data-filter-field="duracion"><?= $sortLink('duracion', 'Duración') ?></th>
                             <th class="rxn-filter-col" data-filter-field="grabacion_estado">Grabación</th>
+                            <th class="rxn-filter-col rxn-hide-mobile" data-filter-field="pds_estado">PDS</th>
                             <th style="width: 80px;" class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($llamadas)): ?>
-                            <tr><td colspan="8" class="text-center p-4 text-muted">No existen llamadas registradas.</td></tr>
+                            <tr><td colspan="9" class="text-center p-4 text-muted">No existen llamadas registradas.</td></tr>
                         <?php else: ?>
                             <?php foreach ($llamadas as $item): ?>
                                 <tr class="rxn-hover-bg" data-row-link="">
@@ -178,6 +179,18 @@ ob_start();
                                             <span class="text-muted small">Sin audio</span>
                                         <?php endif; ?>
                                     </td>
+                                    <td data-row-link-ignore class="rxn-hide-mobile">
+                                        <?php if (!empty($item['pds_id'])): ?>
+                                            <a href="/mi-empresa/crm/pedidos-servicio/<?= (int) $item['pds_id'] ?>/editar"
+                                               class="badge bg-primary text-decoration-none"
+                                               title="Ver PDS vinculado">
+                                                <i class="bi bi-journal-check"></i>
+                                                PDS #<?= (int) ($item['pds_numero'] ?? 0) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted small">—</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-end">
                                         <div class="btn-group" data-row-link-ignore>
                                             <?php if (!$isPapelera): ?>
@@ -196,7 +209,7 @@ ob_start();
                                                     
                                                     $isoInicio = date('Y-m-d\TH:i:s', $tsInicio);
                                                     $isoFin = date('Y-m-d\TH:i:s', $tsFin);
-                                                    $urlCrear = "/mi-empresa/crm/pedidos-servicio/crear?diagnostico=" . urlencode($diagnosticoStr) . "&inicio=" . urlencode($isoInicio) . "&fin=" . urlencode($isoFin);
+                                                    $urlCrear = "/mi-empresa/crm/pedidos-servicio/crear?diagnostico=" . urlencode($diagnosticoStr) . "&inicio=" . urlencode($isoInicio) . "&fin=" . urlencode($isoFin) . "&llamada_id=" . (int)$item['id'];
                                                     if (!empty($item['cliente_id'])) {
                                                         $urlCrear .= "&cliente_id=" . urlencode((string)$item['cliente_id']);
                                                     }

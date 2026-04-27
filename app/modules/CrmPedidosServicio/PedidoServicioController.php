@@ -688,6 +688,25 @@ class PedidoServicioController extends \App\Core\Controller
             // (no bloqueamos el guardado del PDS por un vinculo opcional).
         }
 
+        // Llamada vinculada (opcional): mismo patrón que tratativa_id. Viene del
+        // hidden del form (origen: query param ?llamada_id=X cuando el PDS se
+        // genera desde el listado de Llamadas). Si la llamada no pertenece a la
+        // empresa o ya no existe, se ignora — no bloquea el save.
+        $llamadaIdInput = (int) ($input['llamada_id'] ?? 0);
+        if ($llamadaIdInput <= 0 && $pedidoActual !== null) {
+            $llamadaIdInput = (int) ($pedidoActual['llamada_id'] ?? 0);
+        }
+        $llamadaIdFinal = null;
+        if ($llamadaIdInput > 0) {
+            $stmtLl = \App\Core\Database::getConnection()->prepare(
+                "SELECT 1 FROM crm_llamadas WHERE id = :id AND empresa_id = :e LIMIT 1"
+            );
+            $stmtLl->execute([':id' => $llamadaIdInput, ':e' => $empresaId]);
+            if ($stmtLl->fetchColumn() !== false) {
+                $llamadaIdFinal = $llamadaIdInput;
+            }
+        }
+
         $fechaInicioInput = trim((string) ($input['fecha_inicio'] ?? ''));
         $fechaFinalizadoInput = trim((string) ($input['fecha_finalizado'] ?? ''));
         $solicito = trim((string) ($input['solicito'] ?? ''));
@@ -810,6 +829,7 @@ class PedidoServicioController extends \App\Core\Controller
         return [
             'empresa_id' => $empresaId,
             'tratativa_id' => $tratativaIdFinal,
+            'llamada_id' => $llamadaIdFinal,
             'usuario_id' => isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
             'usuario_nombre' => $_SESSION['user_name'] ?? 'Usuario',
             'fecha_inicio' => $fechaInicio?->format('Y-m-d H:i:s'),
@@ -886,10 +906,25 @@ class PedidoServicioController extends \App\Core\Controller
             }
         }
 
+        // Llamada vinculada desde query param (origen: botón "Generar PDS" del
+        // listado de Llamadas). Validamos que pertenezca a la empresa para
+        // evitar IDOR.
+        $llamadaId = '';
+        if (!empty($_GET['llamada_id'])) {
+            $stmtLl = \App\Core\Database::getConnection()->prepare(
+                "SELECT 1 FROM crm_llamadas WHERE id = :id AND empresa_id = :e LIMIT 1"
+            );
+            $stmtLl->execute([':id' => (int) $_GET['llamada_id'], ':e' => $empresaId]);
+            if ($stmtLl->fetchColumn() !== false) {
+                $llamadaId = (string) (int) $_GET['llamada_id'];
+            }
+        }
+
         return [
             'id' => null,
             'numero' => $this->repository->previewNextNumero($empresaId),
             'tratativa_id' => $tratativaId,
+            'llamada_id' => $llamadaId,
             'fecha_inicio' => isset($_GET['inicio']) ? trim($_GET['inicio']) : $now->format('Y-m-d\TH:i:s'),
             'fecha_finalizado' => isset($_GET['fin']) ? trim($_GET['fin']) : '',
             'cliente_id' => $clienteId,
@@ -920,6 +955,7 @@ class PedidoServicioController extends \App\Core\Controller
             'id' => (int) ($pedido['id'] ?? 0),
             'numero' => (int) ($pedido['numero'] ?? 0),
             'tratativa_id' => (string) ($pedido['tratativa_id'] ?? ''),
+            'llamada_id' => (string) ($pedido['llamada_id'] ?? ''),
             'fecha_inicio' => $this->formatDateTimeForInput($pedido['fecha_inicio'] ?? null),
             'fecha_finalizado' => $this->formatDateTimeForInput($pedido['fecha_finalizado'] ?? null),
             'cliente_id' => (string) ($pedido['cliente_id'] ?? ''),
@@ -961,6 +997,7 @@ class PedidoServicioController extends \App\Core\Controller
     {
         $state = $pedidoActual !== null ? $this->hydrateFormState($pedidoActual) : $this->defaultFormState($empresaId);
         $state['tratativa_id'] = trim((string) ($input['tratativa_id'] ?? $state['tratativa_id'] ?? ''));
+        $state['llamada_id'] = trim((string) ($input['llamada_id'] ?? $state['llamada_id'] ?? ''));
         $state['fecha_inicio'] = trim((string) ($input['fecha_inicio'] ?? $state['fecha_inicio']));
         $state['fecha_finalizado'] = trim((string) ($input['fecha_finalizado'] ?? $state['fecha_finalizado']));
         $state['cliente_id'] = trim((string) ($input['cliente_id'] ?? $state['cliente_id']));

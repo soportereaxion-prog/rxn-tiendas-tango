@@ -35,6 +35,25 @@ ob_start();
                 <input type="hidden" name="lng" value="" class="rxn-geo-lng">
                 <input type="hidden" name="geo_consent" value="0" class="rxn-geo-consent">
 
+                <?php if (!empty($esAdmin) && !empty($usuariosTenant)): ?>
+                <div class="mb-3">
+                    <label class="form-label small">
+                        <i class="bi bi-person-gear text-info"></i>
+                        Cargar turno para
+                    </label>
+                    <select name="target_user_id" class="form-select">
+                        <option value="0">— Yo mismo —</option>
+                        <?php foreach ($usuariosTenant as $uid => $unombre): ?>
+                            <?php if ((int) $uid === (int) ($_SESSION['user_id'] ?? 0)) continue; ?>
+                            <option value="<?= (int) $uid ?>"><?= htmlspecialchars($unombre) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text small">
+                        Solo visible para administradores. Cualquier carga en nombre de otro queda registrada en el audit log y se le notifica al usuario.
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <div class="row g-3 mb-3">
                     <div class="col-12 col-md-6">
                         <label class="form-label small">Inicio</label>

@@ -153,6 +153,10 @@ class HoraController extends Controller
     /**
      * GET /mi-empresa/crm/horas/diferido
      * Form para cargar un turno post-facto.
+     *
+     * Si el caller es admin del tenant, el form muestra un selector "Cargar
+     * para…" con los usuarios activos de la empresa, permitiendo cargar el
+     * turno en nombre de otro. Para no-admins, el form sigue siendo personal.
      */
     public function diferido(): void
     {
@@ -160,9 +164,44 @@ class HoraController extends Controller
         EmpresaAccessService::requireCrmAccess();
         [$empresaId] = $this->ctx();
 
+        $usuariosTenant = [];
+        if (AuthService::hasAdminPrivileges()) {
+            $usuariosTenant = $this->loadUsuariosActivos($empresaId);
+        }
+
         View::render('app/modules/CrmHoras/views/diferido.php', [
-            'tratativas' => $this->loadTratativasActivas($empresaId),
+            'tratativas'     => $this->loadTratativasActivas($empresaId),
+            'usuariosTenant' => $usuariosTenant,
+            'esAdmin'        => AuthService::hasAdminPrivileges(),
         ]);
+    }
+
+    /**
+     * Lista de usuarios activos del tenant — alimenta el selector "cargar para"
+     * del form diferido cuando el caller es admin. Devuelve [id => nombre].
+     *
+     * @return array<int,string>
+     */
+    private function loadUsuariosActivos(int $empresaId): array
+    {
+        try {
+            $pdo = \App\Core\Database::getConnection();
+            $stmt = $pdo->prepare("
+                SELECT id, nombre
+                FROM usuarios
+                WHERE empresa_id = :e AND activo = 1 AND deleted_at IS NULL
+                ORDER BY nombre ASC
+            ");
+            $stmt->execute([':e' => $empresaId]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            $result = [];
+            foreach ($rows as $r) {
+                $result[(int) $r['id']] = (string) $r['nombre'];
+            }
+            return $result;
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /**
@@ -186,9 +225,37 @@ class HoraController extends Controller
         $pdsId = (int) ($_POST['pds_id'] ?? 0);
         $clienteId = (int) ($_POST['cliente_id'] ?? 0);
 
+        // Quién carga (actor) vs sobre quién se carga (owner). Por default
+        // coinciden — solo admins del tenant pueden disociarlos. Validamos
+        // que el target sea un usuario activo de la misma empresa para
+        // bloquear cross-tenant IDOR.
+        $ownerUserId = $userId;
+        $targetUserId = (int) ($_POST['target_user_id'] ?? 0);
+        if ($targetUserId > 0 && $targetUserId !== $userId && AuthService::hasAdminPrivileges()) {
+            $usuarios = $this->loadUsuariosActivos($empresaId);
+            if (isset($usuarios[$targetUserId])) {
+                $ownerUserId = $targetUserId;
+            }
+        }
+
         try {
-            $this->service->cargarDiferido($empresaId, $userId, $startedAt, $endedAt, $concepto, $lat, $lng, $consent, $tratativaId, $pdsId, $clienteId);
-            $_SESSION['flash_success'] = 'Turno cargado.';
+            $this->service->cargarDiferido(
+                $empresaId,
+                $ownerUserId,
+                $startedAt,
+                $endedAt,
+                $concepto,
+                $lat,
+                $lng,
+                $consent,
+                $tratativaId,
+                $pdsId,
+                $clienteId,
+                $userId  // actor — quien dispara la operación
+            );
+            $_SESSION['flash_success'] = $ownerUserId === $userId
+                ? 'Turno cargado.'
+                : 'Turno cargado en nombre de otro usuario.';
             header('Location: /mi-empresa/crm/horas');
             exit;
         } catch (\Throwable $e) {
@@ -217,8 +284,17 @@ class HoraController extends Controller
         $result = $this->repository->paginate($empresaId, $usuarioFilter, $desde ?: null, $hasta ?: null, $page, $perPage);
         $totalPages = max(1, (int) ceil($result['total'] / $perPage));
 
+        // Enriquecer con el último audit de cada turno — para mostrar badge
+        // "Editado por X el DD/MM HH:MM" en el listado. Una sola query batch.
+        $items = $result['items'];
+        $auditByHora = $this->loadLastAudits($empresaId, array_map(static fn($r) => (int) $r['id'], $items));
+        foreach ($items as &$row) {
+            $row['last_audit'] = $auditByHora[(int) $row['id']] ?? null;
+        }
+        unset($row);
+
         View::render('app/modules/CrmHoras/views/index.php', [
-            'items' => $result['items'],
+            'items' => $items,
             'total' => $result['total'],
             'page' => $page,
             'perPage' => $perPage,
@@ -226,7 +302,114 @@ class HoraController extends Controller
             'usuarioFilter' => $usuarioFilter,
             'desde' => $desde,
             'hasta' => $hasta,
+            'esAdmin' => AuthService::hasAdminPrivileges(),
         ]);
+    }
+
+    /**
+     * Devuelve, para una lista de hora_ids, el último audit de cada uno
+     * (accion + performed_by_nombre + performed_at + motivo). Una sola query
+     * batch. Vacío si la lista está vacía.
+     *
+     * @param int[] $horaIds
+     * @return array<int,array<string,mixed>>
+     */
+    private function loadLastAudits(int $empresaId, array $horaIds): array
+    {
+        if (empty($horaIds)) return [];
+        $placeholders = implode(',', array_fill(0, count($horaIds), '?'));
+        $pdo = \App\Core\Database::getConnection();
+        $sql = "
+            SELECT a.hora_id, a.accion, a.motivo, a.performed_at, a.performed_by, u.nombre AS performed_by_nombre
+            FROM crm_horas_audit a
+            INNER JOIN (
+                SELECT hora_id, MAX(id) AS max_id
+                FROM crm_horas_audit
+                WHERE empresa_id = ? AND hora_id IN ($placeholders)
+                GROUP BY hora_id
+            ) latest ON latest.max_id = a.id
+            LEFT JOIN usuarios u ON u.id = a.performed_by
+            WHERE a.empresa_id = ?
+        ";
+        $params = array_merge([$empresaId], $horaIds, [$empresaId]);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $result = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $r) {
+            $result[(int) $r['hora_id']] = $r;
+        }
+        return $result;
+    }
+
+    /**
+     * GET /mi-empresa/crm/horas/{id}/editar
+     * Form de edición de un turno — exclusivo admin del tenant.
+     */
+    public function editarForm(int $id): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        if (!AuthService::hasAdminPrivileges()) {
+            http_response_code(403);
+            echo "<h2>403 — Solo admin</h2>";
+            exit;
+        }
+        [$empresaId] = $this->ctx();
+
+        $hora = $this->repository->findById($id, $empresaId);
+        if ($hora === null) {
+            http_response_code(404);
+            echo "<h2>404 — Turno no encontrado</h2>";
+            exit;
+        }
+
+        $usuarios = $this->loadUsuariosActivos($empresaId);
+
+        View::render('app/modules/CrmHoras/views/editar.php', [
+            'hora'     => $hora,
+            'usuarios' => $usuarios,
+        ]);
+    }
+
+    /**
+     * POST /mi-empresa/crm/horas/{id}/editar
+     * Persiste la edición del turno. Audit obligatorio.
+     */
+    public function editarStore(int $id): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        $this->verifyCsrfOrAbort();
+        if (!AuthService::hasAdminPrivileges()) {
+            http_response_code(403);
+            echo "<h2>403 — Solo admin</h2>";
+            exit;
+        }
+        [$empresaId, $userId] = $this->ctx();
+
+        $startedAt = (string) ($_POST['started_at'] ?? '');
+        $endedAt   = trim((string) ($_POST['ended_at'] ?? ''));
+        $concepto  = trim((string) ($_POST['concepto'] ?? ''));
+        $motivo    = trim((string) ($_POST['motivo'] ?? ''));
+
+        try {
+            $this->service->editar(
+                $empresaId,
+                $id,
+                $startedAt,
+                $endedAt !== '' ? $endedAt : null,
+                $concepto !== '' ? $concepto : null,
+                $motivo,
+                $userId
+            );
+            $_SESSION['flash_success'] = 'Turno editado.';
+            header('Location: /mi-empresa/crm/horas/listado');
+            exit;
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+            header('Location: /mi-empresa/crm/horas/' . $id . '/editar');
+            exit;
+        }
     }
 
     /**

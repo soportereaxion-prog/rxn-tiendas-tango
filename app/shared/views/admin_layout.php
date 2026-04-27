@@ -68,7 +68,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <link href="/css/rxn-notifications.css?v=<?= time() ?>" rel="stylesheet">
     <?= $extraHead ?? '' ?>
 </head>
-<body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-2">
+<body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-2" <?= UIHelper::getBodyZoomStyle() ?>>
     
     <!-- Topbar global del admin (Banner de usuario) -->
     <?php View::render('app/shared/views/components/backoffice_user_banner.php', $ui); ?>

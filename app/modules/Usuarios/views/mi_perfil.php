@@ -58,6 +58,19 @@ ob_start();
                                 <option value="lg" <?= ($usuario['preferencia_fuente'] ?? '') === 'lg' ? 'selected' : '' ?>>Grande (lg)</option>
                             </select>
                         </div>
+
+                        <?php $zoomActual = (int) ($usuario['preferencia_zoom'] ?? 100); ?>
+                        <div class="rxn-form-span-6">
+                            <label class="form-label fw-medium text-dark">Zoom de la Interfaz</label>
+                            <select name="preferencia_zoom" class="form-select">
+                                <?php foreach ([75, 80, 90, 100, 110, 125, 150] as $z): ?>
+                                    <option value="<?= $z ?>" <?= $zoomActual === $z ? 'selected' : '' ?>>
+                                        <?= $z ?>%<?= $z === 100 ? ' (Predeterminado)' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text">Equivale a la lupa del navegador — afecta toda la app, Tiendas y CRM.</div>
+                        </div>
                     </div>
                 </div>
 

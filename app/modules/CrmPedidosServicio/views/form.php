@@ -259,6 +259,9 @@ ob_start();
                     <?php if (!empty($pedido['tratativa_id'])): ?>
                         <input type="hidden" name="tratativa_id" value="<?= htmlspecialchars((string) $pedido['tratativa_id']) ?>">
                     <?php endif; ?>
+                    <?php if (!empty($pedido['llamada_id'])): ?>
+                        <input type="hidden" name="llamada_id" value="<?= htmlspecialchars((string) $pedido['llamada_id']) ?>">
+                    <?php endif; ?>
                     <fieldset <?= !empty($pedido['nro_pedido']) ? 'disabled' : '' ?> class="border-0 p-0 m-0">
                     <?php if (!empty($pedido['tratativa_id'])): ?>
                         <div class="alert alert-info border-0 small mb-3">

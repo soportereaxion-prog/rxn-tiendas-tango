@@ -106,8 +106,15 @@ class HoraService
         bool $geoConsent,
         ?int $tratativaId = null,
         ?int $pdsId = null,
-        ?int $clienteId = null
+        ?int $clienteId = null,
+        ?int $actorUserId = null
     ): int {
+        // actorUserId opcional: cuando un admin carga el turno en nombre de
+        // otro usuario, $usuarioId es el dueño del turno y $actorUserId es
+        // quien lo está cargando. Si no se pasa, asumimos self-service (el
+        // dueño se carga su propio turno).
+        $actorUserId = $actorUserId ?? $usuarioId;
+
         $start = $this->parseDateTime($startedAt);
         $end = $this->parseDateTime($endedAt);
         if ($start === null || $end === null) {
@@ -149,14 +156,138 @@ class HoraService
             'geo_diferido_lng' => $geoCargaLng,
             'geo_consent_start' => $geoConsent ? 1 : 0,
             'inconsistencia_geo' => $inconsistencia,
-            'created_by'    => $usuarioId,
+            'created_by'    => $actorUserId,
         ]);
 
         $row = $this->repository->findById($newId, $empresaId);
         if ($row !== null) {
             $this->proyectar($row);
         }
+
+        // Si quien lo cargó NO es el dueño del turno, queda audit + notificación
+        // al dueño — mismo patrón que `anular()`.
+        if ($actorUserId !== $usuarioId) {
+            try {
+                (new HoraAuditRepository())->record(
+                    empresaId:    $empresaId,
+                    horaId:       $newId,
+                    ownerUserId:  $usuarioId,
+                    accion:       'cargar_diferido',
+                    before:       null,
+                    after:        $row,
+                    motivo:       'Carga diferida por administrador',
+                    performedBy:  $actorUserId
+                );
+            } catch (\Throwable) {}
+
+            try {
+                (new NotificationService())->notify(
+                    empresaId:  $empresaId,
+                    usuarioId:  $usuarioId,
+                    type:       'crm_horas.ajuste_admin',
+                    title:      'Un admin cargó un turno a tu nombre',
+                    body:       'Rango: ' . $startStr . ' → ' . $endStr,
+                    link:       '/mi-empresa/crm/horas/listado',
+                    data:       ['hora_id' => $newId, 'accion' => 'cargar_diferido', 'performed_by' => $actorUserId],
+                    dedupeKey:  'horas.cargado.user' . $usuarioId . '.hora' . $newId
+                );
+            } catch (\Throwable) {}
+        }
+
         return $newId;
+    }
+
+    /**
+     * Edita un turno existente — exclusivo de admin (la autorización se hace
+     * en el controller). Permite cambiar started_at, ended_at y concepto.
+     *
+     * Si el actor difiere del owner, se registra en audit con before/after y
+     * se notifica al dueño. Si coinciden, igual se registra (a diferencia de
+     * `anular`) porque cualquier mutación admin sobre un turno post-cierre es
+     * sensible y querés trazabilidad — incluso si se editás el tuyo.
+     */
+    public function editar(
+        int $empresaId,
+        int $turnoId,
+        string $startedAt,
+        ?string $endedAt,
+        ?string $concepto,
+        string $motivo,
+        int $actorUserId
+    ): void {
+        $motivo = trim($motivo);
+        if ($motivo === '') {
+            throw new InvalidArgumentException('Indicá el motivo de la edición.');
+        }
+
+        $before = $this->repository->findById($turnoId, $empresaId);
+        if ($before === null) {
+            throw new RuntimeException('El turno no existe o no pertenece a la empresa.');
+        }
+
+        $start = $this->parseDateTime($startedAt);
+        $end = $endedAt !== null && $endedAt !== '' ? $this->parseDateTime($endedAt) : null;
+        if ($start === null) {
+            throw new InvalidArgumentException('Formato de inicio inválido.');
+        }
+        if ($endedAt !== null && $endedAt !== '' && $end === null) {
+            throw new InvalidArgumentException('Formato de fin inválido.');
+        }
+        if ($end !== null && $end <= $start) {
+            throw new InvalidArgumentException('El fin debe ser posterior al inicio.');
+        }
+
+        $startStr = $start->format('Y-m-d H:i:s');
+        $endStr   = $end?->format('Y-m-d H:i:s');
+
+        $ownerId = (int) $before['usuario_id'];
+        if ($this->repository->hasOverlap($empresaId, $ownerId, $startStr, $endStr, $turnoId)) {
+            throw new RuntimeException('El nuevo rango se solapa con otro turno del mismo operador.');
+        }
+
+        $this->repository->update($turnoId, $empresaId, [
+            'started_at' => $startStr,
+            'ended_at'   => $endStr,
+            'concepto'   => $concepto !== null && trim($concepto) !== '' ? trim($concepto) : null,
+        ]);
+
+        $after = $this->repository->findById($turnoId, $empresaId);
+
+        // Re-proyectar a la agenda con el rango actualizado.
+        if ($after !== null) {
+            $this->proyectar($after);
+        }
+
+        // Audit + notificación SIEMPRE (a diferencia de anular, que solo logea
+        // cuando actor != owner). Una edición admin es relevante incluso si
+        // el admin se edita su propio turno — querés saber por qué cambió.
+        try {
+            (new HoraAuditRepository())->record(
+                empresaId:    $empresaId,
+                horaId:       $turnoId,
+                ownerUserId:  $ownerId,
+                accion:       'editar',
+                before:       $before,
+                after:        $after,
+                motivo:       $motivo,
+                performedBy:  $actorUserId
+            );
+        } catch (\Throwable) {}
+
+        if ($actorUserId !== $ownerId) {
+            try {
+                (new NotificationService())->notify(
+                    empresaId:  $empresaId,
+                    usuarioId:  $ownerId,
+                    type:       'crm_horas.ajuste_admin',
+                    title:      'Un admin editó tu turno',
+                    body:       'Motivo: ' . $motivo,
+                    link:       '/mi-empresa/crm/horas/listado',
+                    data:       ['hora_id' => $turnoId, 'accion' => 'editar', 'performed_by' => $actorUserId],
+                    dedupeKey:  'horas.editado.user' . $ownerId . '.hora' . $turnoId . '.' . time()
+                );
+            } catch (\Throwable) {}
+        }
     }
 
     /**

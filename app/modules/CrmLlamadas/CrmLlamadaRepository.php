@@ -19,11 +19,22 @@ class CrmLlamadaRepository
     public function findAllWithSearch(int $empresaId, int $limit, int $offset, string $search = '', string $sortColumn = 'created_at', string $sortDir = 'DESC', bool $onlyDeleted = false, array $advancedFilters = []): array
     {
         $delCond = $onlyDeleted ? 'l.deleted_at IS NOT NULL' : 'l.deleted_at IS NULL';
-        
-        // Unimos con usuarios y crm_clientes para traer el nombre respectivo
+
+        // Unimos con usuarios y crm_clientes para traer el nombre respectivo.
+        // Subselect a crm_pedidos_servicio para detectar si la llamada generó
+        // un PDS — devuelve el ID y el número del PDS más reciente (orden DESC
+        // por si se duplicó el vínculo accidentalmente). LEFT JOIN sería más
+        // limpio pero rompe el agrupamiento por id de llamada cuando hay 1+
+        // PDS vinculados.
         $sql = "
-            SELECT l.*, u.nombre as usuario_nombre, 
-                   IFNULL(NULLIF(cc.razon_social, ''), CONCAT(cc.nombre, ' ', cc.apellido)) as cliente_nombre
+            SELECT l.*, u.nombre as usuario_nombre,
+                   IFNULL(NULLIF(cc.razon_social, ''), CONCAT(cc.nombre, ' ', cc.apellido)) as cliente_nombre,
+                   (SELECT p.id FROM crm_pedidos_servicio p
+                     WHERE p.llamada_id = l.id AND p.deleted_at IS NULL
+                     ORDER BY p.id DESC LIMIT 1) AS pds_id,
+                   (SELECT p2.numero FROM crm_pedidos_servicio p2
+                     WHERE p2.llamada_id = l.id AND p2.deleted_at IS NULL
+                     ORDER BY p2.id DESC LIMIT 1) AS pds_numero
             FROM crm_llamadas l
             LEFT JOIN usuarios u ON l.usuario_id = u.id
             LEFT JOIN crm_clientes cc ON l.cliente_id = cc.id
@@ -33,6 +44,9 @@ class CrmLlamadaRepository
 
         // Filtros avanzados
         $grabacionExpr = "CASE WHEN l.mp3 IS NOT NULL AND l.mp3 != '' THEN 'Con audio' WHEN l.evento_link IS NOT NULL AND l.evento_link != '' THEN l.evento_link ELSE 'Sin audio' END";
+        // Estado del vínculo con PDS — expresado como string para que el
+        // AdvancedQueryFilter pueda matchear con 'Con PDS' / 'Sin PDS'.
+        $pdsEstadoExpr = "CASE WHEN EXISTS (SELECT 1 FROM crm_pedidos_servicio p3 WHERE p3.llamada_id = l.id AND p3.deleted_at IS NULL) THEN 'Con PDS' ELSE 'Sin PDS' END";
         $filterMap = [
             'fecha' => 'l.fecha',
             'numero_origen' => 'l.numero_origen',
@@ -40,7 +54,8 @@ class CrmLlamadaRepository
             'interno' => 'l.interno',
             'usuario_nombre' => 'u.nombre',
             'cliente_nombre' => 'IFNULL(NULLIF(cc.razon_social, \'\'), CONCAT(cc.nombre, \' \', cc.apellido))',
-            'grabacion_estado' => $grabacionExpr
+            'grabacion_estado' => $grabacionExpr,
+            'pds_estado' => $pdsEstadoExpr
         ];
 
         [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
@@ -93,6 +108,7 @@ class CrmLlamadaRepository
         $params = [':empresa_id' => $empresaId];
 
         $grabacionExpr = "CASE WHEN l.mp3 IS NOT NULL AND l.mp3 != '' THEN 'Con audio' WHEN l.evento_link IS NOT NULL AND l.evento_link != '' THEN l.evento_link ELSE 'Sin audio' END";
+        $pdsEstadoExpr = "CASE WHEN EXISTS (SELECT 1 FROM crm_pedidos_servicio p3 WHERE p3.llamada_id = l.id AND p3.deleted_at IS NULL) THEN 'Con PDS' ELSE 'Sin PDS' END";
         $filterMap = [
             'fecha' => 'l.fecha',
             'numero_origen' => 'l.numero_origen',
@@ -100,7 +116,8 @@ class CrmLlamadaRepository
             'interno' => 'l.interno',
             'usuario_nombre' => 'u.nombre',
             'cliente_nombre' => 'IFNULL(NULLIF(cc.razon_social, \'\'), CONCAT(cc.nombre, \' \', cc.apellido))',
-            'grabacion_estado' => $grabacionExpr
+            'grabacion_estado' => $grabacionExpr,
+            'pds_estado' => $pdsEstadoExpr
         ];
 
         [$advFilterSql, $advParams] = \App\Core\AdvancedQueryFilter::build($advancedFilters, $filterMap);
