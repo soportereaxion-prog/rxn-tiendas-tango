@@ -1,9 +1,20 @@
 <?php
 
 return [
-    'current_version' => '1.27.0',
-    'current_build' => '20260428.4',
+    'current_version' => '1.27.1',
+    'current_build' => '20260428.5',
     'history' => [
+        [
+            'version' => '1.27.1',
+            'build' => '20260428.5',
+            'released_at' => '2026-04-28',
+            'title' => 'Hotfix Web Push — orden de carga de scripts en Mi Perfil',
+            'summary' => 'Hotfix puntual sobre el card "Notificaciones del navegador" introducido en 1.27.0: el script inline que inicializa el card corría antes de que se cargara /js/rxn-web-push.js, dejando el card congelado en "Cargando...". El guard typeof window.RxnWebPush === undefined hacía return silencioso. Fix: mover el <script src="/js/rxn-web-push.js"> arriba del bloque inline para que window.RxnWebPush esté disponible cuando el handler se ejecuta. Sin cambios funcionales en el resto del flujo de Web Push — solo ordenamiento de carga.',
+            'items' => [
+                'app/modules/Usuarios/views/mi_perfil.php: <script src="/js/rxn-web-push.js"> ahora se carga al inicio del bloque extraScripts (antes del inline handler) en lugar de al final. Sacado el script src duplicado que quedaba al final junto a rxn-shortcuts.js.',
+                'app/config/version.php: bump a 1.27.1 / build 20260428.5.',
+            ],
+        ],
         [
             'version' => '1.27.0',
             'build' => '20260428.4',

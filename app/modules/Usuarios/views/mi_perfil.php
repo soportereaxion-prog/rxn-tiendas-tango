@@ -344,6 +344,7 @@ ob_start();
 $content = ob_get_clean();
 ob_start();
 ?>
+<script src="/js/rxn-web-push.js"></script>
 <script>
     (function () {
         const picker = document.querySelector('input[name="color_calendario"]');
@@ -538,7 +539,6 @@ ob_start();
         refresh();
     })();
 </script>
-<script src="/js/rxn-web-push.js"></script>
 <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();
