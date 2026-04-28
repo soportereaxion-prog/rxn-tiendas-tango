@@ -1,9 +1,20 @@
 <?php
 
 return [
-    'current_version' => '1.27.3',
-    'current_build' => '20260428.7',
+    'current_version' => '1.27.4',
+    'current_build' => '20260428.8',
     'history' => [
+        [
+            'version' => '1.27.4',
+            'build' => '20260428.8',
+            'released_at' => '2026-04-28',
+            'title' => 'Hotfix Service Worker — renotify requiere tag no vacío',
+            'summary' => 'El Service Worker mandaba `renotify: true` con `tag: undefined` cuando el payload no traía un tag específico. Chrome rechaza esa combinación con TypeError "Notifications which set the renotify flag must specify a non-empty tag", el push llegaba al SW pero showNotification fallaba y el toast nunca se mostraba (la in-app sí porque va por otro path). Detectado con el botón de diagnóstico de 1.27.3 — el server reportaba sent:1/1 pero el toast no aparecía. Fix: setear `tag` y `renotify` solo cuando hay un tag real en el payload; si no, dejar que Chrome use la default (cada push como notificación independiente). Sin cambios al server-side.',
+            'items' => [
+                'public/sw.js: branch condicional — si payload.data.tag existe, setear tag + renotify; si no, omitir ambos. Fix del TypeError "Notifications which set the renotify flag must specify a non-empty tag" en showNotification.',
+                'app/config/version.php: bump a 1.27.4 / build 20260428.8.',
+            ],
+        ],
         [
             'version' => '1.27.3',
             'build' => '20260428.7',

@@ -15,14 +15,17 @@ self.addEventListener('push', function (event) {
     }
 
     const title = payload.title || 'RxnSuite';
+    const tag = (payload.data && payload.data.tag) || '';
     const options = {
         body: payload.body || '',
         icon: payload.icon || '/img/rxn-icon-192.png',
         badge: payload.icon || '/img/rxn-icon-192.png',
         data: { link: payload.link || '/', extra: payload.data || {} },
-        tag: (payload.data && payload.data.tag) || undefined,
-        renotify: true,
     };
+    if (tag) {
+        options.tag = tag;
+        options.renotify = true;
+    }
 
     event.waitUntil(self.registration.showNotification(title, options));
 });
