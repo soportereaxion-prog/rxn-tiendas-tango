@@ -7,6 +7,7 @@ namespace App\Core\Services;
 use App\Core\Database;
 use InvalidArgumentException;
 use PDO;
+use Throwable;
 
 /**
  * NotificationService — único punto de emisión y lectura de notificaciones in-app.
@@ -120,7 +121,15 @@ class NotificationService
             ':data'       => $data === [] ? null : json_encode($data, JSON_UNESCAPED_UNICODE),
         ]);
 
-        return (int) $this->db->lastInsertId();
+        $notifId = (int) $this->db->lastInsertId();
+
+        try {
+            (new WebPushService($this->db))->sendToUser($empresaId, $usuarioId, $title, $body, $link, $data);
+        } catch (Throwable) {
+            // Push es complemento — un fallo nunca debe romper la notif in-app.
+        }
+
+        return $notifId;
     }
 
     private function existsRecentDedupe(int $empresaId, int $usuarioId, string $dedupeKey): bool

@@ -285,6 +285,51 @@ ob_start();
         </div>
     </div>
 
+    <div class="card shadow-sm mb-4" id="card-web-push">
+        <div class="card-header bg-light d-flex align-items-center justify-content-between">
+            <div>
+                <h2 class="h5 mb-0"><i class="bi bi-bell-fill text-primary"></i> Notificaciones del navegador</h2>
+                <p class="small text-muted mb-0">Recibí avisos de la suite incluso con la pestaña cerrada (recordatorios, asignaciones, alertas).</p>
+            </div>
+            <span id="webpush-badge" class="badge bg-secondary">Cargando...</span>
+        </div>
+        <div class="card-body">
+            <div id="webpush-state-loading" class="text-muted small"><i class="bi bi-hourglass-split"></i> Verificando soporte del navegador...</div>
+
+            <div id="webpush-state-unsupported" class="alert alert-warning small d-none mb-0">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Este navegador <strong>no soporta notificaciones push</strong>. Probá con Chrome, Firefox o Edge actualizados.
+            </div>
+
+            <div id="webpush-state-ios" class="alert alert-info small d-none mb-0">
+                <i class="bi bi-info-circle-fill"></i>
+                <strong>iPhone / iPad:</strong> las notificaciones push solo funcionan instalando la suite como app desde el browser (próximamente). Por ahora, usá un navegador desktop o Android.
+            </div>
+
+            <div id="webpush-state-blocked" class="alert alert-danger small d-none mb-0">
+                <i class="bi bi-x-octagon-fill"></i>
+                Bloqueaste las notificaciones para este sitio. Para reactivarlas, abrí los <strong>permisos del sitio</strong> en tu navegador (candado al lado de la URL → Notificaciones → Permitir) y volvé a entrar a esta página.
+            </div>
+
+            <div id="webpush-state-disabled" class="d-none">
+                <p class="small text-muted">Hoy las notificaciones están <strong>desactivadas</strong> en este navegador. Activalas para que la campanita te suene como notificación nativa del sistema operativo.</p>
+                <button type="button" class="btn btn-primary" id="webpush-btn-enable">
+                    <i class="bi bi-bell-fill"></i> Activar notificaciones del navegador
+                </button>
+            </div>
+
+            <div id="webpush-state-enabled" class="d-none">
+                <p class="small text-success mb-2"><i class="bi bi-check-circle-fill"></i> Notificaciones del navegador <strong>activadas</strong> en este dispositivo.</p>
+                <p class="small text-muted">Vas a recibir un aviso emergente cada vez que la campanita registre una notificación nueva (recordatorios de notas, asignaciones, etc.) — incluso con la pestaña cerrada.</p>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="webpush-btn-disable">
+                    <i class="bi bi-bell-slash"></i> Desactivar en este dispositivo
+                </button>
+            </div>
+
+            <div id="webpush-error" class="alert alert-danger small d-none mt-3 mb-0"></div>
+        </div>
+    </div>
+
     <template id="rxn-bloque-template">
         <div class="d-flex gap-2 align-items-center rxn-bloque-row">
             <input type="time" name="bloques[__DIA__][__UID__][inicio]" value="" class="form-control form-control-sm" style="max-width: 130px;">
@@ -397,7 +442,103 @@ ob_start();
             }
         });
     })();
+
+    // Web Push — gestión del card de notificaciones del navegador
+    (function () {
+        const card = document.getElementById('card-web-push');
+        if (!card || typeof window.RxnWebPush === 'undefined') return;
+
+        const $ = (id) => document.getElementById(id);
+        const states = {
+            loading:     $('webpush-state-loading'),
+            unsupported: $('webpush-state-unsupported'),
+            ios:         $('webpush-state-ios'),
+            blocked:     $('webpush-state-blocked'),
+            disabled:    $('webpush-state-disabled'),
+            enabled:     $('webpush-state-enabled'),
+        };
+        const badge = $('webpush-badge');
+        const errBox = $('webpush-error');
+
+        function show(stateName, badgeText, badgeClass) {
+            Object.keys(states).forEach((k) => states[k].classList.add('d-none'));
+            if (states[stateName]) states[stateName].classList.remove('d-none');
+            if (badgeText) {
+                badge.textContent = badgeText;
+                badge.className = 'badge ' + (badgeClass || 'bg-secondary');
+            }
+        }
+
+        function showError(msg) {
+            errBox.textContent = msg;
+            errBox.classList.remove('d-none');
+            setTimeout(() => errBox.classList.add('d-none'), 6000);
+        }
+
+        async function refresh() {
+            if (!RxnWebPush.isSupported()) {
+                if (RxnWebPush.isIos()) {
+                    show('ios', 'Sin soporte iOS', 'bg-info');
+                } else {
+                    show('unsupported', 'No soportado', 'bg-warning text-dark');
+                }
+                return;
+            }
+
+            const perm = RxnWebPush.permissionState();
+            if (perm === 'denied') {
+                show('blocked', 'Bloqueado', 'bg-danger');
+                return;
+            }
+
+            try {
+                const status = await RxnWebPush.getStatus();
+                if (!status.configured) {
+                    show('unsupported', 'No configurado', 'bg-secondary');
+                    states.unsupported.textContent = 'El servidor todavía no tiene configuradas las claves VAPID. Contactá a soporte.';
+                    return;
+                }
+                if (status.active > 0 && perm === 'granted') {
+                    show('enabled', 'Activadas (' + status.active + ')', 'bg-success');
+                } else {
+                    show('disabled', 'Desactivadas', 'bg-secondary');
+                }
+            } catch (e) {
+                show('disabled', 'Error', 'bg-warning text-dark');
+                showError('No se pudo verificar el estado: ' + e.message);
+            }
+        }
+
+        $('webpush-btn-enable').addEventListener('click', async function () {
+            this.disabled = true;
+            try {
+                await RxnWebPush.enable();
+                await refresh();
+            } catch (e) {
+                showError('No se pudo activar: ' + e.message);
+                await refresh();
+            } finally {
+                this.disabled = false;
+            }
+        });
+
+        $('webpush-btn-disable').addEventListener('click', async function () {
+            if (!confirm('¿Desactivar las notificaciones del navegador en este dispositivo?')) return;
+            this.disabled = true;
+            try {
+                await RxnWebPush.disable();
+                await refresh();
+            } catch (e) {
+                showError('No se pudo desactivar: ' + e.message);
+            } finally {
+                this.disabled = false;
+            }
+        });
+
+        refresh();
+    })();
 </script>
+<script src="/js/rxn-web-push.js"></script>
 <script src="/js/rxn-shortcuts.js"></script>
 <?php
 $extraScripts = ob_get_clean();

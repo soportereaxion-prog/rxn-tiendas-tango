@@ -1,9 +1,35 @@
 <?php
 
 return [
-    'current_version' => '1.26.0',
-    'current_build' => '20260428.3',
+    'current_version' => '1.27.0',
+    'current_build' => '20260428.4',
     'history' => [
+        [
+            'version' => '1.27.0',
+            'build' => '20260428.4',
+            'released_at' => '2026-04-28',
+            'title' => 'Web Push — notificaciones nativas del navegador (opt-in en Mi Perfil)',
+            'summary' => 'Cierre del trío de notificaciones que arrancó en 1.25.0 (recordatorios in-app), siguió en 1.26.0 (tick global con n8n) y ahora completa con popups nativos del navegador. Cuando el usuario se suscribe explícitamente desde Mi Perfil, cada notificación in-app dispara automáticamente un push del SO (Windows action center, Mac notification center, Android pull-down) — incluso con la pestaña cerrada o el browser minimizado. La arquitectura: lib minishlink/web-push v10 + claves VAPID generadas una sola vez por instalación + tabla web_push_subscriptions multi-tenant + Service Worker simple en /sw.js + RxnWebPush API JS para opt-in. El flujo del usuario: Mi Perfil → card "Notificaciones del navegador" → botón "Activar" → prompt nativo del browser → suscripción guardada → cada notif in-app la replica como push. Off por defecto (decisión Charly: prompts no solicitados se castigan con Block persistente). iOS queda esperando PWA (release de presupuestos) — el card detecta el browser y muestra disclaimer correspondiente. Hook automático en NotificationService::notify() — fire-and-forget, un fallo de push nunca rompe la in-app. Cleanup automático: 410 Gone borra la sub, 5+ fallos consecutivos la deshabilitan. Como bonus de saneo: el composer.json ahora declara explícitamente dompdf/dompdf:^3.1 que históricamente estaba en vendor/ pero sin require — sin esa declaración el composer require de minishlink lo borraba.',
+            'items' => [
+                'composer.json: nueva dep minishlink/web-push:^10.0 + declaración formal de dompdf/dompdf:^3.1 (saneamiento, ver CLAUDE.md sección "composer.json debe declarar TODAS las deps"). composer.lock regenerado con 17 packages totales.',
+                'app/core/Services/WebPushService.php NUEVO: emisión de pushes con manejo de VAPID, subscribe/unsubscribe, cleanup automático (410 Gone borra, 5+ fallos deshabilitan).',
+                'app/core/Services/NotificationService.php: hook automático al final de notify() — dispara WebPushService::sendToUser fire-and-forget. Un fallo de push nunca rompe la creación de la in-app.',
+                'app/modules/WebPush/WebPushController.php NUEVO: endpoints /mi-perfil/web-push/{status,subscribe,unsubscribe} con sesión + CSRF.',
+                'app/config/routes.php: 3 rutas nuevas para WebPushController.',
+                'database/migrations/2026_04_28_05_create_web_push_subscriptions.php NUEVO: tabla multi-tenant con UNIQUE en endpoint (un usuario puede tener N subs: PC trabajo + casa + mobile), failed_attempts y disabled_at para auto-quarantine.',
+                'public/sw.js NUEVO: Service Worker que escucha push events y muestra notificación nativa. Click → abre el link, foca pestaña existente si la app ya está abierta.',
+                'public/js/rxn-web-push.js NUEVO: API window.RxnWebPush con isSupported/isIos/permissionState/getStatus/enable/disable. NUNCA invoca Notification.requestPermission() automáticamente — solo si el usuario clickea "Activar".',
+                'app/modules/Usuarios/views/mi_perfil.php: card nuevo "Notificaciones del navegador" con badge de estado tri-state (off / on / blocked) + disclaimer iOS. Off por defecto. JS handler enchufado al final del bloque.',
+                'tools/generate_vapid_keys.php NUEVO: CLI para generar el par VAPID. Se corre UNA SOLA VEZ por instalación.',
+                'tools/smoke_web_push.php NUEVO: smoke test que verifica VAPID + tabla + sendToUser sin subs.',
+                'CLAUDE.md raíz: nueva sección crítica "composer.json debe declarar TODAS las deps de vendor/" — incidente origen documentado.',
+                'app/modules/PrintForms/MODULE_CONTEXT.md: nueva sección "Dependencias externas críticas" con pipeline canónico de Dompdf y antipatrón composer require ciego.',
+                'database/migrations/2026_04_28_06_seed_customer_notes_release_1_27_0.php NUEVO: nota visible al cliente final sobre Web Push.',
+                'app/config/version.php: bump a 1.27.0 / build 20260428.4.',
+                'docs/logs/2026-04-28_release_1_27_0_web_push.md NUEVO: log con runbook de generar VAPID en prod.',
+                'Env vars nuevas en .env (van a prod): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT=mailto:soporte@reaxion.com.ar. Las claves se generan UNA VEZ por instalación — NO rotar (los browsers suscritos pierden la sub).',
+            ],
+        ],
         [
             'version' => '1.26.0',
             'build' => '20260428.3',

@@ -575,6 +575,11 @@ return function (Router $router): void {
     // Tick global de recordatorios (público, protegido con X-RXN-Token). Llamado por n8n cada 1 min.
     $router->post('/api/internal/notifications/tick', [\App\Modules\Notifications\NotificationController::class, 'tick']);
 
+    // --- WEB PUSH (notificaciones nativas del navegador) ---
+    $router->get('/mi-perfil/web-push/status', [\App\Modules\WebPush\WebPushController::class, 'status']);
+    $router->post('/mi-perfil/web-push/subscribe', [\App\Modules\WebPush\WebPushController::class, 'subscribe']);
+    $router->post('/mi-perfil/web-push/unsubscribe', [\App\Modules\WebPush\WebPushController::class, 'unsubscribe']);
+
     // --- INTEGRACIONES (WEBHOOKS) ---
     $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);
     // Hook de prueba interno (emulación manual vía navegador)

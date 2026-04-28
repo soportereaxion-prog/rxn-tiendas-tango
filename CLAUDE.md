@@ -181,6 +181,36 @@ Sobre ese core hay **wrappers por tipo de mail**:
 
 **Nunca** preguntarle al usuario "¿está centralizado el envío de mails?" — sí, lo está. Leer estos 2 archivos primero.
 
+### CRÍTICO — `composer.json` debe declarar TODAS las deps de `vendor/`
+
+Antes de ejecutar `composer require X` o `composer update`, verificar que
+**TODO lo presente en `vendor/` esté declarado en `composer.json`**. Si una lib
+está físicamente instalada pero no figura en `require`, composer la considera
+basura y la borra al reconciliar el lock — sin warning visible.
+
+Procedimiento obligatorio antes de cualquier `composer require`:
+
+1. `composer.phar show --installed` y comparar con la sección `require` del
+   `composer.json`. Toda lib root (no transitiva) debe estar declarada.
+2. Si falta alguna, `composer require <pkg>:<version>` para formalizarla
+   ANTES de tocar nada más. Usar la versión exacta que ya está en disco para
+   no upgradear sin querer.
+3. Recién entonces hacer el require de la lib nueva.
+
+**Incidente origen** (2026-04-28, release 1.27.0 — Web Push):
+`composer require minishlink/web-push` borró `dompdf/dompdf v3.1.5` (más sus
+4 transitivas) porque dompdf nunca había sido declarado en `composer.json`.
+Esto rompía silenciosamente la emisión de PDF de PDS y Presupuestos. Detectado
+porque Lumi leyó la salida de composer y vio el "Removing dompdf/dompdf" antes
+de seguir. Restaurado con `composer require dompdf/dompdf:^3.1`.
+
+**Aplicación específica para PDF**: el flujo "PDF adjunto en mail" depende de
+`dompdf/dompdf v3.1.x`. Documentado en
+`app/modules/PrintForms/MODULE_CONTEXT.md` con pipeline canónico y smoke test.
+Cualquier upgrade mayor de dompdf requiere envío de prueba real ANTES de OTA.
+
+---
+
 ### CRÍTICO — Tablas duales `empresa_config` / `empresa_config_crm`
 
 La configuración de empresa vive en **dos tablas gemelas con el mismo schema**:

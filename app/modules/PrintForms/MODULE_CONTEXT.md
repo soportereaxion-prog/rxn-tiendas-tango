@@ -181,6 +181,73 @@ Todos los endpoints requieren `AuthService::requireLogin()`. **No hay guard de a
 
 ---
 
+## Dependencias externas críticas
+
+PrintForms produce HTML; la conversión HTML→PDF y el envío como adjunto los hace
+[`App\Shared\Services\DocumentMailerService`](../../shared/Services/DocumentMailerService.php).
+Ese servicio depende de **dompdf** y es el camino crítico de:
+
+- Envío de PDS por mail (módulo CrmPedidosServicio).
+- Envío de Presupuestos por mail (módulo CrmPresupuestos).
+
+### dompdf — versión y transitivas
+
+Declarado en [`composer.json`](../../../composer.json) como `dompdf/dompdf:^3.1`.
+La versión actual instalada y validada es **v3.1.5** con sus transitivas:
+
+| Paquete | Versión |
+|---|---|
+| `dompdf/dompdf` | v3.1.5 |
+| `dompdf/php-svg-lib` | 1.0.2 |
+| `dompdf/php-font-lib` | 1.0.2 |
+| `masterminds/html5` | 2.10.0 |
+| `sabberworm/php-css-parser` | v9.3.0 |
+| `thecodingmachine/safe` | v3.4.0 |
+
+### Pipeline canónico (no romper)
+
+`DocumentMailerService::sendDocument()` instancia Dompdf así:
+
+```php
+$options = new Dompdf\Options();
+$options->set('isRemoteEnabled', true);     // permite cargar imágenes remotas
+$options->set('isHtml5ParserEnabled', true); // requerido por nuestro HTML
+$options->set('defaultPaperSize', 'A4');
+$dompdf = new Dompdf\Dompdf($options);
+$dompdf->loadHtml($pdfHtml);
+$dompdf->render();
+$pdfContent = $dompdf->output();
+```
+
+Cualquier cambio de versión mayor de dompdf, opciones, o el orden de
+`loadHtml/render/output` requiere smoke test obligatorio:
+
+1. `tools/smoke_pdf_render.php` (si no existe, crear con el snippet de arriba +
+   un HTML mínimo + assert que el PDF empiece con `%PDF`).
+2. Envío real de prueba de un PDS o Presupuesto a un mail interno antes de
+   liberar OTA a clientes.
+
+### Antipatrón crítico — `composer require` "ciego"
+
+El [`composer.json`](../../../composer.json) DEBE declarar **todas** las
+dependencias usadas (incluyendo dompdf). Si alguna lib de `vendor/` está
+físicamente presente pero NO declarada en `require`, el próximo
+`composer require X` o `composer update` la **borrará** sin aviso al
+reconciliar el lock — y romperá silenciosamente la generación de PDF en
+producción.
+
+Si tenés que agregar una dep nueva, antes:
+1. `composer.phar show --installed` y comparar con `composer.json` → todo lo
+   instalado debe estar declarado.
+2. Si falta algo, `composer require <pkg>:<version>` para agregarlo formalmente.
+3. Recién entonces hacer el require de la lib nueva.
+
+Esta regla nació tras incidente del 2026-04-28 (release 1.27.0 — Web Push):
+`composer require minishlink/web-push` borró dompdf, openspout y otras 3 libs
+no declaradas. Restauradas declarándolas formalmente.
+
+---
+
 ## Checklist post-cambio
 
 - [ ] El listado de formularios de impresión carga en `/mi-empresa/crm/formularios-impresion`.
