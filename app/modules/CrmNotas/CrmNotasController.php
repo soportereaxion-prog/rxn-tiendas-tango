@@ -147,6 +147,8 @@ class CrmNotasController extends Controller
             $nota->titulo = trim($_POST['titulo'] ?? '');
             $nota->contenido = trim($_POST['contenido'] ?? '');
             $nota->tags = !empty($_POST['tags']) ? trim($_POST['tags']) : null;
+            $nota->fecha_recordatorio = $this->parseRecordatorioInput($_POST['fecha_recordatorio'] ?? null);
+            $nota->created_by = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
             $nota->activo = isset($_POST['activo']) ? 1 : 0;
 
             if ($nota->titulo === '' || $nota->contenido === '') {
@@ -210,6 +212,7 @@ class CrmNotasController extends Controller
             $nota->titulo = trim($_POST['titulo'] ?? '');
             $nota->contenido = trim($_POST['contenido'] ?? '');
             $nota->tags = !empty($_POST['tags']) ? trim($_POST['tags']) : null;
+            $nota->fecha_recordatorio = $this->parseRecordatorioInput($_POST['fecha_recordatorio'] ?? null);
             $nota->activo = isset($_POST['activo']) ? 1 : 0;
 
             if ($nota->titulo === '' || $nota->contenido === '') {
@@ -427,6 +430,25 @@ class CrmNotasController extends Controller
 
         echo json_encode(['success' => true, 'data' => $data], JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
+    }
+
+    /**
+     * Normaliza un input de fecha_recordatorio. Acepta formatos:
+     *   - 'Y-m-d H:i:s' (Flatpickr con altInput, lo que envía el wrapper RxnDateTime)
+     *   - 'Y-m-d\TH:i:s' o 'Y-m-d\TH:i' (input nativo datetime-local)
+     * Devuelve siempre 'Y-m-d H:i:s' o null si vacío/invalido.
+     */
+    private function parseRecordatorioInput($raw): ?string
+    {
+        $raw = trim((string) ($raw ?? ''));
+        if ($raw === '') return null;
+        // Tolerancia con la T del nativo datetime-local
+        $normalized = str_replace('T', ' ', $raw);
+        try {
+            return (new \DateTimeImmutable($normalized))->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

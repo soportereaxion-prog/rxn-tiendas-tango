@@ -183,6 +183,24 @@ ob_start();
                         <div class="form-text text-secondary"><i class="bi bi-tags"></i> Separadas por coma. Al escribir la última etiqueta, te sugeriremos las guardadas.</div>
                     </div>
 
+                    <?php
+                        // Normalizamos el value del input. RxnDateTime acepta 'Y-m-d H:i:s' como dateFormat.
+                        $recVal = $nota->fecha_recordatorio ?? $old['fecha_recordatorio'] ?? '';
+                        if ($recVal !== '' && strpos($recVal, 'T') === false) {
+                            // viene del back en 'Y-m-d H:i:s' — Flatpickr lo lee igual.
+                        }
+                    ?>
+                    <div class="mb-4">
+                        <label class="form-label text-muted small">
+                            <i class="bi bi-bell"></i> Recordatorio (opcional)
+                        </label>
+                        <input type="datetime-local" name="fecha_recordatorio" class="form-control bg-dark text-light border-secondary"
+                            value="<?= htmlspecialchars($recVal) ?>">
+                        <div class="form-text text-secondary">
+                            <i class="bi bi-calendar-event"></i> Si seteás fecha, la nota aparece en la <strong>Agenda</strong> en rosa y a esa hora vas a recibir una notificación en la campanita.
+                        </div>
+                    </div>
+
                     <h5 class="fw-bold border-bottom border-secondary pt-3 pb-2 mb-3 text-info"><i class="bi bi-eye"></i> Estado y Visibilidad</h5>
 
                     <div class="form-check form-switch mb-5">

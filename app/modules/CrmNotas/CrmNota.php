@@ -13,6 +13,9 @@ class CrmNota
     public string $titulo;
     public string $contenido;
     public ?string $tags = null; // Ej: "importante, seguimiento" (JSON o str_comma)
+    public ?string $fecha_recordatorio = null; // Si está seteada, dispara notif al usuario en esa fecha y se proyecta al calendario.
+    public ?string $recordatorio_disparado_at = null; // Marcado por el late firer de NotificationController::feed().
+    public ?int $created_by = null; // Usuario que creó la nota — destinatario del recordatorio.
     public int $activo = 1;
     public ?string $created_at = null;
     public ?string $updated_at = null;

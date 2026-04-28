@@ -8,7 +8,7 @@ use PDO;
 
 class AgendaRepository
 {
-    public const ORIGENES = ['manual', 'pds', 'presupuesto', 'tratativa', 'llamada', 'tratativa_accion', 'hora'];
+    public const ORIGENES = ['manual', 'pds', 'presupuesto', 'tratativa', 'llamada', 'tratativa_accion', 'hora', 'nota'];
     public const ESTADOS = ['programado', 'en_curso', 'completado', 'cancelado'];
 
     private const DEFAULT_COLORS = [
@@ -19,6 +19,7 @@ class AgendaRepository
         'tratativa_accion' => '#fd7e14',
         'llamada' => '#6610f2',
         'hora' => '#20c997',  // teal — turnos trabajados (módulo CrmHoras)
+        'nota' => '#d63384',  // pink — notas con recordatorio (módulo CrmNotas)
     ];
 
     private PDO $db;

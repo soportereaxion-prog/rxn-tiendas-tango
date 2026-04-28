@@ -84,6 +84,7 @@ class CrmNotaRepository
             'tratativa_titulo' => 't.titulo',
             'tags' => 'n.tags',
             'created_at' => 'n.created_at',
+            'fecha_recordatorio' => 'n.fecha_recordatorio',
             'cliente_codigo' => 'c.codigo_tango'
         ];
 
@@ -147,6 +148,7 @@ class CrmNotaRepository
             'tratativa_titulo' => 't.titulo',
             'tags' => 'n.tags',
             'created_at' => 'n.created_at',
+            'fecha_recordatorio' => 'n.fecha_recordatorio',
             'cliente_codigo' => 'c.codigo_tango'
         ];
 
@@ -235,6 +237,18 @@ class CrmNotaRepository
 
     public function save(CrmNota $nota): void
     {
+        // Si cambia fecha_recordatorio, reseteamos recordatorio_disparado_at
+        // para que el late firer lo vuelva a disparar con la nueva fecha.
+        $resetDisparo = false;
+        if (isset($nota->id) && $nota->id > 0) {
+            $stmtPrev = $this->db->prepare("SELECT fecha_recordatorio FROM crm_notas WHERE id = :id AND empresa_id = :empresa_id");
+            $stmtPrev->execute([':id' => $nota->id, ':empresa_id' => $nota->empresa_id]);
+            $prevFecha = $stmtPrev->fetchColumn();
+            if ($prevFecha !== false && (string)$prevFecha !== (string)($nota->fecha_recordatorio ?? '')) {
+                $resetDisparo = true;
+            }
+        }
+
         if (isset($nota->id) && $nota->id > 0) {
             $sql = "UPDATE crm_notas
                     SET cliente_id = :cliente_id,
@@ -242,6 +256,8 @@ class CrmNotaRepository
                         titulo = :titulo,
                         contenido = :contenido,
                         tags = :tags,
+                        fecha_recordatorio = :fecha_recordatorio,
+                        " . ($resetDisparo ? "recordatorio_disparado_at = NULL," : "") . "
                         activo = :activo
                     WHERE id = :id AND empresa_id = :empresa_id";
             $params = [
@@ -250,6 +266,7 @@ class CrmNotaRepository
                 ':titulo' => $nota->titulo,
                 ':contenido' => $nota->contenido,
                 ':tags' => $nota->tags,
+                ':fecha_recordatorio' => $nota->fecha_recordatorio,
                 ':activo' => $nota->activo,
                 ':id' => $nota->id,
                 ':empresa_id' => $nota->empresa_id,
@@ -257,8 +274,8 @@ class CrmNotaRepository
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
         } else {
-            $sql = "INSERT INTO crm_notas (empresa_id, cliente_id, tratativa_id, titulo, contenido, tags, activo)
-                    VALUES (:empresa_id, :cliente_id, :tratativa_id, :titulo, :contenido, :tags, :activo)";
+            $sql = "INSERT INTO crm_notas (empresa_id, cliente_id, tratativa_id, titulo, contenido, tags, fecha_recordatorio, created_by, activo)
+                    VALUES (:empresa_id, :cliente_id, :tratativa_id, :titulo, :contenido, :tags, :fecha_recordatorio, :created_by, :activo)";
             $params = [
                 ':empresa_id' => $nota->empresa_id,
                 ':cliente_id' => $nota->cliente_id,
@@ -266,6 +283,8 @@ class CrmNotaRepository
                 ':titulo' => $nota->titulo,
                 ':contenido' => $nota->contenido,
                 ':tags' => $nota->tags,
+                ':fecha_recordatorio' => $nota->fecha_recordatorio,
+                ':created_by' => $nota->created_by,
                 ':activo' => $nota->activo,
             ];
             $stmt = $this->db->prepare($sql);
@@ -274,6 +293,31 @@ class CrmNotaRepository
         }
 
         $this->syncTags((string)$nota->tags, $nota->empresa_id);
+
+        // Hook agenda: proyecta la nota como evento (si tiene fecha_recordatorio).
+        // Try/catch defensivo — el proyector ya silencia adentro, pero no queremos que
+        // un fallo de instanciación rompa el save.
+        try {
+            (new \App\Modules\CrmAgenda\AgendaProyectorService())->onNotaSaved((array) $this->fetchRowForProjector($nota->id, $nota->empresa_id));
+        } catch (\Throwable) {}
+    }
+
+    /**
+     * Devuelve la fila de la nota como array plano, lista para el proyector.
+     * No hidrata $cliente_nombre porque el proyector usa solo campos directos
+     * y resuelve el contexto por su cuenta.
+     */
+    private function fetchRowForProjector(int $id, int $empresaId): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT n.*, u.nombre AS usuario_nombre
+            FROM crm_notas n
+            LEFT JOIN usuarios u ON u.id = n.created_by
+            WHERE n.id = :id AND n.empresa_id = :empresa_id
+            LIMIT 1
+        ");
+        $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
     }
 
     private function syncTags(string $tagsRaw, int $empresaId): void
@@ -301,6 +345,10 @@ class CrmNotaRepository
         $sql = "UPDATE crm_notas SET deleted_at = NOW() WHERE id = :id AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+
+        try {
+            (new \App\Modules\CrmAgenda\AgendaProyectorService())->onNotaDeleted($id, $empresaId);
+        } catch (\Throwable) {}
     }
 
     public function restore(int $id, int $empresaId): void
@@ -308,6 +356,10 @@ class CrmNotaRepository
         $sql = "UPDATE crm_notas SET deleted_at = NULL WHERE id = :id AND empresa_id = :empresa_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id, ':empresa_id' => $empresaId]);
+
+        try {
+            (new \App\Modules\CrmAgenda\AgendaProyectorService())->onNotaSaved((array) $this->fetchRowForProjector($id, $empresaId));
+        } catch (\Throwable) {}
     }
 
     public function forceDelete(int $id, int $empresaId): void

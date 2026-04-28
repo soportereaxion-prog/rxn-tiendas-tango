@@ -315,7 +315,7 @@ class AgendaController extends \App\Core\Controller
 
         // Leer qué módulos están tickeados en los filtros de la UI.
         // Si no viene nada, barre todo (compat con comportamiento anterior).
-        $origenes = isset($_POST['origenes']) && is_array($_POST['origenes']) ? $_POST['origenes'] : ['pds', 'presupuesto', 'tratativa', 'llamada'];
+        $origenes = isset($_POST['origenes']) && is_array($_POST['origenes']) ? $_POST['origenes'] : ['pds', 'presupuesto', 'tratativa', 'llamada', 'nota'];
         $counts = [];
 
         // PDS
@@ -355,6 +355,16 @@ class AgendaController extends \App\Core\Controller
             $stmt->execute([':empresa_id' => $empresaId]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
                 try { $proyector->onLlamadaSaved($row); $counts['llamadas']++; } catch (\Throwable) {}
+            }
+        }
+
+        // Notas (solo las que tienen fecha_recordatorio — el proyector ya valida).
+        if (in_array('nota', $origenes, true)) {
+            $counts['notas'] = 0;
+            $stmt = $db->prepare('SELECT n.*, u.nombre AS usuario_nombre FROM crm_notas n LEFT JOIN usuarios u ON u.id = n.created_by WHERE n.empresa_id = :empresa_id AND n.deleted_at IS NULL AND n.fecha_recordatorio IS NOT NULL');
+            $stmt->execute([':empresa_id' => $empresaId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+                try { $proyector->onNotaSaved($row); $counts['notas']++; } catch (\Throwable) {}
             }
         }
 

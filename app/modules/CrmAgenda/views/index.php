@@ -17,7 +17,7 @@ ob_start();
     <div class="rxn-module-header mb-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 fw-bold mb-1"><i class="bi bi-calendar-event"></i> Agenda CRM</h1>
-            <p class="text-muted small mb-0">Eventos de PDS, Presupuestos y Tratativas en un solo calendario, con sync push a Google.</p>
+            <p class="text-muted small mb-0">Eventos de PDS, Presupuestos, Tratativas, Llamadas y Notas con recordatorio en un solo calendario, con sync push a Google.</p>
         </div>
         <div class="d-flex gap-2">
             <button type="button" id="btn-fullscreen" class="btn btn-outline-info btn-sm" title="Pantalla completa (Alt+A)"><i class="bi bi-arrows-fullscreen"></i></button>
@@ -73,6 +73,12 @@ ob_start();
                             <input class="form-check-input origen-filter" type="checkbox" value="manual" id="filter_man" checked>
                             <label class="form-check-label" for="filter_man">
                                 <span class="badge" style="background:#6c757d;">Manuales</span>
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input origen-filter" type="checkbox" value="nota" id="filter_nota" checked>
+                            <label class="form-check-label" for="filter_nota">
+                                <span class="badge" style="background:#d63384;">Notas</span>
                             </label>
                         </div>
                         <button type="button" id="btn-refresh" class="btn btn-sm btn-outline-info ms-auto"><i class="bi bi-arrow-clockwise"></i> Refrescar</button>

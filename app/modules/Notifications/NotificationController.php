@@ -42,6 +42,10 @@ class NotificationController extends Controller
         AuthService::requireLogin();
         [$empresaId, $userId] = $this->ctx();
 
+        // Late firing: antes de devolver el feed, disparamos los recordatorios pendientes
+        // del usuario. Esto evita depender de un cron — basta con que el usuario abra la app.
+        $this->fireDueReminders($empresaId, $userId);
+
         $limit = (int) ($_GET['limit'] ?? 5);
         $items = $this->service->latest($empresaId, $userId, $limit);
         $unread = $this->service->countUnread($empresaId, $userId);
@@ -52,6 +56,62 @@ class NotificationController extends Controller
             'unread' => $unread,
             'items'  => $items,
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Dispara las notificaciones pendientes de recordatorio para el usuario.
+     *
+     * Patrón: cada módulo que tenga eventos con "fecha de recordatorio" se chequea acá.
+     * Por ahora solo CrmNotas, pero la firma del método permite sumar otros (turnos
+     * pendientes, presupuestos por vencer, etc.) sin tocar el resto del controller.
+     *
+     * Idempotente: marca cada fila con su `*_disparado_at` para no re-disparar.
+     */
+    private function fireDueReminders(int $empresaId, int $userId): void
+    {
+        try {
+            $db = \App\Core\Database::getConnection();
+            $stmt = $db->prepare("
+                SELECT id, titulo, contenido, cliente_id, tratativa_id, fecha_recordatorio
+                FROM crm_notas
+                WHERE empresa_id = :empresa_id
+                  AND created_by = :user_id
+                  AND deleted_at IS NULL
+                  AND fecha_recordatorio IS NOT NULL
+                  AND recordatorio_disparado_at IS NULL
+                  AND fecha_recordatorio <= NOW()
+                ORDER BY fecha_recordatorio ASC
+                LIMIT 50
+            ");
+            $stmt->execute([':empresa_id' => $empresaId, ':user_id' => $userId]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+            $markStmt = $db->prepare("UPDATE crm_notas SET recordatorio_disparado_at = NOW() WHERE id = :id AND empresa_id = :empresa_id");
+
+            foreach ($rows as $row) {
+                $notaId = (int) $row['id'];
+                $titulo = (string) ($row['titulo'] ?? 'Nota');
+                $body = trim((string) ($row['contenido'] ?? ''));
+                if (mb_strlen($body) > 200) {
+                    $body = mb_substr($body, 0, 197) . '...';
+                }
+
+                $this->service->notify(
+                    empresaId: $empresaId,
+                    usuarioId: $userId,
+                    type: 'crm_notas.recordatorio',
+                    title: '🔔 Recordatorio: ' . $titulo,
+                    body: $body !== '' ? $body : null,
+                    link: '/mi-empresa/crm/notas/' . $notaId . '/editar',
+                    data: ['nota_id' => $notaId],
+                    dedupeKey: 'crm_notas.recordatorio.' . $notaId
+                );
+
+                $markStmt->execute([':id' => $notaId, ':empresa_id' => $empresaId]);
+            }
+        } catch (\Throwable) {
+            // El late firer no debe romper el feed bajo ningún escenario.
+        }
     }
 
     /**

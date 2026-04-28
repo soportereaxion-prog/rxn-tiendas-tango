@@ -15,15 +15,22 @@
             }
             .rxn-filter-col:hover .rxn-filter-icon { opacity: 0.7; }
             .rxn-filter-col .rxn-filter-icon.active { opacity: 1; color: #0d6efd; }
+            /* Popover detacheado a <body> con position:fixed para escapar
+               del clipping de .table-responsive (overflow-x:auto). Coordenadas
+               se calculan al abrir con getBoundingClientRect del icono. */
             .rxn-filter-popover {
-                position: absolute; top: 100%; right: 0; z-index: 1050;
-                min-width: 280px; background: white;
+                position: fixed; z-index: 2050;
+                min-width: 280px; max-width: calc(100vw - 16px);
+                background: white;
                 border: 1px solid rgba(0,0,0,0.15);
                 box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
                 border-radius: 0.375rem; padding: 1rem;
                 display: none; font-weight: normal; font-size: 0.875rem;
+                color: #212529;
             }
             .rxn-filter-popover.show { display: block; }
+            .rxn-filter-popover .form-select,
+            .rxn-filter-popover .form-control { color: #212529; background-color: #fff; }
             .rxn-local-list label {
                 display: flex; align-items: center; gap: 0.4rem;
                 padding: 0.15rem 0.25rem; cursor: pointer;
@@ -321,26 +328,64 @@
                 popover.classList.remove('show');
             };
 
+            // === Posicionamiento fixed (popover está en <body>) ===
+            const POPOVER_MIN_WIDTH = 280;
+            const VIEWPORT_MARGIN = 8;
+
+            const positionPopover = () => {
+                const iconRect = icon.getBoundingClientRect();
+                const popoverWidth = Math.max(popover.offsetWidth, POPOVER_MIN_WIDTH);
+                const popoverHeight = popover.offsetHeight;
+                const vw = document.documentElement.clientWidth;
+                const vh = document.documentElement.clientHeight;
+
+                // Default: alineado al borde derecho del icono, debajo
+                let left = iconRect.right - popoverWidth;
+                let top  = iconRect.bottom + 4;
+
+                // Clamp horizontal — no salirse del viewport
+                if (left < VIEWPORT_MARGIN) left = VIEWPORT_MARGIN;
+                if (left + popoverWidth > vw - VIEWPORT_MARGIN) {
+                    left = vw - popoverWidth - VIEWPORT_MARGIN;
+                }
+
+                // Si no entra abajo, abrirlo hacia arriba
+                if (top + popoverHeight > vh - VIEWPORT_MARGIN && iconRect.top > popoverHeight + VIEWPORT_MARGIN) {
+                    top = iconRect.top - popoverHeight - 4;
+                }
+
+                popover.style.left = left + 'px';
+                popover.style.top  = top + 'px';
+            };
+
+            // Cerrar popover si scrollea o cambia el viewport.
+            // El popover usa position:fixed → no sigue al scroll, mejor cerrarlo.
+            const closeOnScrollOrResize = () => {
+                if (popover.classList.contains('show')) popover.classList.remove('show');
+            };
+
             // === Abrir/cerrar popover ===
             icon.onclick = (e) => {
                 e.stopPropagation();
                 document.querySelectorAll('.rxn-filter-popover.show').forEach(el => {
                     if (el !== popover) el.classList.remove('show');
                 });
+                const willOpen = !popover.classList.contains('show');
                 popover.classList.toggle('show');
-                if (popover.classList.contains('show')) {
-                    const tableContainer = th.closest('.table-responsive');
-                    const thRect = th.getBoundingClientRect();
-                    let isNearLeftEdge = false;
-                    if (tableContainer) {
-                        isNearLeftEdge = (thRect.left - tableContainer.getBoundingClientRect().left) < 280;
-                    } else {
-                        isNearLeftEdge = thRect.left < 280;
-                    }
-                    popover.style.right = isNearLeftEdge ? 'auto' : '0';
-                    popover.style.left  = isNearLeftEdge ? '0'    : 'auto';
+                if (willOpen) {
                     populateLocalList();
-                    bdInput.focus();
+                    // Render primero invisible para medir, después posicionar
+                    popover.style.left = '-9999px';
+                    popover.style.top  = '-9999px';
+                    requestAnimationFrame(() => {
+                        positionPopover();
+                        bdInput.focus();
+                    });
+                    window.addEventListener('scroll', closeOnScrollOrResize, true);
+                    window.addEventListener('resize', closeOnScrollOrResize);
+                } else {
+                    window.removeEventListener('scroll', closeOnScrollOrResize, true);
+                    window.removeEventListener('resize', closeOnScrollOrResize);
                 }
             };
 
@@ -352,7 +397,8 @@
             }
 
             th.appendChild(icon);
-            th.appendChild(popover);
+            // Popover vive en <body> para escapar del overflow:auto del table-responsive
+            document.body.appendChild(popover);
 
             // Reaplicar filtro local persistido
             if (isLocalActive) applyLocalFilter(field, colIndex, excludedFromStorage);

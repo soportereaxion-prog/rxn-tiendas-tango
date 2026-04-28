@@ -1,9 +1,33 @@
 <?php
 
 return [
-    'current_version' => '1.24.0',
-    'current_build' => '20260427.1',
+    'current_version' => '1.25.0',
+    'current_build' => '20260428.2',
     'history' => [
+        [
+            'version' => '1.25.0',
+            'build' => '20260428.2',
+            'released_at' => '2026-04-28',
+            'title' => 'Notas con recordatorio en Agenda + fix transversal del filtro por columna',
+            'summary' => 'Dos mejoras de calidad de vida que aplican a toda la suite. (1) CrmNotas suma campo opcional fecha_recordatorio: si la nota lleva fecha, se proyecta al calendario CRM con color rosa y a esa hora dispara una notificación in-app al usuario que la creó (campanita + dropdown). El disparo es "late firing" desde NotificationController::feed: cada vez que el cliente pide el feed (al cargar página o al abrir la campanita), se buscan notas con recordatorio vencido y sin disparar para el usuario actual y se notifican con dedupe key estable. No requiere cron — basta con que el usuario use la app. AgendaProyectorService gana onNotaSaved/onNotaDeleted (idempotente, mismo patrón que el resto de los hooks); CrmNotaRepository::save/delete/restore enganchan el proyector y resetean recordatorio_disparado_at cuando cambia la fecha. Filtro nuevo "Notas" en la barra de la Agenda (color #d63384) y soporte en el rescan masivo. (2) Fix del bug clásico del popover de filtro por columna que quedaba clipeado/empujado en listados con pocas filas: rxn-advanced-filters.js detacha el popover del <th> y lo monta en <body> con position:fixed, calculando coordenadas desde getBoundingClientRect() del icono y con clamp horizontal contra viewportWidth para no salirse de pantalla. Listeners de scroll/resize cierran el popover automáticamente para no quedar flotando huérfano. El cambio aplica a TODOS los listados que usan rxn-filter-col (PDS, Presupuestos, Tratativas, Llamadas, Clientes, Articulos, Categorias, Empresas, Usuarios, Pedidos, ClientesWeb, RxnSync) sin tocar nada en cada vista.',
+            'items' => [
+                'database/migrations/2026_04_28_00_alter_crm_notas_add_recordatorio.php NUEVO: ALTER crm_notas ADD COLUMN fecha_recordatorio DATETIME NULL + recordatorio_disparado_at DATETIME NULL + created_by INT NULL + idx_notas_recordatorio_pendiente. Idempotente.',
+                'app/modules/CrmNotas/CrmNota.php: suma propiedades fecha_recordatorio, recordatorio_disparado_at, created_by.',
+                'app/modules/CrmNotas/CrmNotaRepository.php: save() incluye los campos nuevos en INSERT/UPDATE, resetea recordatorio_disparado_at si cambia la fecha, y dispara AgendaProyectorService::onNotaSaved al final. delete() y restore() también notifican al proyector. Helper privado fetchRowForProjector() arma el row para el hook. filterMap suma fecha_recordatorio para que el embudo de filtro lo reconozca.',
+                'app/modules/CrmNotas/CrmNotasController.php: store() y update() leen fecha_recordatorio del POST y setean created_by con $_SESSION[user_id] al crear. Helper parseRecordatorioInput() tolera Y-m-d H:i:s y Y-m-d\\TH:i:s (Flatpickr y nativo).',
+                'app/modules/CrmNotas/views/form.php: nuevo input datetime-local "Recordatorio (opcional)" con form-text explicativo (avisa que dispara campanita + aparece en agenda en rosa). Cubierto por el wrapper RxnDateTime global (es-AR 24hs).',
+                'app/modules/CrmAgenda/AgendaProyectorService.php: hooks nuevos onNotaSaved/onNotaDeleted. Si la nota tiene recordatorio, proyecta evento de 30min con color rosa; si la nota se guarda sin recordatorio (o se le sacó la fecha), limpia el evento previo via softDeleteAndMaybeRemote.',
+                'app/modules/CrmAgenda/AgendaRepository.php: ORIGENES suma "nota". DEFAULT_COLORS suma "nota" => #d63384.',
+                'app/modules/CrmAgenda/AgendaController.php: rescan() suma branch para "nota" — itera crm_notas WHERE fecha_recordatorio IS NOT NULL y proyecta. Default origenes incluye "nota".',
+                'app/modules/CrmAgenda/views/index.php: nuevo checkbox "Notas" (badge rosa) en la barra de filtros. Subtítulo actualizado para mencionar Llamadas y Notas.',
+                'app/modules/Notifications/NotificationController.php: feed() llama fireDueReminders() antes de devolver el feed. Helper privado consulta crm_notas con recordatorio vencido + sin disparar del usuario, dispara via NotificationService::notify con dedupeKey "crm_notas.recordatorio.{id}", y marca recordatorio_disparado_at = NOW(). Errores silenciados — el feed no debe romper bajo ningún escenario.',
+                'public/js/rxn-advanced-filters.js: refactor del popover. CSS pasa de position:absolute → position:fixed; el popover se appendea a document.body en vez de al <th>. Nueva función positionPopover() calcula left/top con getBoundingClientRect() del icono y clamp horizontal/vertical contra viewport. Si no entra abajo, abre arriba. Listeners scroll (capture) + resize cierran el popover. Conservado el handler global de "click afuera". Soluciona el clipping causado por overflow-x:auto en .table-responsive (CSS quirk: cuando un eje es auto, el otro pierde "visible").',
+                'database/migrations/2026_04_28_01_seed_customer_notes_release_1_25_0.php NUEVO: notas de novedad para clientes finales (notas con recordatorio en agenda + filtro por columna más prolijo).',
+                'database/migrations/2026_04_28_02_alter_agenda_eventos_origen_tipo_nota.php NUEVO: extiende ENUM origen_tipo de crm_agenda_eventos para aceptar el valor "nota". Idempotente (chequea INFORMATION_SCHEMA antes de MODIFY). Sin esto el INSERT del proyector de notas falla silenciosamente — el ENUM era cerrado desde el CREATE TABLE original y MySQL rechaza valores fuera de la lista. Bug detectado por Charly al validar visualmente (la nota se guardaba pero no aparecía en el calendario).',
+                'app/config/version.php: bump a 1.25.0 / build 20260428.2 (build 2 incluye fix del ENUM).',
+                'docs/logs/2026-04-28_release_1_25_0_notas_recordatorio_filtro_popover.md NUEVO: log del release.',
+            ],
+        ],
         [
             'version' => '1.24.0',
             'build' => '20260427.1',

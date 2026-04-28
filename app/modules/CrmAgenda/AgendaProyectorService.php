@@ -314,6 +314,58 @@ class AgendaProyectorService
         } catch (\Throwable) {}
     }
 
+    /**
+     * Hook disparado por CrmNotaRepository::save() cuando se crea o actualiza una nota.
+     * Solo proyecta al calendario las notas con fecha_recordatorio seteada — sin recordatorio
+     * la nota no tiene "punto en el tiempo" y no aporta nada al calendario.
+     * Si una nota tenía recordatorio y se le saca, también limpiamos el evento previo.
+     */
+    public function onNotaSaved(array $nota): void
+    {
+        try {
+            $notaId = (int) ($nota['id'] ?? 0);
+            $empresaId = (int) ($nota['empresa_id'] ?? 0);
+            if ($notaId <= 0 || $empresaId <= 0) {
+                return;
+            }
+
+            $fechaRecordatorio = trim((string) ($nota['fecha_recordatorio'] ?? ''));
+            if ($fechaRecordatorio === '') {
+                // Sin recordatorio → si había un evento previo, lo limpiamos.
+                $this->softDeleteAndMaybeRemote('nota', $notaId, $empresaId);
+                return;
+            }
+
+            $titulo = '📝 Nota — ' . (string) ($nota['titulo'] ?? 'Sin título');
+            $descripcion = trim((string) ($nota['contenido'] ?? ''));
+
+            $inicio = $fechaRecordatorio;
+            // 30 minutos por default — la nota es un punto, no una franja.
+            $fin = (new \DateTimeImmutable($inicio))->modify('+30 minutes')->format('Y-m-d H:i:s');
+
+            $this->upsertEvent([
+                'empresa_id' => $empresaId,
+                'usuario_id' => !empty($nota['created_by']) ? (int) $nota['created_by'] : null,
+                'usuario_nombre' => $nota['usuario_nombre'] ?? null,
+                'titulo' => $titulo,
+                'descripcion' => $descripcion,
+                'inicio' => $inicio,
+                'fin' => $fin,
+                'origen_tipo' => 'nota',
+                'origen_id' => $notaId,
+                'color' => AgendaRepository::defaultColorFor('nota'),
+                'estado' => 'programado',
+            ]);
+        } catch (\Throwable) {}
+    }
+
+    public function onNotaDeleted(int $notaId, int $empresaId): void
+    {
+        try {
+            $this->softDeleteAndMaybeRemote('nota', $notaId, $empresaId);
+        } catch (\Throwable) {}
+    }
+
     private function upsertEvent(array $data): void
     {
         $empresaId = (int) $data['empresa_id'];
