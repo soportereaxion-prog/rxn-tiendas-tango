@@ -46,7 +46,15 @@
 
     function csrfToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
-        return meta ? meta.getAttribute('content') : '';
+        if (meta) return meta.getAttribute('content') || '';
+        const input = document.querySelector('input[name="csrf_token"]');
+        return input ? input.value : '';
+    }
+
+    function formBody(fields) {
+        return Object.keys(fields)
+            .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(fields[k] == null ? '' : String(fields[k])))
+            .join('&');
     }
 
     async function getStatus() {
@@ -87,11 +95,15 @@
         const res = await fetch(SUBSCRIBE_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Accept': 'application/json',
-                'X-CSRF-Token': csrfToken(),
             },
-            body: JSON.stringify(subJson),
+            body: formBody({
+                csrf_token: csrfToken(),
+                endpoint: subJson.endpoint,
+                p256dh: subJson.keys && subJson.keys.p256dh,
+                auth: subJson.keys && subJson.keys.auth,
+            }),
         });
         if (!res.ok) throw new Error('subscribe_failed');
         return res.json();
@@ -110,11 +122,10 @@
         const res = await fetch(UNSUBSCRIBE_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Accept': 'application/json',
-                'X-CSRF-Token': csrfToken(),
             },
-            body: JSON.stringify({ endpoint }),
+            body: formBody({ csrf_token: csrfToken(), endpoint }),
         });
         return res.ok ? res.json() : { ok: false };
     }

@@ -39,7 +39,7 @@ class WebPushController extends Controller
 
     /**
      * POST /mi-perfil/web-push/subscribe
-     * Body JSON: { endpoint, keys: { p256dh, auth } }
+     * Body x-www-form-urlencoded: csrf_token, endpoint, p256dh, auth.
      */
     public function subscribe(): void
     {
@@ -49,12 +49,9 @@ class WebPushController extends Controller
 
         header('Content-Type: application/json; charset=utf-8');
 
-        $raw = file_get_contents('php://input') ?: '{}';
-        $payload = json_decode($raw, true) ?: [];
-
-        $endpoint = (string) ($payload['endpoint'] ?? '');
-        $p256dh   = (string) ($payload['keys']['p256dh'] ?? '');
-        $auth     = (string) ($payload['keys']['auth'] ?? '');
+        $endpoint = (string) ($_POST['endpoint'] ?? '');
+        $p256dh   = (string) ($_POST['p256dh'] ?? '');
+        $auth     = (string) ($_POST['auth'] ?? '');
         $ua       = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 250);
 
         if ($endpoint === '' || $p256dh === '' || $auth === '') {
@@ -72,7 +69,7 @@ class WebPushController extends Controller
 
     /**
      * POST /mi-perfil/web-push/unsubscribe
-     * Body JSON: { endpoint }
+     * Body x-www-form-urlencoded: csrf_token, endpoint.
      */
     public function unsubscribe(): void
     {
@@ -82,9 +79,7 @@ class WebPushController extends Controller
 
         header('Content-Type: application/json; charset=utf-8');
 
-        $raw = file_get_contents('php://input') ?: '{}';
-        $payload = json_decode($raw, true) ?: [];
-        $endpoint = (string) ($payload['endpoint'] ?? '');
+        $endpoint = (string) ($_POST['endpoint'] ?? '');
 
         if ($endpoint === '') {
             http_response_code(400);

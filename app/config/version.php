@@ -1,9 +1,21 @@
 <?php
 
 return [
-    'current_version' => '1.27.1',
-    'current_build' => '20260428.5',
+    'current_version' => '1.27.2',
+    'current_build' => '20260428.6',
     'history' => [
+        [
+            'version' => '1.27.2',
+            'build' => '20260428.6',
+            'released_at' => '2026-04-28',
+            'title' => 'Hotfix Web Push — alinear CSRF al patrón csrf_token en POST',
+            'summary' => 'Segundo hotfix sobre Web Push 1.27.0: el endpoint /mi-perfil/web-push/subscribe rechazaba con HTTP 419 (CSRF mismatch). Causa: el frontend mandaba el token en header X-CSRF-Token + body JSON, pero verifyCsrfOrAbort() de la suite lee de $_POST[csrf_token] (form-urlencoded). Alineado al patrón canónico que ya usa rxn-notifications.js: el JS arma el body como x-www-form-urlencoded con csrf_token + campos planos, y el controller lee de $_POST en lugar de json_decode(php://input). Sin cambios en el flujo VAPID/SW.',
+            'items' => [
+                'public/js/rxn-web-push.js: enable() y disable() ahora mandan Content-Type application/x-www-form-urlencoded con csrf_token + endpoint + p256dh + auth como campos planos (idéntico al patrón de rxn-notifications.js). Helper formBody(). csrfToken() también busca input[name=csrf_token] como fallback al meta.',
+                'app/modules/WebPush/WebPushController.php: subscribe() y unsubscribe() leen de $_POST en lugar de json_decode(file_get_contents(php://input)).',
+                'app/config/version.php: bump a 1.27.2 / build 20260428.6.',
+            ],
+        ],
         [
             'version' => '1.27.1',
             'build' => '20260428.5',
