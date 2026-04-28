@@ -6,6 +6,7 @@ namespace App\Modules\Notifications;
 
 use App\Core\Context;
 use App\Core\Controller;
+use App\Core\Services\NotificationDispatcherService;
 use App\Core\Services\NotificationService;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
@@ -196,5 +197,52 @@ class NotificationController extends Controller
 
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * POST /api/internal/notifications/tick
+     *
+     * Endpoint público (sin sesión) protegido con header `X-RXN-Token`.
+     * Lo invoca n8n cada 1 min (workflow "RxnSuite — Notifications Tick").
+     *
+     * Barre todos los recordatorios vencidos sin disparar de TODAS las empresas/
+     * usuarios y crea las notificaciones in-app correspondientes via
+     * NotificationDispatcherService::tick(). Idempotente.
+     *
+     * Devuelve JSON: { ok, processed, by_source, errors[], elapsed_ms }
+     */
+    public function tick(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        $expectedToken = (string) ($_ENV['N8N_CALLBACK_TOKEN'] ?? getenv('N8N_CALLBACK_TOKEN') ?: '');
+        $receivedToken = (string) ($_SERVER['HTTP_X_RXN_TOKEN'] ?? '');
+
+        if ($expectedToken === '' || !hash_equals($expectedToken, $receivedToken)) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'error' => 'unauthorized']);
+            return;
+        }
+
+        $started = microtime(true);
+        try {
+            $dispatcher = new NotificationDispatcherService();
+            $result = $dispatcher->tick();
+
+            echo json_encode([
+                'ok'          => true,
+                'processed'   => $result['processed'],
+                'by_source'   => $result['by_source'],
+                'errors'      => $result['errors'],
+                'elapsed_ms'  => (int) round((microtime(true) - $started) * 1000),
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode([
+                'ok'    => false,
+                'error' => 'tick_failed',
+                'msg'   => $e->getMessage(),
+            ]);
+        }
     }
 }

@@ -572,6 +572,8 @@ return function (Router $router): void {
     $router->post('/notifications/marcar-todas-leidas', [\App\Modules\Notifications\NotificationController::class, 'markAllRead']);
     $router->post('/notifications/{id}/leer', [\App\Modules\Notifications\NotificationController::class, 'markRead']);
     $router->post('/notifications/{id}/eliminar', [\App\Modules\Notifications\NotificationController::class, 'softDelete']);
+    // Tick global de recordatorios (público, protegido con X-RXN-Token). Llamado por n8n cada 1 min.
+    $router->post('/api/internal/notifications/tick', [\App\Modules\Notifications\NotificationController::class, 'tick']);
 
     // --- INTEGRACIONES (WEBHOOKS) ---
     $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);

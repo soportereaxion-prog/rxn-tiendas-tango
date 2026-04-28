@@ -1,9 +1,26 @@
 <?php
 
 return [
-    'current_version' => '1.25.0',
-    'current_build' => '20260428.2',
+    'current_version' => '1.26.0',
+    'current_build' => '20260428.3',
     'history' => [
+        [
+            'version' => '1.26.0',
+            'build' => '20260428.3',
+            'released_at' => '2026-04-28',
+            'title' => 'Recordatorios de notas que disparan aunque el usuario no esté logueado (n8n tick cada 1 min)',
+            'summary' => 'En el release 1.25.0 los recordatorios de notas se disparaban como "late firing" dentro del feed de la campanita: solo si el usuario abría la suite, el sistema chequeaba notas vencidas y disparaba la notif. Si nadie estaba con el browser abierto a la hora marcada, el recordatorio quedaba esperando. Esta release lo resuelve sin sumar cron al server (Plesk no tiene cron habilitado): un workflow de n8n self-hosted hace POST cada 1 min a un nuevo endpoint público pero token-protegido (X-RXN-Token) que barre TODAS las empresas y TODOS los usuarios buscando recordatorios vencidos sin disparar y crea la notif via NotificationService. La idempotencia está garantizada por dos capas: el dispatcher marca recordatorio_disparado_at = NOW() por cada nota procesada, y el NotificationService deduplica por key estable (crm_notas.recordatorio.{id}) en ventana de 24h, así que si late firer y tick llegan en paralelo no hay duplicados. El late firer del feed queda como red de seguridad in-session, pero el primario ahora es el tick. Se reusa el mismo N8N_CALLBACK_TOKEN del workflow de Mail Masivos. Índice nuevo crm_notas (recordatorio_disparado_at, fecha_recordatorio, deleted_at, activo) para que la query global del tick sea barata.',
+            'items' => [
+                'app/core/Services/NotificationDispatcherService.php NUEVO: servicio multi-tenant que itera crm_notas con fecha_recordatorio <= NOW() AND recordatorio_disparado_at IS NULL globalmente (sin filtrar por empresa o usuario), dispara via NotificationService::notify() con dedupeKey estable y marca disparado_at. Devuelve { processed, by_source, errors, elapsed_ms }. Diseñado para sumar más fuentes con métodos privados dispatchX().',
+                'app/modules/Notifications/NotificationController.php: nuevo método tick() público (sin sesión) protegido por header X-RXN-Token contra env N8N_CALLBACK_TOKEN. Devuelve JSON con resumen del barrido. Maneja excepciones para que n8n nunca reciba 500 inesperado.',
+                'app/config/routes.php: nueva ruta POST /api/internal/notifications/tick → NotificationController::tick (sin guard, valida token adentro siguiendo patrón de CrmMailMasivos).',
+                'database/migrations/2026_04_28_03_index_crm_notas_recordatorio_global.php NUEVO: índice idx_notas_recordatorio_global (recordatorio_disparado_at, fecha_recordatorio, deleted_at, activo) para que la query global del tick sea O(log n) en lugar de full scan. Idempotente.',
+                'tools/smoke_notifications_tick.php NUEVO: smoke test CLI que invoca NotificationDispatcherService::tick() sin pasar por HTTP, para validar la lógica antes de activar el workflow remoto.',
+                'n8n self-hosted: workflow nuevo "RxnSuite — Notifications Tick" (id 7MBeNYv2Zc6QGDjZ) — Schedule Trigger cada 1 min → HTTP Request POST a https://suite.reaxionsoluciones.com.ar/api/internal/notifications/tick con httpHeaderAuth credential. URL: https://n8n.srv1045108.hstgr.cloud/workflow/7MBeNYv2Zc6QGDjZ. Para activar Charly tiene que: (1) crear la credencial "HTTP Header Auth" con Name=X-RXN-Token Value=<token de N8N_CALLBACK_TOKEN del .env de prod>, (2) asignarla al nodo HTTP Request, (3) prender el toggle del workflow.',
+                'docs/logs/2026-04-28_release_1_26_0_n8n_notifications_tick.md NUEVO: log del release con runbook de activación del workflow en n8n.',
+                'app/config/version.php: bump a 1.26.0 / build 20260428.3.',
+            ],
+        ],
         [
             'version' => '1.25.0',
             'build' => '20260428.2',
