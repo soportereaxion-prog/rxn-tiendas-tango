@@ -579,6 +579,7 @@ return function (Router $router): void {
     $router->get('/mi-perfil/web-push/status', [\App\Modules\WebPush\WebPushController::class, 'status']);
     $router->post('/mi-perfil/web-push/subscribe', [\App\Modules\WebPush\WebPushController::class, 'subscribe']);
     $router->post('/mi-perfil/web-push/unsubscribe', [\App\Modules\WebPush\WebPushController::class, 'unsubscribe']);
+    $router->post('/mi-perfil/web-push/test', [\App\Modules\WebPush\WebPushController::class, 'test']);
 
     // --- INTEGRACIONES (WEBHOOKS) ---
     $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);

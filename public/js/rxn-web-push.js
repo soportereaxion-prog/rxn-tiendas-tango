@@ -130,6 +130,18 @@
         return res.ok ? res.json() : { ok: false };
     }
 
+    async function sendTest() {
+        const res = await fetch('/mi-perfil/web-push/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Accept': 'application/json',
+            },
+            body: formBody({ csrf_token: csrfToken() }),
+        });
+        return res.json();
+    }
+
     window.RxnWebPush = {
         isSupported,
         isIos,
@@ -137,5 +149,6 @@
         getStatus,
         enable,
         disable,
+        sendTest,
     };
 })();

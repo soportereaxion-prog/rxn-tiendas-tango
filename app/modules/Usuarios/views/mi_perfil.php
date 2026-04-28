@@ -321,9 +321,15 @@ ob_start();
             <div id="webpush-state-enabled" class="d-none">
                 <p class="small text-success mb-2"><i class="bi bi-check-circle-fill"></i> Notificaciones del navegador <strong>activadas</strong> en este dispositivo.</p>
                 <p class="small text-muted">Vas a recibir un aviso emergente cada vez que la campanita registre una notificación nueva (recordatorios de notas, asignaciones, etc.) — incluso con la pestaña cerrada.</p>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="webpush-btn-disable">
-                    <i class="bi bi-bell-slash"></i> Desactivar en este dispositivo
-                </button>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="webpush-btn-test">
+                        <i class="bi bi-send"></i> Mandar push de prueba
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="webpush-btn-disable">
+                        <i class="bi bi-bell-slash"></i> Desactivar en este dispositivo
+                    </button>
+                </div>
+                <div id="webpush-test-result" class="alert small d-none mt-3 mb-0"></div>
             </div>
 
             <div id="webpush-error" class="alert alert-danger small d-none mt-3 mb-0"></div>
@@ -518,6 +524,46 @@ ob_start();
             } catch (e) {
                 showError('No se pudo activar: ' + e.message);
                 await refresh();
+            } finally {
+                this.disabled = false;
+            }
+        });
+
+        $('webpush-btn-test').addEventListener('click', async function () {
+            const out = $('webpush-test-result');
+            out.className = 'alert alert-info small mt-3 mb-0';
+            out.classList.remove('d-none');
+            out.innerHTML = '<i class="bi bi-hourglass-split"></i> Enviando push de prueba...';
+            this.disabled = true;
+            try {
+                const r = await RxnWebPush.sendTest();
+                if (!r.ok) {
+                    out.className = 'alert alert-warning small mt-3 mb-0';
+                    out.innerHTML = '<strong>No se pudo enviar:</strong> ' + (r.error || 'desconocido') +
+                        (r.hint ? '<br><small>' + r.hint + '</small>' : '');
+                    return;
+                }
+                let cls = 'alert-success';
+                let msg = '';
+                if (r.sent > 0) {
+                    msg = '<strong>✓ Push enviado desde el server (' + r.sent + '/' + r.subs_total + ' subs en ' + r.elapsed_ms + 'ms).</strong><br>';
+                    msg += 'Si NO viste el toast del SO en los próximos segundos, el problema NO está en RxnSuite — está en el browser o el SO.<br>';
+                    msg += '<small class="d-block mt-2">Revisá: Windows Focus Assist (Asistente de concentración), permisos de notificación de Chrome para este sitio, "Continuar ejecutando aplicaciones en segundo plano" en Chrome.</small>';
+                } else if (r.removed > 0) {
+                    cls = 'alert-warning';
+                    msg = '<strong>La suscripción está vencida</strong> (' + r.removed + ' borradas). Tocá <em>Desactivar</em> y volvé a <em>Activar</em>.';
+                } else if (r.failed > 0) {
+                    cls = 'alert-danger';
+                    msg = '<strong>El push server rechazó el envío</strong> (' + r.failed + ' fallos). Causa más probable: claves VAPID no coinciden con las del browser, o problema de red.';
+                } else {
+                    cls = 'alert-warning';
+                    msg = 'Server respondió OK pero no envió nada. Verificá que tengas suscripciones activas (badge arriba a la derecha).';
+                }
+                out.className = 'alert ' + cls + ' small mt-3 mb-0';
+                out.innerHTML = msg;
+            } catch (e) {
+                out.className = 'alert alert-danger small mt-3 mb-0';
+                out.innerHTML = '<strong>Error de red:</strong> ' + e.message;
             } finally {
                 this.disabled = false;
             }

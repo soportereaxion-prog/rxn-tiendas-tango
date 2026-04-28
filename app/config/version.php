@@ -1,9 +1,23 @@
 <?php
 
 return [
-    'current_version' => '1.27.2',
-    'current_build' => '20260428.6',
+    'current_version' => '1.27.3',
+    'current_build' => '20260428.7',
     'history' => [
+        [
+            'version' => '1.27.3',
+            'build' => '20260428.7',
+            'released_at' => '2026-04-28',
+            'title' => 'Web Push — botón "Mandar push de prueba" para diagnóstico',
+            'summary' => 'Suma diagnóstico al card de Mi Perfil. Botón nuevo "Mandar push de prueba" que dispara WebPushService::sendToUser() directo (sin pasar por NotificationService) y muestra el resultado en pantalla con interpretación clara: sent/failed/removed + hint contextual. Permite aislar si un push que no llegó es por server-side (VAPID mal configurado, sub vencida, lib falló) o por browser/SO (Focus Assist Windows, Chrome sin background, permission downgrade). Sin cambios al flujo de producción de notificaciones.',
+            'items' => [
+                'app/modules/WebPush/WebPushController.php: nuevo método test() — POST /mi-perfil/web-push/test, sesión + CSRF. Dispara sendToUser() con un payload de prueba al usuario actual. Devuelve { ok, subs_total, sent, failed, removed, elapsed_ms } o { ok:false, error, hint } si VAPID no está configurado o el usuario no tiene subs.',
+                'app/config/routes.php: ruta nueva POST /mi-perfil/web-push/test.',
+                'public/js/rxn-web-push.js: nuevo método window.RxnWebPush.sendTest() que pega al endpoint con form-urlencoded + csrf_token.',
+                'app/modules/Usuarios/views/mi_perfil.php: botón "Mandar push de prueba" en el card cuando está activado. El handler interpreta el response (sent>0 → server OK, problema browser/SO; removed>0 → re-suscribir; failed>0 → VAPID/red; ok:false → pista textual del backend).',
+                'app/config/version.php: bump a 1.27.3 / build 20260428.7.',
+            ],
+        ],
         [
             'version' => '1.27.2',
             'build' => '20260428.6',
