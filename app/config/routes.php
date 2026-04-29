@@ -581,6 +581,15 @@ return function (Router $router): void {
     $router->post('/mi-perfil/web-push/unsubscribe', [\App\Modules\WebPush\WebPushController::class, 'unsubscribe']);
     $router->post('/mi-perfil/web-push/test', [\App\Modules\WebPush\WebPushController::class, 'test']);
 
+    // --- SESSION (heartbeat para aviso preventivo de expiración) ---
+    $router->get('/api/internal/session/heartbeat', [\App\Modules\Auth\SessionController::class, 'heartbeat']);
+
+    // --- DRAFTS (autoguardado de borradores de formularios largos: PDS, Presupuestos) ---
+    $router->get('/mi-perfil/borradores', [\App\Modules\Drafts\DraftsController::class, 'index']);
+    $router->get('/api/internal/drafts/get', [\App\Modules\Drafts\DraftsController::class, 'get']);
+    $router->post('/api/internal/drafts/save', [\App\Modules\Drafts\DraftsController::class, 'save']);
+    $router->post('/api/internal/drafts/discard', [\App\Modules\Drafts\DraftsController::class, 'discard']);
+
     // --- INTEGRACIONES (WEBHOOKS) ---
     $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);
     // Hook de prueba interno (emulación manual vía navegador)

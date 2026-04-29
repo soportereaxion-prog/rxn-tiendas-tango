@@ -1,9 +1,33 @@
 <?php
 
 return [
-    'current_version' => '1.27.4',
-    'current_build' => '20260428.8',
+    'current_version' => '1.28.0',
+    'current_build' => '20260429.1',
     'history' => [
+        [
+            'version' => '1.28.0',
+            'build' => '20260429.1',
+            'released_at' => '2026-04-29',
+            'title' => 'Recuperación de sesión — return-URL, aviso preventivo y autoguardado de borradores',
+            'summary' => 'Cuando se vence la sesión mientras un operador está cargando un PDS (o navegando cualquier parte del backoffice), tres mecanismos coordinados evitan perder trabajo: (1) `requireLogin` ahora redirige a `/login?next=<url-actual>` con whitelist anti open-redirect, así post-login el operador vuelve exactamente al lugar donde estaba en lugar del dashboard; (2) un aviso preventivo (`rxn-session-keeper.js`) pollea cada 60s el endpoint nuevo `/api/internal/session/heartbeat` y muestra un banner amarillo a los 15 min de la expiración idle, con botón "Extender ahora" que renueva la sesión sin perder estado; (3) los formularios largos (PDS ahora, Presupuestos en la próxima iteración) se autoguardan server-side cada 5s en una tabla `drafts` nueva — al volver al form aparece un banner inline "Tenés un borrador del [fecha], ¿lo retomamos?". Se sumó además el panel "Mis borradores" en Mi Perfil que lista todos los drafts del usuario, ordenados por última edición, con [Retomar] y [Descartar] por fila. Aislamiento multi-tenant estricto: cada draft está indexado por (user_id, empresa_id, modulo, ref_key), nunca cruza empresas. Concurrencia last-write-wins entre tabs. Cap de payload 1MB. CSRF en save/discard. El módulo Drafts queda documentado en `app/modules/Drafts/MODULE_CONTEXT.md` con el procedimiento de 3 pasos para enchufar formularios futuros.',
+            'items' => [
+                'database/migrations/2026_04_29_00_create_drafts_table.php: tabla nueva `drafts` con UNIQUE (user_id, empresa_id, modulo, ref_key), payload_json LONGTEXT, created_at/updated_at, e índice (user_id, updated_at) para el panel.',
+                'app/modules/Drafts/DraftsRepository.php: CRUD + findAllByUser (devuelve metadata sin payload, OCTET_LENGTH para mostrar tamaño en el panel).',
+                'app/modules/Drafts/DraftsController.php: endpoints REST `/api/internal/drafts/{get,save,discard}` con CSRF, whitelist de módulos (pds, presupuesto), validación de ref con regex, cap 1MB. Más panel HTML `index()` en `/mi-perfil/borradores` con helpers `moduloLabel`, `moduloIcon`, `resumeUrl` para resolver el link de retomar de cada módulo.',
+                'app/modules/Drafts/views/index.php: vista del panel "Mis borradores" — tabla con módulo + ref + última edición + tamaño + [Retomar] / [Descartar]. Empty state amable.',
+                'app/modules/Drafts/MODULE_CONTEXT.md: documentación canónica del módulo. Incluye procedimiento de 3 pasos para enchufar un formulario nuevo (whitelist + helpers + atributo data-rxn-draft en el `<form>`).',
+                'public/js/rxn-draft-autosave.js: auto-init sobre `<form data-rxn-draft="modulo:ref">`. Pide GET draft al cargar y muestra banner inline si hay. Debounce 5s en `input` y `change` → POST save. En `submit` dispara discard via navigator.sendBeacon. No serializa file ni password. Restauración compatible con Flatpickr via `window.RxnDateTime.setValue` para datetime-local.',
+                'public/js/rxn-session-keeper.js: heartbeat 60s. Banner amarillo (15min) → rojo (2min) con countdown en vivo. Botón "Extender ahora" renueva sesión naturalmente (cualquier hit autenticado actualiza last_activity en App.php). Si el server devuelve 401, redirige a /login?next=<url-actual> sin que el operador tenga que hacer nada.',
+                'app/modules/Auth/SessionController.php: nuevo controller con método heartbeat() — devuelve `{ok, authenticated, remaining_idle, remaining_absolute, now}` o 401 si la sesión murió. Los timeouts (6h idle / 12h absoluto) se mantienen sincronizados con App.php.',
+                'app/modules/auth/AuthService.php: `requireLogin()` ahora arma `/login?next=<url>` capturando `REQUEST_URI` solo para GET (los POST con sesión muerta no pueden replayearse, así que caen al dashboard). Helper `isSafeNext()` valida path absoluto, prohíbe `//`, `\\\\`, `://` y largo > 2048 — defensa en profundidad contra open redirect.',
+                'app/modules/auth/AuthController.php: `showLogin` y `processLogin` leen `next` de query/POST, lo pasan por `resolveNext()` (sanitización con whitelist) y redirigen ahí post-login en lugar de `/`. Hidden input `next` agregado al login.php para que sobreviva al POST.',
+                'app/modules/CrmPedidosServicio/views/form.php: `<form>` del PDS marcado con `data-rxn-draft="pds:<id-o-new>"`. Su MODULE_CONTEXT.md ahora cross-linkea al de Drafts.',
+                'app/modules/Usuarios/views/mi_perfil.php: botón nuevo "Mis borradores" en el header del Mi Perfil B2B, link a /mi-perfil/borradores.',
+                'app/shared/views/admin_layout.php: carga global de rxn-session-keeper.js y rxn-draft-autosave.js en todo el backoffice.',
+                'app/config/routes.php: rutas nuevas — GET `/api/internal/session/heartbeat`, GET `/mi-perfil/borradores`, GET `/api/internal/drafts/get`, POST `/api/internal/drafts/save`, POST `/api/internal/drafts/discard`.',
+                'app/config/version.php: bump a 1.28.0 / build 20260429.1.',
+            ],
+        ],
         [
             'version' => '1.27.4',
             'build' => '20260428.8',

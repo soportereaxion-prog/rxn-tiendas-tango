@@ -33,6 +33,9 @@
         <div class="card rxn-form-card rxn-auth-card p-4 p-lg-5">
             <form action="/login" method="POST">
                 <?= \App\Core\CsrfHelper::input() ?>
+                <?php if (!empty($next)): ?>
+                    <input type="hidden" name="next" value="<?= htmlspecialchars((string) $next) ?>">
+                <?php endif; ?>
 
                 <div class="mb-3">
                     <label for="email" class="form-label">Correo Electrónico</label>

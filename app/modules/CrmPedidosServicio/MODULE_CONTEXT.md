@@ -38,6 +38,7 @@ Gestionar un ABM avanzado de "Pedidos de Servicio", permitiendo al equipo del CR
 - Módulo `CrmClientes` para el selector de cliente en el form.
 - Subsistema de UI `Flash` messages y `OperationalAreaService`.
 - Clase global `App\Modules\Tango\TangoService` o librerías HTTP para la interacción de capa red.
+- **Módulo `Drafts`** (release 1.28.0) — el `<form>` del PDS está marcado con `data-rxn-draft="pds:<id-o-new>"` para autoguardado server-side. Si la sesión muere o el browser se cierra a medio cargar, al volver al PDS el banner del JS `rxn-draft-autosave.js` ofrece retomar. Ver `app/modules/Drafts/MODULE_CONTEXT.md`.
 - **RxnGeoTracking**: Al crear exitosamente un PDS (no en ediciones, no en el envío a Tango posterior), `PedidoServicioController::store()` invoca `GeoTrackingService::registrar('pds.created', $pdsId, 'pds')` para asentar el evento de auditoría geolocalizada. Fire-and-forget: una falla del servicio no rompe el alta del PDS. El `evento_id` queda en `$_SESSION['rxn_geo_pending_event_id']` para auto-reporte posterior via meta tag en `admin_layout`. Ver `app/modules/RxnGeoTracking/MODULE_CONTEXT.md`.
 
 ## Dependencias indirectas / impacto lateral

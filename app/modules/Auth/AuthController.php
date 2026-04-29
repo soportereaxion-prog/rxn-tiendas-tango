@@ -9,11 +9,15 @@ class AuthController extends Controller
 {
     public function showLogin(): void
     {
+        $next = $this->resolveNext($_GET['next'] ?? null);
+
         if (!empty($_SESSION['user_id'])) {
-            header('Location: /');
+            header('Location: ' . ($next !== '' ? $next : '/'));
             exit;
         }
-        View::render('app/modules/Auth/views/login.php', []);
+        View::render('app/modules/Auth/views/login.php', [
+            'next' => $next,
+        ]);
     }
 
     public function processLogin(): void
@@ -22,6 +26,7 @@ class AuthController extends Controller
 
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
+        $next = $this->resolveNext($_POST['next'] ?? null);
 
         // Throttle: 5 intentos cada 15 min por email+IP.
         $rateKey = RateLimiter::clientKey('login_b2b', is_string($email) ? $email : null);
@@ -31,6 +36,7 @@ class AuthController extends Controller
             View::render('app/modules/Auth/views/login.php', [
                 'error' => "Demasiados intentos fallidos. Intentá de nuevo en {$minutes} minuto(s).",
                 'old_email' => $email,
+                'next' => $next,
             ]);
             return;
         }
@@ -42,7 +48,7 @@ class AuthController extends Controller
         try {
             if ($auth->attempt($email, $password)) {
                 RateLimiter::reset($rateKey);
-                header('Location: /');
+                header('Location: ' . ($next !== '' ? $next : '/'));
                 exit;
             }
         } catch (\Exception $e) {
@@ -55,8 +61,21 @@ class AuthController extends Controller
 
         View::render('app/modules/Auth/views/login.php', [
             'error' => $error,
-            'old_email' => $email
+            'old_email' => $email,
+            'next' => $next,
         ]);
+    }
+
+    /**
+     * Sanea el parámetro `next` de redirect post-login. Devuelve string vacío si
+     * no es seguro (open-redirect). Aplica la whitelist de AuthService::isSafeNext.
+     */
+    private function resolveNext($raw): string
+    {
+        if (!is_string($raw) || $raw === '') {
+            return '';
+        }
+        return AuthService::isSafeNext($raw) ? $raw : '';
     }
 
     public function logout(): void

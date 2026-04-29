@@ -79,9 +79,53 @@ class AuthService
     public static function requireLogin(): void
     {
         if (empty($_SESSION['user_id'])) {
-            header('Location: /login');
+            // Return-URL: solo capturamos GET de páginas (no POST ni endpoints AJAX).
+            // Para POST con sesión muerta el browser no puede repetir el body, así
+            // que mandar al usuario al GET equivalente sería peor; mejor que caiga
+            // al dashboard post-login que a una URL que va a fallar.
+            $next = '/';
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+                $candidate = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+                if (self::isSafeNext($candidate)) {
+                    $next = $candidate;
+                }
+            }
+
+            $loginUrl = '/login';
+            if ($next !== '/' && $next !== '') {
+                $loginUrl .= '?next=' . rawurlencode($next);
+            }
+            header('Location: ' . $loginUrl);
             exit;
         }
+    }
+
+    /**
+     * Whitelist estricta para evitar open-redirect:
+     * - Debe arrancar con "/" (path absoluto local).
+     * - NO puede arrancar con "//" (protocol-relative).
+     * - NO puede contener "\\" (windows-style protocol-relative).
+     * - NO puede contener "://" (URL absoluta).
+     * - Largo razonable.
+     */
+    public static function isSafeNext(string $next): bool
+    {
+        if ($next === '' || strlen($next) > 2048) {
+            return false;
+        }
+        if ($next[0] !== '/') {
+            return false;
+        }
+        if (strncmp($next, '//', 2) === 0) {
+            return false;
+        }
+        if (strpos($next, '\\') !== false) {
+            return false;
+        }
+        if (strpos($next, '://') !== false) {
+            return false;
+        }
+        return true;
     }
 
     public static function hasAdminPrivileges(): bool

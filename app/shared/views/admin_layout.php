@@ -113,6 +113,8 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <script src="/js/rxn-shortcuts.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-list-shortcuts.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-notifications.js?v=<?= time() ?>"></script>
+    <script src="/js/rxn-session-keeper.js?v=<?= time() ?>"></script>
+    <script src="/js/rxn-draft-autosave.js?v=<?= time() ?>"></script>
     <?= $extraScripts ?? '' ?>
     <script>
     // Table scroll indicator for mobile

@@ -19,7 +19,7 @@ ob_start();
         <div class="rxn-module-header mb-4">
             <h2 class="fw-bold m-0">Mi Perfil B2B</h2>
             <div class="rxn-module-actions">
-
+                <a href="/mi-perfil/borradores" class="btn btn-outline-primary btn-sm" title="Mis borradores autoguardados"><i class="bi bi-arrow-counterclockwise"></i> Mis borradores</a>
                 <a href="<?= htmlspecialchars($helpPath) ?>" class="btn btn-outline-info btn-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-question-circle"></i> Ayuda</a>
                 <a href="<?= htmlspecialchars($dashboardPath) ?>" class="btn btn-outline-secondary btn-sm" title="Volver al Entorno"><i class="bi bi-arrow-left"></i> Volver</a>
             </div>
