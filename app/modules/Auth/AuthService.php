@@ -15,9 +15,29 @@ class AuthService
     public function attempt(string $email, string $password): bool
     {
         $usuario = $this->repository->findByEmail($email);
-        
+
+        // Logs DIAGNÓSTICOS temporales (release 1.29.x — cazando bug de cambio de
+        // contraseña que aparenta guardar pero el login falla). Sacar cuando esté
+        // confirmado el root cause. NO logean el password ni el hash, solo flags.
+        if (!$usuario) {
+            error_log('[AuthService::attempt] FAIL — usuario inexistente para email: ' . $email);
+        } else {
+            $hashLen = isset($usuario->password_hash) ? strlen((string) $usuario->password_hash) : -1;
+            $hashPrefix = $hashLen > 0 ? substr((string) $usuario->password_hash, 0, 4) : 'null';
+            error_log(sprintf(
+                '[AuthService::attempt] usuario #%d encontrado | activo=%s | email_verificado=%s | hash_len=%d | hash_prefix=%s',
+                (int) $usuario->id,
+                var_export($usuario->activo, true),
+                var_export($usuario->email_verificado ?? null, true),
+                $hashLen,
+                $hashPrefix
+            ));
+        }
+
         if ($usuario && $usuario->activo === 1) {
-            if (password_verify($password, $usuario->password_hash)) {
+            $verified = password_verify($password, $usuario->password_hash);
+            error_log('[AuthService::attempt] usuario #' . (int) $usuario->id . ' password_verify=' . var_export($verified, true));
+            if ($verified) {
                 if (!isset($usuario->email_verificado) || (int)$usuario->email_verificado !== 1) {
                     throw new \Exception("Cuenta pendiente de verificación. Revise el correo de activación.");
                 }

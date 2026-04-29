@@ -348,6 +348,7 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/presupuestos/{id}/editar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'edit', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'update', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/copiar', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'copy', $requireCrm));
+    $router->post('/mi-empresa/crm/presupuestos/{id}/nueva-version', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'nuevaVersion', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/sync-tango', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'syncTango', $requireCrm));
     $router->get('/mi-empresa/crm/presupuestos/{id}/imprimir', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'printPreview', $requireCrm));
     $router->post('/mi-empresa/crm/presupuestos/{id}/enviar-correo', $action(\App\Modules\CrmPresupuestos\PresupuestoController::class, 'sendEmail', $requireCrm));

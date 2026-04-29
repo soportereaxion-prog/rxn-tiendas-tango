@@ -162,7 +162,16 @@ ob_start();
                                 <?php foreach ($presupuestos as $presupuesto): ?>
                                     <tr data-row-link="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/editar" data-copy-url="/mi-empresa/crm/presupuestos/<?= (int) $presupuesto['id'] ?>/copiar" class="rxn-row-link" onclick="if(event.target.closest('.btn-group, .form-check-input') === null) { window.location.href = this.dataset.rowLink; }">
                                         <td><input type="checkbox" name="ids[]" value="<?= (int) $presupuesto['id'] ?>" class="form-check-input check-item" form="hiddenFormBulk" data-row-link-ignore></td>
-                                        <td class="fw-bold text-dark">#<?= (int) $presupuesto['numero'] ?></td>
+                                        <td class="fw-bold text-dark text-nowrap">
+                                            #<?= (int) $presupuesto['numero'] ?>
+                                            <?php
+                                                $_vNum = (int) ($presupuesto['version_numero'] ?? 1);
+                                                $_vPadre = (int) ($presupuesto['version_padre_id'] ?? 0);
+                                            ?>
+                                            <?php if ($_vNum > 1 || $_vPadre > 0): ?>
+                                                <span class="badge bg-info-subtle text-info-emphasis ms-1" style="font-size: 0.65em;" title="Versión <?= $_vNum ?> · deriva del Presupuesto #<?= $_vPadre ?>" data-row-link-ignore>v<?= $_vNum ?></span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="text-nowrap rxn-hide-mobile"><small><?= htmlspecialchars((string) $presupuesto['fecha']) ?></small></td>
                                         <td class="text-wrap" style="max-width: 260px;"><?= htmlspecialchars((string) ($presupuesto['cliente_nombre_snapshot'] ?? 'Sin cliente')) ?></td>
                                         <td class="text-nowrap rxn-hide-mobile" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;"><small><?= htmlspecialchars((string) ($presupuesto['usuario_nombre'] ?? 'Sin asignar')) ?></small></td>

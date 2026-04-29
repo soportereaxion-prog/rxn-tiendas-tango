@@ -1,9 +1,78 @@
 <?php
 
 return [
-    'current_version' => '1.28.0',
-    'current_build' => '20260429.1',
+    'current_version' => '1.29.0',
+    'current_build' => '20260429.2',
     'history' => [
+        [
+            'version' => '1.29.0',
+            'build' => '20260429.2',
+            'released_at' => '2026-04-29',
+            'title' => 'Presupuestos — versionado, lock post-Tango, descripciones largas, validaciones, Agenda extendida + bugfix crítico de cambio de contraseñas',
+            'summary' => 'Iteración grande sobre el módulo Presupuestos CRM con todo lo que faltaba para que sea un motor de cotización maduro: (1) cabecera comercial extendida con cotización (a Tango como COTIZACION), próximo contacto, vigencia y leyendas 1-5 (a Tango como LEYENDA_1..5); (2) descripción de renglón ahora soporta texto largo multilínea — el sistema parte la descripción en chunks de 50 chars y los emite como DESCRIPCION_ARTICULO + DESCRIPCION_ADICIONAL_DTO[] respetando saltos de línea manuales; (3) lock post-Tango replicado de PDS — cuando el presupuesto fue enviado a Tango el form queda blindado en solo lectura; (4) versionado completo — botón "Nueva versión" que clona el presupuesto vinculándolo al original via version_padre_id + version_numero, badge "v2" en listado y form, header del form con link al origen; (5) validaciones P0/P1/P2 — clasificación obligatoria, banner sticky con errores, mensajes inline por campo, pre-validación client-side antes del submit con foco al primer faltante, dirty check al salir (Volver, links, beforeunload), warnings inline para vigencia/cotización/próximo contacto/clasificación sin Tango id; (6) Agenda CRM proyecta hasta 3 eventos por presupuesto (principal + próximo contacto cyan + vigencia rojo) con filtros por checkbox. Bugfix crítico transversal: el UPDATE de usuarios tenía WHERE id AND empresa_id, y como el form de superadmin podía mandar un empresa_id mal seleccionado en el dropdown, el UPDATE matcheaba 0 filas y fingía éxito — el password del usuario nunca cambiaba en DB. Movimos empresa_id al SET y dejamos solo WHERE id, más guard de rowCount=0 que tira excepción visible. Sumamos también autocomplete=new-password para evitar autofill malicioso, auto-marcar email_verificado=1 al cambiar password como superadmin, y redirect post-update al form de edit (no al listado). Persistencia transversal de sort/dir en filter-persistence: antes se descartaba "por diseño" pero el operador esperaba que se acordara — ahora se persiste en localStorage como el resto de los filtros.',
+            'items' => [
+                // === PRESUPUESTOS — Cabecera extendida ===
+                'database/migrations/2026_04_29_02_alter_crm_presupuestos_add_cotizacion_vigencia_leyendas.php: 8 columnas nuevas en crm_presupuestos — cotizacion DECIMAL(15,4) DEFAULT 1, proximo_contacto DATETIME NULL, vigencia DATETIME NULL, leyenda_1..5 VARCHAR(60) NULL.',
+                'app/modules/CrmPresupuestos/PresupuestoRepository.php: ALTERs defensivos + INSERT/UPDATE/buildHeaderPayload extendidos con los 8 campos.',
+                'app/modules/CrmPresupuestos/PresupuestoController.php: validateRequest valida cotización ≥0, fechas opcionales con segundos, leyendas truncadas a 60 server-side. defaultFormState/hydrateFormState/buildFormStateFromPost expone los nuevos campos.',
+                'app/modules/CrmPresupuestos/views/form.php: cotización col-1 entre Estado y Depósito (Cliente bajó a col-3). Fila nueva post-Transporte: Próximo contacto + Vigencia + 5 Leyendas inline (col-2 c/u).',
+                'app/modules/Tango/Mappers/TangoOrderMapper.php: emite COTIZACION (float) y LEYENDA_1..5 al payload solo si vienen poblados desde la cabecera.',
+                'app/modules/CrmPresupuestos/PresupuestoTangoService.php: inyecta cotización y leyendas al array $cabecera para el mapper.',
+                'app/modules/CrmPresupuestos/CrmPresupuestoPrintContextBuilder.php: expone los 8 campos al árbol presupuesto.* del Canvas del PrintForm.',
+
+                // === PRESUPUESTOS — Descripciones largas ===
+                'database/migrations/2026_04_29_03_alter_crm_presupuesto_items_add_descripcion_original.php: nueva columna articulo_descripcion_original (VARCHAR 255 NULL) que conserva el nombre del catálogo al elegir el artículo. Backfill copia snapshot al original para items históricos.',
+                'app/modules/Tango/Mappers/TangoOrderMapper.php: helper chunkDescripcion() parte texto en bloques de 50 chars respetando saltos de línea manuales y wordwrap. Primer chunk → DESCRIPCION_ARTICULO; resto → DESCRIPCION_ADICIONAL_DTO[]. DESC_ADIC del renglón se descarta (límite 20 chars inútil).',
+                'public/js/crm-presupuestos-form.js: textarea con clase is-modified (borde naranja) cuando snapshot ≠ original. Mini-replicador del algoritmo PHP en JS muestra "· N líneas a Tango (1 principal + N-1 adicionales)" en vivo mientras el operador tipea.',
+
+                // === PRESUPUESTOS — Lock post-Tango ===
+                'app/modules/CrmPresupuestos/views/form.php: variable $_isLocked = $_isEmitido OR $_isSentToTango. <fieldset disabled> ahora responde al lock total. Botón Guardar oculto; banner verde "Enviado a Tango (#XXX) — usá Nueva versión para hacer cambios". Patrón replicado de PDS.',
+
+                // === PRESUPUESTOS — Versionado ===
+                'database/migrations/2026_04_29_05_alter_crm_presupuestos_add_versionado.php: columnas version_padre_id INT NULL (apunta a la raíz del grupo) y version_numero INT NOT NULL DEFAULT 1, más índice compuesto.',
+                'app/modules/CrmPresupuestos/PresupuestoRepository.php: createNewVersion(srcId, empresaId, userId, userName) clona TODA la cabecera + items con descripción original preservada, fuerza estado=borrador y fecha=ahora, NO hereda nro_comprobante_tango/sync/correos. version_padre_id apunta a la raíz (árbol plano). version_numero = max(grupo) + 1. Helper getVersionStats() para futuras vistas.',
+                'app/modules/CrmPresupuestos/PresupuestoController.php: acción nueva nuevaVersion() con flash + redirect al editar de la nueva.',
+                'app/config/routes.php: ruta nueva POST /mi-empresa/crm/presupuestos/{id}/nueva-version.',
+                'app/modules/CrmPresupuestos/views/form.php: botón "Nueva versión" entre Copiar y Eliminar (variantes según locked). Header del form muestra badge clickeable "v2 · ver origen #X" que lleva al original.',
+                'app/modules/CrmPresupuestos/views/index.php: badge cyan "vN" al lado del numero en el listado cuando version_numero > 1.',
+
+                // === PRESUPUESTOS — Validaciones P0 + P1 + P2 ===
+                'app/modules/CrmPresupuestos/PresupuestoController.php: validateRequest valida clasificacion_codigo obligatorio (release 1.29.x). Mensajes con tildes y voseo (agregá, seleccioná).',
+                'app/modules/CrmPresupuestos/views/form.php: asterisco rojo en labels obligatorios, banner sticky con lista de errores, helper $errorMsg($errors, key) reusable para inline feedback.',
+                'app/modules/CrmPresupuestos/views/form.php: pre-validación client-side antes del submit en capture phase — chequea fecha + cliente + lista + clasificación + items con qty>0. Banner dinámico, foco automático al primer faltante, scroll smooth, is-invalid en campos en falta.',
+                'app/modules/CrmPresupuestos/views/form.php: dirty check al salir — snapshot del form al cargar, beforeunload nativo + intercept de click en a[data-rxn-back] y links del menú lateral con rxnConfirm "Salir y perder" / "Seguir editando".',
+                'app/modules/CrmPresupuestos/views/form.php: warnings inline en vivo — cotización=0, próximo contacto pasado, vigencia anterior a fecha, clasificación sin id_gva81_tango (polling 1.5s para cuando el picker resuelve el ID).',
+
+                // === PRESUPUESTOS — Bugfix lock post-copia ===
+                'app/modules/CrmPresupuestos/PresupuestoController.php: copy() redirige a /editar?from_copy=1. edit() pasa $isFromCopy a la vista.',
+                'public/js/crm-presupuestos-form.js: lockHeader() arranca con "if (isFromCopy) return". El flag se lee de URLSearchParams (no de dataset) para ser robusto frente a cache. Console.info de diagnóstico.',
+                'app/modules/CrmPresupuestos/views/form.php: cache-busting con filemtime en el <script src> del JS del módulo.',
+
+                // === AGENDA — Próximo contacto + Vigencia ===
+                'database/migrations/2026_04_29_04_alter_agenda_eventos_origen_tipo_presupuesto_extra.php: ALTER MODIFY del ENUM origen_tipo agregando "presupuesto_proximo_contacto" y "presupuesto_vigencia" (idempotente).',
+                'app/modules/CrmAgenda/AgendaRepository.php: ORIGENES extendido con los 2 nuevos. Colores: cyan #0dcaf0 para próximo contacto, rojo #dc3545 para vigencia.',
+                'app/modules/CrmAgenda/AgendaProyectorService.php: onPresupuestoSaved proyecta hasta 3 eventos (principal + próx contacto + vigencia) con upsert/delete-or-keep coherente. onPresupuestoDeleted borra los 3 tipos.',
+                'app/modules/CrmAgenda/views/index.php: 2 checkboxes nuevos en filtros con badges color. Click en evento de cualquiera de los 3 tipos lleva al editar del presupuesto.',
+
+                // === USUARIOS — Bugfix crítico de contraseñas ===
+                'app/modules/Auth/UsuarioRepository.php: ROOT CAUSE FIX — el WHERE del UPDATE era "id = :id AND empresa_id = :empresa_id" y como el dropdown "Transferir de Empresa" del form de superadmin podía mandar un empresa_id mal seleccionado, el UPDATE matcheaba 0 filas y fingía éxito (password nunca cambiaba). Fix: empresa_id pasa al SET, WHERE solo por id (la PK ya garantiza unicidad y getByIdForContext valida tenant). Guard de rowCount=0 que tira RuntimeException visible.',
+                'app/modules/Usuarios/UsuarioService.php: si el rxn_admin cambia password, auto-marca email_verificado=1 + limpia verification_token/expires (decisión "sin nada trambóliko" del rey). Guard defensivo contra autofill: si el value recibido parece un hash bcrypt ($2y/$2a/$2b$...), no rehashear (probable autofill del browser pisando con el hash anterior).',
+                'app/modules/Auth/UsuarioRepository.php: UPDATE incluye email_verificado, verification_token, verification_expires en el SET para que el auto-mark del service se persista.',
+                'app/modules/Usuarios/UsuarioController.php: redirect post-update al /editar (no al listado), coherente con PDS y Presupuestos.',
+                'app/modules/Usuarios/views/editar.php: input password con autocomplete="new-password" + data-rxn-no-autofill + leyenda "Sólo se actualiza si escribís algo. Vacío = no toca la actual". Alert de Flash success cuando vuelve del update.',
+                'app/modules/Usuarios/views/crear.php: mismo autocomplete="new-password" por consistencia.',
+                'app/modules/Auth/AuthService.php: logs diagnósticos temporales en attempt() (hash_len, prefix, password_verify result) — útiles para diagnosticar bug similar en el futuro.',
+
+                // === LISTADOS — Persistencia sort/dir ===
+                'public/js/rxn-filter-persistence.js: FILTER_KEYS extendido con "sort" y "dir" — antes se excluían "por diseño" pero la expectativa intuitiva del operador es que se persistan. Aplica a TODOS los listados.',
+
+                // === MODULE_CONTEXT actualizados ===
+                'app/modules/CrmPresupuestos/MODULE_CONTEXT.md: sección extensa documentando los 8 campos nuevos de cabecera, el algoritmo de chunkeo de descripción, el lock post-Tango con patrón PDS, y las decisiones editoriales (ej: "operador puede escribir multilínea libremente, el sistema le dice cuántas líneas van a viajar antes de guardar").',
+
+                // === Versión ===
+                'app/config/version.php: bump a 1.29.0 / build 20260429.2.',
+            ],
+        ],
         [
             'version' => '1.28.0',
             'build' => '20260429.1',

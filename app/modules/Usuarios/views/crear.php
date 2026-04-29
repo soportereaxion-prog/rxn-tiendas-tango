@@ -59,7 +59,7 @@ ob_start();
 
                             <div class="rxn-form-span-6">
                                 <label for="password" class="form-label">ContraseÃ±a</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                                <input type="password" class="form-control" id="password" name="password" required autocomplete="new-password" data-rxn-no-autofill>
                             </div>
                         </div>
                     </div>
@@ -109,7 +109,7 @@ ob_start();
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input" type="checkbox" role="switch" id="es_admin" name="es_admin" <?= (isset($old['es_admin']) && $old['es_admin'] === 'on') ? 'checked' : '' ?>>
                                     <label class="form-check-label fw-semibold" for="es_admin">Privilegios de administrador</label>
-                                    <div class="form-text mb-0">Habilita gestión operativa ampliada dentro del tenant.</div>
+                                    <div class="form-text mb-0">Habilita gestiï¿½n operativa ampliada dentro del tenant.</div>
                                 </div>
                             </div>
                             <?php endif; ?>
@@ -119,7 +119,7 @@ ob_start();
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input bg-danger border-danger" type="checkbox" role="switch" id="es_rxn_admin" name="es_rxn_admin" <?= (isset($old['es_rxn_admin']) && $old['es_rxn_admin'] === 'on') ? 'checked' : '' ?>>
                                     <label class="form-check-label fw-bold text-danger" for="es_rxn_admin">Privilegios Super Administrador (RXN)</label>
-                                    <div class="form-text mb-0 text-danger opacity-75">Otorga el control global de sistema sobre todos los Módulos de Mantenimiento y Tenants.</div>
+                                    <div class="form-text mb-0 text-danger opacity-75">Otorga el control global de sistema sobre todos los Mï¿½dulos de Mantenimiento y Tenants.</div>
                                 </div>
                             </div>
                             <?php endif; ?>

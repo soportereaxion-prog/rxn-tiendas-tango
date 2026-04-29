@@ -51,6 +51,55 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 - **Persistencia de filtros de listado**: el input de búsqueda F3 (`search`), el campo de búsqueda (`field`), la cantidad por página (`limit`), el filtro de estado de negocio (`estado`), el filtro de categoría (`categoria_id`, donde aplique) y los filtros Motor BD (`f[campo][op|val]`) se persisten automáticamente en `localStorage` scopeados por `pathname + empresa_id` via `public/js/rxn-filter-persistence.js` (cargado inline desde `admin_layout.php`). Al volver al listado, los filtros se restauran y se reinicia en la primera página. `status` (activos/papelera), `sort`, `dir` y `area` quedan fuera por ser navegación u orden. Para limpiarlos: `?reset_filters=1` (lo dispara `rxn-advanced-filters.js` al borrar BD) o `window.rxnFilterPersistence.clear()`. Los filtros "locales" (selección por columna) siguen viviendo en `sessionStorage` via `rxn-advanced-filters.js` con key `rxn_lf::`.
 - **Guardar se queda en el Presupuesto; Volver es contextual a la Tratativa**: `PresupuestoController::resolveReturnPath` siempre retorna a `/editar` — guardar NO saca al usuario del form (coherente con PDS v1.19.0). El Volver del header declara `$presupuestoBackHref` / `$presupuestoBackTitle` antes del `ob_start()`: si el presupuesto tiene `tratativa_id` → detalle de la tratativa; si no → listado. El `<a>` lleva `data-rxn-back` para que Escape también navegue al mismo destino (ver `public/js/rxn-escape-back.js`).
 
+## Cabecera comercial — campos extendidos (release 1.29.0)
+
+A partir de la release 1.29.0 la cabecera del presupuesto suma 8 columnas que viajan a Tango y/o al PDF del PrintForm:
+
+- **`cotizacion`** (DECIMAL(15,4), NOT NULL DEFAULT 1) — Cotización del dólar al momento del presupuesto. Viaja al payload de Tango como `COTIZACION` (nombre exacto confirmado vía GET de pedido a Tango Connect, ver `TangoOrderMapper`). En la UI vive en col-1, entre Estado y Depósito. Validación server-side: `>= 0`. Si el operador deja vacío, se persiste como `1`.
+- **`proximo_contacto`** (DATETIME NULL) — Fecha+hora+segundos de próximo contacto del vendedor con el cliente. Manual; en una iteración futura habrá un parámetro de empresa para autosettear. **NO se proyecta automáticamente en CrmAgenda** (decisión explícita 2026-04-29; revisar si Charly lo pide). Sólo se persiste y se expone al PrintForm.
+- **`vigencia`** (DATETIME NULL) — Fecha+hora+segundos hasta la cual el presupuesto es válido. Manual; en una iteración futura habrá un parámetro de empresa para autosettear (ej: "fecha + 30 días").
+- **`leyenda_1` ... `leyenda_5`** (VARCHAR(60) NULL c/u) — 5 leyendas comerciales libres. Viajan a Tango como `LEYENDA_1`, `LEYENDA_2`, ..., `LEYENDA_5` (nombres exactos confirmados vía GET de pedido a Tango Connect). Server-side se truncan defensivamente a 60 caracteres aunque el `<input>` declare `maxlength=60` y `size=40` (ancho visual ~40 caracteres).
+
+**Reglas operativas de los campos nuevos:**
+
+- **Formato de fechas**: `proximo_contacto`, `vigencia` y la `fecha` del presupuesto van **siempre con segundos** (`Y-m-d H:i:s` en DB, `Y-m-d\TH:i:s` en el `<input type="datetime-local">`). El wrapper `rxn-datetime.js` se encarga de mostrarlas en formato es-AR `d/m/Y H:i:s` con Flatpickr. **No usar `Y-m-d\TH:i` sin segundos** — eso fue truncado al subir a release 1.29.0 en `formatDateTimeForInput()` y en el `copy()` del controller.
+- **Cotización en payload Tango**: el `TangoOrderMapper` lee `cotizacion` desde el array `$pedidoCabecera` y lo emite como `COTIZACION` (float). Si la cabecera no tiene cotización, no se inyecta el campo (Tango usa default). Para Presupuestos, `PresupuestoTangoService::send()` siempre inyecta el valor (default 1). Para PDS no se inyecta hoy (PDS no tiene cotización; ver `PedidoServicioTangoService`).
+- **Leyendas en payload Tango**: el mapper itera 1..5 y emite `LEYENDA_1` a `LEYENDA_5` SOLO si la leyenda no está vacía. Si está vacía, NO se inyecta el campo (lo deja en NULL del lado de Tango).
+- **PrintForm / Canvas**: `CrmPresupuestoPrintContextBuilder::build()` expone los 8 campos bajo el árbol `presupuesto.*` (ej: `presupuesto.cotizacion`, `presupuesto.leyenda_1`, etc). Los Canvas pueden referenciarlos directamente desde el PrintForms designer.
+- **Campos compartidos con PDS y Pedidos**: el `TangoOrderMapper` es compartido. `cotizacion` y `leyenda_1..5` son OPCIONALES en el array `$pedidoCabecera`, así que PDS y Pedidos web no se afectan. Si se quisiera sumarlos a esos módulos, basta con inyectarlos al `$cabecera` que arman sus propios services.
+
+### Descripción de renglón → DESCRIPCION_ARTICULO (release 1.29.x)
+
+Cada renglón del presupuesto tiene **dos** columnas relacionadas con la descripción del artículo:
+
+- **`articulo_descripcion_original`** (VARCHAR(255) NULL) — Nombre del artículo al momento de seleccionarlo desde el picker. **NUNCA se pisa después** — se guarda una sola vez al elegir el artículo.
+- **`articulo_descripcion_snapshot`** (VARCHAR(255)) — Descripción "actual" del renglón. El operador puede editarla en el textarea de la columna Descripción del grid; cada save persiste lo que tipeó.
+
+**Detección de "modificada"**: si `snapshot ≠ original`, la descripción fue editada por el operador. La UI lo refleja con borde naranja en el textarea + badge "Editada". El JS lo evalúa en vivo (`input` listener) y al render inicial.
+
+**Payload Tango** (`TangoOrderMapper::map`):
+- La descripción del operador se parte en chunks de **50 caracteres** vía `TangoOrderMapper::chunkDescripcion()`. Algoritmo:
+  1. Split por saltos de línea manuales del textarea (`\n`, `\r\n`).
+  2. Cada línea, si excede 50 chars, se subdivide con `wordwrap` (cut=true para palabras solitarias > 50).
+  3. Trim de cada chunk + descarte de vacíos.
+- **Primer chunk** → `DESCRIPCION_ARTICULO` (campo principal, 50 chars máx en Tango).
+- **Resto de chunks** → `DESCRIPCION_ADICIONAL_DTO[]` como array, cada item con shape:
+  ```json
+  { "DESCRIPCION": "<chunk>", "DESCRIPCION_ADICIONAL": null }
+  ```
+- **NO se usa `DESCRIPCION_ADICIONAL_ARTICULO` (DESC_ADIC)** del renglón. Tango lo limita a **20 caracteres** (confirmado el 2026-04-29 con error de Tango: `"El campo 'DESC_ADIC' debe ser menor o igual a 20 caracteres"`). Es inútil para descripciones reales — preferimos el array DTO que sí soporta texto largo.
+
+**UI**:
+- Textarea de 3 filas (en lugar de 2) para que se note que admite multilínea.
+- Badge "Editada" (naranja) cuando snapshot ≠ original.
+- Label en vivo bajo el textarea: `"· N líneas a Tango (1 principal + N-1 adicionales)"`. Se calcula client-side con un mini-replicador del algoritmo PHP.
+
+**Decisión editorial**: el operador puede escribir multilínea libremente; el sistema le dice cuántas líneas van a viajar antes de guardar. Si quiere control fino del corte, escribe una línea por concepto. Si escribe un párrafo largo, el sistema lo parte por palabras.
+
+**Backfill de items históricos**: la migración `2026_04_29_03_alter_crm_presupuesto_items_add_descripcion_original.php` setea `articulo_descripcion_original = articulo_descripcion_snapshot` para items existentes — quedan marcados como "no modificados" (snapshot == original). Esto es conservador: no genera alarmas falsas en presupuestos viejos.
+
+**Trampa típica**: si el operador edita la descripción y guarda, al re-abrir el presupuesto el textarea muestra lo editado, NO el original. El badge "Editada" + borde naranja le recuerdan que esa descripción difiere del catálogo Tango. Para "resetear" la descripción al original, hay que hacerlo a mano (no hay botón "restaurar" — pendiente como mejora futura si Charly lo pide).
+
 ## Tipo de cambios permitidos
 - Agregar columnas de cálculo, subtotales o lógica de impuestos (IVA, IIBB percibidos) visualmente en el DOM y en los resúmenes PDF.
 - Optimizar la carga asíncrona de artículos en el grid modal del formulario de cotización.

@@ -66,6 +66,14 @@ class CrmPresupuestoPrintContextBuilder
                 'vendedor' => trim((string) ($presupuesto['vendedor_nombre_snapshot'] ?? ($presupuesto['vendedor_codigo'] ?? ''))),
                 'usuario' => trim((string) ($presupuesto['usuario_nombre'] ?? 'Sin asignar')),
                 'estado' => $this->formatEstado((string) ($presupuesto['estado'] ?? 'borrador')),
+                'cotizacion' => $this->formatCotizacion((float) ($presupuesto['cotizacion'] ?? 1)),
+                'proximo_contacto' => $this->formatDate($presupuesto['proximo_contacto'] ?? null),
+                'vigencia' => $this->formatDate($presupuesto['vigencia'] ?? null),
+                'leyenda_1' => trim((string) ($presupuesto['leyenda_1'] ?? '')),
+                'leyenda_2' => trim((string) ($presupuesto['leyenda_2'] ?? '')),
+                'leyenda_3' => trim((string) ($presupuesto['leyenda_3'] ?? '')),
+                'leyenda_4' => trim((string) ($presupuesto['leyenda_4'] ?? '')),
+                'leyenda_5' => trim((string) ($presupuesto['leyenda_5'] ?? '')),
             ],
             'totales' => [
                 'subtotal' => $this->formatMoney((float) ($presupuesto['subtotal'] ?? 0)),
@@ -135,5 +143,14 @@ class CrmPresupuestoPrintContextBuilder
             'anulado' => 'Anulado',
             default => 'Borrador',
         };
+    }
+
+    private function formatCotizacion(float $value): string
+    {
+        // Decimales variables: si es entero (1, 1300) sin decimales; sino hasta 4.
+        if (abs($value - round($value)) < 0.0001) {
+            return number_format($value, 0, ',', '.');
+        }
+        return rtrim(rtrim(number_format($value, 4, ',', '.'), '0'), ',');
     }
 }

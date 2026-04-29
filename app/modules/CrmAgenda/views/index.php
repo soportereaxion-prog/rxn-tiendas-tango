@@ -81,6 +81,18 @@ ob_start();
                                 <span class="badge" style="background:#d63384;">Notas</span>
                             </label>
                         </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input origen-filter" type="checkbox" value="presupuesto_proximo_contacto" id="filter_pres_pc" checked>
+                            <label class="form-check-label" for="filter_pres_pc">
+                                <span class="badge" style="background:#0dcaf0;color:#000;">Próx. contacto</span>
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input origen-filter" type="checkbox" value="presupuesto_vigencia" id="filter_pres_vig" checked>
+                            <label class="form-check-label" for="filter_pres_vig">
+                                <span class="badge" style="background:#dc3545;">Vigencia</span>
+                            </label>
+                        </div>
                         <button type="button" id="btn-refresh" class="btn btn-sm btn-outline-info ms-auto"><i class="bi bi-arrow-clockwise"></i> Refrescar</button>
                     </div>
 
@@ -322,7 +334,7 @@ ob_start();
                 window.location.href = '/mi-empresa/crm/pedidos-servicio/' + origenId + '/editar';
                 return;
             }
-            if (origen === 'presupuesto' && origenId > 0) {
+            if ((origen === 'presupuesto' || origen === 'presupuesto_proximo_contacto' || origen === 'presupuesto_vigencia') && origenId > 0) {
                 window.location.href = '/mi-empresa/crm/presupuestos/' + origenId + '/editar';
                 return;
             }

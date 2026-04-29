@@ -249,7 +249,20 @@ class UsuarioRepository
     public function save(Usuario $usuario): void
     {
         if ($usuario->id) {
-            $sql = "UPDATE usuarios SET 
+            // ROOT CAUSE FIX (release 1.29.x): el WHERE original tenía
+            //   WHERE id = :id AND empresa_id = :empresa_id
+            // y como el form de editar (vista superadmin) puede mandar un
+            // empresa_id mal seleccionado en el dropdown "Transferir de Empresa",
+            // el UPDATE matcheaba 0 filas y aparentaba haber guardado.
+            // Síntoma: cambio de password "exitoso" pero login falla porque el
+            // hash en DB nunca cambió.
+            //
+            // Fix: el aislamiento de tenant se hace en UsuarioService::getByIdForContext()
+            // (el portero de carga). Acá el WHERE solo necesita la PK; y movemos
+            // empresa_id al SET para que un superadmin pueda transferir un usuario
+            // de una empresa a otra de forma legítima cuando lo intenta.
+            $sql = "UPDATE usuarios SET
+                    empresa_id = :empresa_id,
                     nombre = :nombre,
                     email = :email,
                     password_hash = :password_hash,
@@ -261,8 +274,11 @@ class UsuarioRepository
                     tango_perfil_pedido_nombre = :tango_perfil_pedido_nombre,
                     tango_perfil_snapshot_json = :tango_perfil_snapshot_json,
                     tango_perfil_snapshot_date = :tango_perfil_snapshot_date,
-                    es_rxn_admin = :es_rxn_admin
-                    WHERE id = :id AND empresa_id = :empresa_id";
+                    es_rxn_admin = :es_rxn_admin,
+                    email_verificado = :email_verificado,
+                    verification_token = :verification_token,
+                    verification_expires = :verification_expires
+                    WHERE id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':nombre' => $usuario->nombre,
@@ -277,9 +293,20 @@ class UsuarioRepository
                 ':tango_perfil_snapshot_json' => $usuario->tango_perfil_snapshot_json ?? null,
                 ':tango_perfil_snapshot_date' => $usuario->tango_perfil_snapshot_date ?? null,
                 ':es_rxn_admin' => $usuario->es_rxn_admin ?? 0,
+                ':email_verificado' => $usuario->email_verificado ?? 0,
+                ':verification_token' => $usuario->verification_token ?? null,
+                ':verification_expires' => $usuario->verification_expires ?? null,
                 ':id' => $usuario->id,
                 ':empresa_id' => $usuario->empresa_id
             ]);
+
+            // Defensa: nunca dejar pasar un UPDATE silencioso. Si rowCount=0
+            // tira excepción visible al usuario en lugar de "Actualizado" mentiroso.
+            $affected = $stmt->rowCount();
+            error_log('[UsuarioRepository::save] UPDATE usuario #' . (int) $usuario->id . ' affectedRows=' . $affected);
+            if ($affected === 0) {
+                throw new \RuntimeException('No se actualizó ninguna fila de usuarios (id #' . (int) $usuario->id . '). Verificá que el usuario exista.');
+            }
         } else {
             $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, anura_interno, es_rxn_admin) 
                     VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :anura_interno, :es_rxn_admin)";

@@ -287,7 +287,37 @@ class UsuarioService
         }
 
         if (!empty($data['password'])) {
-            $usuario->password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
+            $newPassword = (string) $data['password'];
+
+            // Guard defensivo: si lo que llegó YA es un hash bcrypt
+            // ($2y$..., $2a$..., $2b$...), NO rehashear — es casi seguro un
+            // autofill del browser/password-manager que pisó el campo con el
+            // hash viejo desde el HTML, o con una password ya hasheada.
+            // Rehashearlo resulta en un hash de un hash que no matchea ni la
+            // vieja ni la nueva → el usuario queda fuera del sistema.
+            // El caller debería avisar al operador, pero como mínimo no
+            // destruimos la credencial.
+            $looksLikeBcrypt = (bool) preg_match('/^\$2[aby]\$\d{2}\$/', $newPassword) && strlen($newPassword) >= 60;
+
+            if (!$looksLikeBcrypt) {
+                $usuario->password_hash = password_hash($newPassword, PASSWORD_DEFAULT);
+                error_log('[UsuarioService::update] Password actualizado para usuario #' . (int) $id . ' (largo: ' . strlen($newPassword) . ' chars).');
+
+                // Si un superadmin (rxn admin) cambia la password de un usuario,
+                // auto-marcamos el email como verificado y limpiamos tokens.
+                // Razonamiento: si el rey está cambiando la password manualmente,
+                // significa que YA validó al usuario fuera del sistema (le pasó
+                // la nueva por otro canal). Pedirle que además entre al mail a
+                // verificar es ruido innecesario — Charly lo llamó "trambóliko".
+                if (\App\Modules\Auth\AuthService::isRxnAdmin()) {
+                    $usuario->email_verificado = 1;
+                    $usuario->verification_token = null;
+                    $usuario->verification_expires = null;
+                    error_log('[UsuarioService::update] Usuario #' . (int) $id . ' marcado como email_verificado=1 (cambio de password por superadmin).');
+                }
+            } else {
+                error_log('[UsuarioService::update] Password descartada para usuario #' . (int) $id . ' — el valor recibido parece un hash bcrypt (probable autofill del browser). password_hash NO modificado.');
+            }
         }
 
         $this->repository->save($usuario);

@@ -29,6 +29,11 @@ ob_start();
             <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
+        <?php $flash = \App\Core\Flash::get(); ?>
+        <?php if ($flash && ($flash['type'] ?? '') === 'success'): ?>
+            <div class="alert alert-success"><?= htmlspecialchars((string) $flash['message']) ?></div>
+        <?php endif; ?>
+
         <div class="card rxn-form-card border-0 shadow-sm">
             <div class="card-body p-4 p-lg-5">
                 <form action="<?= htmlspecialchars($formPath) ?>" method="POST">
@@ -66,7 +71,8 @@ ob_start();
 
                             <div class="rxn-form-span-6">
                                 <label for="password" class="form-label">Nueva Contraseña <small class="text-muted">(Opcional)</small></label>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="Dejar vació para mantener la actual">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Dejar vacío para mantener la actual" autocomplete="new-password" data-rxn-no-autofill>
+                                <small class="text-muted">Sólo se actualiza si escribís algo. Vacío = no toca la contraseña actual.</small>
                             </div>
                         </div>
                     </div>

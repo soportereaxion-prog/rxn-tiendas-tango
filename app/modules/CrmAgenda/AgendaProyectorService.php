@@ -87,8 +87,20 @@ class AgendaProyectorService
 
     /**
      * Hook disparado por PresupuestoRepository cuando se crea o actualiza un presupuesto.
-     * Usa la fecha del presupuesto como punto de inicio, +30 min como fin (evento short-lived
-     * tipo "revision comercial").
+     *
+     * Proyecta hasta 3 eventos en la agenda (release 1.29.x):
+     *   1. El presupuesto en sí, a la fecha del presupuesto, +30 min de duración (verde).
+     *   2. Próximo contacto, si está poblado (cyan).
+     *   3. Vigencia, si está poblada (rojo).
+     *
+     * Cada evento tiene su propio origen_tipo:
+     *   - 'presupuesto'                    → evento principal
+     *   - 'presupuesto_proximo_contacto'   → próximo contacto comercial
+     *   - 'presupuesto_vigencia'           → deadline de vigencia
+     *
+     * Importante: si el operador edita el presupuesto y vacía proximo_contacto o
+     * vigencia, los eventos correspondientes deben BORRARSE (no quedarse stale).
+     * Eso lo hace el branch `else` que llama a softDeleteAndMaybeRemote por tipo.
      */
     public function onPresupuestoSaved(array $presupuesto): void
     {
@@ -99,24 +111,75 @@ class AgendaProyectorService
                 return;
             }
 
-            $titulo = 'Presupuesto #' . (int) ($presupuesto['numero'] ?? 0) . ' — ' . (string) ($presupuesto['cliente_nombre_snapshot'] ?? 'Sin cliente');
-            $descripcion = 'Total: $' . number_format((float) ($presupuesto['total'] ?? 0), 2, ',', '.') . ' — Estado: ' . (string) ($presupuesto['estado'] ?? 'borrador');
+            $numero          = (int) ($presupuesto['numero'] ?? 0);
+            $cliente         = (string) ($presupuesto['cliente_nombre_snapshot'] ?? 'Sin cliente');
+            $estado          = (string) ($presupuesto['estado'] ?? 'borrador');
+            $usuarioId       = $presupuesto['usuario_id'] ?? null;
+            $usuarioNombre   = $presupuesto['usuario_nombre'] ?? null;
+            $eventoEstado    = $estado === 'anulado' ? 'cancelado' : 'programado';
+
+            // 1) Evento principal del presupuesto.
+            $tituloPpal = 'Presupuesto #' . $numero . ' — ' . $cliente;
+            $descPpal = 'Total: $' . number_format((float) ($presupuesto['total'] ?? 0), 2, ',', '.') . ' — Estado: ' . $estado;
             $inicio = (string) $presupuesto['fecha'];
             $fin = (new \DateTimeImmutable($inicio))->modify('+30 minutes')->format('Y-m-d H:i:s');
 
             $this->upsertEvent([
                 'empresa_id' => $empresaId,
-                'usuario_id' => $presupuesto['usuario_id'] ?? null,
-                'usuario_nombre' => $presupuesto['usuario_nombre'] ?? null,
-                'titulo' => $titulo,
-                'descripcion' => $descripcion,
+                'usuario_id' => $usuarioId,
+                'usuario_nombre' => $usuarioNombre,
+                'titulo' => $tituloPpal,
+                'descripcion' => $descPpal,
                 'inicio' => $inicio,
                 'fin' => $fin,
                 'origen_tipo' => 'presupuesto',
                 'origen_id' => $presId,
                 'color' => AgendaRepository::defaultColorFor('presupuesto'),
-                'estado' => ($presupuesto['estado'] ?? '') === 'anulado' ? 'cancelado' : 'programado',
+                'estado' => $eventoEstado,
             ]);
+
+            // 2) Próximo contacto — opcional. Si está poblado, upsert; sino, borrar el previo.
+            $proximoContacto = trim((string) ($presupuesto['proximo_contacto'] ?? ''));
+            if ($proximoContacto !== '') {
+                $finPC = (new \DateTimeImmutable($proximoContacto))->modify('+30 minutes')->format('Y-m-d H:i:s');
+                $this->upsertEvent([
+                    'empresa_id' => $empresaId,
+                    'usuario_id' => $usuarioId,
+                    'usuario_nombre' => $usuarioNombre,
+                    'titulo' => 'Próximo contacto: Presupuesto #' . $numero . ' — ' . $cliente,
+                    'descripcion' => 'Recordatorio de contacto comercial vinculado al presupuesto. Estado: ' . $estado,
+                    'inicio' => $proximoContacto,
+                    'fin' => $finPC,
+                    'origen_tipo' => 'presupuesto_proximo_contacto',
+                    'origen_id' => $presId,
+                    'color' => AgendaRepository::defaultColorFor('presupuesto_proximo_contacto'),
+                    'estado' => $eventoEstado,
+                ]);
+            } else {
+                // Si el operador limpió el campo, borrar el evento previo (si existía).
+                $this->softDeleteAndMaybeRemote('presupuesto_proximo_contacto', $presId, $empresaId);
+            }
+
+            // 3) Vigencia — opcional. Mismo patrón.
+            $vigencia = trim((string) ($presupuesto['vigencia'] ?? ''));
+            if ($vigencia !== '') {
+                $finVig = (new \DateTimeImmutable($vigencia))->modify('+30 minutes')->format('Y-m-d H:i:s');
+                $this->upsertEvent([
+                    'empresa_id' => $empresaId,
+                    'usuario_id' => $usuarioId,
+                    'usuario_nombre' => $usuarioNombre,
+                    'titulo' => 'Vigencia: Presupuesto #' . $numero . ' — ' . $cliente,
+                    'descripcion' => 'Deadline de vigencia del presupuesto. Pasada esta fecha pierde validez comercial.',
+                    'inicio' => $vigencia,
+                    'fin' => $finVig,
+                    'origen_tipo' => 'presupuesto_vigencia',
+                    'origen_id' => $presId,
+                    'color' => AgendaRepository::defaultColorFor('presupuesto_vigencia'),
+                    'estado' => $eventoEstado,
+                ]);
+            } else {
+                $this->softDeleteAndMaybeRemote('presupuesto_vigencia', $presId, $empresaId);
+            }
         } catch (\Throwable) {}
     }
 
@@ -176,7 +239,12 @@ class AgendaProyectorService
     public function onPresupuestoDeleted(int $presId, int $empresaId): void
     {
         try {
+            // Borrar los 3 eventos que el presupuesto puede haber proyectado:
+            // el principal + próximo contacto + vigencia. Cualquiera puede no
+            // existir (si el operador no los seteó); el método es idempotente.
             $this->softDeleteAndMaybeRemote('presupuesto', $presId, $empresaId);
+            $this->softDeleteAndMaybeRemote('presupuesto_proximo_contacto', $presId, $empresaId);
+            $this->softDeleteAndMaybeRemote('presupuesto_vigencia', $presId, $empresaId);
         } catch (\Throwable) {}
     }
 

@@ -271,12 +271,21 @@ class UsuarioController extends Controller
         $this->requireAdmin();
         $this->service = new UsuarioService();
         $ui = $this->buildUiContext();
-        
+
         try {
             $this->service->update((int) $id, $_POST);
-            $url = $ui['indexPath'];
-            $sep = str_contains($url, '?') ? '&' : '?';
-            header('Location: ' . $url . $sep . 'success=' . urlencode('Datos de usuario actualizados'));
+            // Coherente con PDS / Presupuestos (release 1.19.0): Guardar se queda
+            // en el form de edición. El operador apreta Volver para salir.
+            // Antes redirigía al listado y eso confundía cuando se quería seguir
+            // ajustando el mismo usuario (ej: probar password, cambiar perfil
+            // Tango, etc).
+            $area = $_GET['area'] ?? ($_POST['area'] ?? '');
+            $editPath = $ui['basePath'] . '/' . (int) $id . '/editar';
+            if ($area !== '') {
+                $editPath .= '?area=' . urlencode((string) $area);
+            }
+            \App\Core\Flash::set('success', 'Datos de usuario actualizados.');
+            header('Location: ' . $editPath);
             exit;
         } catch (\Exception $e) {
             $usuario = $this->service->getByIdForContext((int) $id);

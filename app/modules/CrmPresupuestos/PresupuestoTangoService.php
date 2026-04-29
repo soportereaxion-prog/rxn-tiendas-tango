@@ -65,12 +65,23 @@ class PresupuestoTangoService
                     throw new \RuntimeException('El artículo ' . $item['articulo_codigo'] . ' no existe como ID_STA11 válido en Tango Connect.');
                 }
 
+                // Descripción original del catálogo (lo que Tango identifica como
+                // el artículo) y descripción actual (lo que el operador escribió).
+                // Si difieren, el mapper inyecta DESCRIPCION_ADICIONAL_ARTICULO.
+                $descActual = trim((string) ($item['articulo_descripcion_snapshot'] ?? ''));
+                $descOriginal = trim((string) ($item['articulo_descripcion_original'] ?? ''));
+                if ($descOriginal === '') {
+                    $descOriginal = $descActual;
+                }
+
                 $renglones[] = [
                     'id_sta11_tango' => $idSta11,
                     'codigo_articulo' => (string) $item['articulo_codigo'],
                     'cantidad' => (float) $item['cantidad'],
                     'precio_unitario' => (float) $item['precio_unitario'],
                     'bonificacion_porcentaje' => (float) $item['bonificacion_porcentaje'],
+                    'descripcion_original' => $descOriginal,
+                    'descripcion_actual'   => $descActual,
                 ];
             }
 
@@ -80,6 +91,14 @@ class PresupuestoTangoService
                 'created_at' => (string) ($presupuesto['fecha'] ?? $presupuesto['created_at'] ?? date('Y-m-d H:i:s')),
                 'observaciones' => $this->buildObservaciones($presupuesto),
                 'total' => (float) $presupuesto['total'],
+                // Release 1.29.0 — campos nuevos de cabecera comercial que viajan a Tango.
+                // El mapper los traduce a COTIZACION y LEYENDA_1..5 en el payload.
+                'cotizacion' => isset($presupuesto['cotizacion']) ? (float) $presupuesto['cotizacion'] : 1.0,
+                'leyenda_1' => $presupuesto['leyenda_1'] ?? null,
+                'leyenda_2' => $presupuesto['leyenda_2'] ?? null,
+                'leyenda_3' => $presupuesto['leyenda_3'] ?? null,
+                'leyenda_4' => $presupuesto['leyenda_4'] ?? null,
+                'leyenda_5' => $presupuesto['leyenda_5'] ?? null,
             ];
 
             $clientePayload = [

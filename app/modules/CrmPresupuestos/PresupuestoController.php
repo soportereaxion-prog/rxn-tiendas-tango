@@ -195,6 +195,9 @@ class PresupuestoController extends \App\Core\Controller
             'catalogs' => $catalogData['catalogs'],
             'catalogSyncWarning' => $catalogData['warning'],
             'errors' => [],
+            // ?from_copy=1 → suspende el lock de cabecera en este primer render
+            // post-copia. Lo lee el JS del form. Ver PresupuestoController::copy().
+            'isFromCopy' => !empty($_GET['from_copy']),
         ]));
     }
 
@@ -247,7 +250,7 @@ class PresupuestoController extends \App\Core\Controller
 
             unset($data['id'], $data['numero']);
 
-            $data['fecha'] = (new \DateTimeImmutable())->format('Y-m-d\TH:i');
+            $data['fecha'] = (new \DateTimeImmutable())->format('Y-m-d\TH:i:s');
             $data['estado'] = 'borrador';
 
             $data['usuario_id'] = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
@@ -264,12 +267,51 @@ class PresupuestoController extends \App\Core\Controller
 
             $nuevoId = $this->repository->create($data);
 
+            // Bandera ?from_copy=1: la consume el JS del form para NO aplicar el
+            // lock de cabecera en este primer render. Sin esto, el operador no
+            // podría editar cliente/fecha/lista en la copia hasta borrar todos los
+            // renglones, lo cual es exactamente lo contrario de lo que quiere
+            // (toda la gracia de copiar es heredar items y ajustar la cabecera).
+            // Al primer submit el flag desaparece de la URL y vuelve la lógica normal.
             Flash::set('success', 'Presupuesto CRM copiado exitosamente.');
-            header('Location: /mi-empresa/crm/presupuestos/' . $nuevoId . '/editar');
+            header('Location: /mi-empresa/crm/presupuestos/' . $nuevoId . '/editar?from_copy=1');
             exit;
         } catch (Throwable $e) {
             Flash::set('danger', 'Falla al copiar el presupuesto CRM: ' . $e->getMessage());
             header('Location: /mi-empresa/crm/presupuestos/' . (int) $id . '/editar');
+            exit;
+        }
+    }
+
+    /**
+     * Genera una nueva versión del presupuesto (release 1.29.x — versionado).
+     *
+     * A diferencia de copy(), esta acción crea una versión VINCULADA al original
+     * mediante version_padre_id (raíz del grupo) + version_numero secuencial.
+     * Permite trazar la cadena de iteraciones desde el header del form de la versión.
+     */
+    public function nuevaVersion(string $id): void
+    {
+        AuthService::requireLogin();
+        $empresaId = (int) Context::getEmpresaId();
+        $idInt = (int) $id;
+        if ($idInt <= 0) {
+            Flash::set('danger', 'ID de presupuesto inválido.');
+            header('Location: /mi-empresa/crm/presupuestos');
+            exit;
+        }
+
+        try {
+            $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+            $usuarioNombre = $_SESSION['user_name'] ?? 'Usuario';
+            $nuevoId = $this->repository->createNewVersion($idInt, $empresaId, $usuarioId, $usuarioNombre);
+            Flash::set('success', 'Nueva versión generada exitosamente.');
+            header('Location: /mi-empresa/crm/presupuestos/' . $nuevoId . '/editar');
+            exit;
+        } catch (\Throwable $e) {
+            error_log('[PresupuestoController::nuevaVersion] Falla: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo generar la nueva versión: ' . $e->getMessage());
+            header('Location: /mi-empresa/crm/presupuestos/' . $idInt . '/editar');
             exit;
         }
     }
@@ -810,8 +852,16 @@ class PresupuestoController extends \App\Core\Controller
             'id' => null,
             'numero' => $this->repository->previewNextNumero($empresaId),
             'tratativa_id' => $tratativaId,
-            'fecha' => $now->format('Y-m-d\TH:i'),
+            'fecha' => $now->format('Y-m-d\TH:i:s'),
             'estado' => 'borrador',
+            'cotizacion' => 1.0,
+            'proximo_contacto' => '',
+            'vigencia' => '',
+            'leyenda_1' => '',
+            'leyenda_2' => '',
+            'leyenda_3' => '',
+            'leyenda_4' => '',
+            'leyenda_5' => '',
             'cliente_id' => $clienteIdPreload,
             'cliente_nombre' => $clienteNombrePreload,
             'cliente_documento' => '',
@@ -841,8 +891,18 @@ class PresupuestoController extends \App\Core\Controller
             'id' => (int) ($presupuesto['id'] ?? 0),
             'numero' => (int) ($presupuesto['numero'] ?? 0),
             'tratativa_id' => (string) ($presupuesto['tratativa_id'] ?? ''),
+            'version_padre_id' => isset($presupuesto['version_padre_id']) && $presupuesto['version_padre_id'] !== null ? (int) $presupuesto['version_padre_id'] : 0,
+            'version_numero' => (int) ($presupuesto['version_numero'] ?? 1),
             'fecha' => $this->formatDateTimeForInput($presupuesto['fecha'] ?? null),
             'estado' => (string) ($presupuesto['estado'] ?? 'borrador'),
+            'cotizacion' => isset($presupuesto['cotizacion']) ? (float) $presupuesto['cotizacion'] : 1.0,
+            'proximo_contacto' => $this->formatDateTimeForInput($presupuesto['proximo_contacto'] ?? null),
+            'vigencia' => $this->formatDateTimeForInput($presupuesto['vigencia'] ?? null),
+            'leyenda_1' => (string) ($presupuesto['leyenda_1'] ?? ''),
+            'leyenda_2' => (string) ($presupuesto['leyenda_2'] ?? ''),
+            'leyenda_3' => (string) ($presupuesto['leyenda_3'] ?? ''),
+            'leyenda_4' => (string) ($presupuesto['leyenda_4'] ?? ''),
+            'leyenda_5' => (string) ($presupuesto['leyenda_5'] ?? ''),
             'cliente_id' => (string) ($presupuesto['cliente_id'] ?? ''),
             'cliente_nombre' => (string) ($presupuesto['cliente_nombre_snapshot'] ?? ''),
             'cliente_documento' => (string) ($presupuesto['cliente_documento_snapshot'] ?? ''),
@@ -872,10 +932,12 @@ class PresupuestoController extends \App\Core\Controller
             'tango_sync_date' => (string) ($presupuesto['tango_sync_date'] ?? ''),
             'tango_sync_log' => (string) ($presupuesto['tango_sync_log'] ?? ''),
             'items' => array_map(static function (array $item): array {
+                $original = (string) ($item['articulo_descripcion_original'] ?? $item['articulo_descripcion_snapshot'] ?? '');
                 return [
                     'articulo_id' => (string) ($item['articulo_id'] ?? ''),
                     'articulo_codigo' => (string) ($item['articulo_codigo'] ?? ''),
                     'articulo_descripcion' => (string) ($item['articulo_descripcion_snapshot'] ?? ''),
+                    'articulo_descripcion_original' => $original,
                     'cantidad' => isset($item['cantidad']) ? (float) $item['cantidad'] : 1.0,
                     'precio_unitario' => isset($item['precio_unitario']) ? (float) $item['precio_unitario'] : 0.0,
                     'bonificacion_porcentaje' => isset($item['bonificacion_porcentaje']) ? (float) $item['bonificacion_porcentaje'] : 0.0,
@@ -901,6 +963,13 @@ class PresupuestoController extends \App\Core\Controller
         $state['tratativa_id'] = trim((string) ($input['tratativa_id'] ?? $state['tratativa_id'] ?? ''));
         $state['fecha'] = trim((string) ($input['fecha'] ?? $state['fecha']));
         $state['estado'] = $this->normalizeEstado((string) ($input['estado'] ?? $state['estado']));
+        $state['cotizacion'] = isset($input['cotizacion']) && $input['cotizacion'] !== '' ? (float) $this->normalizeDecimal($input['cotizacion']) : ($state['cotizacion'] ?? 1.0);
+        $state['proximo_contacto'] = trim((string) ($input['proximo_contacto'] ?? $state['proximo_contacto'] ?? ''));
+        $state['vigencia'] = trim((string) ($input['vigencia'] ?? $state['vigencia'] ?? ''));
+        for ($i = 1; $i <= 5; $i++) {
+            $key = 'leyenda_' . $i;
+            $state[$key] = mb_substr(trim((string) ($input[$key] ?? $state[$key] ?? '')), 0, 60);
+        }
         $state['cliente_id'] = trim((string) ($input['cliente_id'] ?? $state['cliente_id']));
         $state['cliente_nombre'] = trim((string) ($input['cliente_nombre'] ?? $state['cliente_nombre']));
         $state['cliente_documento'] = trim((string) ($input['cliente_documento'] ?? $state['cliente_documento']));
@@ -947,6 +1016,40 @@ class PresupuestoController extends \App\Core\Controller
             $errors['fecha'] = 'Ingresa una fecha valida para el presupuesto.';
         }
 
+        // Próximo contacto y Vigencia: ambos opcionales (DATETIME nullable). Se aceptan
+        // los mismos formatos que la fecha del presupuesto (ISO con T o con espacio).
+        $proximoContactoInput = trim((string) ($input['proximo_contacto'] ?? ''));
+        $proximoContacto = $proximoContactoInput !== '' ? $this->parseDateTimeInput($proximoContactoInput) : null;
+        if ($proximoContactoInput !== '' && $proximoContacto === null) {
+            $errors['proximo_contacto'] = 'Fecha y hora de "Próximo contacto" inválida.';
+        }
+
+        $vigenciaInput = trim((string) ($input['vigencia'] ?? ''));
+        $vigencia = $vigenciaInput !== '' ? $this->parseDateTimeInput($vigenciaInput) : null;
+        if ($vigenciaInput !== '' && $vigencia === null) {
+            $errors['vigencia'] = 'Fecha y hora de "Vigencia" inválida.';
+        }
+
+        // Cotización: numérica >= 0. Default 1 si vacío.
+        $cotizacionRaw = $input['cotizacion'] ?? null;
+        $cotizacion = ($cotizacionRaw === null || $cotizacionRaw === '')
+            ? 1.0
+            : (float) $this->normalizeDecimal($cotizacionRaw);
+        if ($cotizacion < 0) {
+            $errors['cotizacion'] = 'La cotización no puede ser negativa.';
+        }
+
+        // Leyendas 1..5: opcionales, máximo 60 caracteres cada una. Trim + truncado defensivo.
+        $leyendas = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $key = 'leyenda_' . $i;
+            $value = trim((string) ($input[$key] ?? ''));
+            if ($value !== '' && mb_strlen($value) > 60) {
+                $value = mb_substr($value, 0, 60);
+            }
+            $leyendas[$key] = $value !== '' ? $value : null;
+        }
+
         $estado = $this->normalizeEstado((string) ($input['estado'] ?? 'borrador'));
         $clienteId = (int) ($input['cliente_id'] ?? 0);
         $clienteNombreInput = trim((string) ($input['cliente_nombre'] ?? ''));
@@ -978,9 +1081,17 @@ class PresupuestoController extends \App\Core\Controller
             $errors['lista_codigo'] = 'Selecciona una lista de precios para el presupuesto.';
         }
 
+        // Clasificación obligatoria (release 1.29.x — P0). El picker maneja
+        // tanto el código como el nombre/descripción; con que el código exista
+        // ya es válido — la descripción es display.
+        $clasificacionCodigoInput = trim((string) ($input['clasificacion_codigo'] ?? ''));
+        if ($clasificacionCodigoInput === '') {
+            $errors['clasificacion_codigo'] = 'Selecciona una clasificación para el presupuesto.';
+        }
+
         $items = $this->normalizePostedItems($input['items'] ?? [], $lista['codigo']);
         if ($items === []) {
-            $errors['items'] = 'Agrega al menos un renglon al presupuesto.';
+            $errors['items'] = 'Agregá al menos un renglón al presupuesto.';
         }
 
         foreach ($items as $index => $item) {
@@ -1029,6 +1140,14 @@ class PresupuestoController extends \App\Core\Controller
             'transporte_codigo' => $transporte['codigo'],
             'transporte_nombre_snapshot' => $transporte['descripcion'],
             'transporte_id_interno' => $transporte['id_interno'],
+            'proximo_contacto' => $proximoContacto?->format('Y-m-d H:i:s'),
+            'vigencia' => $vigencia?->format('Y-m-d H:i:s'),
+            'leyenda_1' => $leyendas['leyenda_1'],
+            'leyenda_2' => $leyendas['leyenda_2'],
+            'leyenda_3' => $leyendas['leyenda_3'],
+            'leyenda_4' => $leyendas['leyenda_4'],
+            'leyenda_5' => $leyendas['leyenda_5'],
+            'cotizacion' => $cotizacion,
             'lista_codigo' => $lista['codigo'],
             'lista_nombre_snapshot' => $lista['descripcion'],
             'lista_id_interno' => $lista['id_interno'],
@@ -1068,11 +1187,20 @@ class PresupuestoController extends \App\Core\Controller
                 continue;
             }
 
+            // Original viene del hidden que el JS setea al elegir el artículo
+            // desde el picker. Si no viene (caso fila legacy o copy), caemos a la
+            // descripción actual — esto deja al item marcado como "no modificado"
+            // hasta el próximo save donde el operador edite.
+            $original = trim((string) ($row['articulo_descripcion_original'] ?? ''));
+            if ($original === '') {
+                $original = $descripcion;
+            }
             $items[] = [
                 'orden' => count($items) + 1,
                 'articulo_id' => $this->nullableInt($row['articulo_id'] ?? null),
                 'articulo_codigo' => $codigo,
                 'articulo_descripcion' => $descripcion,
+                'articulo_descripcion_original' => $original,
                 'cantidad' => (float) $cantidad,
                 'precio_unitario' => (float) $precioUnitario,
                 'bonificacion_porcentaje' => (float) $bonificacion,
@@ -1156,8 +1284,10 @@ class PresupuestoController extends \App\Core\Controller
             return '';
         }
 
+        // Devolvemos siempre con segundos. Flatpickr (rxn-datetime.js) hace su parte
+        // con altFormat es-AR para mostrarlo `d/m/Y H:i:s`.
         $date = new DateTimeImmutable($value);
-        return $date->format('Y-m-d\TH:i');
+        return $date->format('Y-m-d\TH:i:s');
     }
 
     private function normalizeDecimal(mixed $value): float

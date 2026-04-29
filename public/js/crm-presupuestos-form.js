@@ -339,16 +339,27 @@
         function createItemRow(item) {
             var row = document.createElement('tr');
             row.setAttribute('data-item-row', '1');
+            // Original = la descripción del catálogo al momento de seleccionar.
+            // Si el item viene con `articulo_descripcion_original` explícito (caso copy
+            // o reload), lo usamos; sino caemos a `articulo_descripcion` actual (que en
+            // el caso de un artículo recién elegido es el nombre del catálogo).
+            var descActual = item.articulo_descripcion || '';
+            var descOriginal = item.articulo_descripcion_original || descActual;
             row.innerHTML = [
                 '<td>',
                 '  <input type="hidden" value="' + escapeHtml(item.articulo_id || '') + '" data-item-field="articulo_id">',
                 '  <input type="hidden" value="' + escapeHtml(item.precio_origen || 'manual') + '" data-item-field="precio_origen">',
                 '  <input type="hidden" value="' + escapeHtml(item.lista_codigo_aplicada || '') + '" data-item-field="lista_codigo_aplicada">',
+                '  <input type="hidden" value="' + escapeHtml(descOriginal) + '" data-item-field="articulo_descripcion_original">',
                 '  <input type="text" class="form-control form-control-sm" value="' + escapeHtml(item.articulo_codigo || '') + '" data-item-field="articulo_codigo">',
                 '</td>',
                 '<td class="crm-budget-line-desc">',
-                '  <textarea class="form-control form-control-sm" rows="2" data-item-field="articulo_descripcion">' + escapeHtml(item.articulo_descripcion || '') + '</textarea>',
-                '  <div class="form-text mt-1">Origen: <span data-item-origin-label>' + escapeHtml(String(item.precio_origen || 'manual').toUpperCase()) + '</span></div>',
+                '  <textarea class="form-control form-control-sm crm-budget-desc-textarea" rows="3" data-item-field="articulo_descripcion" data-item-desc-modified="0" title="Texto largo soportado: el sistema parte automáticamente la descripción en bloques de 50 caracteres (respetando saltos de línea) y los envía a Tango como DESCRIPCION_ARTICULO + DESCRIPCION_ADICIONAL_DTO. Una línea por concepto si querés controlar el corte.">' + escapeHtml(descActual) + '</textarea>',
+                '  <div class="form-text mt-1 d-flex align-items-center gap-2 flex-wrap">',
+                '    <span>Origen: <span data-item-origin-label>' + escapeHtml(String(item.precio_origen || 'manual').toUpperCase()) + '</span></span>',
+                '    <span class="badge bg-warning-subtle text-warning-emphasis d-none" data-item-desc-badge title="La descripción fue editada y se enviará a Tango sobrescribiendo el nombre original del catálogo">Editada</span>',
+                '    <span class="text-muted small" data-item-desc-chunks-label></span>',
+                '  </div>',
                 '</td>',
                 '<td><input type="number" step="0.0001" min="0" class="form-control form-control-sm" value="' + escapeHtml(item.cantidad || 1) + '" data-item-field="cantidad"></td>',
                 '<td><input type="text" class="form-control form-control-sm text-end text-muted" value="' + escapeHtml(formatStock(item.stock_deposito)) + '" readonly tabindex="-1" data-item-stock style="background: transparent; border-color: transparent;"></td>',
@@ -432,6 +443,27 @@
             '#presupuesto-transporte'
         ];
 
+        // Modo "post-copia": el form viene de PresupuestoController::copy() con
+        // ?from_copy=1 en la URL. En este render NO se aplica el lock de cabecera
+        // (queda toda editable hasta el primer Guardar). Después del submit el
+        // controller redirige a /editar SIN el flag, así que la lógica normal
+        // vuelve sola en el siguiente render.
+        //
+        // Leemos directamente del query string (no del data-attribute) para que
+        // sea robusto frente a cache de PHP / cache de browser de versiones del
+        // JS — el query string siempre es fresco.
+        var isFromCopy = false;
+        try {
+            var _qs = new URLSearchParams(window.location.search);
+            isFromCopy = _qs.get('from_copy') === '1';
+        } catch (_e) {
+            // Fallback al data-attribute si URLSearchParams no está disponible.
+            isFromCopy = form.dataset.fromCopy === '1';
+        }
+        if (isFromCopy && window.console && console.info) {
+            console.info('[Presupuesto] from_copy=1 detectado — lock de cabecera DESHABILITADO en este render.');
+        }
+
         function hasItems() {
             return itemsBody.querySelectorAll('[data-item-row]').length > 0;
         }
@@ -453,6 +485,7 @@
         }
 
         function lockHeader() {
+            if (isFromCopy) return; // bypass total durante el primer render post-copia
             if (!headerRequiredFieldsFilled()) return; // circuit breaker: nunca bloquear con faltantes
             headerFieldSelectors.forEach(function(sel) {
                 var el = form.querySelector(sel);
@@ -752,6 +785,56 @@
         itemsBody.addEventListener('input', function (event) {
             if (event.target.matches('[data-item-field="cantidad"], [data-item-field="precio_unitario"], [data-item-field="bonificacion_porcentaje"]')) {
                 recalculate();
+            }
+            // Detectar modificación de descripción contra el original guardado +
+            // calcular cuántos chunks de 50 chars va a generar al ir a Tango.
+            // Toggle de borde naranja + badge "Editada" + label de chunks en vivo,
+            // así el operador SABE en el momento cómo va a viajar.
+            if (event.target.matches('[data-item-field="articulo_descripcion"]')) {
+                var row = event.target.closest('[data-item-row]');
+                if (!row) return;
+                var originalEl = row.querySelector('[data-item-field="articulo_descripcion_original"]');
+                var original = originalEl ? String(originalEl.value || '') : '';
+                var actual = String(event.target.value || '');
+                var isModified = original !== '' && actual !== '' && actual !== original;
+                event.target.classList.toggle('is-modified', isModified);
+                event.target.setAttribute('data-item-desc-modified', isModified ? '1' : '0');
+                var badge = row.querySelector('[data-item-desc-badge]');
+                if (badge) {
+                    badge.classList.toggle('d-none', !isModified);
+                }
+                // Calcular chunks de 50 chars y actualizar label.
+                // Replica liviana del helper TangoOrderMapper::chunkDescripcion.
+                var chunksLabel = row.querySelector('[data-item-desc-chunks-label]');
+                if (chunksLabel) {
+                    var lineas = actual.split(/\r\n|\r|\n/);
+                    var chunkCount = 0;
+                    for (var li = 0; li < lineas.length; li++) {
+                        var l = lineas[li].trim();
+                        if (l === '') continue;
+                        if (l.length <= 50) {
+                            chunkCount++;
+                        } else {
+                            // Aproximación a wordwrap: dividimos en bloques de 50 con saltos en espacios.
+                            var rest = l;
+                            while (rest.length > 50) {
+                                var slice = rest.substring(0, 50);
+                                var lastSpace = slice.lastIndexOf(' ');
+                                var cut = (lastSpace > 0) ? lastSpace : 50;
+                                chunkCount++;
+                                rest = rest.substring(cut).trim();
+                            }
+                            if (rest.length > 0) chunkCount++;
+                        }
+                    }
+                    if (chunkCount === 0) {
+                        chunksLabel.textContent = '';
+                    } else if (chunkCount === 1) {
+                        chunksLabel.textContent = '· 1 línea a Tango';
+                    } else {
+                        chunksLabel.textContent = '· ' + chunkCount + ' líneas a Tango (1 principal + ' + (chunkCount - 1) + ' adicionales)';
+                    }
+                }
             }
         });
 

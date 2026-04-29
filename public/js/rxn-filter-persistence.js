@@ -13,11 +13,13 @@
  *   - limit         → cantidad de registros por página (25 / 50 / 100)
  *   - estado        → filtro de estado de negocio (abierto / enviado / ...)
  *   - categoria_id  → filtro de categoría (solo Articulos Tiendas)
+ *   - sort / dir    → ordenamiento por columna (release 1.29.x — antes no
+ *                     se persistía pero Charly lo pidió, es lo que el operador
+ *                     espera al volver al listado).
  *   - f[<campo>][op|val] → filtros Motor BD por columna
  *
  * Qué NO persiste por diseño:
  *   - status → activos vs papelera (es navegación semántica)
- *   - sort / dir → ordenamiento (estado de vista)
  *   - area → contexto tiendas/crm (se hereda por pathname)
  *   - page → paginación (se reinicia en 1 al restaurar)
  *   - Los filtros "locales" (selección por columna) ya viven en
@@ -98,7 +100,7 @@
         var params = new URLSearchParams(window.location.search);
 
         // Lista simple de filter keys. Ampliar si un módulo suma un select nuevo.
-        var FILTER_KEYS = ['search', 'field', 'limit', 'estado', 'categoria_id'];
+        var FILTER_KEYS = ['search', 'field', 'limit', 'estado', 'categoria_id', 'sort', 'dir'];
 
         function isFilterKey(key) {
             if (key.indexOf('f[') === 0) return true;

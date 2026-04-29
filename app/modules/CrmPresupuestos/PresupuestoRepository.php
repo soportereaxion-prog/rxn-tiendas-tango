@@ -272,22 +272,28 @@ class PresupuestoRepository
                 $numero = $this->previewNextNumero((int) $data['empresa_id']);
 
                 $stmt = $this->db->prepare('INSERT INTO crm_presupuestos (
-                        empresa_id, tratativa_id, numero, fecha, cliente_id, cliente_nombre_snapshot, cliente_documento_snapshot,
+                        empresa_id, tratativa_id, version_padre_id, version_numero, numero, fecha, cliente_id, cliente_nombre_snapshot, cliente_documento_snapshot,
                         deposito_codigo, deposito_nombre_snapshot,
                         condicion_codigo, condicion_nombre_snapshot, condicion_id_interno,
                         transporte_codigo, transporte_nombre_snapshot, transporte_id_interno,
+                        proximo_contacto, vigencia,
+                        leyenda_1, leyenda_2, leyenda_3, leyenda_4, leyenda_5,
                         lista_codigo, lista_nombre_snapshot, lista_id_interno,
                         vendedor_codigo, vendedor_nombre_snapshot, vendedor_id_interno,
                         clasificacion_codigo, clasificacion_id_tango, clasificacion_descripcion,
+                        cotizacion,
                         subtotal, descuento_total, impuestos_total, total, estado, usuario_id, usuario_nombre, created_at, updated_at
                     ) VALUES (
-                        :empresa_id, :tratativa_id, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
+                        :empresa_id, :tratativa_id, :version_padre_id, :version_numero, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
                         :deposito_codigo, :deposito_nombre_snapshot,
                         :condicion_codigo, :condicion_nombre_snapshot, :condicion_id_interno,
                         :transporte_codigo, :transporte_nombre_snapshot, :transporte_id_interno,
+                        :proximo_contacto, :vigencia,
+                        :leyenda_1, :leyenda_2, :leyenda_3, :leyenda_4, :leyenda_5,
                         :lista_codigo, :lista_nombre_snapshot, :lista_id_interno,
                         :vendedor_codigo, :vendedor_nombre_snapshot, :vendedor_id_interno,
                         :clasificacion_codigo, :clasificacion_id_tango, :clasificacion_descripcion,
+                        :cotizacion,
                         :subtotal, :descuento_total, :impuestos_total, :total, :estado, :usuario_id, :usuario_nombre, NOW(), NOW()
                     )');
                 $payload = $this->buildHeaderPayload($data);
@@ -342,6 +348,13 @@ class PresupuestoRepository
                     transporte_codigo = :transporte_codigo,
                     transporte_nombre_snapshot = :transporte_nombre_snapshot,
                     transporte_id_interno = :transporte_id_interno,
+                    proximo_contacto = :proximo_contacto,
+                    vigencia = :vigencia,
+                    leyenda_1 = :leyenda_1,
+                    leyenda_2 = :leyenda_2,
+                    leyenda_3 = :leyenda_3,
+                    leyenda_4 = :leyenda_4,
+                    leyenda_5 = :leyenda_5,
                     lista_codigo = :lista_codigo,
                     lista_nombre_snapshot = :lista_nombre_snapshot,
                     lista_id_interno = :lista_id_interno,
@@ -351,6 +364,7 @@ class PresupuestoRepository
                     clasificacion_codigo = :clasificacion_codigo,
                     clasificacion_id_tango = :clasificacion_id_tango,
                     clasificacion_descripcion = :clasificacion_descripcion,
+                    cotizacion = :cotizacion,
                     subtotal = :subtotal,
                     descuento_total = :descuento_total,
                     impuestos_total = :impuestos_total,
@@ -361,8 +375,18 @@ class PresupuestoRepository
             $payload = $this->buildHeaderPayload($data);
             $payload[':id'] = $id;
             $payload[':empresa_id'] = $empresaId;
-            unset($payload[':usuario_id'], $payload[':usuario_nombre']);
-            
+            // Removemos placeholders que NO están en el SET del UPDATE.
+            // - usuario_id / usuario_nombre: solo se setean al crear, no pisan en edit.
+            // - version_padre_id / version_numero: metadata estable del versionado;
+            //   NO debe pisarse en un edit común (release 1.29.x). Si en algún
+            //   momento queremos permitir editarlos, hay que sumarlos al SET arriba.
+            unset(
+                $payload[':usuario_id'],
+                $payload[':usuario_nombre'],
+                $payload[':version_padre_id'],
+                $payload[':version_numero']
+            );
+
             $stmt->execute($payload);
 
             $deleteStmt = $this->db->prepare('DELETE FROM crm_presupuesto_items WHERE presupuesto_id = :presupuesto_id AND empresa_id = :empresa_id');
@@ -388,6 +412,158 @@ class PresupuestoRepository
 
             throw $e;
         }
+    }
+
+    /**
+     * Genera una nueva versión de un presupuesto existente (release 1.29.x).
+     *
+     * Diferencia con copy() (controller): la nueva versión queda VINCULADA al
+     * original mediante version_padre_id (apuntando a la RAÍZ del grupo) +
+     * version_numero secuencial. Eso permite trazar la cadena de iteraciones.
+     *
+     * Reglas:
+     *   - El nuevo presupuesto siempre arranca en estado='borrador' (decisión
+     *     de Charly 2026-04-29).
+     *   - Numero secuencial NUEVO (siguiente disponible para la empresa).
+     *   - Items copiados con su descripción adicional preservada.
+     *   - version_padre_id apunta a la RAÍZ del grupo: si el original ya es
+     *     una versión derivada, usamos su version_padre_id; si es la raíz,
+     *     usamos su propio id.
+     *
+     * @return int  ID del nuevo presupuesto creado.
+     */
+    public function createNewVersion(int $sourcePresupuestoId, int $empresaId, ?int $usuarioId = null, ?string $usuarioNombre = null): int
+    {
+        $original = $this->findById($sourcePresupuestoId, $empresaId);
+        if ($original === null) {
+            throw new \RuntimeException('No se encontró el presupuesto base para versionar.');
+        }
+
+        // Resolver la RAÍZ del grupo de versiones.
+        // Si el original NO tiene version_padre_id → es la raíz → usamos su id.
+        // Si SÍ tiene → ya está apuntando a la raíz → reusamos.
+        $raizId = !empty($original['version_padre_id'])
+            ? (int) $original['version_padre_id']
+            : (int) $original['id'];
+
+        // Próxima version_numero del grupo: max(actual) + 1.
+        // OJO: PDO con emulate_prepares=false NO permite reusar el mismo placeholder
+        // dos veces en el SQL. Por eso usamos :raiz_id_self y :raiz_id_padre.
+        $stmt = $this->db->prepare(
+            'SELECT COALESCE(MAX(version_numero), 0) AS max_v
+             FROM crm_presupuestos
+             WHERE empresa_id = :empresa_id
+               AND (id = :raiz_id_self OR version_padre_id = :raiz_id_padre)
+               AND deleted_at IS NULL'
+        );
+        $stmt->execute([
+            ':empresa_id'     => $empresaId,
+            ':raiz_id_self'   => $raizId,
+            ':raiz_id_padre'  => $raizId,
+        ]);
+        $maxVersion = (int) $stmt->fetchColumn();
+        $nuevaVersion = $maxVersion + 1;
+
+        // Items del original (con todos los snapshots).
+        $itemsOriginales = $this->findItemsByPresupuestoId($sourcePresupuestoId, $empresaId);
+        $itemsNuevos = [];
+        foreach ($itemsOriginales as $item) {
+            $itemsNuevos[] = [
+                'orden' => (int) ($item['orden'] ?? (count($itemsNuevos) + 1)),
+                'articulo_id' => $item['articulo_id'] ?? null,
+                'articulo_codigo' => (string) ($item['articulo_codigo'] ?? ''),
+                'articulo_descripcion' => (string) ($item['articulo_descripcion_snapshot'] ?? ''),
+                'articulo_descripcion_original' => (string) ($item['articulo_descripcion_original'] ?? $item['articulo_descripcion_snapshot'] ?? ''),
+                'cantidad' => (float) ($item['cantidad'] ?? 0),
+                'precio_unitario' => (float) ($item['precio_unitario'] ?? 0),
+                'bonificacion_porcentaje' => (float) ($item['bonificacion_porcentaje'] ?? 0),
+                'importe_bruto' => (float) ($item['importe_bruto'] ?? 0),
+                'importe_neto' => (float) ($item['importe_neto'] ?? 0),
+                'precio_origen' => (string) ($item['precio_origen'] ?? 'manual'),
+                'lista_codigo_aplicada' => $item['lista_codigo_aplicada'] ?? null,
+            ];
+        }
+
+        // Armar el data como espera create(). Heredamos cabecera completa pero
+        // forzamos: estado=borrador, fecha=ahora, vínculo de versión.
+        // NO heredamos: nro_comprobante_tango, tango_sync_*, correos_* — son del original.
+        $data = [
+            'empresa_id' => $empresaId,
+            'tratativa_id' => $original['tratativa_id'] ?? null,
+            'version_padre_id' => $raizId,
+            'version_numero' => $nuevaVersion,
+            'usuario_id' => $usuarioId,
+            'usuario_nombre' => $usuarioNombre ?? 'Usuario',
+            'fecha' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'estado' => 'borrador',
+            'cotizacion' => $original['cotizacion'] ?? 1,
+            'proximo_contacto' => $original['proximo_contacto'] ?? null,
+            'vigencia' => $original['vigencia'] ?? null,
+            'leyenda_1' => $original['leyenda_1'] ?? null,
+            'leyenda_2' => $original['leyenda_2'] ?? null,
+            'leyenda_3' => $original['leyenda_3'] ?? null,
+            'leyenda_4' => $original['leyenda_4'] ?? null,
+            'leyenda_5' => $original['leyenda_5'] ?? null,
+            'cliente_id' => (int) ($original['cliente_id'] ?? 0),
+            'cliente_nombre_snapshot' => (string) ($original['cliente_nombre_snapshot'] ?? ''),
+            'cliente_documento_snapshot' => $original['cliente_documento_snapshot'] ?? null,
+            'deposito_codigo' => $original['deposito_codigo'] ?? null,
+            'deposito_nombre_snapshot' => $original['deposito_nombre_snapshot'] ?? null,
+            'condicion_codigo' => $original['condicion_codigo'] ?? null,
+            'condicion_nombre_snapshot' => $original['condicion_nombre_snapshot'] ?? null,
+            'condicion_id_interno' => $original['condicion_id_interno'] ?? null,
+            'transporte_codigo' => $original['transporte_codigo'] ?? null,
+            'transporte_nombre_snapshot' => $original['transporte_nombre_snapshot'] ?? null,
+            'transporte_id_interno' => $original['transporte_id_interno'] ?? null,
+            'lista_codigo' => $original['lista_codigo'] ?? null,
+            'lista_nombre_snapshot' => $original['lista_nombre_snapshot'] ?? null,
+            'lista_id_interno' => $original['lista_id_interno'] ?? null,
+            'vendedor_codigo' => $original['vendedor_codigo'] ?? null,
+            'vendedor_nombre_snapshot' => $original['vendedor_nombre_snapshot'] ?? null,
+            'vendedor_id_interno' => $original['vendedor_id_interno'] ?? null,
+            'clasificacion_codigo' => $original['clasificacion_codigo'] ?? null,
+            'clasificacion_id_tango' => $original['clasificacion_id_tango'] ?? null,
+            'clasificacion_descripcion' => $original['clasificacion_descripcion'] ?? null,
+            'subtotal' => (float) ($original['subtotal'] ?? 0),
+            'descuento_total' => (float) ($original['descuento_total'] ?? 0),
+            'impuestos_total' => (float) ($original['impuestos_total'] ?? 0),
+            'total' => (float) ($original['total'] ?? 0),
+            'items' => $itemsNuevos,
+        ];
+
+        return $this->create($data);
+    }
+
+    /**
+     * Cuenta de versiones del grupo (incluye la raíz). Útil para mostrar "v2 de N".
+     *
+     * @return array{total:int, max_version:int, raiz_id:int}
+     */
+    public function getVersionStats(int $presupuestoId, int $empresaId): array
+    {
+        $row = $this->findById($presupuestoId, $empresaId);
+        if ($row === null) {
+            return ['total' => 0, 'max_version' => 0, 'raiz_id' => 0];
+        }
+        $raizId = !empty($row['version_padre_id']) ? (int) $row['version_padre_id'] : (int) $row['id'];
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) AS total, COALESCE(MAX(version_numero), 1) AS max_v
+             FROM crm_presupuestos
+             WHERE empresa_id = :empresa_id
+               AND (id = :raiz_id_self OR version_padre_id = :raiz_id_padre)
+               AND deleted_at IS NULL'
+        );
+        $stmt->execute([
+            ':empresa_id'    => $empresaId,
+            ':raiz_id_self'  => $raizId,
+            ':raiz_id_padre' => $raizId,
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['total' => 0, 'max_v' => 0];
+        return [
+            'total' => (int) $row['total'],
+            'max_version' => (int) $row['max_v'],
+            'raiz_id' => $raizId,
+        ];
     }
 
     public function findArticleContext(int $empresaId, int $articuloId, ?string $listaCodigo, ?string $depositoCodigo = null): ?array
@@ -450,14 +626,19 @@ class PresupuestoRepository
         }
 
         $stmt = $this->db->prepare('INSERT INTO crm_presupuesto_items (
-                presupuesto_id, empresa_id, orden, articulo_id, articulo_codigo, articulo_descripcion_snapshot,
+                presupuesto_id, empresa_id, orden, articulo_id, articulo_codigo, articulo_descripcion_snapshot, articulo_descripcion_original,
                 lista_codigo_aplicada, cantidad, precio_unitario, bonificacion_porcentaje, importe_bruto, importe_neto, precio_origen, created_at, updated_at
             ) VALUES (
-                :presupuesto_id, :empresa_id, :orden, :articulo_id, :articulo_codigo, :articulo_descripcion_snapshot,
+                :presupuesto_id, :empresa_id, :orden, :articulo_id, :articulo_codigo, :articulo_descripcion_snapshot, :articulo_descripcion_original,
                 :lista_codigo_aplicada, :cantidad, :precio_unitario, :bonificacion_porcentaje, :importe_bruto, :importe_neto, :precio_origen, NOW(), NOW()
             )');
 
         foreach ($items as $index => $item) {
+            // articulo_descripcion_original: si el caller lo pasa explícito, lo
+            // usamos. Sino caemos al snapshot (caso típico de presupuestos viejos
+            // o de copy() — que clona items y no necesariamente trae el original
+            // por separado).
+            $original = $item['articulo_descripcion_original'] ?? $item['articulo_descripcion'] ?? '';
             $stmt->execute([
                 ':presupuesto_id' => $presupuestoId,
                 ':empresa_id' => $empresaId,
@@ -465,6 +646,7 @@ class PresupuestoRepository
                 ':articulo_id' => $this->nullableInt($item['articulo_id'] ?? null),
                 ':articulo_codigo' => (string) ($item['articulo_codigo'] ?? ''),
                 ':articulo_descripcion_snapshot' => (string) ($item['articulo_descripcion'] ?? ''),
+                ':articulo_descripcion_original' => (string) $original,
                 ':lista_codigo_aplicada' => $this->nullableString($item['lista_codigo_aplicada'] ?? null),
                 ':cantidad' => (float) ($item['cantidad'] ?? 0),
                 ':precio_unitario' => (float) ($item['precio_unitario'] ?? 0),
@@ -481,6 +663,8 @@ class PresupuestoRepository
         return [
             ':empresa_id' => (int) ($data['empresa_id'] ?? 0),
             ':tratativa_id' => !empty($data['tratativa_id']) ? (int) $data['tratativa_id'] : null,
+            ':version_padre_id' => !empty($data['version_padre_id']) ? (int) $data['version_padre_id'] : null,
+            ':version_numero' => isset($data['version_numero']) && (int) $data['version_numero'] > 0 ? (int) $data['version_numero'] : 1,
             ':fecha' => (string) ($data['fecha'] ?? ''),
             ':cliente_id' => (int) ($data['cliente_id'] ?? 0),
             ':cliente_nombre_snapshot' => (string) ($data['cliente_nombre_snapshot'] ?? ''),
@@ -493,6 +677,14 @@ class PresupuestoRepository
             ':transporte_codigo' => $this->nullableString($data['transporte_codigo'] ?? null),
             ':transporte_nombre_snapshot' => $this->nullableString($data['transporte_nombre_snapshot'] ?? null),
             ':transporte_id_interno' => $this->nullableInt($data['transporte_id_interno'] ?? null),
+            ':proximo_contacto' => $this->nullableString($data['proximo_contacto'] ?? null),
+            ':vigencia' => $this->nullableString($data['vigencia'] ?? null),
+            ':leyenda_1' => $this->nullableString($data['leyenda_1'] ?? null),
+            ':leyenda_2' => $this->nullableString($data['leyenda_2'] ?? null),
+            ':leyenda_3' => $this->nullableString($data['leyenda_3'] ?? null),
+            ':leyenda_4' => $this->nullableString($data['leyenda_4'] ?? null),
+            ':leyenda_5' => $this->nullableString($data['leyenda_5'] ?? null),
+            ':cotizacion' => isset($data['cotizacion']) && $data['cotizacion'] !== '' ? (float) $data['cotizacion'] : 1.0,
             ':lista_codigo' => $this->nullableString($data['lista_codigo'] ?? null),
             ':lista_nombre_snapshot' => $this->nullableString($data['lista_nombre_snapshot'] ?? null),
             ':lista_id_interno' => $this->nullableInt($data['lista_id_interno'] ?? null),
@@ -612,6 +804,26 @@ class PresupuestoRepository
         try {
             $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN clasificacion_descripcion VARCHAR(255) NULL AFTER clasificacion_id_tango');
         } catch (\Throwable $e) {}
+
+        // Cotización + Próximo contacto + Vigencia + 5 Leyendas (release 1.29.0).
+        // Defensivos por las dudas de que la migración no haya corrido en algún ambiente.
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN cotizacion DECIMAL(15,4) NOT NULL DEFAULT 1 AFTER estado'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN proximo_contacto DATETIME NULL AFTER transporte_id_interno'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN vigencia DATETIME NULL AFTER proximo_contacto'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_1 VARCHAR(60) NULL AFTER vigencia'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_2 VARCHAR(60) NULL AFTER leyenda_1'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_3 VARCHAR(60) NULL AFTER leyenda_2'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_4 VARCHAR(60) NULL AFTER leyenda_3'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_5 VARCHAR(60) NULL AFTER leyenda_4'); } catch (\Throwable $e) {}
+
+        // articulo_descripcion_original (release 1.29.x) — conserva el nombre del
+        // artículo al momento de selección desde el catálogo, no se pisa al editar.
+        try { $this->db->exec('ALTER TABLE crm_presupuesto_items ADD COLUMN articulo_descripcion_original VARCHAR(255) NULL AFTER articulo_descripcion_snapshot'); } catch (\Throwable $e) {}
+
+        // Versionado de presupuestos (release 1.29.x).
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN version_padre_id INT NULL AFTER tratativa_id'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN version_numero INT NOT NULL DEFAULT 1 AFTER version_padre_id'); } catch (\Throwable $e) {}
+        try { $this->db->exec('CREATE INDEX idx_crm_presupuestos_version_padre ON crm_presupuestos (empresa_id, version_padre_id)'); } catch (\Throwable $e) {}
 
         try {
             // Backfill temporal para setear el usuario 1 a los Presupuestos historicos sin asignar
