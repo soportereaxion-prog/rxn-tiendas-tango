@@ -76,4 +76,35 @@ Complementa al esquema de **Return-URL post-login** (en `AuthService::requireLog
 3. **Recuperación**: al recargar el form, banner inline.
 4. **Cierre por submit OK**: el JS dispara `discard` en el `submit` del form. Si el server rechaza el guardado real (validación), el draft queda descartado prematuramente — se prefirió eso a que quede un draft viejo conviviendo con el form actual.
 5. **Cierre manual**: botón "Descartar" en el banner inline o en el panel.
-6. **Sin TTL automático**: los drafts no expiran solos. Si querés un GC futuro, sumar un job que borre `WHERE updated_at < NOW() - INTERVAL 30 DAY`. Por ahora la intuición es que un draft viejo sigue siendo útil mientras el usuario no haya guardado el registro real.
+6. **Sin TTL automático**: los drafts no expiran solos. Ver sección "Operaciones / Performance / GC" más abajo para el plan de garbage collection.
+
+## Operaciones / Performance / GC
+
+### Carga estimada
+- **Por operador con 1 form abierto y tipeando activamente**: ~12 saves/min (debounce 5s) + 1 heartbeat/min = **~13 req/min**.
+- **Por tab idle (sin tipear)**: solo 1 heartbeat/min — los saves no se disparan sin `input`/`change`.
+- **Cada save**: 1 `INSERT ... ON DUPLICATE KEY UPDATE` sobre `drafts` (UNIQUE index, O(log n)). Payload típico 5–30 KB, cap 1 MB.
+- **Cada heartbeat**: cero queries propias. Solo lee `$_SESSION` en memoria y devuelve JSON. El UPDATE de `usuarios.ultimo_acceso` que dispara `App.php` ya existía con throttle de 60s — el session-keeper NO sumó queries, monta sobre la presencia que ya estaba.
+
+**Escenario 20 operadores concurrentes, 2 tabs cada uno, 1 tipeando activamente:**
+- Saves: 240/min (~4/s).
+- Heartbeats: 40/min (~0.7/s).
+- Total: ~5 req/s. Despreciable comparado con el tráfico normal del CRM (búsquedas, pickers, Tango sync, mail masivos).
+
+### Aislamiento multi-tenant
+Cada save filtra por `(user_id, empresa_id)` desde sesión, nunca desde request. Un usuario que cambia de empresa NO ve los drafts de otra empresa. Los UNIQUE keys los aislan a nivel DB. La whitelist de módulos + regex de `ref` limitan el espacio total a unas pocas filas por usuario por empresa.
+
+### Crecimiento de la tabla
+Sin TTL automático, los drafts abandonados (no submiteados ni descartados manualmente) quedan para siempre. Acumulación estimada: ~50 operadores × ~1 draft fantasma/semana × 52 semanas = ~2600 filas/año. **No es crítico para performance** (la tabla escala fina con índices), pero es deuda técnica de higiene.
+
+### Plan de GC (pendiente — agregar cuando se vea acumulación)
+Cuando se decida sumarlo:
+1. Endpoint nuevo `POST /api/internal/drafts/gc` con auth por `X-RXN-Token` (mismo patrón que `/api/internal/notifications/tick`).
+2. Lógica: `DELETE FROM drafts WHERE updated_at < NOW() - INTERVAL 30 DAY`.
+3. Sumar un node al workflow tick global de n8n (frecuencia diaria a las 03:00, no necesita más).
+
+No es bloqueante. Charly va a estar atento al crecimiento y lo accionamos cuando lo veamos amerite.
+
+### Mitigaciones opcionales (si se ve abuso)
+- **Rate limiting en `save`**: `RateLimiter::allow($key, 60, 60)` (60 saves/min por user). Permite el flujo normal de 12/min con mucho headroom y corta cualquier abuso. No agregado por ahora — el cap de 1MB + UNIQUE keys ya limitan el daño práctico.
+- **Backoff de saves cuando la red está flaky**: condicionar el siguiente save a que el anterior haya respondido. No urgente — el `fetch` actual es fire-and-forget y para volúmenes normales no genera problema.
