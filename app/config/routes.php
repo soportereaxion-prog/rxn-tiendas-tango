@@ -595,4 +595,11 @@ return function (Router $router): void {
     $router->post('/api/webhooks/anura/{slug}', [\App\Modules\CrmLlamadas\WebhookController::class, 'handleAnura']);
     // Hook de prueba interno (emulación manual vía navegador)
     $router->get('/api/webhooks/anura/{slug}/test', [\App\Modules\CrmLlamadas\WebhookController::class, 'testHook']);
+
+    // --- RXN PWA (Presupuestos mobile offline) — Bloques A + B ---
+    $router->get('/rxnpwa/presupuestos', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestosShell']);
+    $router->get('/rxnpwa/presupuestos/nuevo', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestoNuevo']);
+    $router->get('/rxnpwa/presupuestos/editar/{tmpUuid}', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestoEditar']);
+    $router->get('/api/rxnpwa/catalog/version', [\App\Modules\RxnPwa\RxnPwaController::class, 'catalogVersion']);
+    $router->get('/api/rxnpwa/catalog/full', [\App\Modules\RxnPwa\RxnPwaController::class, 'catalogFull']);
 };

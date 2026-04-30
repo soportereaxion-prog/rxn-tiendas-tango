@@ -1,9 +1,79 @@
 <?php
 
 return [
-    'current_version' => '1.30.0',
-    'current_build' => '20260430.1',
+    'current_version' => '1.32.0',
+    'current_build' => '20260430.3',
     'history' => [
+        [
+            'version' => '1.32.0',
+            'build' => '20260430.3',
+            'released_at' => '2026-04-30',
+            'title' => 'Iteración 42 — RXN PWA Fase 2: form mobile + creación offline con adjuntos comprimidos',
+            'summary' => 'Cierra la Fase 2 del roadmap PWA. Ahora los vendedores en campo pueden crear presupuestos completos desde el celu, 100% offline, con todos sus adjuntos. La sincronización al server queda para Fase 3 (cola + reconciliación). Lo que se entrega: (1) Vista mobile dedicada presupuesto_form.php en /rxnpwa/presupuestos/nuevo y /rxnpwa/presupuestos/editar/{tmpUuid}. Cabecera (cliente, lista de precio, depósito, clasificación), renglones con modal dedicado (picker de artículo + cantidad + descuento % + precio editable), comentarios y observaciones con counter "N / 950 chars a Tango", adjuntos con cámara directa + selector de archivos. (2) IndexedDB v2 — la DB rxnpwa pasó de version 1 a version 2. Sumamos 2 stores: presupuestos_drafts (keyPath tmp_uuid) con índices by_status y by_updated_at, y presupuesto_attachments (keyPath autoIncrement) con índice by_tmp_uuid. La migración la hace el browser solo en el onupgradeneeded. (3) UUID local TMP-<uuid> generado con crypto.randomUUID, persistido al primer save. La URL del form se reescribe via history.replaceState al uuid generado para que un reload edite el mismo draft. (4) Auto-save silencioso cada 1.5s al cambiar cualquier input/select/textarea + botón "Guardar borrador" manual con feedback visible. updated_at se actualiza en cada save y total se recalcula automático. (5) Pickers de cliente y artículo con búsqueda fuzzy local — full text match sobre razon_social, documento, codigo_tango (clientes) o codigo_externo, nombre, descripcion (artículos). Limit 30 resultados para no congelar la UI con 4500 artículos. (6) Auto-precio según la lista seleccionada (resolvePrice consulta crm_articulo_precios local con fallback a precio_lista_1 → precio base) + auto-stock visible según depósito (resolveStock contra crm_articulo_stocks local). (7) Adjuntos: 2 botones — "Sacar foto" con input capture=environment para abrir cámara trasera directa (Android/iOS), y "Adjuntar archivo" con input multi-file que acepta JPG/PNG/WebP + PDF + Word (.doc/.docx) + Excel (.xls/.xlsx). Límite 10 por presupuesto, warning amarillo a partir del 5. Compresión automática SOLO de imágenes con canvas: max 1600px lado largo + calidad 80% JPEG/WebP, mantiene PNG si detecta transparencia (sample en 5 puntos del canvas). Si la "compresión" resulta más pesada que la original (imagen ya optimizada o muy chica), devuelve la original sin tocar. PDF/Office van crudos. (8) Listado "Mis borradores" en el shell — lee IndexedDB y renderiza un card por draft con cliente, total, nº de renglones/adjuntos, fecha y badge de estado. Click → abre el form en modo edit. (9) CSS rxnpwa.css separado del shell con tokens de color compartidos. SW bumpeado a rxnpwa-v2 con precache extendido al CSS y a /rxnpwa/presupuestos/nuevo. (10) Auth y multi-tenancy idénticos a Fase 1 — cookie de sesión + requireCrmAccess + sanitizeTmpUuid en el controller para validar el formato del UUID en URL antes de rendear (evita reflected XSS via path).',
+            'items' => [
+                // === Vista del form mobile ===
+                'app/modules/RxnPwa/RxnPwaController.php: 2 actions nuevas — presupuestoNuevo() y presupuestoEditar(string $tmpUuid). sanitizeTmpUuid() valida formato TMP-[A-Za-z0-9-]{1,64} para evitar path injection.',
+                'app/modules/RxnPwa/views/presupuesto_form.php: vista mobile dedicada con cabecera + renglones + comentarios/observaciones + adjuntos + modal de agregar renglón. Inputs file ocultos con accept y capture=environment.',
+
+                // === IndexedDB v2 ===
+                'public/js/pwa/rxnpwa-catalog-store.js: DB_VERSION bumpeado a 2. onupgradeneeded crea presupuestos_drafts (keyPath tmp_uuid + índices by_status/by_updated_at) y presupuesto_attachments (autoIncrement + índice by_tmp_uuid).',
+                'public/js/pwa/rxnpwa-drafts-store.js: wrapper nuevo. API createDraft, getDraft, saveDraft, listDrafts, deleteDraft (cascade attachments) + addAttachment, listAttachments, removeAttachment, countAttachments + helpers generateUuid (crypto.randomUUID con fallback) y computeTotal.',
+
+                // === Compresión imágenes ===
+                'public/js/pwa/rxnpwa-image-compressor.js: compress(file, opts) con createImageBitmap + canvas. Sample 5 puntos para detectar canal alfa en PNG (mantiene PNG si transparente, convierte a JPEG si opaca). Skip si !isImage. Skip si comprimida > original.',
+
+                // === Lógica del form ===
+                'public/js/pwa/rxnpwa-form.js: orquesta carga catálogo + load/create draft + render secciones + wireEvents. resolvePrice (lista local → fallback) + resolveStock (depósito local) + recomputeRenglonSubtotal + recalcRenglonesPrecio cuando cambia lista. Auto-save debounce 1.5s + history.replaceState al uuid generado.',
+
+                // === Listado en shell ===
+                'public/js/pwa/rxnpwa-shell-drafts.js: renderDrafts() lee listDrafts + countAttachments por cada uno y arma cards con cliente, total, fecha, badge de estado. Renderiza placeholder cuando vacío.',
+                'app/modules/RxnPwa/views/presupuestos_shell.php: removidos los placeholders Fase 2 (form). Sumado el card "Mis borradores" + botón "Nuevo" + listado dinámico.',
+
+                // === CSS + SW ===
+                'public/css/rxnpwa.css: estilos compartidos shell + form. Tokens --rxnpwa-bg/card-bg/card-border/muted/text. Selectores rxnpwa-suggestions, rxnpwa-renglon, rxnpwa-att-thumb, rxnpwa-draft-card.',
+                'public/sw.js: RXNPWA_VERSION bumpeado a v2 (rxnpwa-v2-2026-04-30). SHELL_URLS suma /rxnpwa/presupuestos/nuevo + /css/rxnpwa.css. isPwaAsset incluye /css/rxnpwa.css. Estrategias intactas.',
+
+                // === Routing ===
+                'app/config/routes.php: 2 rutas nuevas — GET /rxnpwa/presupuestos/nuevo y GET /rxnpwa/presupuestos/editar/{tmpUuid}.',
+
+                // === Versión ===
+                'app/config/version.php: bump a 1.32.0 / build 20260430.3.',
+            ],
+        ],
+        [
+            'version' => '1.31.0',
+            'build' => '20260430.2',
+            'released_at' => '2026-04-30',
+            'title' => 'Iteración 42 — RXN PWA Fase 1: andamiaje mobile + catálogo offline-readable con versionado',
+            'summary' => 'Arrancó la PWA mobile de Presupuestos para que los vendedores trabajen en campo con conectividad intermitente. Esta release entrega el Bloque A del roadmap (3 bloques): andamiaje completo + catálogo offline + versionado server-side. Las fases 2 (form_mobile + creación offline) y 3 (sync queue + reconciliación) vienen en próximas iteraciones. Lo que hay arriba ahora: (1) Módulo nuevo App\\Modules\\RxnPwa con shell HTML mobile en /rxnpwa/presupuestos (auth por cookie de sesión + acceso CRM, multi-tenant estricto). (2) 2 endpoints API: GET /api/rxnpwa/catalog/version devuelve {hash, generated_at, items_count, size_bytes} y GET /api/rxnpwa/catalog/full devuelve el catálogo completo + hash en header. El catálogo consolida 10 entidades por empresa: clientes activos, artículos, precios (todas las listas), stocks (todos los depósitos), condiciones de venta, listas de precio, vendedores, transportes, depósitos y clasificaciones PDS. (3) Versionado por hash SHA-1 global por empresa, persistido en tabla nueva rxnpwa_catalog_versions (1 fila por empresa). Decisión P0 con el rey: invalidación on-write — los 5 syncs existentes (artículos, clientes, catálogos comerciales, precios, stock) llaman invalidate() inmediatamente después del éxito, marcando el hash como NULL; el próximo GET /version recalcula on-the-fly. Esto evita pegarle al SHA-1 de 5k artículos × N listas × M depósitos en cada chequeo. (4) Service Worker extendido — el SW que ya existía para Web Push (release 1.27.0) se mantiene 100% intacto y se le sumó la sección PWA con cacheo del shell (network-first), assets PWA (stale-while-revalidate) y passthrough explícito de /api/rxnpwa/ para que el cache no enmascare el hash fresco. (5) IndexedDB cliente — wrapper vanilla en /js/pwa/rxnpwa-catalog-store.js con DB rxnpwa, 10 stores (1 por entidad) + meta store. saveCatalog() hace clear-and-fill por store (predecible para 5k ítems). (6) UI shell con badge dinámico de estado: 🟢 al día / 🟡 desactualizado por tiempo (umbral 6h, parametrizable) / 🟡 hay versión nueva en server / 🔴 sin catálogo / 📡 modo offline / ⚠️ error. El threshold se va a afinar viendo el comportamiento real en empresas. (7) Manifest PWA completo + 2 íconos placeholder (192x192 y 512x512) generados con script tools/generate_rxnpwa_icons.php — reemplazables por el arte final. Smoke test backend: empresa local con 475 clientes + 4500 artículos + 32 listas → 6423 ítems consolidados, payload 877KB, hash determinístico estable entre calls + recálculo correcto post-invalidate.',
+            'items' => [
+                // === Módulo nuevo ===
+                'app/modules/RxnPwa/RxnPwaController.php: 3 actions — presupuestosShell (HTML), catalogVersion (JSON), catalogFull (JSON con header X-Rxnpwa-Catalog-Hash). Auth: requireLogin + requireCrmAccess. Multi-tenant via Context::getEmpresaId().',
+                'app/modules/RxnPwa/RxnPwaCatalogService.php: consolida payload de 10 entidades. ensureVersion() = fast path desde DB cuando hash está fresco / recalcula si NULL. getFullCatalog() siempre arma payload + persiste hash si cambió. Encode JSON con UNESCAPED_UNICODE para hash estable.',
+                'app/modules/RxnPwa/RxnPwaCatalogVersionRepository.php: tabla rxnpwa_catalog_versions con UNIQUE empresa_id. Métodos save (UPSERT) e invalidate (NULL hash). ensureSchema() defensivo idempotente.',
+                'app/modules/RxnPwa/views/presupuestos_shell.php: shell HTML mobile dedicado (no admin_layout). Bootstrap + Bootstrap Icons. 4 cards: badge de estado, "Sincronizar catálogo ahora", placeholder Fase 2 (form_mobile), placeholder Fase 3 (cola de envío).',
+                'app/modules/RxnPwa/MODULE_CONTEXT.md: doc del módulo con roadmap A/B/C, arquitectura, endpoints, schema, hooks de invalidación, estrategias del SW, checklist de seguridad transversal.',
+
+                // === Migración + hooks de invalidación ===
+                'database/migrations/2026_04_30_01_create_rxnpwa_catalog_versions.php: tabla nueva con UNIQUE(empresa_id) + columnas hash CHAR(40), generated_at, payload_size_bytes, payload_items_count.',
+                'app/modules/RxnSync/RxnSyncController.php: invalidate() post-syncPullArticulos / syncPullClientes / syncCatalogos.',
+                'app/modules/Tango/Controllers/TangoSyncController.php: invalidate() post-syncPrecios / syncStock.',
+
+                // === Frontend (manifest + SW + JS) ===
+                'public/manifest.webmanifest: name "RXN PWA — Presupuestos", scope /rxnpwa/, start_url /rxnpwa/presupuestos, display standalone, theme_color #0f172a, locale es-AR.',
+                'public/sw.js: extensión PWA sobre el SW existente — preserva 100% del flujo de Web Push (release 1.27.0) y suma install/activate/fetch con caches versionadas (RXNPWA_VERSION). Network-first para shell, stale-while-revalidate para assets PWA, passthrough para /api/rxnpwa/* (el cache local es IndexedDB).',
+                'public/js/pwa/rxnpwa-catalog-store.js: wrapper IndexedDB vanilla. DB rxnpwa con 10 stores + __meta. saveCatalog/loadAll/getMeta/setMeta/clear.',
+                'public/js/pwa/rxnpwa-register.js: registra /sw.js con scope /. Pega a /version, compara hash con meta local, renderiza badge según estado. Botón [data-rxnpwa-sync] dispara fetch al /full + saveCatalog. Threshold edad inicial 6h.',
+                'public/icons/rxnpwa-192.png + rxnpwa-512.png: placeholders #0f172a + texto RXN. Regenerables con tools/generate_rxnpwa_icons.php.',
+                'tools/generate_rxnpwa_icons.php: script CLI con GD para regenerar los 2 íconos cuando se actualice el arte final.',
+
+                // === Routing ===
+                'app/config/routes.php: 3 rutas nuevas — GET /rxnpwa/presupuestos, GET /api/rxnpwa/catalog/version, GET /api/rxnpwa/catalog/full.',
+
+                // === Versión ===
+                'app/config/version.php: bump a 1.31.0 / build 20260430.2.',
+            ],
+        ],
         [
             'version' => '1.30.0',
             'build' => '20260430.1',

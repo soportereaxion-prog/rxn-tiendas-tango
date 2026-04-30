@@ -275,6 +275,8 @@ class RxnSyncController extends Controller
             $importStats = $tangoSyncService->syncArticulos();
             $auditResult = $this->service->auditarArticulos($empresaId);
 
+            (new \App\Modules\RxnPwa\RxnPwaCatalogVersionRepository())->invalidate($empresaId);
+
             $msg = sprintf(
                 'Sincronización completada. Importados: %d recibidos → %d nuevos / %d actualizados / %d omitidos. Vinculación: %d vinculados / %d pendientes.',
                 (int) ($importStats['recibidos'] ?? 0),
@@ -319,6 +321,8 @@ class RxnSyncController extends Controller
             $tangoSyncService = $this->resolveTangoSyncService();
             $importStats = $tangoSyncService->syncClientes();
             $auditResult = $this->service->auditarClientes($empresaId);
+
+            (new \App\Modules\RxnPwa\RxnPwaCatalogVersionRepository())->invalidate($empresaId);
 
             $msg = sprintf(
                 'Sincronización completada. Importados: %d recibidos → %d nuevos / %d actualizados / %d omitidos. Vinculación: %d vinculados / %d pendientes.',
@@ -368,6 +372,8 @@ class RxnSyncController extends Controller
             $empresaId = (int) Context::getEmpresaId();
             $catalogSync = new \App\Modules\RxnSync\Services\CommercialCatalogSyncService();
             $stats = $catalogSync->sync($empresaId);
+
+            (new \App\Modules\RxnPwa\RxnPwaCatalogVersionRepository())->invalidate($empresaId);
 
             $msg = sprintf(
                 'Catálogos sincronizados. Condiciones: %d / Listas: %d / Vendedores: %d / Transportes: %d / Depósitos: %d / Clasificaciones PDS: %d (total recibidos).',

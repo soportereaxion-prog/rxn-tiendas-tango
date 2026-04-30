@@ -1,0 +1,135 @@
+/* RXN PWA — estilos compartidos del shell + form. Iteración 42, Fase 2. */
+
+:root {
+    --rxnpwa-bg: #0f172a;
+    --rxnpwa-card-bg: #1e293b;
+    --rxnpwa-card-border: #334155;
+    --rxnpwa-muted: #94a3b8;
+    --rxnpwa-text: #f1f5f9;
+}
+
+body {
+    background: var(--rxnpwa-bg);
+    color: var(--rxnpwa-text);
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.rxnpwa-header {
+    background: var(--rxnpwa-card-bg);
+    padding: 0.75rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+
+.rxnpwa-shell {
+    padding: 1rem;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.rxnpwa-card {
+    background: var(--rxnpwa-card-bg);
+    border: 1px solid var(--rxnpwa-card-border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rxnpwa-card .form-control,
+.rxnpwa-card .form-select {
+    background-color: #0b1220;
+    color: var(--rxnpwa-text);
+    border-color: #334155;
+}
+
+.rxnpwa-card .form-control::placeholder {
+    color: #64748b;
+}
+
+.rxnpwa-card .form-control:focus,
+.rxnpwa-card .form-select:focus {
+    background-color: #0b1220;
+    color: var(--rxnpwa-text);
+    border-color: #475569;
+    box-shadow: 0 0 0 0.2rem rgba(71, 85, 105, 0.4);
+}
+
+.rxnpwa-placeholder {
+    border: 1px dashed #475569;
+    border-radius: 0.75rem;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--rxnpwa-muted);
+}
+
+/* Suggestions (cliente/articulo picker) */
+.rxnpwa-suggestions {
+    background: #0b1220;
+    border: 1px solid var(--rxnpwa-card-border);
+    border-radius: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 0.5rem;
+}
+.rxnpwa-suggestions:empty {
+    border: none;
+}
+.rxnpwa-suggest-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--rxnpwa-card-border);
+    cursor: pointer;
+}
+.rxnpwa-suggest-item:last-child { border-bottom: none; }
+.rxnpwa-suggest-item:hover,
+.rxnpwa-suggest-item:active { background: #1e293b; }
+
+/* Renglones */
+.rxnpwa-renglon {
+    background: #0b1220;
+    border: 1px solid var(--rxnpwa-card-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Attachments */
+.rxnpwa-att-item {
+    background: #0b1220;
+    border: 1px solid var(--rxnpwa-card-border);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+}
+
+.rxnpwa-att-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+    background: #334155;
+    color: var(--rxnpwa-muted);
+    flex-shrink: 0;
+}
+
+/* Drafts list (en shell) */
+.rxnpwa-draft-card {
+    background: #0b1220;
+    border: 1px solid var(--rxnpwa-card-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    text-decoration: none;
+    color: var(--rxnpwa-text);
+    display: block;
+}
+.rxnpwa-draft-card:hover { background: #1e293b; color: var(--rxnpwa-text); }
+
+/* Modal en dark */
+.modal-content.bg-dark .form-control,
+.modal-content.bg-dark .form-select {
+    background-color: #0b1220;
+    color: var(--rxnpwa-text);
+    border-color: #334155;
+}

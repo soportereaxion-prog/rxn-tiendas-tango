@@ -89,7 +89,12 @@ class TangoSyncController extends Controller
         
         try {
             $stats = $syncService->syncPrecios();
-            
+
+            $empresaId = (int) \App\Core\Context::getEmpresaId();
+            if ($empresaId > 0) {
+                (new \App\Modules\RxnPwa\RxnPwaCatalogVersionRepository())->invalidate($empresaId);
+            }
+
             \App\Core\Flash::set('success', 'Sincronización de Precios finalizada exitosamente.', $stats);
             header('Location: ' . $redirectPath);
             exit;
@@ -109,7 +114,12 @@ class TangoSyncController extends Controller
         
         try {
             $stats = $syncService->syncStock();
-            
+
+            $empresaId = (int) \App\Core\Context::getEmpresaId();
+            if ($empresaId > 0) {
+                (new \App\Modules\RxnPwa\RxnPwaCatalogVersionRepository())->invalidate($empresaId);
+            }
+
             \App\Core\Flash::set('success', 'Sincronización de Stock finalizada exitosamente.', $stats);
             header('Location: ' . $redirectPath);
             exit;
