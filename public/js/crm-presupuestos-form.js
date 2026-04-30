@@ -464,6 +464,17 @@
             console.info('[Presupuesto] from_copy=1 detectado — lock de cabecera DESHABILITADO en este render.');
         }
 
+        // Modo "post-error de validación": el server re-renderea el form con los
+        // mensajes de error y los renglones ya cargados. Si aplicamos lockHeader()
+        // en ese render, el operador no puede editar los campos que justamente
+        // está obligado a corregir (ej: clasificación faltante). Detectamos el
+        // banner de errores en el DOM y deshabilitamos el lock inicial — lo mismo
+        // que hacemos con from_copy.
+        var hasValidationErrors = !!document.getElementById('crm-budget-error-banner');
+        if (hasValidationErrors && window.console && console.info) {
+            console.info('[Presupuesto] errores de validación detectados — lock de cabecera DESHABILITADO en este render.');
+        }
+
         function hasItems() {
             return itemsBody.querySelectorAll('[data-item-row]').length > 0;
         }
@@ -486,6 +497,7 @@
 
         function lockHeader() {
             if (isFromCopy) return; // bypass total durante el primer render post-copia
+            if (hasValidationErrors) return; // bypass durante el primer render post-error de validación
             if (!headerRequiredFieldsFilled()) return; // circuit breaker: nunca bloquear con faltantes
             headerFieldSelectors.forEach(function(sel) {
                 var el = form.querySelector(sel);

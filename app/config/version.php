@@ -1,9 +1,27 @@
 <?php
 
 return [
-    'current_version' => '1.29.0',
-    'current_build' => '20260429.2',
+    'current_version' => '1.29.1',
+    'current_build' => '20260429.3',
     'history' => [
+        [
+            'version' => '1.29.1',
+            'build' => '20260429.3',
+            'released_at' => '2026-04-29',
+            'title' => 'Presupuestos — autoguardado P3 con 3 estados visibles + Ctrl+S + fix lock post-error de validación',
+            'summary' => 'Cierre del módulo Presupuestos con la P3 que el rey pidió antes de subir a producción: el `<form>` ahora autoguarda como borrador en el server (reusa la tabla `drafts` y el JS `rxn-draft-autosave.js` que se introdujeron en 1.28.0 — backend cero touch, "presupuesto" ya estaba en la whitelist desde el día uno). Sumamos un indicador visible de estado de autoguardado en el header del form con 3 estados semánticos: 🟢 sin cambios desde el último submit / 🟡 hay borrador autoguardado pero falta Guardar real / 🔴 hay cambios sin guardar tampoco como borrador. Hotkey Ctrl+S registrada en `RxnShortcuts` para disparar el submit sin tocar el mouse, queda visible en el overlay Shift+?. Activación opt-in via slot `<span data-rxn-draft-status>` en la view: PDS sigue funcionando idéntico como hasta ahora (el rey lo prefiere "interno" hasta una iteración futura). Mejora del JS de autosave: el baseline ahora se calcula inmediato al `DOMContentLoaded` y un poll de 2s detecta cambios silenciosos cuando el JS del módulo modifica valores con `el.value = X` sin disparar `input`/`change` (caso típico de `applyClientContext` y `appendItem` en Presupuestos) — sin ese poll los presupuestos nuevos nunca armaban el debounce y el draft no se persistía. Bugfix pre-existente: cuando el form de Presupuestos volvía con errores de validación y los renglones cargados, el JS arrancaba con `lockHeader()` y deshabilitaba el picker de clasificación que el operador necesitaba justo corregir; bypass del lock cuando hay banner de errores en el DOM (mismo patrón que `isFromCopy`).',
+            'items' => [
+                // === PRESUPUESTOS — Autoguardado server-side (P3) ===
+                'app/modules/CrmPresupuestos/views/form.php: <form> con `data-rxn-draft="presupuesto:<id-o-new>"` cuando NO está locked. Slot del badge de estado en el header al lado del título y del badge de estado del presupuesto.',
+                'public/js/rxn-draft-autosave.js: extensión opt-in del JS existente — 3 estados semánticos (clean / draft-only / dirty-unsynced / error), evento `rxn-draft-state` por cada cambio, hotkey Ctrl+S = submit del form via `RxnShortcuts.register`. Baseline INMEDIATO al DOMContentLoaded (antes era doble RAF) + poll cada 2s para detectar cambios silenciosos del JS del módulo. Lib idempotente: PDS sigue sin badge ni Ctrl+S (no tiene el slot en su view).',
+
+                // === PRESUPUESTOS — Bugfix lock post-error de validación ===
+                'public/js/crm-presupuestos-form.js: bypass de `lockHeader()` cuando hay banner de errores de validación en el DOM (`#crm-budget-error-banner`). Era bug pre-existente: el form volvía con renglones cargados y errores, el JS bloqueaba la cabecera, el operador no podía editar el campo que justamente le faltaba. Mismo patrón que el bypass `isFromCopy`.',
+
+                // === Versión ===
+                'app/config/version.php: bump a 1.29.1 / build 20260429.3.',
+            ],
+        ],
         [
             'version' => '1.29.0',
             'build' => '20260429.2',

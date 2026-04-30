@@ -11,10 +11,18 @@
  *  2) Cada cambio: debounce 5s → POST /api/internal/drafts/save con todos los
  *     pares clave/valor del form serializados a JSON.
  *  3) Al submit válido del form: POST /api/internal/drafts/discard.
- *     Si el server rechaza el guardado real, el draft quedaría descartado
- *     prematuramente — preferimos eso a guardar para siempre un draft que
- *     ya no aplica. El usuario ve el error inline y puede recargar (el draft
- *     anterior ya no está, pero el form mantiene los valores actuales).
+ *
+ * Opt-in: indicador "no guardado" + hotkey Ctrl+S
+ *  Si la vista incluye un <span data-rxn-draft-status> dentro del form (o como
+ *  hermano), el JS lo pinta con 3 estados semánticos:
+ *      🟢 clean         — el form está igual que cuando se cargó (en DB).
+ *      🟡 draft-only    — hay cambios y están persistidos como draft (red de seguridad activa)
+ *                         pero todavía no fueron submitidos al registro real.
+ *      🔴 dirty-unsynced — hay cambios y el último save al server falló o todavía
+ *                         no salió (debounce pendiente).
+ *  Adicionalmente registra Ctrl+S = Submit del form. Solo se activa si el form
+ *  tiene el slot data-rxn-draft-status presente — los forms que solo usan el
+ *  autosave básico (PDS hoy) no se ven afectados.
  *
  * No se autoguardan archivos (input file) — el server no los recibiría desde
  * un POST JSON. Tampoco passwords (por seguridad). El resto sí.
@@ -86,12 +94,10 @@
                 if (String(el.value) === String(value)) el.checked = true;
                 return;
             }
-            // datetime-local con wrapper Flatpickr: usar la API global si existe.
             if (type === 'datetime-local' && window.RxnDateTime && typeof window.RxnDateTime.setValue === 'function') {
                 window.RxnDateTime.setValue(el, String(value));
             } else {
                 el.value = String(value);
-                // Disparar input/change para que pickers o calculadores enganchados se enteren.
                 el.dispatchEvent(new Event('input', { bubbles: true }));
                 el.dispatchEvent(new Event('change', { bubbles: true }));
             }
@@ -141,12 +147,110 @@
         return params;
     }
 
+    /**
+     * Busca el slot del badge de status. Acepta cualquiera que pertenezca al
+     * mismo "scope" del form (parent containers comunes). Retorna null si no
+     * existe — en ese caso el feature de status + Ctrl+S queda desactivado.
+     */
+    function findStatusSlot(form) {
+        // Primero buscar dentro del form.
+        let slot = form.querySelector('[data-rxn-draft-status]');
+        if (slot) return slot;
+        // Si no, buscar en todo el documento. El uso esperado es "uno por página".
+        return document.querySelector('[data-rxn-draft-status]');
+    }
+
+    function paintStatusSlot(slot, state, savedAt) {
+        if (!slot) return;
+        const cfg = STATUS_LABELS[state] || STATUS_LABELS.clean;
+        let label = cfg.label;
+        if (state === 'draft-only' && savedAt) {
+            const hhmm = savedAt.slice(11, 16); // 'YYYY-MM-DD HH:MM:SS' → 'HH:MM'
+            label = cfg.label.replace('{time}', hhmm);
+        }
+        slot.innerHTML = `<i class="bi ${cfg.icon} me-1"></i>${label}`;
+        slot.className = `badge ${cfg.cls} align-middle ms-1 rxn-draft-status`;
+        slot.setAttribute('title', cfg.title);
+        slot.setAttribute('data-rxn-draft-status-state', state);
+    }
+
+    const STATUS_LABELS = {
+        'clean': {
+            label: 'Sin cambios',
+            icon: 'bi-check-circle-fill',
+            cls: 'bg-success-subtle text-success-emphasis',
+            title: 'No hay cambios pendientes desde la última vez que guardaste',
+        },
+        'draft-only': {
+            label: 'Borrador autoguardado {time} · falta Guardar',
+            icon: 'bi-cloud-check-fill',
+            cls: 'bg-warning-subtle text-warning-emphasis',
+            title: 'Tus cambios están autoguardados como borrador en el server. Tocá Guardar para impactarlos al registro real.',
+        },
+        'dirty-unsynced': {
+            label: 'Cambios sin guardar',
+            icon: 'bi-exclamation-triangle-fill',
+            cls: 'bg-danger-subtle text-danger-emphasis',
+            title: 'Hay cambios que todavía no llegaron al server. Esperá unos segundos o tocá Guardar.',
+        },
+        'error': {
+            label: 'Error al autoguardar',
+            icon: 'bi-x-circle-fill',
+            cls: 'bg-danger-subtle text-danger-emphasis',
+            title: 'No pudimos guardar el borrador. Reintenta automáticamente al próximo cambio.',
+        },
+    };
+
     function setupForm(form) {
         const key = parseDraftKey(form);
         if (!key) return;
 
-        let lastSavedJson = '';
+        let lastSavedJson = '';     // Última versión persistida exitosamente como draft.
+        let baselineJson = '';      // Versión cuando se cargó el form (lo que está en DB).
+        let lastObservedJson = '';  // Última serialización observada (para detectar cambios silenciosos).
         let debounceTimer = null;
+        let lastSavedAt = '';
+        let currentState = 'clean';
+
+        const statusSlot = findStatusSlot(form);
+        const hasStatusFeatures = statusSlot !== null;
+
+        // Baseline = serialización INICIAL del form en setupForm (DOMContentLoaded).
+        // Se captura inmediato, antes de que cualquier JS del módulo prepopule
+        // valores via `el.value = X`. De esta forma:
+        //  - En modo EDIT con datos del server: baseline === datos en DB → 🟢 al cargar.
+        //  - En modo CREATE limpio: baseline === form vacío → 🟢 al cargar.
+        //  - En modo CREATE post-copia / nueva versión: el server ya pintó los datos
+        //    en el HTML inicial → baseline incluye esos datos. Si el operador no toca
+        //    nada, queda 🟢. Si toca algo, pasa a 🔴/🟡.
+        //  - Si el JS del módulo agrega inputs DESPUÉS del baseline (ej: applyClientContext
+        //    al elegir cliente, appendItem al cargar renglón), el poll de abajo lo detecta.
+        function captureBaseline() {
+            baselineJson = JSON.stringify(serializeForm(form));
+            lastObservedJson = baselineJson;
+            updateState();
+        }
+
+        function dispatchState(state, savedAt) {
+            currentState = state;
+            if (savedAt) lastSavedAt = savedAt;
+            paintStatusSlot(statusSlot, state, lastSavedAt);
+            form.dispatchEvent(new CustomEvent('rxn-draft-state', {
+                bubbles: true,
+                detail: { state, savedAt: lastSavedAt, modulo: key.modulo, ref: key.ref },
+            }));
+        }
+
+        function updateState() {
+            const currentJson = JSON.stringify(serializeForm(form));
+            if (currentJson === baselineJson) {
+                dispatchState('clean');
+            } else if (currentJson === lastSavedJson) {
+                dispatchState('draft-only');
+            } else {
+                dispatchState('dirty-unsynced');
+            }
+        }
 
         // 1) Pedir draft existente al server.
         const qs = new URLSearchParams({ modulo: key.modulo, ref: key.ref });
@@ -160,6 +264,11 @@
               if (!data || !data.ok || !data.draft || !data.draft.payload) return;
               showResumeBanner(form, data.draft, () => {
                   applyPayload(form, data.draft.payload);
+                  // Tras retomar, lo aplicado YA está en el server como draft.
+                  // El form está "draft-only" respecto al baseline.
+                  lastSavedJson = JSON.stringify(serializeForm(form));
+                  lastSavedAt = data.draft.updated_at || lastSavedAt;
+                  updateState();
               }, () => {
                   fetch(DISCARD_URL, {
                       method: 'POST',
@@ -171,25 +280,54 @@
           })
           .catch(() => {});
 
-        // 2) Listeners de cambio → autoguardado.
+        // 2) Listeners de cambio → autoguardado + estado en vivo.
         const trigger = () => {
+            lastObservedJson = JSON.stringify(serializeForm(form));
+            // Update inmediato del estado (sin esperar al debounce) para reflejar
+            // dirty-unsynced apenas el operador escribe.
+            updateState();
+
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 const payload = serializeForm(form);
                 const json = JSON.stringify(payload);
                 if (json === lastSavedJson) return;
-                lastSavedJson = json;
                 fetch(SAVE_URL, {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: buildSavePayload(key.modulo, key.ref, payload).toString(),
-                }).catch(() => {});
+                }).then((res) => res.ok ? res.json() : null)
+                  .then((data) => {
+                      if (data && data.ok) {
+                          lastSavedJson = json;
+                          lastSavedAt = data.saved_at || '';
+                          updateState();
+                      } else {
+                          dispatchState('error');
+                      }
+                  })
+                  .catch(() => {
+                      dispatchState('error');
+                  });
             }, DEBOUNCE_MS);
         };
 
         form.addEventListener('input', trigger);
         form.addEventListener('change', trigger);
+
+        // Poll de fallback: muchos módulos modifican valores via `el.value = X`
+        // sin disparar `input`/`change` (ej: applyClientContext, appendItem en
+        // CrmPresupuestos). Sin este poll, esos cambios silenciosos NO disparan
+        // el autosave y el draft nunca se persiste. Cada 2s comparamos la
+        // serialización con la última observada — si difiere, disparamos
+        // trigger() como si hubiera sido un evento real. Costo: ~1ms cada 2s.
+        setInterval(() => {
+            const currentJson = JSON.stringify(serializeForm(form));
+            if (currentJson !== lastObservedJson) {
+                trigger();
+            }
+        }, 2000);
 
         // 3) Al submit: descartar el draft.
         form.addEventListener('submit', () => {
@@ -207,6 +345,34 @@
                     keepalive: true,
                   }).catch(() => {});
         });
+
+        // 4) Hotkey Ctrl+S = Submit del form (opt-in via slot del status).
+        if (hasStatusFeatures && window.RxnShortcuts && typeof window.RxnShortcuts.register === 'function') {
+            window.RxnShortcuts.register({
+                id: 'draft-' + key.modulo + '-submit',
+                keys: ['Ctrl+S', 'Meta+S'],
+                description: 'Guardar el formulario',
+                group: 'Formulario',
+                scope: 'global',
+                when: () => document.body.contains(form),
+                action: (e) => {
+                    e.preventDefault();
+                    // Si form.requestSubmit existe, lo usamos para que dispare
+                    // las validaciones HTML5 antes (no las usa el form pero
+                    // queda más natural). Si no, submit() raw.
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                },
+            });
+        }
+
+        // Capturar baseline INMEDIATO. Cualquier mutación posterior del JS del
+        // módulo (applyClientContext, appendItem, etc) la detecta el poll y
+        // arma el debounce de save.
+        captureBaseline();
     }
 
     function init() {

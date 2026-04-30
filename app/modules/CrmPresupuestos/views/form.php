@@ -311,6 +311,15 @@ ob_start();
                         </a>
                     <?php endif; ?>
                     <span class="badge bg-secondary-subtle text-secondary ms-1 align-middle" style="font-size: 0.55em;"><?= htmlspecialchars($estadoLabel) ?></span>
+                    <?php if (!$_isLocked): ?>
+                        <span data-rxn-draft-status
+                              class="badge bg-success-subtle text-success-emphasis align-middle ms-1 rxn-draft-status"
+                              data-rxn-draft-status-state="clean"
+                              style="font-size: 0.55em;"
+                              title="Estado del autoguardado del borrador">
+                            <i class="bi bi-check-circle-fill me-1"></i>Sin cambios
+                        </span>
+                    <?php endif; ?>
                 </h1>
             </div>
             <div class="rxn-module-actions">
@@ -423,7 +432,15 @@ ob_start();
         $_tangoSent = (($presupuesto['tango_sync_status'] ?? '') === 'success') ? '1' : '0';
         $_mailSent  = ((int) ($presupuesto['correos_enviados_count'] ?? 0) > 0) ? '1' : '0';
         ?>
+<?php
+            // Ref para el módulo Drafts: 'new' al crear, ID numérico al editar.
+            // Solo activamos autosave + status badge cuando el form NO está blindado
+            // (post-Tango / emitido) — no tiene sentido autosalvar un solo lectura.
+            $_draftRef = $formMode === 'edit' ? (string) (int) ($presupuesto['id'] ?? 0) : 'new';
+            $_draftEnabled = !$_isLocked;
+        ?>
         <form id="crm-presupuesto-form" class="crm-budget-form" action="<?= htmlspecialchars((string) $formAction) ?>" method="POST" novalidate data-rxn-form-intercept="1"
+              <?php if ($_draftEnabled): ?>data-rxn-draft="presupuesto:<?= htmlspecialchars($_draftRef) ?>"<?php endif; ?>
               data-tango-sent="<?= $_tangoSent ?>"
               data-mail-sent="<?= $_mailSent ?>"
               data-from-copy="<?= !empty($isFromCopy) ? '1' : '0' ?>">
