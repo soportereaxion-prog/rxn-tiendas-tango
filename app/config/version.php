@@ -1,9 +1,38 @@
 <?php
 
 return [
-    'current_version' => '1.29.1',
-    'current_build' => '20260429.3',
+    'current_version' => '1.30.0',
+    'current_build' => '20260430.1',
     'history' => [
+        [
+            'version' => '1.30.0',
+            'build' => '20260430.1',
+            'released_at' => '2026-04-30',
+            'title' => 'Presupuestos — Comentarios + Observaciones a Tango (OBSERVACIONES) + bugfix lock cabecera por clasificación + 3 hotkeys nuevas',
+            'summary' => 'Iteración chica pero con punch sobre Presupuestos. (1) Sumamos 2 textareas paralelos al form — Comentarios y Observaciones — inspirados en el Tango legacy donde aparecen como paneles lado a lado. Ambos viajan al ERP concatenados como un único string en el campo OBSERVACIONES de Tango Connect, separados por " | " (no usar saltos de línea). El operador ve un contador en vivo "N / 950 chars a Tango" y un banner amarillo si supera el límite. Los campos también se exponen al PrintForms Canvas como presupuesto.comentarios y presupuesto.observaciones. (2) Bugfix del lock de cabecera: cuando el operador no había cargado Clasificación (campo obligatorio) y ya tenía renglones cargados, el JS aplicaba el lock por hasItems() y dejaba la cabecera bloqueada — el operador no podía corregir el campo que justamente bloqueaba el guardado. Sumamos clasificacion_codigo al circuit breaker de headerRequiredFieldsFilled() + listener change que reaplica el lock cuando se completa. (3) 3 hotkeys nuevas registradas en RxnShortcuts (visibles en Shift+?): Alt+P enviar a Tango, Alt+E enviar por correo, Alt+O copiar/duplicar. (4) Defensivo en TangoOrderMapper: OBSERVACIONES ahora se calcula aparte y se reinyecta DESPUÉS del array_filter para que NUNCA quede fuera del payload final, sin importar qué pase con el filtro. Aprendizaje grande de la sesión: durante el debug descubrimos que el ID_PERFIL_PEDIDO de Tango puede tener marcado OBSERVACIONES como no editable desde la API — en ese caso el primer envío falla, el retry defensivo saca el campo y reenvía OK, pero los datos se pierden silenciosamente. Documentado en MODULE_CONTEXT con la trampa y la solución (habilitar el campo en el perfil de Tango).',
+            'items' => [
+                // === PRESUPUESTOS — Comentarios + Observaciones ===
+                'database/migrations/2026_04_30_alter_crm_presupuestos_add_comentarios_observaciones.php: 2 columnas TEXT NULL en crm_presupuestos (comentarios, observaciones). Idempotente.',
+                'app/modules/CrmPresupuestos/PresupuestoRepository.php: ALTERs defensivos + INSERT/UPDATE/buildHeaderPayload extendidos. createNewVersion() hereda los 2 campos al versionar.',
+                'app/modules/CrmPresupuestos/PresupuestoController.php: defaultFormState/hydrateFormState/buildFormStateFromPost incluyen los nuevos campos. Validación trim sin longitud máxima (TEXT acepta cualquier tamaño; el truncado a 950 se aplica al armar el payload Tango).',
+                'app/modules/CrmPresupuestos/views/form.php: 2 textareas col-6 paralelos (Comentarios izquierda, Observaciones derecha) post-leyendas. Contador en vivo "N / 950 chars a Tango" + banner warning amarillo cuando se supera el límite. JS de recálculo en el bloque P0/P1/P2.',
+                'app/modules/CrmPresupuestos/PresupuestoTangoService.php: buildObservaciones() reescrito — sanitiza CRLF/LF/whitespace a espacio único, separa con " | ", trunca a 950 chars. Sin "Presupuesto #N" header (el nro ya queda asentado vía nro_comprobante_tango).',
+                'app/modules/CrmPresupuestos/CrmPresupuestoPrintContextBuilder.php: expone presupuesto.comentarios y presupuesto.observaciones al Canvas del PrintForm.',
+                'app/modules/Tango/Mappers/TangoOrderMapper.php: refactor defensivo — OBSERVACIONES se calcula aparte y se reinyecta DESPUÉS del array_filter. Garantía de que el campo crítico nunca quede fuera del payload por regresiones futuras del filtro.',
+
+                // === PRESUPUESTOS — Bugfix lock cabecera por clasificación ===
+                'public/js/crm-presupuestos-form.js: headerRequiredFieldsFilled() ahora chequea también clasificacion_codigo. Si falta, el circuit breaker corta el lockHeader() para que el operador pueda completar el campo. Sumamos listener change en #clasificacion_codigo que reaplica el lock cuando se completa, manteniendo la regla original del módulo (items + cabecera completa = lock).',
+
+                // === PRESUPUESTOS — 3 hotkeys nuevas ===
+                'app/modules/CrmPresupuestos/views/form.php: RxnShortcuts.register para Alt+P (enviar a Tango), Alt+E (enviar por correo) y Alt+O (copiar). Todas con scope global, when() guard que detecta el botón habilitado, y descripción visible en Shift+? overlay.',
+
+                // === Documentación ===
+                'app/modules/CrmPresupuestos/MODULE_CONTEXT.md: sección "Comentarios + Observaciones → OBSERVACIONES Tango" con reglas operativas + sección "Trampa Tango: perfil de pedido bloquea OBSERVACIONES" con síntoma, causa raíz y solución.',
+
+                // === Versión ===
+                'app/config/version.php: bump a 1.30.0 / build 20260430.1.',
+            ],
+        ],
         [
             'version' => '1.29.1',
             'build' => '20260429.3',

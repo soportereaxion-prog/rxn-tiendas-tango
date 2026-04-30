@@ -98,6 +98,38 @@ Cada renglón del presupuesto tiene **dos** columnas relacionadas con la descrip
 
 **Backfill de items históricos**: la migración `2026_04_29_03_alter_crm_presupuesto_items_add_descripcion_original.php` setea `articulo_descripcion_original = articulo_descripcion_snapshot` para items existentes — quedan marcados como "no modificados" (snapshot == original). Esto es conservador: no genera alarmas falsas en presupuestos viejos.
 
+### Comentarios + Observaciones → OBSERVACIONES Tango (release 1.30.0)
+
+La cabecera tiene 2 campos `TEXT NULL`: `comentarios` y `observaciones`. Se editan en el form como 2 textareas paralelos (col-6 c/u, inspirados en el Tango legacy donde aparecen como paneles "Comentarios" y "Observaciones" lado a lado). En el payload Tango viajan **concatenados como un único string** en el campo `OBSERVACIONES`.
+
+**Reglas operativas:**
+
+- **Sanitización defensiva**: `PresupuestoTangoService::buildObservaciones()` colapsa CRLF/LF/whitespace a un único espacio antes de armar el string. Tango Connect rechaza ciertos caracteres de control en algunos perfiles, así que es más seguro mandar texto plano de una sola línea.
+- **Separador entre bloques: `" | "`** (pipe con espacios). NO usar `\n\n` ni separadores con caracteres especiales.
+- **Truncado a 950 chars** al final del armado (límite confirmado de Tango Connect en este campo). El form muestra un contador en vivo `N / 950 chars a Tango` y un banner de warning cuando se supera.
+- **Reinyección post-array_filter en el mapper**: `TangoOrderMapper::map()` calcula el valor de `OBSERVACIONES` aparte y lo re-asigna al payload **después** del `array_filter` que limpia nulls. Esto blinda el campo crítico contra regresiones (release 1.30.0).
+- **PrintForms / Canvas**: ambos campos quedan expuestos en `CrmPresupuestoPrintContextBuilder` como `presupuesto.comentarios` y `presupuesto.observaciones`.
+
+### Trampa Tango: perfil de pedido bloquea OBSERVACIONES (2026-04-30)
+
+**Síntoma**: pedido se crea OK en Tango (`succeeded: true`, `nro_comprobante` asignado) pero el campo `OBSERVACIONES` aparece como `null` en el GET, aunque el payload local lo lleva con contenido válido.
+
+**Causa**: el `ID_PERFIL_PEDIDO` configurado en Tango (ej: `1 - INGRESA TODOS LOS DATOS`) puede tener marcado el campo OBSERVACIONES como **no editable desde la API**. En ese caso Tango responde el primer envío con:
+
+```
+"messages": ["El perfil utilizado (X - <NOMBRE>) no permite editar el campo OBSERVACIONES."]
+"succeeded": false
+```
+
+Y el `shouldRetryWithoutObservaciones()` del service detecta el rechazo, hace `unset($payload['OBSERVACIONES'])` y reintenta. El segundo envío sale OK pero **sin el campo**, así que el operador ve "envío exitoso" mientras los datos se perdieron silenciosamente.
+
+**Solución**: NO es de código. El operador del cliente tiene que ir a Tango → Ventas → Pedidos → Perfiles → editar el perfil usado → habilitar la edición del campo OBSERVACIONES.
+
+**Reglas defensivas que dejamos en el código**:
+
+- El retry sigue siendo útil como red de seguridad para casos donde el campo es inválido por otro motivo (longitud, caracteres, etc).
+- Si vuelve a aparecer un caso "el campo no llega aunque debería", agregar logging temporal del primer response cuando se dispara el retry para identificar la causa raíz.
+
 **Trampa típica**: si el operador edita la descripción y guarda, al re-abrir el presupuesto el textarea muestra lo editado, NO el original. El badge "Editada" + borde naranja le recuerdan que esa descripción difiere del catálogo Tango. Para "resetear" la descripción al original, hay que hacerlo a mano (no hay botón "restaurar" — pendiente como mejora futura si Charly lo pide).
 
 ## Tipo de cambios permitidos

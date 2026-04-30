@@ -196,12 +196,45 @@ class PresupuestoTangoService
         }
     }
 
+    /**
+     * Arma el campo OBSERVACIONES del payload Tango concatenando los textareas
+     * "Comentarios" y "Observaciones" del presupuesto (release 1.30.0).
+     *
+     * Reglas:
+     *   - Comentarios va primero, Observaciones después.
+     *   - Si un bloque está vacío, no se incluye (no quedan separadores huérfanos).
+     *   - Truncado defensivo a 950 chars (límite confirmado de Tango Connect).
+     *   - **Separador entre bloques: " | "** (no usar \n).
+     *     Tango Connect rechaza el campo OBSERVACIONES si trae saltos de línea
+     *     (confirmado el 2026-04-30: el primer envío fallaba con un mensaje que
+     *     mencionaba "OBSERVACIONES" y el retry defensivo terminaba mandando el
+     *     pedido SIN el campo, perdiendo el contenido). Internamente convertimos
+     *     cualquier \n del operador a espacio para no disparar ese rechazo.
+     *   - El nro de presupuesto NO se incluye: la relación con el comprobante en
+     *     Tango ya queda asentada via nro_comprobante_tango al confirmar el envío.
+     */
     private function buildObservaciones(array $presupuesto): string
     {
-        $chunks = [
-            'Presupuesto #' . (int) ($presupuesto['numero'] ?? 0),
-        ];
-        return mb_substr(implode(' | ', $chunks), 0, 950);
+        $sanitize = static function (string $raw): string {
+            // Normalizar CRLF/CR a LF, después colapsar TODO whitespace (incluyendo
+            // \n) a un único espacio. Tango no banca newlines en OBSERVACIONES.
+            $normalized = preg_replace('/\r\n|\r/u', "\n", $raw) ?? $raw;
+            $flattened = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+            return trim($flattened);
+        };
+
+        $bloques = [];
+        $comentarios = $sanitize((string) ($presupuesto['comentarios'] ?? ''));
+        $observaciones = $sanitize((string) ($presupuesto['observaciones'] ?? ''));
+
+        if ($comentarios !== '') {
+            $bloques[] = $comentarios;
+        }
+        if ($observaciones !== '') {
+            $bloques[] = $observaciones;
+        }
+
+        return mb_substr(implode(' | ', $bloques), 0, 950);
     }
 
     private function extractOrderNumber(mixed $payload): string

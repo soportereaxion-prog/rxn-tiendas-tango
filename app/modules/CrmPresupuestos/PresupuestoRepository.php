@@ -278,6 +278,7 @@ class PresupuestoRepository
                         transporte_codigo, transporte_nombre_snapshot, transporte_id_interno,
                         proximo_contacto, vigencia,
                         leyenda_1, leyenda_2, leyenda_3, leyenda_4, leyenda_5,
+                        comentarios, observaciones,
                         lista_codigo, lista_nombre_snapshot, lista_id_interno,
                         vendedor_codigo, vendedor_nombre_snapshot, vendedor_id_interno,
                         clasificacion_codigo, clasificacion_id_tango, clasificacion_descripcion,
@@ -290,6 +291,7 @@ class PresupuestoRepository
                         :transporte_codigo, :transporte_nombre_snapshot, :transporte_id_interno,
                         :proximo_contacto, :vigencia,
                         :leyenda_1, :leyenda_2, :leyenda_3, :leyenda_4, :leyenda_5,
+                        :comentarios, :observaciones,
                         :lista_codigo, :lista_nombre_snapshot, :lista_id_interno,
                         :vendedor_codigo, :vendedor_nombre_snapshot, :vendedor_id_interno,
                         :clasificacion_codigo, :clasificacion_id_tango, :clasificacion_descripcion,
@@ -355,6 +357,8 @@ class PresupuestoRepository
                     leyenda_3 = :leyenda_3,
                     leyenda_4 = :leyenda_4,
                     leyenda_5 = :leyenda_5,
+                    comentarios = :comentarios,
+                    observaciones = :observaciones,
                     lista_codigo = :lista_codigo,
                     lista_nombre_snapshot = :lista_nombre_snapshot,
                     lista_id_interno = :lista_id_interno,
@@ -504,6 +508,8 @@ class PresupuestoRepository
             'leyenda_3' => $original['leyenda_3'] ?? null,
             'leyenda_4' => $original['leyenda_4'] ?? null,
             'leyenda_5' => $original['leyenda_5'] ?? null,
+            'comentarios' => $original['comentarios'] ?? null,
+            'observaciones' => $original['observaciones'] ?? null,
             'cliente_id' => (int) ($original['cliente_id'] ?? 0),
             'cliente_nombre_snapshot' => (string) ($original['cliente_nombre_snapshot'] ?? ''),
             'cliente_documento_snapshot' => $original['cliente_documento_snapshot'] ?? null,
@@ -684,6 +690,8 @@ class PresupuestoRepository
             ':leyenda_3' => $this->nullableString($data['leyenda_3'] ?? null),
             ':leyenda_4' => $this->nullableString($data['leyenda_4'] ?? null),
             ':leyenda_5' => $this->nullableString($data['leyenda_5'] ?? null),
+            ':comentarios' => $this->nullableString($data['comentarios'] ?? null),
+            ':observaciones' => $this->nullableString($data['observaciones'] ?? null),
             ':cotizacion' => isset($data['cotizacion']) && $data['cotizacion'] !== '' ? (float) $data['cotizacion'] : 1.0,
             ':lista_codigo' => $this->nullableString($data['lista_codigo'] ?? null),
             ':lista_nombre_snapshot' => $this->nullableString($data['lista_nombre_snapshot'] ?? null),
@@ -815,6 +823,11 @@ class PresupuestoRepository
         try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_3 VARCHAR(60) NULL AFTER leyenda_2'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_4 VARCHAR(60) NULL AFTER leyenda_3'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN leyenda_5 VARCHAR(60) NULL AFTER leyenda_4'); } catch (\Throwable $e) {}
+
+        // Comentarios + Observaciones (release 1.30.0).
+        // Defensivos por las dudas de que la migración no haya corrido en algún ambiente.
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN comentarios TEXT NULL AFTER leyenda_5'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN observaciones TEXT NULL AFTER comentarios'); } catch (\Throwable $e) {}
 
         // articulo_descripcion_original (release 1.29.x) — conserva el nombre del
         // artículo al momento de selección desde el catálogo, no se pisa al editar.

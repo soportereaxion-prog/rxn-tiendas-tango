@@ -621,6 +621,35 @@ ob_start();
                                 <input type="text" class="form-control crm-budget-leyenda-input" id="presupuesto-leyenda-<?= $i ?>" name="<?= $leyendaKey ?>" value="<?= htmlspecialchars($leyendaValue) ?>" maxlength="60" size="40" placeholder="Leyenda <?= $i ?>">
                             </div>
                         <?php endfor; ?>
+
+                        <?php
+                            // Comentarios + Observaciones (release 1.30.0).
+                            // Inspiración Tango legacy: 2 paneles paralelos (Comentarios izq, Observaciones der).
+                            // En el payload Tango viajan concatenados como OBSERVACIONES (uno arriba, otro abajo).
+                            // Límite efectivo de Tango Connect: 950 chars sumados — el contador en vivo lo refleja.
+                            $comentariosValue = (string) ($presupuesto['comentarios'] ?? '');
+                            $observacionesValue = (string) ($presupuesto['observaciones'] ?? '');
+                        ?>
+                        <div class="crm-budget-col-6">
+                            <label for="presupuesto-comentarios" class="form-label">Comentarios</label>
+                            <textarea class="form-control" id="presupuesto-comentarios" name="comentarios" rows="4" placeholder="Texto libre — viaja al campo OBSERVACIONES de Tango (parte de arriba)." data-tango-obs-input><?= htmlspecialchars($comentariosValue) ?></textarea>
+                        </div>
+
+                        <div class="crm-budget-col-6">
+                            <label for="presupuesto-observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="presupuesto-observaciones" name="observaciones" rows="4" placeholder="Texto libre — viaja al campo OBSERVACIONES de Tango (parte de abajo)." data-tango-obs-input><?= htmlspecialchars($observacionesValue) ?></textarea>
+                        </div>
+
+                        <div class="crm-budget-col-12">
+                            <div class="form-text d-flex justify-content-between align-items-center" data-tango-obs-meta>
+                                <span>Comentarios + Observaciones se concatenan en el campo <code>OBSERVACIONES</code> que viaja a Tango (separados por línea en blanco).</span>
+                                <span class="text-muted"><span data-tango-obs-count>0</span> / 950 chars a Tango</span>
+                            </div>
+                            <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small d-none" data-tango-obs-warning>
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                El total supera los 950 caracteres permitidos por Tango Connect. El sobrante se va a recortar al enviar (<span data-tango-obs-overflow>0</span> chars de más).
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -865,6 +894,24 @@ ob_start();
             action: (e) => {
                 e.preventDefault();
                 const btn = document.querySelector('form[action*="/enviar-correo"] button[type="submit"]:not([disabled])');
+                if (btn) btn.click();
+            }
+        });
+
+        // Alt+O: duplicar el presupuesto actual (botón "Copiar" del header del form).
+        // OJO con la convivencia con rxn-list-shortcuts.js: aquel maneja Alt+O sobre
+        // tablas con data-copy-url (listados). Acá estamos en el FORM, no hay listado,
+        // así que no hay conflicto.
+        RxnShortcuts.register({
+            id: 'presupuesto-copiar',
+            keys: ['Alt+O'],
+            description: 'Copiar Presupuesto (duplicar como nuevo)',
+            group: 'Presupuesto',
+            scope: 'global',
+            when: () => !!document.querySelector('form[action*="/copiar"] button[type="submit"]:not([disabled])'),
+            action: (e) => {
+                e.preventDefault();
+                const btn = document.querySelector('form[action*="/copiar"] button[type="submit"]:not([disabled])');
                 if (btn) btn.click();
             }
         });
@@ -1194,6 +1241,43 @@ ob_start();
             // El picker setea el hidden de id_tango, así que polling suave.
             setInterval(checkClasifTango, 1500);
             checkClasifTango();
+        }
+
+        // ============= P3 — Contador en vivo Comentarios + Observaciones (release 1.30.0) =============
+        // Refleja el truncado de PresupuestoTangoService::buildObservaciones (límite Tango = 950 chars).
+        // El cálculo replica el separador "\n\n" entre los 2 bloques no vacíos.
+        var TANGO_OBS_LIMIT = 950;
+        var obsInputs = form.querySelectorAll('[data-tango-obs-input]');
+        var obsCountEl = form.querySelector('[data-tango-obs-count]');
+        var obsWarningEl = form.querySelector('[data-tango-obs-warning]');
+        var obsOverflowEl = form.querySelector('[data-tango-obs-overflow]');
+
+        function recalcTangoObsCount() {
+            if (!obsCountEl) return;
+            var bloques = [];
+            var coment = (form.querySelector('#presupuesto-comentarios') || {}).value || '';
+            var obs = (form.querySelector('#presupuesto-observaciones') || {}).value || '';
+            coment = String(coment).trim();
+            obs = String(obs).trim();
+            if (coment !== '') bloques.push(coment);
+            if (obs !== '') bloques.push(obs);
+            var joined = bloques.join('\n\n');
+            var len = joined.length;
+            obsCountEl.textContent = String(len);
+
+            var overflow = len - TANGO_OBS_LIMIT;
+            if (obsWarningEl) {
+                obsWarningEl.classList.toggle('d-none', overflow <= 0);
+            }
+            if (obsOverflowEl) {
+                obsOverflowEl.textContent = String(overflow > 0 ? overflow : 0);
+            }
+        }
+        if (obsInputs.length) {
+            obsInputs.forEach(function (el) {
+                el.addEventListener('input', recalcTangoObsCount);
+            });
+            recalcTangoObsCount();
         }
     });
 })();

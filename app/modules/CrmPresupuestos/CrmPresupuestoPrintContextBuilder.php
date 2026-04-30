@@ -74,6 +74,8 @@ class CrmPresupuestoPrintContextBuilder
                 'leyenda_3' => trim((string) ($presupuesto['leyenda_3'] ?? '')),
                 'leyenda_4' => trim((string) ($presupuesto['leyenda_4'] ?? '')),
                 'leyenda_5' => trim((string) ($presupuesto['leyenda_5'] ?? '')),
+                'comentarios' => trim((string) ($presupuesto['comentarios'] ?? '')),
+                'observaciones' => trim((string) ($presupuesto['observaciones'] ?? '')),
             ],
             'totales' => [
                 'subtotal' => $this->formatMoney((float) ($presupuesto['subtotal'] ?? 0)),

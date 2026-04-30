@@ -18,16 +18,24 @@ class TangoOrderMapper
         
         $fechaPedido = !empty($pedidoCabecera['created_at']) ? date('Y-m-d', strtotime($pedidoCabecera['created_at'])) : date('Y-m-d');
 
+        // OBSERVACIONES (release 1.30.0 — bug fix): se calcula APARTE para reinyectarse
+        // post-array_filter y garantizar que NUNCA quede fuera del payload final.
+        // El bug previo: si el caller pasaba '' (string vacío) y un cambio futuro del
+        // filter sumaba `$value !== ''`, OBSERVACIONES se perdía. Reinyección post-filter
+        // blinda el campo crítico contra ese tipo de regresiones.
+        $observacionesFinal = isset($pedidoCabecera['observaciones']) && $pedidoCabecera['observaciones'] !== ''
+            ? (string) $pedidoCabecera['observaciones']
+            : "WEB_ID: {$pedidoCabecera['id']} | Cliente Local: {$clienteWeb['nombre']} {$clienteWeb['apellido']} | Doc: {$clienteWeb['documento']}";
+
         // Payload base ajustado a las necesidades detectadas de ID Comercial
         $payload = [
             "FECHA_PEDIDO" => $fechaPedido,
             "ID_GVA14" => (int) ($clienteWeb['id_gva14_tango'] ?? 0),
             "ES_CLIENTE_HABITUAL" => true, // Tango API 19845 asume habitual con ID_GVA14 según auditoría
             "NOTA_PEDIDO_WEB" => "RXN_" . $pedidoCabecera['id'],
-            "ID_GVA43_TALON_PED" => $resolvedHeaders['ID_GVA43_TALON_PED'] ?? null, 
-            "ID_STA22" => $resolvedHeaders['ID_STA22'] ?? null, 
+            "ID_GVA43_TALON_PED" => $resolvedHeaders['ID_GVA43_TALON_PED'] ?? null,
+            "ID_STA22" => $resolvedHeaders['ID_STA22'] ?? null,
             "ESTADO" => 2, // 2 = Ingresado
-            "OBSERVACIONES" => $pedidoCabecera['observaciones'] ?? "WEB_ID: {$pedidoCabecera['id']} | Cliente Local: {$clienteWeb['nombre']} {$clienteWeb['apellido']} | Doc: {$clienteWeb['documento']}"
         ];
 
         // Inyectar IDs Internos específicos de negocio del cliente y del perfil
@@ -60,6 +68,12 @@ class TangoOrderMapper
 
         // Limpiamos nulos
         $payload = array_filter($payload, static fn ($value) => $value !== null);
+
+        // Reinyectar OBSERVACIONES DESPUÉS del filter (release 1.30.0 — bug fix).
+        // Garantía de que el campo NUNCA quede fuera del payload final, sin importar
+        // qué pase con el array_filter. Es defensivo: el campo es crítico para el
+        // negocio (Comentarios + Observaciones del operador) y no puede perderse.
+        $payload['OBSERVACIONES'] = $observacionesFinal;
 
         // Renglones
         //

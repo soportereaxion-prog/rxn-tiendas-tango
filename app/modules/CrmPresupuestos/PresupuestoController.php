@@ -862,6 +862,8 @@ class PresupuestoController extends \App\Core\Controller
             'leyenda_3' => '',
             'leyenda_4' => '',
             'leyenda_5' => '',
+            'comentarios' => '',
+            'observaciones' => '',
             'cliente_id' => $clienteIdPreload,
             'cliente_nombre' => $clienteNombrePreload,
             'cliente_documento' => '',
@@ -903,6 +905,8 @@ class PresupuestoController extends \App\Core\Controller
             'leyenda_3' => (string) ($presupuesto['leyenda_3'] ?? ''),
             'leyenda_4' => (string) ($presupuesto['leyenda_4'] ?? ''),
             'leyenda_5' => (string) ($presupuesto['leyenda_5'] ?? ''),
+            'comentarios' => (string) ($presupuesto['comentarios'] ?? ''),
+            'observaciones' => (string) ($presupuesto['observaciones'] ?? ''),
             'cliente_id' => (string) ($presupuesto['cliente_id'] ?? ''),
             'cliente_nombre' => (string) ($presupuesto['cliente_nombre_snapshot'] ?? ''),
             'cliente_documento' => (string) ($presupuesto['cliente_documento_snapshot'] ?? ''),
@@ -1050,6 +1054,12 @@ class PresupuestoController extends \App\Core\Controller
             $leyendas[$key] = $value !== '' ? $value : null;
         }
 
+        // Comentarios + Observaciones (release 1.30.0): TEXT libre, sin límite duro.
+        // El truncado a 950 chars sólo se aplica al armar el OBSERVACIONES de Tango
+        // (PresupuestoTangoService::buildObservaciones) para no perder data en DB.
+        $comentarios = trim((string) ($input['comentarios'] ?? ''));
+        $observaciones = trim((string) ($input['observaciones'] ?? ''));
+
         $estado = $this->normalizeEstado((string) ($input['estado'] ?? 'borrador'));
         $clienteId = (int) ($input['cliente_id'] ?? 0);
         $clienteNombreInput = trim((string) ($input['cliente_nombre'] ?? ''));
@@ -1147,6 +1157,8 @@ class PresupuestoController extends \App\Core\Controller
             'leyenda_3' => $leyendas['leyenda_3'],
             'leyenda_4' => $leyendas['leyenda_4'],
             'leyenda_5' => $leyendas['leyenda_5'],
+            'comentarios' => $comentarios !== '' ? $comentarios : null,
+            'observaciones' => $observaciones !== '' ? $observaciones : null,
             'cotizacion' => $cotizacion,
             'lista_codigo' => $lista['codigo'],
             'lista_nombre_snapshot' => $lista['descripcion'],

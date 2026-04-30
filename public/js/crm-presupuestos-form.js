@@ -479,8 +479,11 @@
             return itemsBody.querySelectorAll('[data-item-row]').length > 0;
         }
 
-        // Los obligatorios del encabezado son: fecha, cliente_id, lista_codigo.
+        // Los obligatorios del encabezado son: fecha, cliente_id, lista_codigo, clasificacion_codigo.
         // Si alguno falta, NO bloqueamos: el usuario tiene que poder corregir antes de reintentar guardar.
+        // (Bug fix release 1.30.0: la clasificación faltaba en este chequeo, así que un presupuesto
+        // con renglones cargados pero sin clasificación quedaba con el header lockeado y el
+        // operador no podía completar el campo obligatorio que justamente bloqueaba el guardado.)
         function headerRequiredFieldsFilled() {
             var fecha = form.querySelector('#presupuesto-fecha');
             if (!fecha || !String(fecha.value || '').trim()) return false;
@@ -491,6 +494,9 @@
             var clienteHidden = clientRoot ? clientRoot.querySelector('[data-picker-hidden]') : null;
             var clienteId = clienteHidden ? String(clienteHidden.value || '').trim() : '';
             if (!clienteId || clienteId === '0') return false;
+
+            var clasif = form.querySelector('#clasificacion_codigo');
+            if (!clasif || !String(clasif.value || '').trim()) return false;
 
             return true;
         }
@@ -525,6 +531,16 @@
         form.addEventListener('submit', function() {
             unlockHeader();
         });
+
+        // Re-lock cuando el operador completa el último obligatorio que faltaba (típicamente
+        // Clasificación, que es el que más se olvida). Si ya hay items + cabecera completa,
+        // se vuelve al modo lockeado coherente con la regla del módulo.
+        var clasifInputForRelock = form.querySelector('#clasificacion_codigo');
+        if (clasifInputForRelock) {
+            clasifInputForRelock.addEventListener('change', function () {
+                if (hasItems() && headerRequiredFieldsFilled()) lockHeader();
+            });
+        }
 
         function appendItem(item) {
             var emptyRow = itemsBody.querySelector('[data-empty-row]');
