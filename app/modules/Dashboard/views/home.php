@@ -151,6 +151,10 @@ ob_start();
                 ghostClass: 'opacity-50',
                 handle: '.rxn-module-card',
                 forceFallback: true, // Forzar fallback
+                // Mobile: scroll vertical no debe disparar drag. Hold 250ms.
+                delay: 250,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 5,
                 onEnd: function () {
                     var currentOrder = [];
                     grid.querySelectorAll('.rxn-launcher-col').forEach(function (col) {

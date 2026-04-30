@@ -602,4 +602,9 @@ return function (Router $router): void {
     $router->get('/rxnpwa/presupuestos/editar/{tmpUuid}', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestoEditar']);
     $router->get('/api/rxnpwa/catalog/version', [\App\Modules\RxnPwa\RxnPwaController::class, 'catalogVersion']);
     $router->get('/api/rxnpwa/catalog/full', [\App\Modules\RxnPwa\RxnPwaController::class, 'catalogFull']);
+
+    // --- RXN PWA — Bloque C (Fase 3): sync queue + envío a Tango ---
+    $router->post('/api/rxnpwa/presupuestos/sync', [\App\Modules\RxnPwa\RxnPwaController::class, 'syncPresupuesto']);
+    $router->post('/api/rxnpwa/presupuestos/{id}/attachments', [\App\Modules\RxnPwa\RxnPwaController::class, 'uploadAttachment']);
+    $router->post('/api/rxnpwa/presupuestos/{id}/emit-tango', [\App\Modules\RxnPwa\RxnPwaController::class, 'emitTango']);
 };

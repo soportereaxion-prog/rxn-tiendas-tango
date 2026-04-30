@@ -38,6 +38,42 @@ body {
     margin-bottom: 1rem;
 }
 
+/* Variante compacta — para "Sincronizar catálogo" en el shell. */
+.rxnpwa-card-compact {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Brand icon del header — gradiente circular sutil. */
+.rxnpwa-brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    color: #fff;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+/* Status compact: badge de catálogo en una sola línea. */
+.rxnpwa-status-compact .rxnpwa-badge-meta {
+    color: var(--rxnpwa-muted);
+    font-size: 0.78rem;
+}
+
+/* Header del shell — 2 cajas en grid (release 1.39.0). Catálogo izq, sync der. */
+.rxnpwa-header-grid .rxnpwa-card {
+    margin-bottom: 0;
+}
+.rxnpwa-badge-meta {
+    color: var(--rxnpwa-muted);
+    font-size: 0.72rem;
+    line-height: 1.2;
+}
+
 .rxnpwa-card .form-control,
 .rxnpwa-card .form-select {
     background-color: #0b1220;
@@ -85,6 +121,12 @@ body {
 .rxnpwa-suggest-item:last-child { border-bottom: none; }
 .rxnpwa-suggest-item:hover,
 .rxnpwa-suggest-item:active { background: #1e293b; }
+.rxnpwa-suggest-header {
+    background: #0f172a;
+    border-bottom: 1px solid var(--rxnpwa-card-border);
+    position: sticky;
+    top: 0;
+}
 
 /* Renglones */
 .rxnpwa-renglon {
@@ -132,4 +174,77 @@ body {
     background-color: #0b1220;
     color: var(--rxnpwa-text);
     border-color: #334155;
+}
+
+/* (Release 1.40.0) Las reglas de faux-fullscreen vivían acá. Migradas en 1.42.0
+   al helper global rxn-fullscreen.css que usa la clase body.rxn-faux-fullscreen. */
+
+/* Toast centrado del form (release 1.42.2) — reemplaza el aviso embebido en el
+   div #rxnpwa-form-status que se perdía cuando el operador estaba scrolleado.
+   Fixed top con animación slide-in. */
+.rxnpwa-form-toast {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translate(-50%, -120%);
+    z-index: 9990;
+    width: min(92vw, 460px);
+    pointer-events: none;
+    transition: transform 0.22s ease;
+}
+.rxnpwa-form-toast.is-visible {
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+}
+.rxnpwa-form-toast-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    font-weight: 500;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.rxnpwa-form-toast-msg {
+    flex-grow: 1;
+}
+
+/* Banner dev mock (release 1.39.0) — recordatorio visible cuando el operador
+   aceptó usar coordenadas simuladas porque el server local no tiene HTTPS. */
+.rxnpwa-dev-mock-banner {
+    background: #fbbf24;
+    color: #1f2937;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 11;
+    border-bottom: 1px solid #d97706;
+}
+
+/* Geo gate (release 1.38.0) — overlay bloqueante cuando el GPS no está activo. */
+.rxnpwa-geo-gate {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.97);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow-y: auto;
+}
+.rxnpwa-geo-gate-content {
+    background: var(--rxnpwa-card-bg);
+    border: 1px solid var(--rxnpwa-card-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    max-width: 480px;
+    width: 100%;
+    color: var(--rxnpwa-text);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }

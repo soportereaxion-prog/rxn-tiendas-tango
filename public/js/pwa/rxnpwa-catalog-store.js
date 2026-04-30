@@ -21,6 +21,14 @@
     // version 2: presupuestos_drafts + presupuesto_attachments (Fase 2).
     const DB_VERSION = 2;
 
+    // Schema version del PAYLOAD del catálogo. Independiente del DB_VERSION (que
+    // refiere a la estructura de IndexedDB). Bumpear cuando RxnPwaCatalogService
+    // cambia las columnas que devuelve para alguna entidad — al detectar mismatch
+    // el cliente wipea SOLO el catálogo (deja drafts) y obliga a resincronizar.
+    //   v1 — Fase 1 inicial.
+    //   v2 — release 1.35.0: sumamos id_gvaXX_* a clientes (defaults comerciales).
+    const CATALOG_SCHEMA_VERSION = 'v2';
+
     const STORES = [
         'clientes',
         'articulos',
@@ -108,7 +116,23 @@
                 size_bytes: payload.size_bytes,
                 empresa_id: payload.data.empresa_id || null,
                 synced_at: new Date().toISOString(),
+                schema_version: CATALOG_SCHEMA_VERSION,
             }, 'catalog');
+        });
+    }
+
+    /**
+     * Wipea SOLO el catálogo (sin tocar drafts/attachments). Para cuando detectamos
+     * mismatch de empresa o de schema_version.
+     */
+    async function clearCatalogOnly() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const t = tx(db, [...STORES, META_STORE], 'readwrite');
+            t.oncomplete = () => resolve();
+            t.onerror = () => reject(t.error);
+            STORES.forEach((name) => t.objectStore(name).clear());
+            t.objectStore(META_STORE).delete('catalog');
         });
     }
 
@@ -169,8 +193,10 @@
         getMeta,
         setMeta,
         clear,
+        clearCatalogOnly,
         STORES,
         DRAFTS_STORE,
         ATTACHMENTS_STORE,
+        CATALOG_SCHEMA_VERSION,
     };
 })(window);

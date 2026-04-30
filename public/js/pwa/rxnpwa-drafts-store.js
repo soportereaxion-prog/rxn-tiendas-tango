@@ -206,6 +206,40 @@
         return list.length;
     }
 
+    /**
+     * GC de drafts ya entregados al server (status='synced' o 'emitted') más
+     * viejos que `daysOld` días. Borra el draft + sus attachments locales.
+     * El presupuesto server-side queda intacto.
+     *
+     * @returns {Promise<{ deleted: number, retained: number }>}
+     */
+    async function garbageCollectSynced(daysOld = 7) {
+        const cutoffMs = Date.now() - daysOld * 24 * 3600 * 1000;
+        const all = await listDrafts();
+        const stale = all.filter((d) => {
+            if (d.status !== 'synced' && d.status !== 'emitted') return false;
+            const ts = Date.parse(d.updated_at || '');
+            return Number.isFinite(ts) && ts < cutoffMs;
+        });
+        for (const d of stale) {
+            await deleteDraft(d.tmp_uuid);
+        }
+        return { deleted: stale.length, retained: all.length - stale.length };
+    }
+
+    /**
+     * Borra TODOS los drafts ya entregados (status='synced' o 'emitted') sin
+     * importar la edad. Útil para un botón "Limpiar enviados" explícito.
+     */
+    async function purgeAllSynced() {
+        const all = await listDrafts();
+        const stale = all.filter((d) => d.status === 'synced' || d.status === 'emitted');
+        for (const d of stale) {
+            await deleteDraft(d.tmp_uuid);
+        }
+        return { deleted: stale.length, retained: all.length - stale.length };
+    }
+
     global.RxnPwaDraftsStore = {
         // Drafts
         createDraft,
@@ -218,6 +252,9 @@
         listAttachments,
         removeAttachment,
         countAttachments,
+        // GC
+        garbageCollectSynced,
+        purgeAllSynced,
         // Helpers
         generateUuid,
         computeTotal,

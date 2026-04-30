@@ -76,6 +76,12 @@ $defaultCards = [
         'icon' => '<i class="bi bi-file-earmark-spreadsheet"></i>',
         'link' => '/mi-empresa/crm/presupuestos',
     ],
+    'pwa_presupuestos' => [
+        'title' => 'PWA — Presupuestos Mobile',
+        'desc' => 'App mobile para vendedores en campo. Crea presupuestos offline y los sincroniza al volver online. Instalable como app nativa en el celu.',
+        'icon' => '<i class="bi bi-phone"></i>',
+        'link' => '/rxnpwa/presupuestos',
+    ],
     'notas' => [
         'title' => 'Notas CRM',
         'desc' => 'Historial de interacciones y trazabilidad de contactos con clientes. Base de conocimiento.',
@@ -143,6 +149,17 @@ $defaultCards = [
         'link' => '/mi-empresa/crm/rxn-sync',
     ],
 ];
+
+// La card "PWA — Presupuestos Mobile" sólo tiene sentido desde un celu —
+// la PWA está pensada para vendedores en campo. En desktop ocupa lugar y confunde.
+// El banner azul de invitación a la PWA sigue mostrándose por encima del grid
+// cuando se accede desde mobile (release 1.34.0); el card adicional acá es
+// duplicado en desktop. Heurística estándar de UA (misma que el banner).
+$_uaForPwa = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+$_isMobileForPwa = (bool) preg_match('/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i', $_uaForPwa);
+if (!$_isMobileForPwa) {
+    unset($defaultCards['pwa_presupuestos']);
+}
 
 if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmNotasAccess()) {
     unset($defaultCards['notas']);
@@ -228,6 +245,44 @@ $pageHeaderActions = ob_get_clean();
         <!-- Buscador de Módulos (Estándar F3 / /) -->
         <?php require BASE_PATH . '/app/shared/views/components/dashboard_search.php'; ?>
 
+        <!-- Banner: invitar a abrir la versión PWA mobile cuando se accede desde un celu (release 1.34.0).
+             Se muestra solo si UA matchea mobile + el usuario no lo descartó en esta sesión. -->
+        <div id="rxn-pwa-mobile-banner" class="alert alert-primary d-none align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-phone fs-3"></i>
+            <div class="flex-grow-1">
+                <div class="fw-bold mb-1">Estás en mobile — usá la versión PWA</div>
+                <div class="small">Diseño optimizado para celular: cargás presupuestos en campo aunque no haya señal, con cámara para adjuntos y sync automático al volver online.</div>
+            </div>
+            <a href="/rxnpwa/presupuestos" class="btn btn-sm btn-light text-primary fw-bold flex-shrink-0">
+                <i class="bi bi-arrow-right-circle"></i> Abrir PWA
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-light flex-shrink-0" id="rxn-pwa-banner-dismiss" title="Quedarme en escritorio por ahora">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <script>
+            (function () {
+                try {
+                    if (sessionStorage.getItem('rxn_dismiss_pwa_banner') === '1') return;
+                    var ua = navigator.userAgent || '';
+                    // Heurística estándar para detectar mobile (Android/iOS/iPad/iPhone/Mobile Safari).
+                    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+                    if (!isMobile) return;
+                    var banner = document.getElementById('rxn-pwa-mobile-banner');
+                    if (!banner) return;
+                    banner.classList.remove('d-none');
+                    banner.classList.add('d-flex');
+                    var dismiss = document.getElementById('rxn-pwa-banner-dismiss');
+                    if (dismiss) {
+                        dismiss.addEventListener('click', function () {
+                            try { sessionStorage.setItem('rxn_dismiss_pwa_banner', '1'); } catch (e) {}
+                            banner.remove();
+                        });
+                    }
+                } catch (e) { /* silent — banner es opcional */ }
+            })();
+        </script>
+
         <div id="dashboard-grid-crm" class="row g-4">
             <?php foreach ($finalCards as $id => $card): ?>
                 <div class="col-sm-6 col-lg-4 col-xl-3 rxn-sortable-col" data-id="<?= htmlspecialchars((string) $id) ?>">
@@ -286,6 +341,14 @@ ob_start();
             animation: 250,
             ghostClass: 'opacity-50',
             handle: '.rxn-module-card',
+            // Mobile: el operador necesita poder scrollear vertical sin que las
+            // cards intercepten el touch al primer pixel. delayOnTouchOnly=true
+            // exige mantener apretado 250ms antes de activar el drag — un swipe
+            // vertical normal NO lo dispara. touchStartThreshold da margen para
+            // que pequeños movimientos del dedo no se interpreten como drag.
+            delay: 250,
+            delayOnTouchOnly: true,
+            touchStartThreshold: 5,
             onEnd: function () {
                 var currentOrder = [];
                 document.querySelectorAll('#dashboard-grid-crm .rxn-sortable-col').forEach(function (col) {

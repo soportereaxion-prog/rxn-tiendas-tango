@@ -15,7 +15,7 @@
 //   - GET /api/rxnpwa/catalog/full    → siempre red (lo que persiste es IndexedDB, no Cache API).
 //   - Todo lo demás                   → passthrough (no interceptamos nada del backoffice clásico).
 
-const RXNPWA_VERSION = 'rxnpwa-v2-2026-04-30';
+const RXNPWA_VERSION = 'rxnpwa-v13-2026-04-30';
 const SHELL_CACHE = `${RXNPWA_VERSION}-shell`;
 const ASSETS_CACHE = `${RXNPWA_VERSION}-assets`;
 
@@ -101,6 +101,24 @@ self.addEventListener('notificationclick', function (event) {
             }
             if (self.clients.openWindow) {
                 return self.clients.openWindow(targetLink);
+            }
+        })
+    );
+});
+
+// ----- Background Sync (Fase 3): tag 'rxnpwa-sync-queue' -----
+//
+// Cuando el browser dispara `sync` (al volver red, después de un period offline),
+// le pedimos a los clientes activos que ejecuten su cola via postMessage.
+// El SW NO procesa la cola directo porque IndexedDB con Blobs grandes y el cookie
+// de sesión son más simples de manejar desde la página. Si no hay clientes (PWA
+// cerrada), la cola se va a drenar la próxima vez que el usuario abra la app.
+self.addEventListener('sync', (event) => {
+    if (event.tag !== 'rxnpwa-sync-queue') return;
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+            for (const c of clients) {
+                try { c.postMessage({ type: 'rxnpwa-sync-queue-fire' }); } catch (e) { /* swallow */ }
             }
         })
     );

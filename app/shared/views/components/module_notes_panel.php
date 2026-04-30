@@ -32,7 +32,14 @@ $moduleNotes = \App\Shared\Services\ModuleNoteService::notesForModule($moduleNot
 $moduleNotesCount = count(\App\Shared\Services\ModuleNoteService::notesForModule($moduleNotesKey, 0));
 $moduleNotesFlash = $_SESSION['module_notes_flash'] ?? null;
 $moduleNotesReturnTo = $_SERVER['REQUEST_URI'] ?? '/admin/notas-modulos';
-$moduleNotesShouldOpen = $moduleNotesFlash !== null || $moduleNotesCount === 0;
+// En mobile la bitácora arranca SIEMPRE minimizada — ocupa demasiado espacio en
+// celulares y tapa el contenido del módulo cuando se entra a operar. El usuario
+// puede expandirla manualmente con el launcher si la necesita.
+$_uaForNotes = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+$_isMobileForNotes = (bool) preg_match('/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i', $_uaForNotes);
+$moduleNotesShouldOpen = $_isMobileForNotes
+    ? false
+    : ($moduleNotesFlash !== null || $moduleNotesCount === 0);
 $moduleNotesDomId = preg_replace('/[^a-z0-9_-]/i', '-', $moduleNotesKey) ?: 'module-notes';
 
 unset($_SESSION['module_notes_flash']);

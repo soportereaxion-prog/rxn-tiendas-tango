@@ -149,3 +149,44 @@ Y el `shouldRetryWithoutObservaciones()` del service detecta el rechazo, hace `u
 - [ ] Generación PDF de impresión es exitosa y no omite el logo / cabecera de la empresa.
 - [ ] Envío a Tango reporta status OK / ERROR correctamente interceptado.
 - [ ] Crear un presupuesto nuevo genera una fila en `rxn_geo_eventos` con `event_type='presupuesto.created'` y `entidad_id` igual al ID del presupuesto creado. Editar un presupuesto existente NO genera evento nuevo. Una falla del servicio de geo no impide el guardado del presupuesto.
+
+## Integración con PWA mobile (release 1.33.0+)
+
+El módulo Presupuestos es el **primer caso de uso PWA** de la suite. La PWA mobile (`App\Modules\RxnPwa`) crea presupuestos offline y los sincroniza al server reusando este controller/repo. Ver `app/modules/RxnPwa/MODULE_CONTEXT.md` para el diseño completo.
+
+### Columna `tmp_uuid_pwa` (release 1.33.0)
+
+`crm_presupuestos.tmp_uuid_pwa VARCHAR(50) NULL` con `UNIQUE KEY uniq_crm_presupuestos_tmp_uuid_pwa`. Identifica un draft mobile origen. NULL para presupuestos creados desde el web (no choca con UNIQUE en MySQL).
+
+**Idempotencia del sync mobile**: si el cliente PWA reintenta el mismo POST por red intermitente, el server detecta la fila existente por `tmp_uuid_pwa` y devuelve el id_server existente sin duplicar.
+
+### REGLA DURA — `unset($data['tmp_uuid_pwa'])` en flujos derivativos
+
+Cualquier flujo que cree un presupuesto basándose en otro existente DEBE remover el campo del payload antes del INSERT. Si no, choca contra el UNIQUE y falla con "Duplicate entry TMP-...".
+
+Casos cubiertos:
+- `PresupuestoController::copy()` — `unset($data['id'], $data['numero'], $data['tmp_uuid_pwa'])`.
+- `PresupuestoRepository::createNewVersion()` — arma el payload manualmente sin incluir el campo.
+
+Si en el futuro se agrega "duplicar última versión", import desde Excel, copy from PDS, o cualquier otra forma de derivar un presupuesto, **respetar la regla**.
+
+**Bug histórico (release 1.35.1)**: `copy()` arrastraba `tmp_uuid_pwa` del original — todo intento de copiar un presupuesto creado desde la PWA fallaba con UNIQUE violation. Documentado para no repetir.
+
+### REGLA DURA — `id_interno` ≠ `id` al armar el payload de Tango
+
+Para que Tango acepte ID_GVA01/10/23/24, los `condicion_id_interno`, `lista_id_interno`, `vendedor_id_interno`, `transporte_id_interno` que viajan en el `presupuesto` deben venir de la columna `id_interno` de `crm_catalogo_comercial_items`, NO del PK auto-increment `id`.
+
+`PresupuestoController::resolveCatalogSelection()` lo hace bien (línea ~826): `(int) $option['id_interno']`. **Si replicás este patrón en otro módulo (RxnPwaSyncService::resolveCatalogItem fue víctima en 1.35.0/1.35.2), respetar la columna correcta.** Tango rechaza con "No existe condición de venta para el ID_GVA01 ingresado: <PK_local>" si se confunde.
+
+### Defaults comerciales del cliente — fuente canónica
+
+Los IDs comerciales del cliente viven en `crm_clientes`:
+
+| Campo | Fallback Tango | Mapea a (Tango) |
+|-------|----------------|-----------------|
+| `id_gva10_lista_precios`     | `id_gva10_tango` | ID_GVA10 (lista de precios) |
+| `id_gva01_condicion_venta`   | `id_gva23_tango` | ID_GVA01 (condición de venta) |
+| `id_gva23_vendedor`          | `id_gva01_tango` | ID_GVA23 (vendedor) |
+| `id_gva24_transporte`        | `id_gva24_tango` | ID_GVA24 (transporte) |
+
+`PresupuestoController::clientContext()` resuelve estos campos al seleccionar cliente en el form web. La PWA replica el mismo comportamiento client-side (`applyClienteDefaults` en `rxnpwa-form.js`).

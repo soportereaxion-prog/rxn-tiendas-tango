@@ -203,3 +203,28 @@ Las 6 fases originales del plan quedaron entregadas entre las releases **1.10.0 
 6. **Fase 6 — Job de purga** ✅ Release 1.12.0. Script CLI `tools/purge_geo_events.php` + doc de cron.
 
 El módulo queda cerrado al MVP del plan. Mejoras futuras posibles (fuera del alcance inicial): clustering en el mapa, heatmap, alertas por eventos anómalos, integración con MaxMind self-hosted.
+
+## Integración con PWA mobile (release 1.38.0)
+
+`App\Modules\RxnPwa` consume este módulo como **requisito core**, no opcional. La PWA tiene un gate global de GPS (`rxnpwa-geo-gate.js`) que bloquea toda interacción con la app si el operador no concede acceso a la ubicación. Es un diferencial central del producto: cada presupuesto emitido en campo se rastrea geográficamente.
+
+### Flujo de captura PWA → server
+
+1. **Cliente PWA** captura GPS al entrar al shell o form (gate bloqueante). `RxnPwaGeoGate.getCurrentGeo()` queda en memoria con `{lat, lng, accuracy, source: 'gps'|'wifi'}`.
+2. **Cliente PWA** copia la geo al draft de IndexedDB al guardar.
+3. **Cliente PWA** manda `{lat, lng, accuracy, source}` al server en el JSON del sync (`rxnpwa-sync-queue.js::draftToWire`).
+4. **Server** `RxnPwaController::syncPresupuesto` llama a `recordGeoEvent()` post-create:
+   - `GeoTrackingService::registrar(EVENT_PRESUPUESTO_CREATED, $presupuestoId, 'presupuesto')` crea evento con fallback IP.
+   - `GeoTrackingService::reportarPosicionBrowser($eventoId, $lat, $lng, $accuracy, $source)` actualiza con la posición precisa del celu.
+5. **Resultado en `rxn_geo_eventos`**: fila con `accuracy_source='gps'/'wifi'/'denied'` y `accuracy_meters` real del celu.
+
+### Diferencia con creación desde web
+
+- **Web**: el evento se crea en `store()` con IP fallback; el JS del browser después llama a `/geo-tracking/report` con la posición del browser. Si el user denegó, queda con `accuracy_source='ip'`.
+- **PWA**: el evento se crea con la posición del celu YA presente en el payload. No hace falta el segundo paso `/geo-tracking/report` — `recordGeoEvent` lo hace server-side directo.
+
+### Gate bloqueante en PWA — implicancias
+
+- Un presupuesto creado desde la PWA SIEMPRE tiene geo válida (`source='gps'` o `'wifi'`). Si el operador no concedió GPS, no pudo entrar a la app.
+- Casos `accuracy_source='denied'` o `'ip'` en `rxn_geo_eventos` con `entidad_tipo='presupuesto'` → sólo pueden venir del web (donde el banner de consentimiento sigue siendo opt-in).
+- Si querés distinguir "creado en campo" (PWA) de "creado en oficina" (web), filtrá `accuracy_source IN ('gps', 'wifi')` — típicamente implica PWA mobile.

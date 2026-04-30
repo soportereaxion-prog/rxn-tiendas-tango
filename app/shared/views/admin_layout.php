@@ -66,6 +66,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <link href="/css/rxn-theming.css?v=<?= time() ?>" rel="stylesheet">
     <link href="/css/rxn-shortcuts.css?v=<?= time() ?>" rel="stylesheet">
     <link href="/css/rxn-notifications.css?v=<?= time() ?>" rel="stylesheet">
+    <link href="/css/rxn-fullscreen.css?v=<?= time() ?>" rel="stylesheet">
     <?= $extraHead ?? '' ?>
 </head>
 <body class="d-flex flex-column min-vh-100 rxn-launcher-shell pt-2" <?= UIHelper::getBodyZoomStyle() ?>>
@@ -110,6 +111,7 @@ if (isset($pageTitle) && in_array($pageTitle, ['RXN Suite', 'RXN Suite'])) {
     <script src="/js/rxn-spotlight.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-geo-consent.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-geo-tracking.js?v=<?= time() ?>"></script>
+    <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-shortcuts.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-list-shortcuts.js?v=<?= time() ?>"></script>
     <script src="/js/rxn-notifications.js?v=<?= time() ?>"></script>

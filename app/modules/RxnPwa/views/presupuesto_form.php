@@ -23,6 +23,7 @@ $tmpUuid = $tmpUuid ?? '';
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <link rel="stylesheet" href="/css/rxnpwa.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="/css/rxn-fullscreen.css?v=<?= time() ?>">
 </head>
 <body>
     <header class="rxnpwa-header d-flex align-items-center justify-content-between">
@@ -30,14 +31,23 @@ $tmpUuid = $tmpUuid ?? '';
             <a href="/rxnpwa/presupuestos" class="btn btn-sm btn-outline-light" title="Volver">
                 <i class="bi bi-arrow-left"></i>
             </a>
+            <?php require BASE_PATH . '/app/modules/RxnPwa/views/_brand_icon.php'; ?>
             <div>
                 <div class="fw-bold" id="rxnpwa-form-title">Nuevo presupuesto</div>
                 <div class="small text-muted" id="rxnpwa-form-subtitle">Borrador local</div>
             </div>
         </div>
-        <button type="button" class="btn btn-sm btn-success" id="rxnpwa-form-save" title="Guardar borrador">
-            <i class="bi bi-save"></i> Guardar
-        </button>
+        <div class="d-flex gap-1">
+            <button type="button" class="btn btn-sm btn-outline-light"
+                    data-rxn-fullscreen-toggle
+                    title="Pantalla completa"
+                    aria-pressed="false">
+                <i class="bi bi-fullscreen"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-success" id="rxnpwa-form-save" title="Guardar borrador">
+                <i class="bi bi-save"></i> Guardar
+            </button>
+        </div>
     </header>
 
     <main class="rxnpwa-shell" data-tmp-uuid="<?= htmlspecialchars($tmpUuid) ?>" data-empresa-id="<?= (int) $empresaId ?>">
@@ -60,23 +70,50 @@ $tmpUuid = $tmpUuid ?? '';
 
             <div class="row g-2 mb-2">
                 <div class="col-12 col-sm-6">
-                    <label class="form-label small" for="rxnpwa-lista">Lista de precio</label>
+                    <label class="form-label small" for="rxnpwa-lista">Lista de precio <span class="text-danger">*</span></label>
                     <select class="form-select" id="rxnpwa-lista">
                         <option value="">— Seleccionar —</option>
                     </select>
                 </div>
                 <div class="col-12 col-sm-6">
-                    <label class="form-label small" for="rxnpwa-deposito">Depósito</label>
-                    <select class="form-select" id="rxnpwa-deposito">
+                    <label class="form-label small" for="rxnpwa-deposito">Depósito <span class="text-danger">*</span></label>
+                    <select class="form-select" id="rxnpwa-deposito" required>
                         <option value="">— Seleccionar —</option>
                     </select>
                 </div>
             </div>
 
-            <label class="form-label small" for="rxnpwa-clasificacion">Clasificación <span class="text-danger">*</span></label>
-            <select class="form-select mb-2" id="rxnpwa-clasificacion" required>
-                <option value="">— Seleccionar —</option>
-            </select>
+            <div class="row g-2 mb-2">
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small" for="rxnpwa-condicion">Condición de venta</label>
+                    <select class="form-select" id="rxnpwa-condicion">
+                        <option value="">— Seleccionar —</option>
+                    </select>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small" for="rxnpwa-vendedor">Vendedor</label>
+                    <select class="form-select" id="rxnpwa-vendedor">
+                        <option value="">— Seleccionar —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small" for="rxnpwa-transporte">Transporte</label>
+                    <select class="form-select" id="rxnpwa-transporte">
+                        <option value="">— Seleccionar —</option>
+                    </select>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small" for="rxnpwa-clasificacion">Clasificación <span class="text-danger">*</span></label>
+                    <select class="form-select" id="rxnpwa-clasificacion" required>
+                        <option value="">— Seleccionar —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="small text-muted mb-1" id="rxnpwa-cliente-defaults-msg"></div>
         </section>
 
         <!-- RENGLONES -->
@@ -150,14 +187,23 @@ $tmpUuid = $tmpUuid ?? '';
         </div>
 
         <div class="rxnpwa-card">
-            <h2 class="h6 mb-2"><i class="bi bi-cloud-upload"></i> Enviar al servidor</h2>
-            <div class="rxnpwa-placeholder small">
-                <i class="bi bi-cone-striped fs-3 d-block mb-2"></i>
-                <strong>Próximamente — Fase 3</strong>
-                <div class="mt-1">
-                    Cuando vuelvas online, este borrador va a sincronizar al server con todos sus adjuntos.
-                </div>
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h2 class="h6 mb-0"><i class="bi bi-cloud-upload"></i> Enviar al servidor</h2>
+                <span id="rxnpwa-form-net-badge" class="badge bg-secondary small"><i class="bi bi-wifi"></i> —</span>
             </div>
+            <div class="small text-muted mb-3" id="rxnpwa-form-sync-state">
+                Borrador local — sin sincronizar.
+            </div>
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-primary" id="rxnpwa-form-sync">
+                    <i class="bi bi-cloud-upload"></i> Sincronizar al servidor
+                </button>
+                <button type="button" class="btn btn-success" id="rxnpwa-form-emit-tango" disabled
+                    title="Enviá primero al servidor; después se habilita Tango.">
+                    <i class="bi bi-send"></i> Enviar a Tango
+                </button>
+            </div>
+            <div id="rxnpwa-form-sync-message" class="small mt-2"></div>
         </div>
 
         <div class="text-center small text-muted mt-4 mb-4">
@@ -171,7 +217,7 @@ $tmpUuid = $tmpUuid ?? '';
         <div class="modal-dialog modal-fullscreen-sm-down">
             <div class="modal-content bg-dark text-light">
                 <div class="modal-header">
-                    <h5 class="modal-title">Agregar renglón</h5>
+                    <h5 class="modal-title" id="rxnpwa-renglon-modal-title">Agregar renglón</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -206,16 +252,24 @@ $tmpUuid = $tmpUuid ?? '';
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="rxnpwa-renglon-confirm">Agregar al presupuesto</button>
+                    <button type="button" class="btn btn-primary" id="rxnpwa-renglon-confirm">
+                        <span id="rxnpwa-renglon-confirm-label">Agregar al presupuesto</span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Helper global de fullscreen + persistencia (release 1.42.0). -->
+    <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
+    <!-- Geo gate ANTES que todos los demás — bloquea la PWA si no hay GPS. -->
+    <script src="/js/pwa/rxnpwa-geo-gate.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-catalog-store.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-drafts-store.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-image-compressor.js?v=<?= time() ?>"></script>
+    <script src="/js/pwa/rxnpwa-sync-queue.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-form.js?v=<?= time() ?>"></script>
+    <script src="/js/pwa/rxnpwa-form-sync.js?v=<?= time() ?>"></script>
 </body>
 </html>

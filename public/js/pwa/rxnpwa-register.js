@@ -87,14 +87,63 @@
         }
     }
 
+    function getCurrentEmpresaId() {
+        const tag = document.querySelector('meta[name="rxn-empresa-id"]');
+        const id = tag ? parseInt(tag.getAttribute('content'), 10) : 0;
+        return Number.isFinite(id) && id > 0 ? id : 0;
+    }
+
+    /**
+     * Si el catálogo local pertenece a otra empresa (Charly cambió de empresa
+     * en el backoffice), wipear todo el catálogo offline para forzar resync.
+     * Los DRAFTS no se tocan — son por-empresa y se filtran en runtime.
+     *
+     * @returns {string|null} 'empresa' / 'schema' si hubo wipe, null si está OK.
+     */
+    async function ensureCatalogConsistency() {
+        const current = getCurrentEmpresaId();
+        const meta = await window.RxnPwaCatalogStore.getMeta().catch(() => null);
+        if (!meta) return null;
+
+        // (1) Cambio de empresa.
+        if (current && meta.empresa_id && Number(meta.empresa_id) !== current) {
+            console.warn('[rxnpwa] Empresa cambió: catálogo era de ' + meta.empresa_id + ', sesión es ' + current + '. Wipeando catálogo.');
+            await window.RxnPwaCatalogStore.clearCatalogOnly();
+            return 'empresa';
+        }
+
+        // (2) Schema del payload desactualizado (ej: server agregó columnas al cliente).
+        const expected = window.RxnPwaCatalogStore.CATALOG_SCHEMA_VERSION;
+        if (expected && meta.schema_version !== expected) {
+            console.warn('[rxnpwa] Schema del catálogo desactualizado: cache=' + meta.schema_version + ', esperado=' + expected + '. Wipeando catálogo.');
+            await window.RxnPwaCatalogStore.clearCatalogOnly();
+            return 'schema';
+        }
+        return null;
+    }
+
     async function refreshStatus() {
         const status = document.getElementById(STATUS_EL_ID);
         if (!status) return;
 
-        const meta = await window.RxnPwaCatalogStore.getMeta().catch(() => null);
+        const wiped = await ensureCatalogConsistency();
+        const meta = wiped ? null : await window.RxnPwaCatalogStore.getMeta().catch(() => null);
 
         if (!navigator.onLine) {
             renderOfflineNotice(meta);
+            return;
+        }
+
+        if (wiped === 'empresa') {
+            status.innerHTML = renderBadge('empty', {
+                msg: 'Cambiaste de empresa — el catálogo offline anterior se borró. Descargá el nuevo antes de salir a campo.',
+            });
+            return;
+        }
+        if (wiped === 'schema') {
+            status.innerHTML = renderBadge('empty', {
+                msg: 'Hay una versión nueva del catálogo (con más datos del cliente). Resincronizá para tener los defaults comerciales actualizados.',
+            });
             return;
         }
 
@@ -162,30 +211,36 @@
 
     function renderBadge(state, ctx = {}) {
         const meta = ctx.meta;
-        const sv = ctx.serverVersion;
-        const baseInfo = meta
-            ? `<div class="small text-muted mt-1">
-                ${(meta.items_count || 0).toLocaleString('es-AR')} ítems · ${formatBytes(meta.size_bytes || 0)} · sincronizado ${meta.synced_at ? new Date(meta.synced_at).toLocaleString('es-AR') : '—'}
-              </div>`
-            : '';
+        const itemsCount = meta ? (meta.items_count || 0).toLocaleString('es-AR') : null;
+        const sizeText = meta ? formatBytes(meta.size_bytes || 0) : null;
+        const syncedDate = meta && meta.synced_at ? new Date(meta.synced_at).toLocaleString('es-AR') : null;
 
+        // Paleta. El "color" se aplica al texto del título — el contenedor (card)
+        // viene del shell, no usamos alert acá para que entre compacto en la grid.
         const palette = {
-            fresh: { color: 'success', icon: '🟢', title: 'Catálogo al día' },
-            'stale-time': { color: 'warning', icon: '🟡', title: 'Catálogo desactualizado' },
-            'stale-hash': { color: 'warning', icon: '🟡', title: 'Hay versión nueva' },
-            empty: { color: 'danger', icon: '🔴', title: 'Sin catálogo offline' },
-            'offline-empty': { color: 'danger', icon: '⚠️', title: 'Sin red ni catálogo' },
-            'offline-cached': { color: 'info', icon: '📡', title: 'Modo offline' },
-            error: { color: 'danger', icon: '⚠️', title: 'Error de sincronización' },
-            downloading: { color: 'info', icon: '⏳', title: 'Sincronizando…' },
+            fresh: { color: 'text-success', icon: '🟢', title: 'Catálogo al día' },
+            'stale-time': { color: 'text-warning', icon: '🟡', title: 'Desactualizado' },
+            'stale-hash': { color: 'text-warning', icon: '🟡', title: 'Versión nueva' },
+            empty: { color: 'text-danger', icon: '🔴', title: 'Sin catálogo' },
+            'offline-empty': { color: 'text-danger', icon: '⚠️', title: 'Sin red ni catálogo' },
+            'offline-cached': { color: 'text-info', icon: '📡', title: 'Offline' },
+            error: { color: 'text-danger', icon: '⚠️', title: 'Error de sync' },
+            downloading: { color: 'text-info', icon: '⏳', title: 'Sincronizando…' },
         };
         const cfg = palette[state] || palette.empty;
         const msg = ctx.msg || '';
+
+        // Línea de meta: items + tamaño + fecha. Cada uno en su línea para que
+        // se lea bien en la card chica del header (col-7).
+        const metaLines = [];
+        if (itemsCount !== null) metaLines.push(`${itemsCount} ítems · ${sizeText}`);
+        if (syncedDate) metaLines.push(syncedDate);
+
         return `
-            <div class="alert alert-${cfg.color} d-flex flex-column gap-1 mb-3" role="status">
-                <div class="fw-bold">${cfg.icon} ${cfg.title}</div>
-                ${msg ? `<div>${escapeHtml(msg)}</div>` : ''}
-                ${baseInfo}
+            <div class="d-flex flex-column">
+                <div class="fw-bold ${cfg.color} small">${cfg.icon} ${cfg.title}</div>
+                ${metaLines.map((l) => `<div class="rxnpwa-badge-meta small">${escapeHtml(l)}</div>`).join('')}
+                ${msg ? `<div class="small text-muted mt-1">${escapeHtml(msg)}</div>` : ''}
             </div>
         `;
     }

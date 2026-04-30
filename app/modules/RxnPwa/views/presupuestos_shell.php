@@ -20,39 +20,48 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/css/rxnpwa.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="/css/rxn-fullscreen.css?v=<?= time() ?>">
 </head>
 <body>
 
     <header class="rxnpwa-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
-            <img src="/icons/rxnpwa-192.png" alt="" width="32" height="32" style="border-radius: 6px;">
+            <?php require BASE_PATH . '/app/modules/RxnPwa/views/_brand_icon.php'; ?>
             <div>
                 <div class="fw-bold">RXN PWA</div>
-                <div class="small text-muted">Presupuestos en campo</div>
+                <div class="small text-muted">Presupuestos</div>
             </div>
         </div>
-        <a href="/mi-empresa/crm/dashboard" class="btn btn-sm btn-outline-light" title="Volver al backoffice">
-            <i class="bi bi-box-arrow-up-right"></i>
-        </a>
+        <div class="d-flex gap-1">
+            <button type="button" class="btn btn-sm btn-outline-light"
+                    data-rxn-fullscreen-toggle
+                    title="Pantalla completa"
+                    aria-pressed="false">
+                <i class="bi bi-fullscreen"></i>
+            </button>
+            <a href="/mi-empresa/crm/dashboard" class="btn btn-sm btn-outline-light" title="Volver al backoffice">
+                <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+        </div>
     </header>
 
     <main class="rxnpwa-shell">
 
-        <div id="rxnpwa-status" aria-live="polite">
-            <div class="alert alert-info mb-3">⏳ Comprobando estado del catálogo offline…</div>
-        </div>
-
-        <div id="rxnpwa-actions" class="rxnpwa-card">
-            <h2 class="h6 mb-2">
-                <i class="bi bi-cloud-arrow-down"></i> Preparar app para uso offline
-            </h2>
-            <p class="small text-muted mb-3">
-                Descarga el catálogo completo (clientes, artículos, precios, listas, condiciones, transportes,
-                vendedores, depósitos y clasificaciones) en este dispositivo. Lo necesitás antes de salir a campo.
-            </p>
-            <button type="button" class="btn btn-primary w-100" data-rxnpwa-sync>
-                <i class="bi bi-arrow-repeat"></i> Sincronizar catálogo ahora
-            </button>
+        <!-- Header del shell: 2 cajas en grid — info de catálogo (izq) + acción sync (der).
+             En mobile (sm-) se apilan; en pantallas más anchas quedan lado a lado. -->
+        <div class="row g-2 mb-3 rxnpwa-header-grid">
+            <div class="col-7">
+                <div id="rxnpwa-status" class="rxnpwa-card rxnpwa-card-compact h-100" aria-live="polite">
+                    <div class="small text-muted">⏳ Comprobando catálogo…</div>
+                </div>
+            </div>
+            <div class="col-5">
+                <div class="rxnpwa-card rxnpwa-card-compact h-100 d-flex align-items-center justify-content-center">
+                    <button type="button" class="btn btn-sm btn-primary w-100" data-rxnpwa-sync>
+                        <i class="bi bi-arrow-repeat"></i> Sincronizar
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="rxnpwa-card">
@@ -70,15 +79,14 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
         </div>
 
         <div class="rxnpwa-card">
-            <h2 class="h6 mb-2">
-                <i class="bi bi-cloud-upload"></i> Cola de envío
-            </h2>
-            <div class="rxnpwa-placeholder">
-                <i class="bi bi-cone-striped fs-2 d-block mb-2"></i>
-                <strong>Próximamente — Fase 3</strong>
-                <div class="small mt-1">
-                    Reconciliación con server al volver online.
-                </div>
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h2 class="h6 mb-0">
+                    <i class="bi bi-cloud-upload"></i> Cola de envío
+                </h2>
+                <span id="rxnpwa-queue-net-badge" class="badge bg-secondary"><i class="bi bi-wifi"></i> —</span>
+            </div>
+            <div id="rxnpwa-queue-summary">
+                <div class="rxnpwa-placeholder small">Sin elementos en cola.</div>
             </div>
         </div>
 
@@ -88,8 +96,13 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
 
     </main>
 
+    <!-- Helper global de fullscreen + persistencia (release 1.42.0). -->
+    <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
+    <!-- Geo gate ANTES que todos los demás — bloquea la PWA si no hay GPS. -->
+    <script src="/js/pwa/rxnpwa-geo-gate.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-catalog-store.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-drafts-store.js?v=<?= time() ?>"></script>
+    <script src="/js/pwa/rxnpwa-sync-queue.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-register.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-shell-drafts.js?v=<?= time() ?>"></script>
 </body>

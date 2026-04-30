@@ -37,11 +37,35 @@
 
     // ---------- Carga catálogo ----------
 
+    function getCurrentEmpresaId() {
+        const tag = document.querySelector('meta[name="rxn-empresa-id"]');
+        const id = tag ? parseInt(tag.getAttribute('content'), 10) : 0;
+        return Number.isFinite(id) && id > 0 ? id : 0;
+    }
+
     async function loadCatalog() {
         const meta = await window.RxnPwaCatalogStore.getMeta();
+        const currentEmpresa = getCurrentEmpresaId();
+
+        // Catálogo vacío → redirect al shell para resync.
         if (!meta) {
             window.location.href = '/rxnpwa/presupuestos';
             throw new Error('Sin catálogo offline. Volvé al shell para sincronizar.');
+        }
+        // Catálogo de otra empresa → wipe + redirect.
+        if (currentEmpresa && meta.empresa_id && Number(meta.empresa_id) !== currentEmpresa) {
+            console.warn('[rxnpwa-form] Empresa cambió: catálogo era de ' + meta.empresa_id + ', sesión es ' + currentEmpresa + '. Limpiando.');
+            await window.RxnPwaCatalogStore.clearCatalogOnly();
+            window.location.href = '/rxnpwa/presupuestos';
+            throw new Error('Cambiaste de empresa — sincronizá el catálogo nuevamente.');
+        }
+        // Schema del catálogo desactualizado → wipe + redirect (release 1.35.0+).
+        const expectedSchema = window.RxnPwaCatalogStore.CATALOG_SCHEMA_VERSION;
+        if (expectedSchema && meta.schema_version !== expectedSchema) {
+            console.warn('[rxnpwa-form] Schema viejo: cache=' + meta.schema_version + ', esperado=' + expectedSchema + '. Limpiando.');
+            await window.RxnPwaCatalogStore.clearCatalogOnly();
+            window.location.href = '/rxnpwa/presupuestos';
+            throw new Error('Hay una versión nueva del catálogo — resincronizá desde el shell.');
         }
         catalog = await window.RxnPwaCatalogStore.loadAll();
     }
@@ -75,6 +99,9 @@
         renderClienteSelected();
         renderListaSelect();
         renderDepositoSelect();
+        renderCondicionSelect();
+        renderVendedorSelect();
+        renderTransporteSelect();
         renderClasificacionSelect();
         document.getElementById('rxnpwa-comentarios').value = draft.cabecera.comentarios || '';
         document.getElementById('rxnpwa-observaciones').value = draft.cabecera.observaciones || '';
@@ -117,10 +144,66 @@
         });
     }
 
+    function renderCondicionSelect() {
+        renderCatalogSelect('rxnpwa-condicion', catalog.condiciones_venta || [], draft.cabecera.condicion_codigo);
+    }
+
+    function renderVendedorSelect() {
+        renderCatalogSelect('rxnpwa-vendedor', catalog.vendedores || [], draft.cabecera.vendedor_codigo);
+    }
+
+    function renderTransporteSelect() {
+        renderCatalogSelect('rxnpwa-transporte', catalog.transportes || [], draft.cabecera.transporte_codigo);
+    }
+
+    /**
+     * Helper común para los selects de catálogo comercial. Acepta empty (catalog
+     * sin sincronizar) y muestra el código actual aunque no esté en el catálogo
+     * (defensivo: el cliente puede tener un código que ya no existe en el catalog).
+     */
+    function renderCatalogSelect(elementId, items, selectedCodigo) {
+        const sel = document.getElementById(elementId);
+        if (!sel) return;
+        if (!items || items.length === 0) {
+            sel.innerHTML = '<option value="">— Sin opciones — corré "Sync Catálogos" —</option>';
+            sel.disabled = true;
+            return;
+        }
+        sel.disabled = false;
+        sel.innerHTML = '<option value="">— Seleccionar —</option>';
+        let foundSelected = false;
+        items.forEach((it) => {
+            const opt = document.createElement('option');
+            opt.value = it.codigo;
+            opt.textContent = it.codigo + ' — ' + it.descripcion;
+            if (it.codigo === selectedCodigo) {
+                opt.selected = true;
+                foundSelected = true;
+            }
+            sel.appendChild(opt);
+        });
+        // Defensivo: si el código actual del draft no existe en el catalog (cliente
+        // venía con un código viejo), igual lo incluimos para no perder la selección.
+        if (selectedCodigo && !foundSelected) {
+            const opt = document.createElement('option');
+            opt.value = selectedCodigo;
+            opt.textContent = selectedCodigo + ' (no encontrado en catálogo)';
+            opt.selected = true;
+            sel.appendChild(opt);
+        }
+    }
+
     function renderClasificacionSelect() {
         const sel = document.getElementById('rxnpwa-clasificacion');
+        const items = catalog.clasificaciones_pds || [];
+        if (items.length === 0) {
+            sel.innerHTML = '<option value="">— Sin clasificaciones — corré "Sync Catálogos" en el backoffice —</option>';
+            sel.disabled = true;
+            return;
+        }
+        sel.disabled = false;
         sel.innerHTML = '<option value="">— Seleccionar —</option>';
-        (catalog.clasificaciones_pds || []).forEach((c) => {
+        items.forEach((c) => {
             const opt = document.createElement('option');
             opt.value = c.codigo;
             opt.textContent = c.codigo + ' — ' + c.descripcion;
@@ -146,9 +229,14 @@
                         </div>
                         <div class="text-end">
                             <div class="fw-bold">$ ${formatNum(r.subtotal)}</div>
-                            <button type="button" class="btn btn-sm btn-outline-danger mt-1" data-rxnpwa-renglon-del="${idx}" title="Borrar">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <div class="d-flex gap-1 justify-content-end mt-1">
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-rxnpwa-renglon-edit="${idx}" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-rxnpwa-renglon-del="${idx}" title="Borrar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -209,12 +297,19 @@
         document.getElementById('rxnpwa-form-save').addEventListener('click', () => saveDraft(false));
         document.getElementById('rxnpwa-form-save-bottom').addEventListener('click', () => saveDraft(false));
 
+        // Fullscreen ahora lo maneja el helper global rxn-fullscreen.js — el
+        // botón del header tiene data-rxn-fullscreen-toggle y la persistencia
+        // queda en localStorage compartida con backoffice y shell PWA.
+
         // Delete
         document.getElementById('rxnpwa-form-delete').addEventListener('click', deleteDraft);
 
         // Cliente picker
         const clienteInput = document.getElementById('rxnpwa-cliente');
         clienteInput.addEventListener('input', debounce(() => renderClienteResults(clienteInput.value), 200));
+        // Focus sin escribir → mostrar los primeros N clientes (vistazo rápido).
+        clienteInput.addEventListener('focus', () => renderClienteResults(clienteInput.value));
+        clienteInput.addEventListener('click', () => renderClienteResults(clienteInput.value));
         document.getElementById('rxnpwa-cliente-results').addEventListener('click', onClienteResultClick);
         document.getElementById('rxnpwa-cliente-clear').addEventListener('click', () => {
             draft.cabecera.cliente_id = null;
@@ -239,6 +334,18 @@
             draft.cabecera.deposito_codigo = e.target.value;
             scheduleAutoSave();
         });
+        document.getElementById('rxnpwa-condicion').addEventListener('change', (e) => {
+            draft.cabecera.condicion_codigo = e.target.value;
+            scheduleAutoSave();
+        });
+        document.getElementById('rxnpwa-vendedor').addEventListener('change', (e) => {
+            draft.cabecera.vendedor_codigo = e.target.value;
+            scheduleAutoSave();
+        });
+        document.getElementById('rxnpwa-transporte').addEventListener('change', (e) => {
+            draft.cabecera.transporte_codigo = e.target.value;
+            scheduleAutoSave();
+        });
         document.getElementById('rxnpwa-clasificacion').addEventListener('change', (e) => {
             draft.cabecera.clasificacion_codigo = e.target.value;
             scheduleAutoSave();
@@ -258,9 +365,12 @@
         document.getElementById('rxnpwa-renglon-add').addEventListener('click', openRenglonModal);
         document.getElementById('rxnpwa-renglones-list').addEventListener('click', onRenglonListClick);
 
-        // Modal renglón
+        // Modal renglón — picker artículo
         const articuloInput = document.getElementById('rxnpwa-renglon-articulo');
         articuloInput.addEventListener('input', debounce(() => renderArticuloResults(articuloInput.value), 200));
+        // Focus / click sin escribir → mostrar los primeros N artículos.
+        articuloInput.addEventListener('focus', () => renderArticuloResults(articuloInput.value));
+        articuloInput.addEventListener('click', () => renderArticuloResults(articuloInput.value));
         document.getElementById('rxnpwa-renglon-articulo-results').addEventListener('click', onArticuloResultClick);
         ['rxnpwa-renglon-cantidad', 'rxnpwa-renglon-descuento', 'rxnpwa-renglon-precio'].forEach((id) => {
             document.getElementById(id).addEventListener('input', recomputeRenglonSubtotal);
@@ -284,23 +394,33 @@
     function renderClienteResults(query) {
         const results = document.getElementById('rxnpwa-cliente-results');
         const q = (query || '').trim().toLowerCase();
-        if (q.length < 2) {
-            results.innerHTML = '';
-            return;
-        }
-        const matches = (catalog.clientes || [])
-            .filter((c) =>
+        const all = catalog.clientes || [];
+
+        // Sin query: mostrar primeros 30 (vistazo cómodo al hacer focus en mobile).
+        // Con query: filtrar por razon_social / documento / codigo_tango.
+        const matches = q.length === 0
+            ? all.slice(0, 30)
+            : all.filter((c) =>
                 (c.razon_social || '').toLowerCase().includes(q) ||
                 (c.documento || '').toLowerCase().includes(q) ||
                 (c.codigo_tango || '').toLowerCase().includes(q)
-            )
-            .slice(0, 30);
-        results.innerHTML = matches.map((c) => `
+            ).slice(0, 30);
+
+        if (matches.length === 0) {
+            results.innerHTML = '<div class="small text-muted p-2">Sin resultados.</div>';
+            return;
+        }
+
+        const header = q.length === 0
+            ? `<div class="rxnpwa-suggest-header small text-muted px-2 py-1">Primeros ${matches.length} de ${all.length} — escribí para buscar</div>`
+            : '';
+
+        results.innerHTML = header + matches.map((c) => `
             <div class="rxnpwa-suggest-item" data-cliente-id="${c.id}">
                 <strong>${escape(c.razon_social || '')}</strong>
                 <div class="small text-muted">${escape(c.documento || '')} · cód ${escape(c.codigo_tango || '—')}</div>
             </div>
-        `).join('') || '<div class="small text-muted p-2">Sin resultados.</div>';
+        `).join('');
     }
 
     function onClienteResultClick(e) {
@@ -314,24 +434,152 @@
         document.getElementById('rxnpwa-cliente').value = cliente.razon_social || '';
         document.getElementById('rxnpwa-cliente-results').innerHTML = '';
         renderClienteSelected();
+        applyClienteDefaults(cliente);
         scheduleAutoSave();
+    }
+
+    /**
+     * Auto-completa lista / condición / vendedor / transporte a partir de los
+     * códigos comerciales configurados en el cliente. Replica `clientContext`
+     * del form web. Solo pisa cuando el campo del draft está vacío — si el
+     * vendedor ya eligió manualmente algo, no se sobreescribe.
+     *
+     * Fallback en cadena para cada campo: campo nativo CRM → campo legacy Tango
+     * → vacío. Igual que en PresupuestoController::clientContext.
+     */
+    function applyClienteDefaults(cliente) {
+        const fields = [
+            { draftKey: 'lista_codigo',       selectId: 'rxnpwa-lista',       sources: ['id_gva10_lista_precios', 'id_gva10_tango'],   catalogKey: 'listas_precio' },
+            { draftKey: 'condicion_codigo',   selectId: 'rxnpwa-condicion',   sources: ['id_gva01_condicion_venta', 'id_gva23_tango'], catalogKey: 'condiciones_venta' },
+            { draftKey: 'vendedor_codigo',    selectId: 'rxnpwa-vendedor',    sources: ['id_gva23_vendedor', 'id_gva01_tango'],        catalogKey: 'vendedores' },
+            { draftKey: 'transporte_codigo',  selectId: 'rxnpwa-transporte',  sources: ['id_gva24_transporte', 'id_gva24_tango'],      catalogKey: 'transportes' },
+        ];
+        const applied = [];
+        const skipped = [];
+
+        fields.forEach((f) => {
+            // No pisar si el operador ya eligió algo.
+            if ((draft.cabecera[f.draftKey] || '').trim() !== '') return;
+
+            // Buscar primer código no vacío en las fuentes.
+            let codigo = '';
+            for (const s of f.sources) {
+                const v = (cliente[s] || '').toString().trim();
+                if (v !== '') { codigo = v; break; }
+            }
+            if (codigo === '') return;
+
+            // Verificar que el código exista en el catálogo offline (sino el cliente
+            // tiene un código viejo que no está sincronizado — lo dejamos pasar igual,
+            // renderCatalogSelect lo muestra como "no encontrado en catálogo").
+            const items = catalog[f.catalogKey] || [];
+            const found = items.find((it) => it.codigo === codigo);
+
+            draft.cabecera[f.draftKey] = codigo;
+            if (f.draftKey === 'lista_codigo') {
+                draft.cabecera.lista_data = found || { codigo, descripcion: codigo };
+            }
+            applied.push(f.draftKey.replace('_codigo', '') + ' = ' + codigo + (found ? '' : ' (no en catálogo)'));
+        });
+
+        // Refrescar selects y mensaje.
+        renderListaSelect();
+        renderCondicionSelect();
+        renderVendedorSelect();
+        renderTransporteSelect();
+
+        // Recalcular precios si la lista cambió como parte del autofill.
+        if (applied.some((s) => s.startsWith('lista'))) {
+            recalcRenglonesPrecio();
+            renderRenglones();
+        }
+
+        const msg = document.getElementById('rxnpwa-cliente-defaults-msg');
+        if (msg) {
+            if (applied.length > 0) {
+                msg.innerHTML = '<i class="bi bi-check-circle text-success"></i> Defaults comerciales del cliente: <strong>' + applied.join(', ') + '</strong>';
+            } else {
+                msg.innerHTML = '<i class="bi bi-info-circle text-muted"></i> Este cliente no tiene defaults comerciales configurados — completá manualmente.';
+            }
+        }
     }
 
     // ---------- Renglón modal ----------
 
     let renglonModal = null;
+    // -1 = modo "agregar nuevo". >=0 = modo "editar el renglón en ese índice".
+    let editingRenglonIdx = -1;
 
-    function openRenglonModal() {
-        selectedRowArticulo = null;
-        document.getElementById('rxnpwa-renglon-articulo').value = '';
-        document.getElementById('rxnpwa-renglon-articulo-results').innerHTML = '';
-        document.getElementById('rxnpwa-renglon-articulo-selected').innerHTML = '';
-        document.getElementById('rxnpwa-renglon-cantidad').value = '1';
-        document.getElementById('rxnpwa-renglon-descuento').value = '0';
-        document.getElementById('rxnpwa-renglon-precio').value = '0';
-        document.getElementById('rxnpwa-renglon-precio-origin').textContent = '—';
-        document.getElementById('rxnpwa-renglon-stock-info').textContent = '';
-        document.getElementById('rxnpwa-renglon-subtotal').textContent = '0,00';
+    /**
+     * Abre el modal de renglón. Si `idx` es un número >=0, entra en modo EDIT y
+     * pre-carga los valores del renglón existente. Si es undefined/null/-1, entra
+     * en modo ADD (selección de artículo desde 0).
+     *
+     * Gate: NO se puede agregar/editar renglones sin depósito seleccionado en
+     * la cabecera. El depósito determina el stock disponible y el precio,
+     * sin él no hay forma de armar un renglón consistente.
+     */
+    function openRenglonModal(idx) {
+        // Gate depósito — bloqueante. Aplica para ambos modos.
+        if (!draft.cabecera.deposito_codigo) {
+            showStatus('error', 'Seleccioná un depósito en la cabecera antes de agregar artículos.');
+            const dep = document.getElementById('rxnpwa-deposito');
+            if (dep) {
+                dep.classList.add('is-invalid');
+                dep.focus();
+                setTimeout(() => dep.classList.remove('is-invalid'), 2500);
+                dep.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        const isEdit = Number.isInteger(idx) && idx >= 0;
+        editingRenglonIdx = isEdit ? idx : -1;
+
+        // Título y label del botón de confirmación.
+        const title = document.getElementById('rxnpwa-renglon-modal-title');
+        const confirmLabel = document.getElementById('rxnpwa-renglon-confirm-label');
+        if (title) title.textContent = isEdit ? 'Editar renglón' : 'Agregar renglón';
+        if (confirmLabel) confirmLabel.textContent = isEdit ? 'Guardar cambios' : 'Agregar al presupuesto';
+
+        if (isEdit) {
+            const r = draft.renglones[idx];
+            // Recuperar el artículo del catálogo offline para mantener el contexto
+            // (descripción rica, stock visible, etc.). Si el artículo ya no está
+            // en catálogo, armamos un objeto mínimo a partir del renglón guardado.
+            const fromCatalog = (catalog.articulos || []).find((a) => a.id === r.articulo_id);
+            selectedRowArticulo = fromCatalog || {
+                id: r.articulo_id,
+                codigo_externo: r.codigo,
+                nombre: r.descripcion,
+                descripcion: r.descripcion,
+            };
+            document.getElementById('rxnpwa-renglon-articulo').value = selectedRowArticulo.nombre || selectedRowArticulo.descripcion || '';
+            document.getElementById('rxnpwa-renglon-articulo-results').innerHTML = '';
+            document.getElementById('rxnpwa-renglon-articulo-selected').innerHTML =
+                `<i class="bi bi-check-circle text-success"></i> ${escape(selectedRowArticulo.nombre || selectedRowArticulo.descripcion || '')} · cód ${escape(selectedRowArticulo.codigo_externo || '—')}`;
+            document.getElementById('rxnpwa-renglon-cantidad').value = String(r.cantidad);
+            document.getElementById('rxnpwa-renglon-descuento').value = String(r.descuento_pct || 0);
+            document.getElementById('rxnpwa-renglon-precio').value = String(r.precio_unitario);
+            document.getElementById('rxnpwa-renglon-precio-origin').textContent = 'Editando precio existente';
+            // Stock según depósito (mismo helper que el modo agregar).
+            const stock = resolveStock(selectedRowArticulo, draft.cabecera.deposito_codigo);
+            document.getElementById('rxnpwa-renglon-stock-info').textContent =
+                stock !== null ? `Stock disponible (${draft.cabecera.deposito_codigo}): ${formatNum(stock)} u` : 'Sin info de stock para este depósito.';
+            recomputeRenglonSubtotal();
+        } else {
+            selectedRowArticulo = null;
+            document.getElementById('rxnpwa-renglon-articulo').value = '';
+            // Sin pre-render: el listado aparece al hacer focus/click en el input.
+            document.getElementById('rxnpwa-renglon-articulo-results').innerHTML = '';
+            document.getElementById('rxnpwa-renglon-articulo-selected').innerHTML = '';
+            document.getElementById('rxnpwa-renglon-cantidad').value = '1';
+            document.getElementById('rxnpwa-renglon-descuento').value = '0';
+            document.getElementById('rxnpwa-renglon-precio').value = '0';
+            document.getElementById('rxnpwa-renglon-precio-origin').textContent = '—';
+            document.getElementById('rxnpwa-renglon-stock-info').textContent = '';
+            document.getElementById('rxnpwa-renglon-subtotal').textContent = '0,00';
+        }
 
         if (!renglonModal) {
             renglonModal = new bootstrap.Modal(document.getElementById('rxnpwa-renglon-modal'));
@@ -342,23 +590,42 @@
     function renderArticuloResults(query) {
         const results = document.getElementById('rxnpwa-renglon-articulo-results');
         const q = (query || '').trim().toLowerCase();
-        if (q.length < 2) {
-            results.innerHTML = '';
-            return;
-        }
-        const matches = (catalog.articulos || [])
-            .filter((a) =>
+        const all = catalog.articulos || [];
+        const deposito = draft.cabecera.deposito_codigo;
+
+        // Sin query: mostrar primeros 30 (vistazo cómodo). Con query: filtro fuzzy.
+        const matches = q.length === 0
+            ? all.slice(0, 30)
+            : all.filter((a) =>
                 (a.codigo_externo || '').toLowerCase().includes(q) ||
                 (a.nombre || '').toLowerCase().includes(q) ||
                 (a.descripcion || '').toLowerCase().includes(q)
-            )
-            .slice(0, 30);
-        results.innerHTML = matches.map((a) => `
-            <div class="rxnpwa-suggest-item" data-articulo-id="${a.id}">
-                <strong>${escape(a.nombre || a.descripcion || '')}</strong>
-                <div class="small text-muted">cód ${escape(a.codigo_externo || '—')}</div>
-            </div>
-        `).join('') || '<div class="small text-muted p-2">Sin resultados.</div>';
+            ).slice(0, 30);
+
+        if (matches.length === 0) {
+            results.innerHTML = '<div class="small text-muted p-2">Sin resultados.</div>';
+            return;
+        }
+
+        const header = q.length === 0
+            ? `<div class="rxnpwa-suggest-header small text-muted px-2 py-1">Primeros ${matches.length} de ${all.length} — escribí para buscar</div>`
+            : '';
+
+        results.innerHTML = header + matches.map((a) => {
+            const stock = resolveStock(a, deposito);
+            const stockBadge = stock !== null
+                ? `<span class="badge ${stock > 0 ? 'bg-success' : 'bg-secondary'} ms-2">stock ${formatNum(stock)}</span>`
+                : '<span class="badge bg-secondary ms-2">sin stock</span>';
+            return `
+                <div class="rxnpwa-suggest-item" data-articulo-id="${a.id}">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <strong class="text-truncate">${escape(a.nombre || a.descripcion || '')}</strong>
+                        ${stockBadge}
+                    </div>
+                    <div class="small text-muted">cód ${escape(a.codigo_externo || '—')}</div>
+                </div>
+            `;
+        }).join('');
     }
 
     function onArticuloResultClick(e) {
@@ -427,22 +694,42 @@
             return;
         }
         const subtotal = cant * precio * (1 - desc / 100);
-        draft.renglones.push({
-            row_uuid: window.RxnPwaDraftsStore.generateUuid(),
-            articulo_id: selectedRowArticulo.id,
-            codigo: selectedRowArticulo.codigo_externo,
-            descripcion: selectedRowArticulo.nombre || selectedRowArticulo.descripcion,
-            cantidad: cant,
-            precio_unitario: precio,
-            descuento_pct: desc,
-            subtotal,
-        });
+
+        if (editingRenglonIdx >= 0 && editingRenglonIdx < draft.renglones.length) {
+            // Editar in-place — preservamos row_uuid (idempotencia del sync).
+            const existing = draft.renglones[editingRenglonIdx];
+            existing.articulo_id = selectedRowArticulo.id;
+            existing.codigo = selectedRowArticulo.codigo_externo;
+            existing.descripcion = selectedRowArticulo.nombre || selectedRowArticulo.descripcion;
+            existing.cantidad = cant;
+            existing.precio_unitario = precio;
+            existing.descuento_pct = desc;
+            existing.subtotal = subtotal;
+        } else {
+            draft.renglones.push({
+                row_uuid: window.RxnPwaDraftsStore.generateUuid(),
+                articulo_id: selectedRowArticulo.id,
+                codigo: selectedRowArticulo.codigo_externo,
+                descripcion: selectedRowArticulo.nombre || selectedRowArticulo.descripcion,
+                cantidad: cant,
+                precio_unitario: precio,
+                descuento_pct: desc,
+                subtotal,
+            });
+        }
+        editingRenglonIdx = -1;
         renderRenglones();
         scheduleAutoSave();
         renglonModal.hide();
     }
 
     function onRenglonListClick(e) {
+        const editBtn = e.target.closest('[data-rxnpwa-renglon-edit]');
+        if (editBtn) {
+            const idx = parseInt(editBtn.dataset.rxnpwaRenglonEdit, 10);
+            if (Number.isInteger(idx)) openRenglonModal(idx);
+            return;
+        }
         const del = e.target.closest('[data-rxnpwa-renglon-del]');
         if (!del) return;
         const idx = parseInt(del.dataset.rxnpwaRenglonDel, 10);
@@ -517,6 +804,12 @@
 
     async function saveDraft(silent) {
         try {
+            // Captura de geolocalización: solo al primer save manual (no silent),
+            // así el prompt del browser sólo aparece una vez por draft. Auto-saves
+            // silenciosos no disparan prompt para no molestar.
+            if (!silent) {
+                await captureGeoIfMissing();
+            }
             await window.RxnPwaDraftsStore.saveDraft(draft);
             if (!silent) showStatus('success', 'Borrador guardado localmente.');
             document.getElementById('rxnpwa-form-subtitle').textContent =
@@ -524,6 +817,28 @@
         } catch (err) {
             console.error('[rxnpwa-form] save error:', err);
             showStatus('error', 'No se pudo guardar: ' + err.message);
+        }
+    }
+
+    /**
+     * Persiste en el draft la última geo capturada por el gate global.
+     * No dispara permisos ni captura nueva — eso lo hace RxnPwaGeoGate al cargar
+     * la PWA. Acá solo COPIAMOS la geo actual al draft para que viaje en el sync.
+     *
+     * Si el gate no tiene geo (overlay activo bloqueando la PWA), igual no se
+     * llega acá porque el usuario no puede interactuar con el form.
+     */
+    async function captureGeoIfMissing() {
+        const geo = window.RxnPwaGeoGate && window.RxnPwaGeoGate.getCurrentGeo();
+        // 'dev_mock' sólo aparece en contexto inseguro (HTTP plano local) — el
+        // gate no permite asignarlo en HTTPS, así que aceptarlo acá no afloja
+        // la regla en producción.
+        if (geo && (geo.source === 'gps' || geo.source === 'wifi' || geo.source === 'dev_mock')) {
+            draft.geo_lat = geo.lat;
+            draft.geo_lng = geo.lng;
+            draft.geo_accuracy = geo.accuracy;
+            draft.geo_source = geo.source;
+            draft.geo_captured_at = geo.captured_at;
         }
     }
 
@@ -548,16 +863,61 @@
         el.className = total > 950 ? 'text-warning fw-bold' : 'text-muted';
     }
 
+    let statusToastTimer = null;
+    /**
+     * Antes el aviso vivía en el div #rxnpwa-form-status (arriba del form). Si
+     * el operador estaba scrolleado abajo no veía la confirmación de guardado.
+     * Ahora rendereamos un TOAST CENTRADO fixed en el viewport — siempre visible
+     * sin importar el scroll. Se autodescarta a los 2.5s para success/info,
+     * persiste para errores hasta tap del usuario.
+     */
     function showStatus(type, msg) {
-        const el = document.getElementById('rxnpwa-form-status');
         const cls = { success: 'success', info: 'info', warning: 'warning', error: 'danger' }[type] || 'info';
-        el.innerHTML = `<div class="alert alert-${cls} mb-3" role="status">${escape(msg)}</div>`;
-        if (type === 'success' || type === 'info') {
-            setTimeout(() => clearStatus(), 2500);
+        const icon = {
+            success: 'bi-check-circle-fill',
+            info: 'bi-info-circle-fill',
+            warning: 'bi-exclamation-triangle-fill',
+            error: 'bi-x-octagon-fill',
+        }[type] || 'bi-info-circle-fill';
+
+        // Si ya hay un toast, reciclarlo.
+        let toast = document.getElementById('rxnpwa-form-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'rxnpwa-form-toast';
+            toast.className = 'rxnpwa-form-toast';
+            document.body.appendChild(toast);
+        }
+
+        const isPersistent = (type === 'error' || type === 'warning');
+        toast.innerHTML = `
+            <div class="rxnpwa-form-toast-card alert alert-${cls} mb-0">
+                <i class="bi ${icon} me-2"></i>
+                <span class="rxnpwa-form-toast-msg">${escape(msg)}</span>
+                ${isPersistent ? '<button type="button" class="btn-close ms-3" aria-label="Cerrar"></button>' : ''}
+            </div>
+        `;
+        toast.classList.add('is-visible');
+
+        if (statusToastTimer) {
+            clearTimeout(statusToastTimer);
+            statusToastTimer = null;
+        }
+        if (!isPersistent) {
+            statusToastTimer = setTimeout(() => clearStatus(), 2500);
+        } else {
+            const closeBtn = toast.querySelector('.btn-close');
+            if (closeBtn) closeBtn.addEventListener('click', clearStatus);
         }
     }
     function clearStatus() {
-        document.getElementById('rxnpwa-form-status').innerHTML = '';
+        const toast = document.getElementById('rxnpwa-form-toast');
+        if (!toast) return;
+        toast.classList.remove('is-visible');
+        if (statusToastTimer) {
+            clearTimeout(statusToastTimer);
+            statusToastTimer = null;
+        }
     }
 
     function debounce(fn, wait) {
@@ -588,4 +948,11 @@
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     }
+
+    // API pública mínima — usada por rxnpwa-form-sync.js antes de encolar.
+    window.RxnPwaForm = {
+        flushSave: () => saveDraft(true),
+        captureGeo: () => captureGeoIfMissing(),
+        getDraft: () => draft,
+    };
 })();

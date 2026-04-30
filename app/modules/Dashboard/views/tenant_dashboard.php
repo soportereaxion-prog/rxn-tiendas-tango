@@ -180,6 +180,10 @@ ob_start();
             animation: 250,
             ghostClass: 'opacity-50',
             handle: '.rxn-module-card',
+            // Mobile: scroll vertical no debe disparar drag. Hold 250ms.
+            delay: 250,
+            delayOnTouchOnly: true,
+            touchStartThreshold: 5,
             onEnd: function () {
                 let currentOrder = [];
                 document.querySelectorAll('.rxn-sortable-col').forEach(col => {

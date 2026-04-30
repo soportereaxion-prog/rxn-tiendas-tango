@@ -115,7 +115,15 @@ class RxnPwaCatalogService
 
     private function fetchClientes(int $empresaId): array
     {
-        $stmt = $this->db->prepare('SELECT id, codigo_tango, id_gva14_tango, razon_social, documento, email, telefono
+        // Defaults comerciales (release 1.35.0): los códigos de condición/lista/vendedor/transporte
+        // configurados en el cliente se traen offline para que el form mobile pueda auto-completar
+        // al seleccionarlo (igual que `clientContext` del form web). Fallback `id_gvaXX_tango` cubre
+        // instalaciones legacy donde los códigos vivían sólo ahí.
+        $stmt = $this->db->prepare('SELECT id, codigo_tango, id_gva14_tango, razon_social, documento, email, telefono,
+                id_gva01_condicion_venta, id_gva23_tango,
+                id_gva10_lista_precios, id_gva10_tango,
+                id_gva23_vendedor, id_gva01_tango,
+                id_gva24_transporte, id_gva24_tango
             FROM crm_clientes
             WHERE empresa_id = :empresa_id AND deleted_at IS NULL
             ORDER BY id ASC');

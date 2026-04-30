@@ -248,7 +248,12 @@ class PresupuestoController extends \App\Core\Controller
         try {
             $data = $presupuestoOriginal;
 
-            unset($data['id'], $data['numero']);
+            // Removemos campos que NO se heredan a la copia:
+            // - id/numero: se regeneran (PK auto + secuencial por empresa).
+            // - tmp_uuid_pwa: identificador único del draft mobile origen; copiar
+            //   con el mismo UUID rompe el UNIQUE (release 1.33.0). La copia es
+            //   un presupuesto independiente desde la web, no tiene draft mobile asociado.
+            unset($data['id'], $data['numero'], $data['tmp_uuid_pwa']);
 
             $data['fecha'] = (new \DateTimeImmutable())->format('Y-m-d\TH:i:s');
             $data['estado'] = 'borrador';

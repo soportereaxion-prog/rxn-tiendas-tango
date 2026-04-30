@@ -1,6 +1,8 @@
 # Módulo RxnPwa — PWA mobile (Presupuestos)
 
-> **Iteración 42 — PWA Fase 1 (Bloque A).** Andamiaje del módulo + catálogo offline-readable con versionado server-side. Las fases 2 y 3 extienden este módulo.
+> **Iteraciones 42 y 43 — PWA completa + endurecida.** Andamiaje + catálogo offline + form mobile + sync queue + envío a Tango + defaults comerciales del cliente + gate GPS bloqueante + acceso desde dashboard CRM. Releases 1.31.0 → 1.38.0 (12 bumps).
+>
+> **Diferencial competitivo clave**: la PWA OBLIGA al operador a tener GPS activo. La trazabilidad geográfica de cada presupuesto emitido en campo es parte central del producto, no opcional. Cualquier feature futura (PDS mobile, etc) debe respetar este gate.
 
 ## Propósito
 
@@ -13,8 +15,8 @@ Habilitar a los **vendedores en campo** a operar Presupuestos desde un dispositi
 | Fase | Bloque | Estado | Alcance |
 |------|--------|--------|---------|
 | **1** | A | ✅ Implementada | Andamiaje + manifest + SW + catálogo offline-readable + shell + versionado por hash |
-| **2** | B | 🔲 Pendiente | `form_mobile.php` + creación de presupuestos offline con `#TMP-<uuid>` (2 sesiones) |
-| **3** | C | 🔲 Pendiente | Sync queue + reconciliación al volver online (1 sesión) |
+| **2** | B | ✅ Implementada | Form mobile completo + creación offline con `TMP-<uuid>` + adjuntos con cámara + auto-save |
+| **3** | C | ✅ Implementada | Sync queue 2-step (header → adjuntos) + retry con backoff + envío a Tango desde mobile |
 
 ## Arquitectura
 
@@ -47,9 +49,14 @@ Habilitar a los **vendedores en campo** a operar Presupuestos desde un dispositi
 
 | Método | Ruta | Auth | Devuelve |
 |--------|------|------|----------|
-| GET | `/rxnpwa/presupuestos` | Login + CRM access | Shell HTML (registra SW + UI estado catálogo) |
+| GET | `/rxnpwa/presupuestos` | Login + CRM access | Shell HTML (registra SW + UI estado catálogo + listado de drafts) |
+| GET | `/rxnpwa/presupuestos/nuevo` | Login + CRM access | Form mobile vacío. JS crea draft local al primer cambio. |
+| GET | `/rxnpwa/presupuestos/editar/{tmpUuid}` | Login + CRM access | Form mobile cargando un draft existente desde IndexedDB. |
 | GET | `/api/rxnpwa/catalog/version` | Login + CRM access | `{ok, hash, generated_at, items_count, size_bytes}` |
 | GET | `/api/rxnpwa/catalog/full` | Login + CRM access | `{ok, hash, generated_at, ..., data: {clientes, articulos, ...}}` + header `X-Rxnpwa-Catalog-Hash` |
+| POST | `/api/rxnpwa/presupuestos/sync` | Login + CRM access | `{ok, id_server, numero, tmp_uuid, created}`. Idempotente por tmp_uuid_pwa. |
+| POST | `/api/rxnpwa/presupuestos/{id}/attachments` | Login + CRM access | `{ok, attachment:{id,original_name,size_bytes,mime}}`. Multipart con campo `file`. |
+| POST | `/api/rxnpwa/presupuestos/{id}/emit-tango` | Login + CRM access | `{ok, type, message}` — reusa `PresupuestoTangoService::send()`. |
 
 **Auth**: cookie de sesión del backoffice. La PWA reutiliza el login existente — el SW propaga las cookies en cada fetch automáticamente. **No** hay flujo de token mobile separado.
 
@@ -156,36 +163,242 @@ API: `window.RxnPwaCatalogStore` — ver [public/js/pwa/rxnpwa-catalog-store.js]
 
 ## Seguridad transversal (checklist `docs/seguridad/convenciones.md`)
 
-- ✅ **Aislamiento multi-tenant**: todas las queries del CatalogService filtran por `Context::getEmpresaId()`. La tabla `rxnpwa_catalog_versions` usa UNIQUE empresa_id.
-- ✅ **Auth**: `requireLogin()` + `requireCrmAccess()` en los 3 endpoints. Sin sesión → redirect a login (cookie); sin acceso CRM → 403.
-- ✅ **CSRF**: endpoints son GET puros, no muta nada server-side. La invalidación del hash la dispara el flujo de sync, no el cliente PWA.
-- N/A **Uploads**: este módulo no recibe archivos.
-- N/A **Rate limiting**: la frecuencia razonable de `/version` (≤ 1 cada 30s) no justifica rate-limit dedicado en Fase 1. Reevaluar si vemos abuso.
-- ✅ **IDOR**: el `empresa_id` viene de `Context`, nunca del cliente. Imposible pedir catálogo de otra empresa.
-- ✅ **XSS**: la única salida HTML del shell escapa `empresaId` y `pageTitle` con `htmlspecialchars`. El JS `renderBadge` escapa con `escapeHtml`.
-- N/A **Tokens**: no se emiten tokens propios.
+- ✅ **Aislamiento multi-tenant**: todas las queries filtran por `Context::getEmpresaId()`. `tmp_uuid_pwa` es UNIQUE global, pero el sync siempre cruza con `empresa_id` antes de devolver el id existente. El upload de adjuntos verifica que el presupuesto pertenezca a la empresa del usuario antes de aceptar el archivo.
+- ✅ **Auth**: `requireLogin()` + `requireCrmAccess()` en TODOS los endpoints (incluyendo POST de Fase 3). Sin sesión → 401/redirect; sin acceso CRM → 403.
+- ⚠️ **CSRF**: los POST de Fase 3 (`/sync`, `/attachments`, `/emit-tango`) hoy NO validan CSRF token explícito. El cookie de sesión `SameSite=Lax` (default Laravel-style) cubre el caso típico de cross-site, pero conviene sumar el meta `csrf-token` del shell al header de cada fetch para hardening. **Pendiente** post-Fase 3.
+- ✅ **Uploads**: delegado a `AttachmentService::attach()` que valida MIME por `finfo` contra whitelist + blacklist por extensión + tope de tamaño y cantidad por owner. El archivo se persiste fuera del docroot navegable directo (carpeta con `.htaccess Require all denied`).
+- ⚠️ **Rate limiting**: hoy sin rate-limit en `/sync` y `/attachments`. Un cliente malicioso autenticado podría flood-ear creando drafts. **Pendiente**: throttling razonable (ej: 60 syncs/min/usuario).
+- ✅ **IDOR**: el `empresa_id` viene de `Context`, nunca del cliente. El controller verifica que el `presupuesto_id` del path pertenezca a la empresa antes de aceptar el upload o el emit-tango.
+- ✅ **XSS**: las views escapan con `htmlspecialchars`. El JS escapa explícitamente con `escapeHtml` antes de inyectar HTML del listado de drafts.
+- ✅ **Tokens**: no se emiten tokens propios. La idempotencia es por `tmp_uuid_pwa` que el cliente genera con `crypto.randomUUID` — no permite predicción cross-cliente porque la unicidad es global y empresa_id se valida server-side.
 
-## Files
+## Fase 2 (Bloque B) — Form mobile + creación offline
 
-- `app/modules/RxnPwa/RxnPwaController.php` — entry + endpoints.
-- `app/modules/RxnPwa/RxnPwaCatalogService.php` — consolida payload + hash.
+**Vista**: `views/presupuesto_form.php` mobile-first (no admin_layout). Cabecera + renglones + comentarios/observaciones + adjuntos + sección "Enviar al servidor".
+
+**Storage cliente** — IndexedDB v2 suma 2 stores nuevas:
+
+```
+rxnpwa (DB v2)
+├── ... (10 stores de catálogo de Fase 1)
+├── presupuestos_drafts        keyPath: tmp_uuid
+│   { tmp_uuid, empresa_id, created_at, updated_at,
+│     cabecera: {...}, renglones: [...], total,
+│     status: 'draft' | 'pending_sync' | 'syncing' | 'synced' | 'emitted' | 'error',
+│     server_id: int|null, numero_server: int|null,
+│     retry_count, last_error, next_retry_at, tango_message }
+└── presupuesto_attachments    keyPath: id (autoIncrement), index: by_tmp_uuid
+    { id, tmp_uuid, name, mime, size, blob, compressed, created_at,
+      sync_status: 'pending' | 'uploaded' | 'failed', server_attachment_id }
+```
+
+**UUID local**: `TMP-<crypto.randomUUID>` generado client-side al primer save. Ese mismo UUID viaja al server en el sync (Fase 3) y se persiste en `crm_presupuestos.tmp_uuid_pwa` (UNIQUE) — eso da idempotencia ante retries.
+
+**Adjuntos**:
+- Cámara directa: `<input type=file accept=image/* capture=environment>`.
+- Selector multi-archivo: PDF / Word / Excel / fotos.
+- Compresión cliente para imágenes: max 1600px + canvas `toBlob` quality 0.80. Se preservan PNG con transparencia (sample 5 puntos del canvas) y se mantiene formato original si ya está optimizado.
+- Auto-save: debounce 1.5s. Botón "Guardar" manual también disponible (Alt+S aún no, pendiente).
+
+## Fase 3 (Bloque C) — Sync queue + envío a Tango
+
+### Flujo 2-step
+
+1. **Header + items**: `POST /api/rxnpwa/presupuestos/sync` con `{tmp_uuid, cabecera, renglones}`. Server resuelve los catálogos (lista, depósito, clasificación) por `codigo` reusando `CommercialCatalogRepository`, calcula totales, llama `PresupuestoRepository::create()` y devuelve `{id_server, numero, created}`. Idempotente por `tmp_uuid_pwa` UNIQUE — si llega 2 veces el mismo UUID, devuelve el id existente.
+2. **Adjuntos**: por cada attachment con `sync_status='pending'`, `POST /api/rxnpwa/presupuestos/{id}/attachments` (multipart, campo `file`). Backend reusa `AttachmentService::attach($empresaId, 'crm_presupuesto', $id, $file, $userId)` — el `owner_type='crm_presupuesto'` ya está whitelisteado en `app/config/attachments.php`.
+
+### Estados del draft
+
+| Estado | Cuándo |
+|--------|--------|
+| `draft` | Recién creado offline. NO se sincroniza solo. |
+| `pending_sync` | El usuario apretó "Sincronizar" y está en cola. |
+| `syncing` | El runner de cola está procesándolo. |
+| `synced` | Header + items + adjuntos subidos al server. `server_id` poblado. |
+| `emitted` | Además del sync, el usuario tocó "Enviar a Tango" online y volvió OK. |
+| `error` | Agotó los reintentos (5). Necesita acción manual del usuario. |
+
+### Retry / backoff
+
+- Máximo **5 reintentos automáticos** por draft.
+- Backoff exponencial: 1s, 2s, 4s, 8s, 16s.
+- Tras agotarlos → `status='error'` permanente. UI muestra botón "Reintentar" que vuelve a encolarlo desde 0.
+
+### Auto-arranque de la cola
+
+Triggers que disparan `RxnPwaSyncQueue.kick()`:
+1. `DOMContentLoaded` del shell o del form (drenar al abrir).
+2. `online` event en `window` (al recuperar red).
+3. **Background Sync API** via SW: `event.tag === 'rxnpwa-sync-queue'` → SW `postMessage({type: 'rxnpwa-sync-queue-fire'})` → cliente lo intercepta y dispara `kick()`. Funciona en Chrome/Edge desktop y Android. iOS Safari NO lo soporta — pero el `online` event lo cubre.
+
+### Envío a Tango desde mobile
+
+Botón "Enviar a Tango" en el form mobile y en cada card del shell. Visible siempre, **deshabilitado si offline o si el draft no está `synced`**. Al clickear → `POST /api/rxnpwa/presupuestos/{id}/emit-tango` que internamente llama `PresupuestoTangoService::send()` (mismo path que el form web).
+
+**Política**: el draft tiene que estar sincronizado al server PRIMERO (sin id server no hay Tango). El usuario decide manualmente cuándo emitir — NO se hace automático tras el sync. Tras emisión OK, el draft pasa a `status='emitted'`.
+
+## Defaults comerciales del cliente (release 1.35.0+)
+
+Cuando el operador selecciona un cliente en el form mobile, se autocompletan **lista de precios, condición de venta, vendedor y transporte** desde los códigos configurados en la fila del cliente offline. Replica el comportamiento de `clientContext` del form web (`PresupuestoController::clientContext`).
+
+**Cadena de fallback por campo** (mismo orden que el web):
+
+| Campo PWA | Fuente primaria | Fallback |
+|-----------|-----------------|----------|
+| `lista_codigo`     | `id_gva10_lista_precios`     | `id_gva10_tango` |
+| `condicion_codigo` | `id_gva01_condicion_venta`   | `id_gva23_tango` |
+| `vendedor_codigo`  | `id_gva23_vendedor`          | `id_gva01_tango` |
+| `transporte_codigo`| `id_gva24_transporte`        | `id_gva24_tango` |
+
+Para que esto funcione, `RxnPwaCatalogService::fetchClientes` baja esos 8 campos al cliente. El JS (`applyClienteDefaults` en `rxnpwa-form.js`) sólo escribe si el campo del draft está VACÍO — no pisa elecciones manuales del operador.
+
+**Si el código del cliente no existe en el catálogo offline** (cliente desincronizado): se conserva la selección con etiqueta "(no encontrado en catálogo)" para no perder la data, y el server intenta resolverlo en el sync.
+
+## CRÍTICO — `id_interno` vs `id` en catálogo comercial
+
+El campo `id_interno` de `crm_catalogo_comercial_items` es lo que mapea contra **ID_GVA01/10/23/24** de Tango. **NUNCA** usar `$row['id']` (PK auto-increment local) como id_interno — Tango rechaza con "No existe condición de venta para el ID_GVA01 ingresado: <N>".
+
+El bug existió en la release 1.35.0 dentro de `RxnPwaSyncService::resolveCatalogItem`. Fix en 1.35.2. **Al replicar este patrón para PDS u otro módulo PWA, leer `$row['id_interno']`.**
+
+## CRÍTICO — `tmp_uuid_pwa` UNIQUE: respetar el unset al copiar/versionar
+
+Tabla `crm_presupuestos` tiene `tmp_uuid_pwa VARCHAR(50) NULL` con UNIQUE KEY. Es el ID idempotencia del draft mobile origen. **Cualquier flujo que cree un presupuesto basado en otro existente DEBE hacer `unset($data['tmp_uuid_pwa'])`** antes del INSERT — sino choca con el UNIQUE y falla.
+
+Casos cubiertos hoy:
+- `PresupuestoController::copy()` — unset explícito.
+- `PresupuestoRepository::createNewVersion()` — arma `$data` manualmente sin incluir el campo (OK accidentalmente, pero documentar).
+
+Si en el futuro se agrega otro flujo (ej: "duplicar última versión", import de Excel), respetar la regla.
+
+## Schema versioning del catálogo offline
+
+`rxnpwa-catalog-store.js` define `CATALOG_SCHEMA_VERSION` (hoy `'v2'`). Cada `saveCatalog` persiste ese valor en la meta de IndexedDB. Cuando el shell o el form cargan, comparan el valor cacheado contra el actual; si difieren, llaman a `clearCatalogOnly()` (limpia stores del catálogo + meta, NO toca drafts/attachments) y obligan a resincronizar.
+
+**Bumpear `CATALOG_SCHEMA_VERSION` cuando**:
+- `RxnPwaCatalogService` agrega columnas a alguna entidad (caso v1→v2: defaults comerciales del cliente).
+- Se renombra un campo en una entidad.
+- Cambia la estructura/forma del payload de manera que el JS viejo no pueda interpretarla.
+
+**NO bumpear cuando**:
+- Solo cambian valores (más artículos, precios actualizados): el `hash` server-side ya lo cubre.
+
+## Detección de cambio de empresa (release 1.34.0)
+
+`rxnpwa-register.js::ensureCatalogConsistency()` lee `<meta name="rxn-empresa-id">` y compara con `meta.empresa_id` del catálogo offline. Si difieren → wipe + badge específico "Cambiaste de empresa, descargá el nuevo". El form mobile aplica el mismo chequeo y redirige al shell si detecta mismatch.
+
+Es complementario al schema versioning: maneja un caso distinto (mismo schema, distinta empresa).
+
+## Acceso desde el backoffice CRM
+
+`app/modules/Dashboard/views/crm_dashboard.php` suma:
+
+1. **Card "PWA — Presupuestos Mobile"** (icono `bi-phone`, link `/rxnpwa/presupuestos`) en el grid de módulos CRM, visible siempre.
+
+2. **Banner inteligente** que aparece SOLO si `navigator.userAgent` matchea Android/iPhone/iPad/Mobile. Ofrece "Abrir PWA" + botón X que descarta para esa sesión (`sessionStorage.rxn_dismiss_pwa_banner`). NO redirige automático — el usuario decide.
+
+## CRÍTICO — Gate GPS bloqueante (release 1.38.0)
+
+**El GPS es OBLIGATORIO para usar la PWA.** Es un diferencial competitivo central del producto: cada presupuesto emitido en campo se rastrea geográficamente. La trazabilidad no es opcional.
+
+### Implementación
+
+`public/js/pwa/rxnpwa-geo-gate.js` se carga **PRIMERO** (antes que catalog-store, drafts-store, sync-queue, form, register, shell-drafts). Si se cambia el orden de carga en las views, el gate se rompe.
+
+Flujo:
+1. Al `DOMContentLoaded`, dispara `getCurrentPosition` con `enableHighAccuracy: true, timeout: 10s`.
+2. **Éxito** (`source='gps'/'wifi'`) → guarda en memoria + expone vía `RxnPwaGeoGate.getCurrentGeo()`.
+3. **Fallo** (`denied/timeout/error/unsupported`) → renderiza overlay bloqueante a pantalla completa con instrucciones para activar el GPS y botón "Reintentar".
+4. Refresh automático cada 5 minutos en background — detecta si el operador desactivó el GPS durante el uso.
+
+### Integración con otros módulos PWA
+
+- `rxnpwa-form.js::captureGeoIfMissing` lee `RxnPwaGeoGate.getCurrentGeo()` y la copia al draft. **No pide permisos por su cuenta** — confía en el gate.
+- `rxnpwa-sync-queue.js::emitToTango` valida que `draft.geo_source` sea `'gps'` o `'wifi'` antes de mandar. Si no, fuerza `RxnPwaGeoGate.retry()` y, si sigue inválida, tira excepción.
+
+### Server-side (RxnGeoTracking)
+
+`RxnPwaController::syncPresupuesto` llama a `recordGeoEvent()` post-create:
+1. `GeoTrackingService::registrar(EVENT_PRESUPUESTO_CREATED, $presupuestoId, 'presupuesto')` → crea evento con fallback IP.
+2. Si el cliente mandó `geo.lat/lng/source` válidos → `reportarPosicionBrowser($eventoId, $lat, $lng, $accuracy, $source)` actualiza con la posición precisa del celu.
+
+El módulo Geo Tracking del backoffice ya muestra estos eventos con accuracy en metros y source para distinguir captura precisa vs degraded.
+
+### Reglas para nuevos módulos PWA (PDS, etc)
+
+Cualquier futuro módulo PWA (PDS, Tratativas, etc) **debe** cargar `rxnpwa-geo-gate.js` PRIMERO en su shell/form, igual que Presupuestos. La trazabilidad geográfica es un requisito transversal del producto PWA, no específico de Presupuestos.
+
+## Files (actualizado tras release 1.38.0)
+
+### Backend
+
+- `app/modules/RxnPwa/RxnPwaController.php` — entry + endpoints + recordGeoEvent.
+- `app/modules/RxnPwa/RxnPwaCatalogService.php` — consolida payload + hash. fetchClientes trae defaults comerciales.
 - `app/modules/RxnPwa/RxnPwaCatalogVersionRepository.php` — UPSERT + invalidate.
-- `app/modules/RxnPwa/views/presupuestos_shell.php` — shell HTML mobile.
-- `database/migrations/2026_04_30_01_create_rxnpwa_catalog_versions.php` — tabla.
-- `public/manifest.webmanifest` — manifest PWA.
-- `public/sw.js` — Service Worker (extendido sin romper Web Push).
-- `public/icons/rxnpwa-{192,512}.png` — íconos placeholder (regenerables vía `tools/generate_rxnpwa_icons.php`).
-- `public/js/pwa/rxnpwa-register.js` — registro SW + UI estado.
-- `public/js/pwa/rxnpwa-catalog-store.js` — wrapper IndexedDB.
+- `app/modules/RxnPwa/RxnPwaSyncService.php` — mapea draft → payload del repo. CRÍTICO: usar id_interno NO id.
+- `app/modules/RxnPwa/MODULE_CONTEXT.md` — este archivo.
 
-**Hooks de invalidación** (importante mantener si se mueven):
+### DB / Migrations
+
+- `database/migrations/2026_04_30_01_create_rxnpwa_catalog_versions.php` — tabla versiones catálogo.
+- `database/migrations/2026_04_30_02_alter_crm_presupuestos_add_tmp_uuid_pwa.php` — columna idempotencia.
+
+### Vistas mobile
+
+- `app/modules/RxnPwa/views/_brand_icon.php` — partial del ícono RXN (img si existe rxnpwa-source.png, sino SVG inline).
+- `app/modules/RxnPwa/views/presupuestos_shell.php` — shell con badges + drafts + cola + banner.
+- `app/modules/RxnPwa/views/presupuesto_form.php` — form mobile completo con cabecera + renglones + adjuntos + sync + Tango.
+
+### Frontend (`public/js/pwa/`) — orden de carga importante
+
+```
+1. rxnpwa-geo-gate.js       ← PRIMERO. Bloquea PWA si no hay GPS.
+2. rxnpwa-catalog-store.js  ← Wrapper IndexedDB v2 + CATALOG_SCHEMA_VERSION.
+3. rxnpwa-drafts-store.js   ← Drafts + attachments offline.
+4. rxnpwa-image-compressor.js (sólo en form)
+5. rxnpwa-sync-queue.js     ← Cola de sync con backoff + Background Sync + emit Tango.
+6. rxnpwa-register.js       ← Sólo en shell. Registro SW + UI estado catálogo.
+7. rxnpwa-form.js           ← Sólo en form. Lógica del form (1800+ líneas). Expone window.RxnPwaForm.
+8. rxnpwa-form-sync.js      ← Sólo en form. Wire-up de la sección "Enviar al servidor".
+9. rxnpwa-shell-drafts.js   ← Sólo en shell. Listado de drafts + cola.
+```
+
+### Assets
+
+- `public/manifest.webmanifest`, `public/sw.js` (Web Push + Background Sync), `public/css/rxnpwa.css`.
+- `public/icons/rxnpwa-{192,512}.png` — íconos PWA (placeholder por ahora; reemplazables vía `tools/generate_rxnpwa_icons_from_source.php` cuando se drope `rxnpwa-source.png`).
+
+### Backoffice (acceso al PWA)
+
+- `app/modules/Dashboard/views/crm_dashboard.php` — card "PWA — Presupuestos Mobile" + banner mobile detectivo de UA.
+
+### Hooks de invalidación del catálogo
 
 - `app/modules/RxnSync/RxnSyncController.php::syncPullArticulos`, `syncPullClientes`, `syncCatalogos`.
 - `app/modules/Tango/Controllers/TangoSyncController.php::syncPrecios`, `syncStock`.
 
 ## Pendiente
 
-- Generar íconos finales (placeholder en negro #0f172a por ahora).
-- Throttling de invalidación si se observa flapping en prod.
-- Fase 2: `form_mobile.php` + creación offline.
-- Fase 3: cola de envío + reconciliación.
+- **Íconos finales**: Charly tiene que dejar `public/icons/rxnpwa-source.png` (la estrella RXN) y correr `tools/generate_rxnpwa_icons_from_source.php`. Mientras tanto siguen los placeholder + el SVG inline en el header.
+- **HTTPS local o port forwarding USB**: el SW no se registra en LAN plana — sin SW no hay Background Sync ni "Add to home screen" prolijo.
+- **Hardening server-side**: sumar CSRF token explícito + rate limiting a los POST de `/api/rxnpwa/*` (hoy cubre `SameSite` cookie + auth, suficiente para v1).
+- **Throttling de invalidación del hash** si se observa flapping en prod.
+- **Eliminación de drafts ya sincronizados** — hoy quedan en IndexedDB con `status='synced'/'emitted'`. ¿Auto-borrar tras N días? ¿Botón "Limpiar sincronizados"?
+- **Updates de drafts ya sincronizados**: el form se puede editar pero no hay flujo "re-sync con cambios" — el draft sólo viaja una vez. Charlar cuando aparezca el caso real.
+- **Persistir response del primer envío Tango antes del retry** (heredado de 1.30.0 — no urgente).
+- **PDS mobile** y otros módulos PWA — replicar el patrón de Presupuestos. Reusar el geo-gate, catalog-store, sync-queue. Cambiar solo controllers + vistas + lógica específica.
+
+## Releases relevantes
+
+| Release | Tema |
+|---------|------|
+| 1.31.0  | Fase 1 — andamiaje + catálogo offline |
+| 1.32.0  | Fase 2 — form mobile + creación offline + adjuntos comprimidos |
+| 1.33.0  | Fase 3 — sync queue + envío a Tango |
+| 1.34.0  | Cambio de empresa + acceso desde dashboard CRM + banner mobile |
+| 1.35.0  | Defaults comerciales del cliente auto-completados |
+| 1.35.1  | Hotfix: tmp_uuid_pwa duplicado en copy + schema versioning catálogo |
+| 1.35.2  | Hotfix: id_interno mal mapeado a Tango |
+| 1.36.0  | UX: shell compacto + pickers con vistazo + stock visible |
+| 1.37.0  | Ícono RXN + título Presupuestos + geolocalización + fix modal |
+| 1.37.1  | Hotfix: filemtime warning rompía form mobile |
+| 1.38.0  | Gate GPS bloqueante (parte crítica del producto) |

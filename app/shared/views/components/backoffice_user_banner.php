@@ -28,7 +28,7 @@ if (\App\Shared\Services\DevDbSwitcher::isEnabled() && $isRxnAdmin) {
     }
 }
 ?>
-<div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1">
+<div class="container-fluid px-4 d-flex justify-content-between align-items-center gap-2 mb-1 rxn-backoffice-topbar">
     <!-- Left zone: hamburger (mobile) + topbar left content -->
     <div class="d-flex align-items-center gap-2">
         <button class="btn btn-sm btn-outline-secondary d-lg-none rounded-pill px-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#rxnMobileNav" aria-controls="rxnMobileNav" aria-label="Menú">
@@ -60,6 +60,15 @@ if (\App\Shared\Services\DevDbSwitcher::isEnabled() && $isRxnAdmin) {
         </form>
         <?php endif; ?>
         <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 shadow-sm rxn-user-menu text-secondary">
+        <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none d-lg-none"
+                data-rxn-fullscreen-toggle
+                title="Pantalla completa"
+                aria-label="Pantalla completa"
+                aria-pressed="false"
+                style="line-height:1; font-size:1.1rem; color:#475569;">
+            <i class="bi bi-fullscreen"></i>
+        </button>
+        <div class="vr mx-1 opacity-25 d-lg-none"></div>
         <?php \App\Core\View::render('app/shared/views/components/notifications_bell.php'); ?>
         <div class="vr mx-1 opacity-25"></div>
         <button class="btn btn-sm btn-link p-0 text-decoration-none" id="backendThemeToggleBtn" title="Cambiar Tema" style="line-height:1; font-size:1.1rem; filter: grayscale(0.5);">

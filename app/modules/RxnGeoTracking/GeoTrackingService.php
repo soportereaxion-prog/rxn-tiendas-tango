@@ -138,7 +138,12 @@ final class GeoTrackingService
                 $accuracyMeters = null;
             }
 
-            $allowedSources = ['gps', 'wifi', 'denied', 'error'];
+            // 'dev_mock' aceptado para pruebas locales en HTTP plano (sin SSL).
+            // En producción (HTTPS) la PWA nunca asigna ese source, así que en el
+            // log productivo no aparece. Si llegara a aparecer en prod, indica
+            // que alguien usó la PWA en un servidor sin HTTPS — anomalía esperada
+            // y rastreable, no error silente.
+            $allowedSources = ['gps', 'wifi', 'denied', 'error', 'dev_mock'];
             if (!in_array($source, $allowedSources, true)) {
                 $source = 'error';
             }

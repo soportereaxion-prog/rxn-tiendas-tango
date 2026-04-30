@@ -272,7 +272,7 @@ class PresupuestoRepository
                 $numero = $this->previewNextNumero((int) $data['empresa_id']);
 
                 $stmt = $this->db->prepare('INSERT INTO crm_presupuestos (
-                        empresa_id, tratativa_id, version_padre_id, version_numero, numero, fecha, cliente_id, cliente_nombre_snapshot, cliente_documento_snapshot,
+                        empresa_id, tratativa_id, version_padre_id, version_numero, tmp_uuid_pwa, numero, fecha, cliente_id, cliente_nombre_snapshot, cliente_documento_snapshot,
                         deposito_codigo, deposito_nombre_snapshot,
                         condicion_codigo, condicion_nombre_snapshot, condicion_id_interno,
                         transporte_codigo, transporte_nombre_snapshot, transporte_id_interno,
@@ -285,7 +285,7 @@ class PresupuestoRepository
                         cotizacion,
                         subtotal, descuento_total, impuestos_total, total, estado, usuario_id, usuario_nombre, created_at, updated_at
                     ) VALUES (
-                        :empresa_id, :tratativa_id, :version_padre_id, :version_numero, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
+                        :empresa_id, :tratativa_id, :version_padre_id, :version_numero, :tmp_uuid_pwa, :numero, :fecha, :cliente_id, :cliente_nombre_snapshot, :cliente_documento_snapshot,
                         :deposito_codigo, :deposito_nombre_snapshot,
                         :condicion_codigo, :condicion_nombre_snapshot, :condicion_id_interno,
                         :transporte_codigo, :transporte_nombre_snapshot, :transporte_id_interno,
@@ -388,7 +388,8 @@ class PresupuestoRepository
                 $payload[':usuario_id'],
                 $payload[':usuario_nombre'],
                 $payload[':version_padre_id'],
-                $payload[':version_numero']
+                $payload[':version_numero'],
+                $payload[':tmp_uuid_pwa']
             );
 
             $stmt->execute($payload);
@@ -709,7 +710,21 @@ class PresupuestoRepository
             ':estado' => (string) ($data['estado'] ?? 'borrador'),
             ':usuario_id' => $data['usuario_id'] ?? null,
             ':usuario_nombre' => $data['usuario_nombre'] ?? null,
+            ':tmp_uuid_pwa' => $this->nullableString($data['tmp_uuid_pwa'] ?? null),
         ];
+    }
+
+    /**
+     * Busca un presupuesto por su tmp_uuid_pwa (idempotencia del sync mobile).
+     * Devuelve null si no existe.
+     */
+    public function findByTmpUuidPwa(string $tmpUuid, int $empresaId): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM crm_presupuestos
+            WHERE tmp_uuid_pwa = :tmp_uuid AND empresa_id = :empresa_id LIMIT 1');
+        $stmt->execute([':tmp_uuid' => $tmpUuid, ':empresa_id' => $empresaId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     private function applyEstadoFilter(string &$sql, array &$params, string $estado): void
@@ -837,6 +852,10 @@ class PresupuestoRepository
         try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN version_padre_id INT NULL AFTER tratativa_id'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN version_numero INT NOT NULL DEFAULT 1 AFTER version_padre_id'); } catch (\Throwable $e) {}
         try { $this->db->exec('CREATE INDEX idx_crm_presupuestos_version_padre ON crm_presupuestos (empresa_id, version_padre_id)'); } catch (\Throwable $e) {}
+
+        // tmp_uuid_pwa (release 1.33.0 — PWA Fase 3): idempotencia del sync mobile.
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD COLUMN tmp_uuid_pwa VARCHAR(50) NULL AFTER version_numero'); } catch (\Throwable $e) {}
+        try { $this->db->exec('ALTER TABLE crm_presupuestos ADD UNIQUE KEY uniq_crm_presupuestos_tmp_uuid_pwa (tmp_uuid_pwa)'); } catch (\Throwable $e) {}
 
         try {
             // Backfill temporal para setear el usuario 1 a los Presupuestos historicos sin asignar
