@@ -1,9 +1,21 @@
 <?php
 
 return [
-    'current_version' => '1.43.5',
-    'current_build' => '20260502.6',
+    'current_version' => '1.43.6',
+    'current_build' => '20260502.7',
     'history' => [
+        [
+            'version' => '1.43.6',
+            'build' => '20260502.7',
+            'released_at' => '2026-05-02',
+            'title' => 'Iteración 45 — Excluir MODULE_CONTEXT.md del OTA + cleanup de los ya publicados',
+            'summary' => 'Charly notó vía FTP en Plesk (sesión iteración 43, repetido hoy) que los archivos `app/modules/*/MODULE_CONTEXT.md` están subidos a producción. Esos archivos son docs internas del equipo: decisiones de arquitectura, gotchas, vocabulario propio, antipatrones, casos críticos de cada módulo. NO deben estar accesibles en el server (riesgo de info-leak + ocupan espacio innecesario). Pendiente desde la iteración 43, se cierra ahora. Fix: ReleaseBuilder excluye explícito cualquier archivo cuyo filename sea exactamente `MODULE_CONTEXT.md` (la check es por filename, no por path, así no le erra si en el futuro se renombra el directorio modules/). Bonus: migración nueva 2026_05_02_03_cleanup_module_context_md_from_production.php que recorre `app/modules/*/MODULE_CONTEXT.md` y los elimina en producción (porque el SystemUpdater solo agrega/sobreescribe, nunca borra). Salvaguarda anti-self-destruction: si BASE_PATH tiene .git/ (= working tree de dev), la migración no hace nada — los archivos quedan en local intactos para Engram + claude code. Logging de qué se borró en storage/logs/cleanup-module-context.log para auditoría.',
+            'items' => [
+                'app/core/ReleaseBuilder.php: skip explícito de cualquier file con filename === "MODULE_CONTEXT.md".',
+                'database/migrations/2026_05_02_03_cleanup_module_context_md_from_production.php: limpia los archivos previamente publicados. Salvaguarda is_dir(.git) para no romper local. Log de auditoría.',
+                'app/config/version.php: bump a 1.43.6 / build 20260502.7.',
+            ],
+        ],
         [
             'version' => '1.43.5',
             'build' => '20260502.6',

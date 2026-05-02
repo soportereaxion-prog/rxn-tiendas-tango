@@ -77,6 +77,14 @@ class ReleaseBuilder
                 continue;
             }
 
+            // Excluir docs internas que no deben publicarse en producción.
+            // MODULE_CONTEXT.md son decisiones de arquitectura, gotchas y vocabulario
+            // interno del equipo — no es info que deba quedar accesible en el server
+            // (ni que haga falta para que la app funcione).
+            if ($file->isFile() && $file->getFilename() === 'MODULE_CONTEXT.md') {
+                continue;
+            }
+
             // Reglas de exclusión public
             if (str_starts_with($relativePathNormalized, 'public/')) {
                 if (str_starts_with($relativePathNormalized, 'public/uploads')) {
