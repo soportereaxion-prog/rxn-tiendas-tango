@@ -1,8 +1,8 @@
 {
-    "name": "RXN PWA — Presupuestos",
+    "name": "RXN PWA — Apps Mobile",
     "short_name": "RXN PWA",
-    "description": "Presupuestos en campo (offline-first) para vendedores RXN.",
-    "start_url": "/rxnpwa/presupuestos",
+    "description": "Apps mobile offline para usar en campo: Presupuestos, Horas y más.",
+    "start_url": "/rxnpwa",
     "scope": "/rxnpwa/",
     "display": "standalone",
     "orientation": "portrait",

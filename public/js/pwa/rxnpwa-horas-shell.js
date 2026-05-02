@@ -22,17 +22,29 @@
 
     async function boot() {
         // GC drafts viejos sincronizados.
-        window.RxnPwaHorasDraftsStore.garbageCollectSynced(7).catch(() => {});
+        try {
+            await window.RxnPwaHorasDraftsStore.garbageCollectSynced(7);
+        } catch (e) {
+            console.warn('[rxnpwa-horas-shell] GC falló:', e);
+        }
 
-        // Cargar tratativas activas del catálogo offline.
+        // Cargar tratativas activas del catálogo offline. Defensive: si el catálogo
+        // todavía no está sincronizado o falla, seguimos renderizando con tratativas vacías.
         try {
             const all = await window.RxnPwaCatalogStore.loadAll();
-            catalogTratativas = Array.isArray(all.tratativas_activas) ? all.tratativas_activas : [];
+            catalogTratativas = Array.isArray(all && all.tratativas_activas) ? all.tratativas_activas : [];
         } catch (e) {
+            console.warn('[rxnpwa-horas-shell] loadAll falló:', e);
             catalogTratativas = [];
         }
 
-        await renderAll();
+        try {
+            await renderAll();
+        } catch (e) {
+            console.error('[rxnpwa-horas-shell] renderAll falló:', e);
+            const card = document.getElementById('rxnpwa-horas-cron-card');
+            if (card) card.innerHTML = '<div class="alert alert-danger small mb-0">Error inicializando: ' + (e && e.message ? e.message : e) + '. Recargá la página.</div>';
+        }
 
         if (window.RxnPwaHorasSyncQueue) {
             window.RxnPwaHorasSyncQueue.subscribe(() => renderAll());

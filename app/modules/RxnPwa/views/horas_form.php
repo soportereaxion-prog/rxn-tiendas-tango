@@ -35,6 +35,9 @@ $tmpUuid = $tmpUuid ?? '';
             </div>
         </div>
         <div class="d-flex gap-1">
+            <a href="/rxnpwa" class="btn btn-sm btn-outline-light" title="Menú PWA">
+                <i class="bi bi-grid-3x3-gap"></i>
+            </a>
             <button type="button" class="btn btn-sm btn-outline-light"
                     data-rxn-fullscreen-toggle title="Pantalla completa" aria-pressed="false">
                 <i class="bi bi-fullscreen"></i>

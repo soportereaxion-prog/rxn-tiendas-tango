@@ -19,8 +19,11 @@
     const DB_NAME = 'rxnpwa';
     // version 1: stores del catálogo + __meta (Fase 1).
     // version 2: presupuestos_drafts + presupuesto_attachments (Fase 2).
-    // version 3: horas_drafts + horas_attachments (PWA Horas — release 1.43.0).
-    const DB_VERSION = 3;
+    // version 3: pds_drafts (release 1.43.0 iter 1 — descartada).
+    // version 4: horas_drafts + horas_attachments + tratativas_activas (release 1.43.0 final).
+    //            Bump explícito para forzar onupgradeneeded en browsers que ya
+    //            estaban en v3 con la store pds_drafts (que no usamos más).
+    const DB_VERSION = 4;
 
     // Schema version del PAYLOAD del catálogo. Independiente del DB_VERSION (que
     // refiere a la estructura de IndexedDB). Bumpear cuando RxnPwaCatalogService
@@ -110,13 +113,16 @@
             throw new Error('Payload inválido — falta data.');
         }
         const db = await openDB();
+        // Defensive: si por alguna razón el upgrade no creó alguna store, igual
+        // grabamos las que sí existen — no abortamos el sync entero.
+        const existing = STORES.filter((name) => db.objectStoreNames.contains(name));
         return new Promise((resolve, reject) => {
-            const t = tx(db, [...STORES, META_STORE], 'readwrite');
+            const t = tx(db, [...existing, META_STORE], 'readwrite');
             t.oncomplete = () => resolve();
             t.onerror = () => reject(t.error);
             t.onabort = () => reject(t.error);
 
-            STORES.forEach((name) => {
+            existing.forEach((name) => {
                 const store = t.objectStore(name);
                 store.clear();
                 const rows = payload.data[name] || [];
@@ -142,29 +148,33 @@
      */
     async function clearCatalogOnly() {
         const db = await openDB();
+        const existing = STORES.filter((name) => db.objectStoreNames.contains(name));
         return new Promise((resolve, reject) => {
-            const t = tx(db, [...STORES, META_STORE], 'readwrite');
+            const t = tx(db, [...existing, META_STORE], 'readwrite');
             t.oncomplete = () => resolve();
             t.onerror = () => reject(t.error);
-            STORES.forEach((name) => t.objectStore(name).clear());
+            existing.forEach((name) => t.objectStore(name).clear());
             t.objectStore(META_STORE).delete('catalog');
         });
     }
 
     async function loadAll() {
         const db = await openDB();
+        // Defensive: solo abrir transaction sobre stores que realmente existen
+        // en esta DB. Evita que un upgrade pendiente o un client desactualizado
+        // crashee el boot con NotFoundError. La store que falte queda como [].
+        const existing = STORES.filter((name) => db.objectStoreNames.contains(name));
+        const result = {};
+        STORES.forEach((name) => { result[name] = []; });
+        if (existing.length === 0) return result;
         return new Promise((resolve, reject) => {
-            const t = tx(db, STORES, 'readonly');
-            const result = {};
+            const t = tx(db, existing, 'readonly');
             t.onerror = () => reject(t.error);
             t.oncomplete = () => resolve(result);
-
-            STORES.forEach((name) => {
+            existing.forEach((name) => {
                 const store = t.objectStore(name);
                 const req = store.getAll();
-                req.onsuccess = () => {
-                    result[name] = req.result || [];
-                };
+                req.onsuccess = () => { result[name] = req.result || []; };
                 req.onerror = () => reject(req.error);
             });
         });
@@ -192,11 +202,12 @@
 
     async function clear() {
         const db = await openDB();
+        const existing = STORES.filter((name) => db.objectStoreNames.contains(name));
         return new Promise((resolve, reject) => {
-            const t = tx(db, [...STORES, META_STORE], 'readwrite');
+            const t = tx(db, [...existing, META_STORE], 'readwrite');
             t.oncomplete = () => resolve();
             t.onerror = () => reject(t.error);
-            STORES.forEach((name) => t.objectStore(name).clear());
+            existing.forEach((name) => t.objectStore(name).clear());
             t.objectStore(META_STORE).clear();
         });
     }

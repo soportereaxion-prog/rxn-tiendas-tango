@@ -88,6 +88,20 @@ $pwaApps = [
         .rxnpwa-launcher-icon.bg-success { background: linear-gradient(135deg, #10b981, #047857); }
         .rxnpwa-launcher-icon.bg-warning { background: linear-gradient(135deg, #f59e0b, #b45309); }
         .rxnpwa-launcher-icon.bg-info    { background: linear-gradient(135deg, #06b6d4, #0e7490); }
+
+        /* Textos de descripción / hints sobre fondo dark. text-muted de Bootstrap
+           queda casi invisible. Subimos al 70% blanco para legibilidad. */
+        .rxnpwa-launcher-card .small.text-muted,
+        .rxnpwa-launcher-text {
+            color: rgba(255, 255, 255, 0.72) !important;
+        }
+        .rxnpwa-launcher-footer {
+            color: rgba(255, 255, 255, 0.55) !important;
+        }
+        /* Subtítulo "Tocá una para abrirla..." debajo del título principal. */
+        main.rxnpwa-shell > .text-center .text-muted {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
     </style>
 </head>
 <body>
@@ -135,17 +149,164 @@ $pwaApps = [
             <?php endforeach; ?>
         </div>
 
+        <!-- Instalar como app. Botón siempre visible:
+              - Si el browser disparó beforeinstallprompt → llama al diálogo nativo.
+              - Si no (HTTP local, iOS Safari, browser sin support) → muestra
+                instrucciones manuales paso a paso. -->
+        <div id="rxnpwa-install-card" class="rxnpwa-card rxnpwa-card-compact mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="flex-grow-1">
+                    <div class="fw-bold small mb-1"><i class="bi bi-download"></i> Instalá la app en el celular</div>
+                    <div class="small rxnpwa-launcher-text">Sin barra del navegador y abre directo desde el escritorio.</div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm flex-shrink-0" id="rxnpwa-install-btn">
+                    Instalar
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal con instrucciones manuales (para cuando beforeinstallprompt no disparó). -->
+        <div class="modal fade" id="rxnpwa-install-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+                <div class="modal-content bg-dark text-light">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-download"></i> Instalar como app</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="rxnpwa-install-reason" class="alert alert-warning small mb-3"></div>
+
+                        <!-- Android Chrome / Edge -->
+                        <div id="rxnpwa-install-android" class="d-none">
+                            <h6 class="fw-bold"><i class="bi bi-android2"></i> Android (Chrome / Edge)</h6>
+                            <ol class="mb-0">
+                                <li>Tocá los 3 puntos <i class="bi bi-three-dots-vertical"></i> arriba a la derecha del navegador.</li>
+                                <li>Buscá <strong>"Instalar app"</strong> o <strong>"Agregar a pantalla de inicio"</strong>.</li>
+                                <li>Tocá <strong>Instalar</strong>. La app queda en el escritorio del celu.</li>
+                            </ol>
+                        </div>
+
+                        <!-- iOS Safari -->
+                        <div id="rxnpwa-install-ios" class="d-none mt-3">
+                            <h6 class="fw-bold"><i class="bi bi-apple"></i> iPhone / iPad (Safari)</h6>
+                            <ol class="mb-0">
+                                <li>Tocá <i class="bi bi-box-arrow-up"></i> <strong>Compartir</strong> en la barra inferior.</li>
+                                <li>Bajá y tocá <strong>"Agregar a pantalla de inicio"</strong>.</li>
+                                <li>Confirmá con <strong>Agregar</strong>. La app queda en el escritorio.</li>
+                            </ol>
+                        </div>
+
+                        <!-- Genérico para cualquier otro -->
+                        <div id="rxnpwa-install-generic" class="d-none mt-3">
+                            <h6 class="fw-bold"><i class="bi bi-globe"></i> Otros navegadores</h6>
+                            <p class="mb-0">Buscá en el menú del navegador la opción <strong>"Instalar app"</strong> o <strong>"Agregar a pantalla de inicio"</strong>. Está en el menú de los 3 puntos / hamburguesa.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="rxnpwa-card rxnpwa-card-compact">
-            <div class="small text-muted">
+            <div class="small rxnpwa-launcher-text">
                 <i class="bi bi-info-circle"></i> Más PWAs próximamente. Cada módulo que se sume aparece automáticamente acá.
             </div>
         </div>
 
-        <div class="text-center small text-muted mt-4">
+        <div class="text-center small rxnpwa-launcher-footer mt-4">
             Empresa #<?= (int) $empresaId ?> · RXN Suite
         </div>
 
     </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Botón "Instalar" híbrido:
+        //  - Si beforeinstallprompt llegó → llama al prompt nativo de Chrome/Edge.
+        //  - Si NO llegó (HTTP local, iOS Safari, browser sin soporte) → abre modal
+        //    con instrucciones manuales adaptadas al UA detectado.
+        //
+        // Por qué no llega siempre: el evento solo dispara en HTTPS o localhost +
+        // manifest válido + SW activo + criterios de engagement. En LAN HTTP plano
+        // (ej: 192.168.x.x) Chrome NO lo dispara, sin importar el manifest.
+        (function () {
+            'use strict';
+            let deferredPrompt = null;
+            const installCard = document.getElementById('rxnpwa-install-card');
+            const installBtn = document.getElementById('rxnpwa-install-btn');
+
+            // Si ya está corriendo en standalone, ocultar todo el bloque.
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+            if (isStandalone) {
+                if (installCard) installCard.classList.add('d-none');
+                return;
+            }
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+            });
+
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    // Camino 1: el browser nos entregó el prompt nativo.
+                    if (deferredPrompt) {
+                        try {
+                            deferredPrompt.prompt();
+                            const { outcome } = await deferredPrompt.userChoice;
+                            deferredPrompt = null;
+                            if (outcome === 'accepted' && installCard) {
+                                installCard.classList.add('d-none');
+                            }
+                            return;
+                        } catch (e) {
+                            // fallback al modal manual
+                        }
+                    }
+                    // Camino 2: modal con instrucciones manuales según UA.
+                    showManualInstallModal();
+                });
+            }
+
+            function showManualInstallModal() {
+                const ua = navigator.userAgent || '';
+                const isIOS = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+                const isAndroid = /Android/.test(ua);
+                const isSafariMobile = isIOS && /^((?!CriOS|FxiOS|EdgiOS).)*Safari/.test(ua);
+                const isHttpInsecure = location.protocol === 'http:' && location.hostname !== 'localhost' && !location.hostname.startsWith('127.');
+
+                const reason = document.getElementById('rxnpwa-install-reason');
+                const androidBlock = document.getElementById('rxnpwa-install-android');
+                const iosBlock = document.getElementById('rxnpwa-install-ios');
+                const genericBlock = document.getElementById('rxnpwa-install-generic');
+
+                // Mensaje contextual.
+                if (isHttpInsecure) {
+                    reason.innerHTML = '<i class="bi bi-shield-exclamation"></i> <strong>Servidor sin HTTPS</strong> — el navegador no ofrece el botón automático de instalación en HTTP plano (LAN local). Igual podés instalarla manualmente:';
+                } else {
+                    reason.innerHTML = '<i class="bi bi-info-circle"></i> Tu navegador no ofreció el diálogo automático. Probá instalarla manualmente:';
+                }
+
+                // Mostrar bloques relevantes.
+                androidBlock.classList.toggle('d-none', !isAndroid);
+                iosBlock.classList.toggle('d-none', !isSafariMobile);
+                genericBlock.classList.toggle('d-none', isAndroid || isSafariMobile);
+
+                const modal = new bootstrap.Modal(document.getElementById('rxnpwa-install-modal'));
+                modal.show();
+            }
+
+            // Si ya quedó instalada después (otro tab), ocultar el card.
+            window.addEventListener('appinstalled', () => {
+                if (installCard) installCard.classList.add('d-none');
+                deferredPrompt = null;
+            });
+        })();
+    </script>
 
     <!-- Helper global de fullscreen + persistencia. -->
     <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>

@@ -428,6 +428,55 @@ class HoraController extends Controller
     }
 
     /**
+     * GET /mi-empresa/crm/horas/{id}
+     * Vista detalle del turno — accesible al dueño + admin del tenant. Muestra
+     * resumen + adjuntos + form de upload. Es donde un operador común puede
+     * cargar certificados médicos / planillas / fotos de su propio turno.
+     */
+    public function detalle(int $id): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        [$empresaId, $userId] = $this->ctx();
+
+        $hora = $this->repository->findById($id, $empresaId);
+        if ($hora === null) {
+            $_SESSION['flash_error'] = 'El turno no existe o no pertenece a tu empresa.';
+            header('Location: /mi-empresa/crm/horas');
+            exit;
+        }
+
+        $esAdmin = AuthService::hasAdminPrivileges();
+        $esDueno = (int) $hora['usuario_id'] === $userId;
+        if (!$esAdmin && !$esDueno) {
+            http_response_code(403);
+            echo "<h2>403 — No podés ver un turno ajeno.</h2>";
+            exit;
+        }
+
+        // Mostrar quién es el dueño si es distinto al caller (caso admin).
+        $ownerNombre = $hora['usuario_nombre'] ?? null;
+        if ($ownerNombre === null) {
+            $usuarios = $this->loadUsuariosActivos($empresaId);
+            $ownerNombre = $usuarios[(int) $hora['usuario_id']] ?? ('Usuario #' . (int) $hora['usuario_id']);
+        }
+
+        $adjuntos = [];
+        try {
+            $service = new \App\Core\Services\AttachmentService();
+            $adjuntos = $service->listByOwner($empresaId, 'crm_hora', $id);
+        } catch (\Throwable) {}
+
+        View::render('app/modules/CrmHoras/views/detalle.php', [
+            'hora'         => $hora,
+            'ownerNombre'  => $ownerNombre,
+            'adjuntos'     => $adjuntos,
+            'esAdmin'      => $esAdmin,
+            'esDueno'      => $esDueno,
+        ]);
+    }
+
+    /**
      * POST /mi-empresa/crm/horas/{id}/adjuntos — subida web (multipart con campo `file`).
      * Reusa AttachmentService con owner_type='crm_hora'.
      */
@@ -459,7 +508,7 @@ class HoraController extends Controller
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = 'Error al adjuntar: ' . $e->getMessage();
         }
-        header('Location: /mi-empresa/crm/horas/' . $id . '/editar');
+        header('Location: /mi-empresa/crm/horas/' . $id);
         exit;
     }
 

@@ -563,6 +563,7 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/horas/{id}/editar', $action(\App\Modules\CrmHoras\HoraController::class, 'editarForm', $requireCrm));
     $router->post('/mi-empresa/crm/horas/{id}/editar', $action(\App\Modules\CrmHoras\HoraController::class, 'editarStore', $requireCrm));
     $router->post('/mi-empresa/crm/horas/{id}/anular', $action(\App\Modules\CrmHoras\HoraController::class, 'anular', $requireCrm));
+    $router->get('/mi-empresa/crm/horas/{id}', $action(\App\Modules\CrmHoras\HoraController::class, 'detalle', $requireCrm));
     $router->post('/mi-empresa/crm/horas/{id}/adjuntos', $action(\App\Modules\CrmHoras\HoraController::class, 'uploadAdjunto', $requireCrm));
     $router->post('/mi-empresa/crm/horas/{id}/adjuntos/{attId}/borrar', $action(\App\Modules\CrmHoras\HoraController::class, 'deleteAdjunto', $requireCrm));
 

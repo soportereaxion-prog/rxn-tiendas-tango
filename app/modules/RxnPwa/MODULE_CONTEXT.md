@@ -1,8 +1,80 @@
-# Módulo RxnPwa — PWA mobile (Presupuestos)
+# Módulo RxnPwa — PWA mobile (multi-app)
 
-> **Iteraciones 42 y 43 — PWA completa + endurecida.** Andamiaje + catálogo offline + form mobile + sync queue + envío a Tango + defaults comerciales del cliente + gate GPS bloqueante + acceso desde dashboard CRM. Releases 1.31.0 → 1.38.0 (12 bumps).
+> **Iteración 45 — PWA Horas + Hub launcher.** Sumamos la **PWA de Horas** (turnero offline) como segunda app mobile, después de Presupuestos. Charly creó el hub `/rxnpwa` (launcher) que centraliza el acceso a todas las PWAs disponibles. Manifest `start_url` apunta al launcher. Release 1.43.0 (hub) + 1.43.1 (Horas e2e). El módulo ahora es **multi-app**, no solo Presupuestos.
 >
-> **Diferencial competitivo clave**: la PWA OBLIGA al operador a tener GPS activo. La trazabilidad geográfica de cada presupuesto emitido en campo es parte central del producto, no opcional. Cualquier feature futura (PDS mobile, etc) debe respetar este gate.
+> **Iteraciones 42 y 43 (releases 1.31.0 → 1.38.0)**: PWA Presupuestos completa — andamiaje + catálogo offline + form mobile + sync queue + envío a Tango + defaults comerciales del cliente + gate GPS bloqueante + acceso desde dashboard CRM (12 bumps).
+>
+> **Diferencial competitivo clave**: la PWA OBLIGA al operador a tener GPS activo. La trazabilidad geográfica de cada presupuesto / turno emitido en campo es parte central del producto, no opcional. Cualquier feature futura debe respetar este gate.
+
+## Apps disponibles
+
+| App | URL | Tabla server | Tango | Adjuntos |
+|-----|-----|--------------|-------|----------|
+| **Presupuestos** | `/rxnpwa/presupuestos` | `crm_presupuestos` | ✅ envío | ✅ |
+| **Horas (turnero)** | `/rxnpwa/horas` | `crm_horas` | ❌ no aplica | ✅ |
+
+El **launcher** `/rxnpwa` lista todas las apps disponibles como cards. Para sumar una app nueva: editar `$pwaApps` en `app/modules/RxnPwa/views/launcher.php` + agregar las rutas + el shell + el form.
+
+## PWA Horas (release 1.43.0 + 1.43.1)
+
+Replica del desktop turnero (`/mi-empresa/crm/horas`) en mobile-first. Diferencias clave vs Presupuestos:
+
+- **SIN Tango**: las horas no se envían a Tango. Solo sincronizar offline → server.
+- **SIN renglones**: 1 turno = 1 fichaje puntual.
+- **Cronómetro vivo**: total trabajado del día actualiza cada 1s, sumando turnos cerrados + el cronómetro abierto.
+- **Botón único contextual**: "Iniciar turno" o "Cerrar turno" según haya draft abierto.
+- **Concepto como textarea** (paridad web/PWA — release 1.43.1).
+- **Descuento HH:MM:SS + motivo textarea** opcionales (si descuento > 0, motivo obligatorio).
+- **Adjuntos**: cámara `capture=environment` para certificados médicos / planillas. Compresión client-side de imágenes.
+
+### Endpoints (Horas)
+
+| Método | Ruta | Devuelve |
+|--------|------|----------|
+| GET | `/rxnpwa/horas` | Shell mobile con total + botón Iniciar/Cerrar + lista del día |
+| GET | `/rxnpwa/horas/nuevo` | Form de turno diferido vacío |
+| GET | `/rxnpwa/horas/editar/{tmpUuid}` | Form cargando draft de IndexedDB |
+| POST | `/api/rxnpwa/horas/sync` | `{ok, id_server, tmp_uuid, created}`. Idempotente por tmp_uuid_pwa. |
+| POST | `/api/rxnpwa/horas/{id}/attachments` | `{ok, attachment}`. Multipart con campo `file`. |
+
+### Server-side (Horas)
+
+- **`RxnPwaHorasSyncService::syncDraft`**: mapea draft IndexedDB → `HoraService::cargarDiferido` con idempotencia por `tmp_uuid_pwa`. Doble check anti race condition (doble tap del usuario).
+- **`HoraRepository::findByTmpUuidPwa`**: helper de idempotencia.
+- **`HoraService` extendido**: `iniciar`, `cargarDiferido`, `editar` aceptan `descuento_segundos` + `motivo_descuento`. Validación cruzada server-side.
+
+### Storage cliente (IndexedDB v4)
+
+```
+rxnpwa (DB v4)
+├── ... (10 stores catálogo + tratativas_activas)
+├── presupuestos_drafts (Presupuestos PWA)
+├── presupuesto_attachments (Presupuestos PWA)
+├── horas_drafts                 keyPath: tmp_uuid
+│   { tmp_uuid, empresa_id, created_at, updated_at,
+│     cabecera: { fecha_inicio, fecha_finalizado, concepto,
+│                 tratativa_id, tratativa_data,
+│                 descuento_segundos, motivo_descuento },
+│     status: 'draft' | 'pending_sync' | 'syncing' | 'synced' | 'error',
+│     server_id, retry_count, last_error, next_retry_at, geo }
+└── horas_attachments            keyPath: id (autoIncrement), index: by_tmp_uuid
+    { id, tmp_uuid, name, mime, size, blob, compressed, created_at,
+      sync_status: 'pending' | 'uploaded' | 'failed', server_attachment_id }
+```
+
+### Catálogo offline extendido
+
+- **`tratativas_activas`** sumado al payload (`fetchTratativasActivas`): top 100 estados nueva/en_curso/pausada para alimentar el selector "Vincular a tratativa" del turnero PWA. CATALOG_SCHEMA_VERSION → `v3`.
+
+### CRÍTICO — `HoraService::cargarDiferido` con `tmp_uuid_pwa`
+
+La firma de `HoraService::cargarDiferido` ahora acepta 2 params nuevos al final: `descuentoSegundos`, `motivoDescuento`, `tmpUuidPwa`. La PWA pasa los 3. El form web desktop solo pasa los 2 primeros (sin tmp_uuid_pwa) — el server lo deja como NULL. Si modificás la firma, validá que ambos paths sigan funcionando.
+
+### CRÍTICO — IndexedDB defensiva
+
+`loadAll`, `saveCatalog`, `clearCatalogOnly`, `clear` filtran stores que NO existen en la DB del cliente (con `db.objectStoreNames.contains(name)`). Esto evita que un upgrade pendiente o un cliente desactualizado crashee el boot con `NotFoundError`. **Si sumás una store nueva, bumpeá `DB_VERSION` SIEMPRE** — sin bump el `onupgradeneeded` no corre y los browsers existentes quedan en la versión vieja sin la store nueva.
+
+## PWA Presupuestos (sin cambios estructurales esta iteración)
 
 ## Propósito
 

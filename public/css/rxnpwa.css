@@ -248,3 +248,21 @@ body {
     color: var(--rxnpwa-text);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
+/* Sobre fondo dark del overlay, text-muted de Bootstrap (#6c757d) queda
+   ilegible. Subimos el contraste para que el texto explicativo sea legible. */
+.rxnpwa-geo-gate-content .text-muted,
+.rxnpwa-geo-gate-content small.text-muted {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+.rxnpwa-geo-gate-content ol,
+.rxnpwa-geo-gate-content p {
+    color: rgba(255, 255, 255, 0.88);
+}
+.rxnpwa-geo-gate-content .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.92);
+}
+.rxnpwa-geo-gate-content .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}

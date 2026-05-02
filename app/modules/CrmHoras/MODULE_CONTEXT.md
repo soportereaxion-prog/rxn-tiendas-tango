@@ -1,5 +1,9 @@
 # MODULE_CONTEXT — CrmHoras (turnero CRM)
 
+> **VOCABULARIO IMPORTANTE**: cuando Charly dice "**Horas**" se refiere SIEMPRE a este módulo (`CrmHoras`, tabla `crm_horas`, vista `views/turnero.php`). NO confundir con `CrmPedidosServicio` aunque el PDS tenga campos `fecha_inicio`/`fecha_finalizado`/`descuento_segundos`. Antes de tocar código relacionado a "Horas", confirmá que estás en `app/modules/CrmHoras/`. Confundirlos cuesta una sesión entera (pasó 2026-05-02).
+>
+> **Iteración 45 (release 1.43.1)**: el módulo se complementó con una **PWA mobile** (`/rxnpwa/horas`) que reproduce el turnero desktop offline-first. Ver `app/modules/RxnPwa/MODULE_CONTEXT.md` sección "PWA Horas". Schema y validaciones se comparten — la PWA reusa `HoraService::cargarDiferido()` server-side.
+
 ## Nivel de criticidad
 MEDIO. El turnero registra tiempo trabajado por operadores. Si se cae temporalmente, no bloquea operación crítica (PDS, Presupuestos, Tratativas siguen andando), pero los operadores pierden registro horario y eso afecta liquidación / reportes a futuro.
 
@@ -26,8 +30,65 @@ Permitir a los operadores del CRM registrar tiempo de trabajo (turnos) con:
 - NO tiene chips de conceptos recientes (decisión 3 diferida).
 - NO sugiere cliente por geo (decisión 4 diferida — requiere clientes georreferenciados).
 - NO tiene captura de ruta GPS continua durante el turno (decisión 7 diferida).
-- NO es PWA (decisión 9). Solo responsive.
+- ~~NO es PWA~~ → **Sumada en release 1.43.1**: PWA Horas en `/rxnpwa/horas` con cronómetro vivo + adjuntos cámara + sync queue offline.
 - NO tiene push notifications (Fase 2).
+
+## Schema (release 1.43.1)
+
+Columnas relevantes de `crm_horas`:
+
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| `started_at` | DATETIME | Inicio del turno |
+| `ended_at` | DATETIME NULL | Fin (NULL = abierto en curso) |
+| `modo` | ENUM('en_vivo', 'diferido') | |
+| `estado` | ENUM('abierto', 'cerrado', 'anulado') | |
+| `concepto` | TEXT NULL | **Textarea** (release 1.43.1, antes era input). Detalles del servicio. |
+| `descuento_segundos` | INT NOT NULL DEFAULT 0 | **Nuevo en 1.43.1**. Tiempo a descontar del bruto. |
+| `motivo_descuento` | TEXT NULL | **Nuevo en 1.43.1**. Justificación del descuento (textarea). Si descuento > 0, obligatorio. |
+| `tmp_uuid_pwa` | VARCHAR(50) NULL UNIQUE | **Nuevo en 1.43.1**. Idempotencia del sync mobile. |
+| `tratativa_id`, `pds_id`, `cliente_id` | INT NULL | Vínculos opcionales |
+| `geo_start_lat/lng/consent_start` | | Geo opcional al iniciar |
+| `geo_end_lat/lng/consent_end` | | Geo opcional al cerrar |
+| `geo_diferido_lat/lng` | | Geo del momento de carga diferida |
+| `inconsistencia_geo` | TINYINT | 1 si la carga diferida fue >24hs después del started_at con geo |
+
+## Endpoints (release 1.43.1)
+
+| Método | Ruta | Auth | Función |
+|--------|------|------|---------|
+| GET | `/mi-empresa/crm/horas` | CRM | Turnero principal (mobile-first) |
+| POST | `/mi-empresa/crm/horas/iniciar` | CRM | Inicia turno en vivo |
+| POST | `/mi-empresa/crm/horas/cerrar` | CRM | Cierra turno abierto |
+| GET/POST | `/mi-empresa/crm/horas/diferido` | CRM | Form de carga diferida |
+| GET | `/mi-empresa/crm/horas/listado` | CRM | Listado admin/supervisor |
+| **GET** | **`/mi-empresa/crm/horas/{id}`** | **CRM (dueño + admin)** | **Detalle del turno + adjuntos. Nueva en 1.43.1** |
+| GET/POST | `/mi-empresa/crm/horas/{id}/editar` | CRM (admin) | Edición admin con audit |
+| **POST** | **`/mi-empresa/crm/horas/{id}/adjuntos`** | **CRM** | **Upload de adjunto** (release 1.43.1) |
+| **POST** | **`/mi-empresa/crm/horas/{id}/adjuntos/{attId}/borrar`** | **CRM** | **Delete de adjunto** (release 1.43.1) |
+| POST | `/mi-empresa/crm/horas/{id}/anular` | CRM | Anulación con audit |
+
+## Adjuntos (release 1.43.1)
+
+Reusa `App\Core\Services\AttachmentService` con `owner_type='crm_hora'` (sumado al whitelist en `app/config/attachments.php`). Polimórficos, mismo patrón que `crm_nota` y `crm_presupuesto`.
+
+**Quién puede adjuntar/borrar**: el dueño del turno + admin del tenant. Verificación en `HoraController::detalle/uploadAdjunto/deleteAdjunto`.
+
+**Casos de uso**: certificados médicos, planillas de obra, fotos del trabajo realizado.
+
+**UI**:
+- Vista detalle (`/mi-empresa/crm/horas/{id}`) con form upload + lista + delete.
+- Link 📎 en cada item de la lista del día en turnero.php.
+- Form upload también en editar.php (admin) por conveniencia.
+- En PWA mobile: sección de adjuntos en `horas_form.php` con cámara directa (`<input capture=environment>`) y compresión client-side de imágenes.
+
+## CRÍTICO — Concepto es textarea (no input)
+
+Charly pidió explícito en release 1.43.1 que `concepto` sea **textarea** en TODAS las superficies (turnero.php iniciar, diferido.php, editar.php admin, detalle.php read-only, PWA horas_shell concepto al iniciar, PWA horas_form). Si agregás una vista nueva con concepto, usar `<textarea>` con `rows="3"` y `maxlength="2000"` mínimo. NO renombrar la columna a `descripcion` (decisión explícita de Charly).
+
+## CRÍTICO — Descuento + motivo son pareja obligatoria
+
+Si `descuento_segundos > 0`, `motivo_descuento` NO puede ser NULL/vacío. Validado server-side en `HoraService::iniciar/cargarDiferido/editar` y client-side en la PWA. Si rompés esta regla, la UI muestra error y bloquea el guardado.
 - NO bloquea inicio fuera del horario laboral configurado — el horario es orientativo (decisión 5.9).
 - NO hay edición de turnos por el operador (solo admin lo puede ajustar — Fase 6 audit log).
 - NO hay export para liquidación (decisión 11 — diferido a RxnLive más adelante).

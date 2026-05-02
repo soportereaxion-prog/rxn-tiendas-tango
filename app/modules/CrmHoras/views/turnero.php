@@ -177,7 +177,15 @@ ob_start();
                                 <?php endif; ?>
                             </div>
                             <?php if (!empty($t['concepto'])): ?>
-                                <div class="small text-muted"><?= htmlspecialchars((string) $t['concepto']) ?></div>
+                                <div class="small text-muted" style="white-space: pre-line"><?= htmlspecialchars((string) $t['concepto']) ?></div>
+                            <?php endif; ?>
+                            <?php if (!empty($t['descuento_segundos']) && (int) $t['descuento_segundos'] > 0): ?>
+                                <?php $ds = (int) $t['descuento_segundos']; ?>
+                                <div class="small text-warning">
+                                    <i class="bi bi-dash-circle"></i>
+                                    Descuento: <?= sprintf('%02d:%02d:%02d', intdiv($ds, 3600), intdiv($ds % 3600, 60), $ds % 60) ?>
+                                    <?php if (!empty($t['motivo_descuento'])): ?>· <?= htmlspecialchars((string) $t['motivo_descuento']) ?><?php endif; ?>
+                                </div>
                             <?php endif; ?>
                             <?php if ($t['inconsistencia_geo']): ?>
                                 <div class="small text-warning">
@@ -185,6 +193,9 @@ ob_start();
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <a href="/mi-empresa/crm/horas/<?= (int) $t['id'] ?>" class="btn btn-outline-secondary btn-sm" title="Ver detalle / Adjuntos">
+                            <i class="bi bi-paperclip"></i>
+                        </a>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
