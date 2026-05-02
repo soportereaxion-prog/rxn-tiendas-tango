@@ -37,10 +37,16 @@ class HoraService
      * @return int ID del turno creado.
      * @throws RuntimeException
      */
-    public function iniciar(int $empresaId, int $usuarioId, ?string $concepto, ?float $lat, ?float $lng, bool $consent, ?int $tratativaId = null, ?int $pdsId = null, ?int $clienteId = null): int
+    public function iniciar(int $empresaId, int $usuarioId, ?string $concepto, ?float $lat, ?float $lng, bool $consent, ?int $tratativaId = null, ?int $pdsId = null, ?int $clienteId = null, int $descuentoSegundos = 0, ?string $motivoDescuento = null): int
     {
         if ($this->repository->findOpenByUser($empresaId, $usuarioId) !== null) {
             throw new RuntimeException('Ya tenés un turno abierto. Cerralo antes de iniciar uno nuevo.');
+        }
+
+        $descuentoSegundos = max(0, $descuentoSegundos);
+        $motivoDescuento = $motivoDescuento !== null ? trim($motivoDescuento) : null;
+        if ($descuentoSegundos > 0 && ($motivoDescuento === null || $motivoDescuento === '')) {
+            throw new InvalidArgumentException('Si hay descuento, el motivo es obligatorio.');
         }
 
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
@@ -52,6 +58,8 @@ class HoraService
             'modo'          => 'en_vivo',
             'estado'        => 'abierto',
             'concepto'      => $concepto !== null && trim($concepto) !== '' ? trim($concepto) : null,
+            'descuento_segundos' => $descuentoSegundos,
+            'motivo_descuento'   => $motivoDescuento !== '' ? $motivoDescuento : null,
             'tratativa_id'  => $tratativaId ?: null,
             'pds_id'        => $pdsId ?: null,
             'cliente_id'    => $clienteId ?: null,
@@ -107,7 +115,10 @@ class HoraService
         ?int $tratativaId = null,
         ?int $pdsId = null,
         ?int $clienteId = null,
-        ?int $actorUserId = null
+        ?int $actorUserId = null,
+        int $descuentoSegundos = 0,
+        ?string $motivoDescuento = null,
+        ?string $tmpUuidPwa = null
     ): int {
         // actorUserId opcional: cuando un admin carga el turno en nombre de
         // otro usuario, $usuarioId es el dueño del turno y $actorUserId es
@@ -131,6 +142,17 @@ class HoraService
             throw new RuntimeException('El rango horario se solapa con otro turno tuyo.');
         }
 
+        // Validación descuento + motivo.
+        $descuentoSegundos = max(0, $descuentoSegundos);
+        $motivoDescuento = $motivoDescuento !== null ? trim($motivoDescuento) : null;
+        if ($descuentoSegundos > 0 && ($motivoDescuento === null || $motivoDescuento === '')) {
+            throw new InvalidArgumentException('Si hay descuento, el motivo es obligatorio.');
+        }
+        $duracionTotal = $end->getTimestamp() - $start->getTimestamp();
+        if ($descuentoSegundos > $duracionTotal) {
+            throw new InvalidArgumentException('El descuento no puede superar el tiempo total del turno.');
+        }
+
         // Inconsistencia de geo: si pasaron más de 24hs entre el started_at del
         // turno y el momento de carga, marcamos para revisión (la geo del momento
         // de carga ya no es relevante respecto al lugar de trabajo).
@@ -149,6 +171,8 @@ class HoraService
             'modo'          => 'diferido',
             'estado'        => 'cerrado',
             'concepto'      => $concepto !== null && trim($concepto) !== '' ? trim($concepto) : null,
+            'descuento_segundos' => $descuentoSegundos,
+            'motivo_descuento'   => $motivoDescuento !== '' ? $motivoDescuento : null,
             'tratativa_id'  => $tratativaId ?: null,
             'pds_id'        => $pdsId ?: null,
             'cliente_id'    => $clienteId ?: null,
@@ -157,6 +181,7 @@ class HoraService
             'geo_consent_start' => $geoConsent ? 1 : 0,
             'inconsistencia_geo' => $inconsistencia,
             'created_by'    => $actorUserId,
+            'tmp_uuid_pwa'  => $tmpUuidPwa,
         ]);
 
         $row = $this->repository->findById($newId, $empresaId);
@@ -213,7 +238,9 @@ class HoraService
         ?string $endedAt,
         ?string $concepto,
         string $motivo,
-        int $actorUserId
+        int $actorUserId,
+        ?int $descuentoSegundos = null,
+        ?string $motivoDescuento = null
     ): void {
         $motivo = trim($motivo);
         if ($motivo === '') {
@@ -245,11 +272,24 @@ class HoraService
             throw new RuntimeException('El nuevo rango se solapa con otro turno del mismo operador.');
         }
 
-        $this->repository->update($turnoId, $empresaId, [
+        $updateData = [
             'started_at' => $startStr,
             'ended_at'   => $endStr,
             'concepto'   => $concepto !== null && trim($concepto) !== '' ? trim($concepto) : null,
-        ]);
+        ];
+        if ($descuentoSegundos !== null) {
+            $descuentoSegundos = max(0, (int) $descuentoSegundos);
+            $motivoDescuento = $motivoDescuento !== null ? trim($motivoDescuento) : null;
+            if ($descuentoSegundos > 0 && ($motivoDescuento === null || $motivoDescuento === '')) {
+                throw new InvalidArgumentException('Si hay descuento, el motivo es obligatorio.');
+            }
+            if ($end !== null && $descuentoSegundos > ($end->getTimestamp() - $start->getTimestamp())) {
+                throw new InvalidArgumentException('El descuento no puede superar el tiempo total del turno.');
+            }
+            $updateData['descuento_segundos'] = $descuentoSegundos;
+            $updateData['motivo_descuento']   = $motivoDescuento !== '' ? $motivoDescuento : null;
+        }
+        $this->repository->update($turnoId, $empresaId, $updateData);
 
         $after = $this->repository->findById($turnoId, $empresaId);
 

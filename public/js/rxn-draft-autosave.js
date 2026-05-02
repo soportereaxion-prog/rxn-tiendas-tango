@@ -98,8 +98,16 @@
                 window.RxnDateTime.setValue(el, String(value));
             } else {
                 el.value = String(value);
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
+                // Inputs visibles de un picker (cliente, artículo, clasificación)
+                // NO deben disparar 'input' al rehidratar: el handler del picker
+                // interpreta cualquier 'input' como "el user está tipeando" y BORRA
+                // el hidden del id. Como el draft trae visible + hidden coherentes,
+                // saltamos el dispatch para preservar el id ya seteado.
+                const isPickerVisible = el.matches && el.matches('[data-picker-input]');
+                if (!isPickerVisible) {
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
         });
     }

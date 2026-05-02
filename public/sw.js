@@ -15,17 +15,21 @@
 //   - GET /api/rxnpwa/catalog/full    → siempre red (lo que persiste es IndexedDB, no Cache API).
 //   - Todo lo demás                   → passthrough (no interceptamos nada del backoffice clásico).
 
-const RXNPWA_VERSION = 'rxnpwa-v13-2026-04-30';
+const RXNPWA_VERSION = 'rxnpwa-v16-2026-05-02';
 const SHELL_CACHE = `${RXNPWA_VERSION}-shell`;
 const ASSETS_CACHE = `${RXNPWA_VERSION}-assets`;
 
 const SHELL_URLS = [
+    '/rxnpwa',                          // Launcher / sub-menú raíz (release 1.43.1).
     '/rxnpwa/presupuestos',
     '/rxnpwa/presupuestos/nuevo',
+    '/rxnpwa/horas',
+    '/rxnpwa/horas/nuevo',
     '/manifest.webmanifest',
     '/icons/rxnpwa-192.png',
     '/icons/rxnpwa-512.png',
     '/css/rxnpwa.css',
+    '/css/rxn-fullscreen.css',
 ];
 
 self.addEventListener('install', (event) => {
@@ -170,7 +174,14 @@ async function networkFirst(req, cacheName) {
         const cached = await cache.match(req);
         if (cached) return cached;
         // Sin cache y sin red: devolver shell mínimo para que la UI muestre el modo offline.
-        const fallback = await cache.match('/rxnpwa/presupuestos');
+        // Fallback contextual: si la URL pedida es de /horas, devolver la shell de horas.
+        const url = new URL(req.url);
+        const fallbackPath = url.pathname.startsWith('/rxnpwa/horas')
+            ? '/rxnpwa/horas'
+            : url.pathname.startsWith('/rxnpwa/presupuestos')
+                ? '/rxnpwa/presupuestos'
+                : '/rxnpwa'; // Launcher como default — funciona también offline.
+        const fallback = await cache.match(fallbackPath);
         if (fallback) return fallback;
         throw err;
     }

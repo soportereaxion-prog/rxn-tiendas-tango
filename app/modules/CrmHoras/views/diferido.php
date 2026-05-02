@@ -67,7 +67,7 @@ ob_start();
 
                 <div class="mb-3">
                     <label class="form-label small">Concepto (opcional)</label>
-                    <input type="text" name="concepto" class="form-control" placeholder="Ej: Visita técnica - Cliente X" maxlength="255">
+                    <textarea name="concepto" class="form-control" placeholder="Ej: Visita técnica - Cliente X. Detalles del servicio, contexto, observaciones..." maxlength="2000" rows="3"></textarea>
                 </div>
 
                 <?php if (!empty($tratativas)): ?>
@@ -83,6 +83,21 @@ ob_start();
                     </select>
                 </div>
                 <?php endif; ?>
+
+                <details class="mb-3">
+                    <summary class="small text-muted">Aplicar descuento al tiempo (opcional)</summary>
+                    <div class="row g-2 mt-2">
+                        <div class="col-12 col-md-5">
+                            <label class="form-label small">Descuento (HH:MM:SS)</label>
+                            <input type="text" name="descuento" class="form-control" placeholder="00:00:00" pattern="^\d{1,3}:[0-5]?\d:[0-5]?\d$">
+                        </div>
+                        <div class="col-12 col-md-7">
+                            <label class="form-label small">Motivo del descuento</label>
+                            <textarea name="motivo_descuento" class="form-control" placeholder="Ej: Pausa larga, almuerzo, traslado no facturable..." rows="2"></textarea>
+                        </div>
+                        <div class="form-text small">Si cargás descuento, el motivo es obligatorio.</div>
+                    </div>
+                </details>
 
                 <div class="text-center mb-3">
                     <small class="text-muted rxn-geo-status">

@@ -19,7 +19,8 @@
     const DB_NAME = 'rxnpwa';
     // version 1: stores del catálogo + __meta (Fase 1).
     // version 2: presupuestos_drafts + presupuesto_attachments (Fase 2).
-    const DB_VERSION = 2;
+    // version 3: horas_drafts + horas_attachments (PWA Horas — release 1.43.0).
+    const DB_VERSION = 3;
 
     // Schema version del PAYLOAD del catálogo. Independiente del DB_VERSION (que
     // refiere a la estructura de IndexedDB). Bumpear cuando RxnPwaCatalogService
@@ -27,7 +28,8 @@
     // el cliente wipea SOLO el catálogo (deja drafts) y obliga a resincronizar.
     //   v1 — Fase 1 inicial.
     //   v2 — release 1.35.0: sumamos id_gvaXX_* a clientes (defaults comerciales).
-    const CATALOG_SCHEMA_VERSION = 'v2';
+    //   v3 — release 1.43.0: sumamos tratativas_activas para PWA Horas.
+    const CATALOG_SCHEMA_VERSION = 'v3';
 
     const STORES = [
         'clientes',
@@ -40,10 +42,13 @@
         'transportes',
         'depositos',
         'clasificaciones_pds',
+        'tratativas_activas',
     ];
     const META_STORE = '__meta';
     const DRAFTS_STORE = 'presupuestos_drafts';
     const ATTACHMENTS_STORE = 'presupuesto_attachments';
+    const HORAS_DRAFTS_STORE = 'horas_drafts';
+    const HORAS_ATTACHMENTS_STORE = 'horas_attachments';
 
     let dbPromise = null;
 
@@ -77,6 +82,16 @@
                 if (!db.objectStoreNames.contains(ATTACHMENTS_STORE)) {
                     // autoIncrement + index por tmp_uuid para listar todos los adjuntos de un draft.
                     const attStore = db.createObjectStore(ATTACHMENTS_STORE, { keyPath: 'id', autoIncrement: true });
+                    attStore.createIndex('by_tmp_uuid', 'tmp_uuid', { unique: false });
+                }
+                // v3 — drafts de Horas (PWA turnero) + adjuntos (certificados, fotos).
+                if (!db.objectStoreNames.contains(HORAS_DRAFTS_STORE)) {
+                    const horasStore = db.createObjectStore(HORAS_DRAFTS_STORE, { keyPath: 'tmp_uuid' });
+                    horasStore.createIndex('by_status', 'status', { unique: false });
+                    horasStore.createIndex('by_updated_at', 'updated_at', { unique: false });
+                }
+                if (!db.objectStoreNames.contains(HORAS_ATTACHMENTS_STORE)) {
+                    const attStore = db.createObjectStore(HORAS_ATTACHMENTS_STORE, { keyPath: 'id', autoIncrement: true });
                     attStore.createIndex('by_tmp_uuid', 'tmp_uuid', { unique: false });
                 }
             };
@@ -197,6 +212,8 @@
         STORES,
         DRAFTS_STORE,
         ATTACHMENTS_STORE,
+        HORAS_DRAFTS_STORE,
+        HORAS_ATTACHMENTS_STORE,
         CATALOG_SCHEMA_VERSION,
     };
 })(window);

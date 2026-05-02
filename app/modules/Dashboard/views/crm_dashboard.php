@@ -76,11 +76,15 @@ $defaultCards = [
         'icon' => '<i class="bi bi-file-earmark-spreadsheet"></i>',
         'link' => '/mi-empresa/crm/presupuestos',
     ],
-    'pwa_presupuestos' => [
-        'title' => 'PWA — Presupuestos Mobile',
-        'desc' => 'App mobile para vendedores en campo. Crea presupuestos offline y los sincroniza al volver online. Instalable como app nativa en el celu.',
+    // Una única card "PWA Mobile" que abre el launcher (release 1.43.1). El
+    // launcher tiene cards individuales para cada PWA disponible (Presupuestos,
+    // Horas, las que vengan). Antes había 2 cards separadas (pwa_presupuestos
+    // + pwa_horas) — la consolidación deja el dashboard más limpio y escalable.
+    'pwa_launcher' => [
+        'title' => 'PWA Mobile',
+        'desc' => 'Apps para usar en campo offline: Presupuestos, Horas y más. Instalable como app nativa en el celu.',
         'icon' => '<i class="bi bi-phone"></i>',
-        'link' => '/rxnpwa/presupuestos',
+        'link' => '/rxnpwa',
     ],
     'notas' => [
         'title' => 'Notas CRM',
@@ -158,7 +162,7 @@ $defaultCards = [
 $_uaForPwa = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
 $_isMobileForPwa = (bool) preg_match('/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i', $_uaForPwa);
 if (!$_isMobileForPwa) {
-    unset($defaultCards['pwa_presupuestos']);
+    unset($defaultCards['pwa_launcher']);
 }
 
 if (!\App\Modules\Empresas\EmpresaAccessService::hasCrmNotasAccess()) {
@@ -251,9 +255,9 @@ $pageHeaderActions = ob_get_clean();
             <i class="bi bi-phone fs-3"></i>
             <div class="flex-grow-1">
                 <div class="fw-bold mb-1">Estás en mobile — usá la versión PWA</div>
-                <div class="small">Diseño optimizado para celular: cargás presupuestos en campo aunque no haya señal, con cámara para adjuntos y sync automático al volver online.</div>
+                <div class="small">Apps optimizadas para celular: Presupuestos, Horas y más, todas funcionando en campo aunque no haya señal y con sync automático al volver online.</div>
             </div>
-            <a href="/rxnpwa/presupuestos" class="btn btn-sm btn-light text-primary fw-bold flex-shrink-0">
+            <a href="/rxnpwa" class="btn btn-sm btn-light text-primary fw-bold flex-shrink-0">
                 <i class="bi bi-arrow-right-circle"></i> Abrir PWA
             </a>
             <button type="button" class="btn btn-sm btn-outline-light flex-shrink-0" id="rxn-pwa-banner-dismiss" title="Quedarme en escritorio por ahora">

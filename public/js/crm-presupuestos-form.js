@@ -41,6 +41,13 @@
             return;
         }
 
+        // Snapshot del par (texto, id, extraId) válido. Se actualiza en applyItem().
+        // Sirve para que tocar el input visible (focus + tipeo accidental + borrado)
+        // NO pierda el id si el texto vuelve al estado válido.
+        var validText = input.value;
+        var validHidden = hidden.value;
+        var validExtra = extraHidden ? extraHidden.value : '';
+
         function updateMeta(message) {
             if (meta) {
                 meta.textContent = message || '';
@@ -84,6 +91,11 @@
             }
             updateMeta(item.caption || 'Seleccionado');
             closeResults();
+
+            // Refrescar snapshot del par válido tras seleccionar.
+            validText = input.value;
+            validHidden = hidden.value;
+            validExtra = extraHidden ? extraHidden.value : '';
 
             if (typeof onSelect === 'function') {
                 onSelect(item, root, input, hidden, updateMeta);
@@ -161,9 +173,19 @@
         }
 
         input.addEventListener('input', function () {
-            hidden.value = '';
-            if (extraHidden) {
-                extraHidden.value = '';
+            // Si el texto coincide con el snapshot válido, restaurar id+extra.
+            // Caso típico: focus + tipeo accidental + borrado deja el texto igual
+            // al original — no queremos invalidar el cliente/artículo.
+            if (input.value === validText) {
+                hidden.value = validHidden;
+                if (extraHidden) {
+                    extraHidden.value = validExtra;
+                }
+            } else {
+                hidden.value = '';
+                if (extraHidden) {
+                    extraHidden.value = '';
+                }
             }
             if (debounceTimer) {
                 clearTimeout(debounceTimer);

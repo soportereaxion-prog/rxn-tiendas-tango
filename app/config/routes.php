@@ -563,6 +563,8 @@ return function (Router $router): void {
     $router->get('/mi-empresa/crm/horas/{id}/editar', $action(\App\Modules\CrmHoras\HoraController::class, 'editarForm', $requireCrm));
     $router->post('/mi-empresa/crm/horas/{id}/editar', $action(\App\Modules\CrmHoras\HoraController::class, 'editarStore', $requireCrm));
     $router->post('/mi-empresa/crm/horas/{id}/anular', $action(\App\Modules\CrmHoras\HoraController::class, 'anular', $requireCrm));
+    $router->post('/mi-empresa/crm/horas/{id}/adjuntos', $action(\App\Modules\CrmHoras\HoraController::class, 'uploadAdjunto', $requireCrm));
+    $router->post('/mi-empresa/crm/horas/{id}/adjuntos/{attId}/borrar', $action(\App\Modules\CrmHoras\HoraController::class, 'deleteAdjunto', $requireCrm));
 
     // --- CRM HORAS — Audit log (super admin) ---
     $router->get('/admin/horas/audit', [\App\Modules\CrmHoras\HoraAuditController::class, 'index']);
@@ -596,6 +598,9 @@ return function (Router $router): void {
     // Hook de prueba interno (emulación manual vía navegador)
     $router->get('/api/webhooks/anura/{slug}/test', [\App\Modules\CrmLlamadas\WebhookController::class, 'testHook']);
 
+    // --- RXN PWA — Launcher / sub-menú raíz con todas las PWAs disponibles ---
+    $router->get('/rxnpwa', [\App\Modules\RxnPwa\RxnPwaController::class, 'launcher']);
+
     // --- RXN PWA (Presupuestos mobile offline) — Bloques A + B ---
     $router->get('/rxnpwa/presupuestos', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestosShell']);
     $router->get('/rxnpwa/presupuestos/nuevo', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestoNuevo']);
@@ -607,4 +612,13 @@ return function (Router $router): void {
     $router->post('/api/rxnpwa/presupuestos/sync', [\App\Modules\RxnPwa\RxnPwaController::class, 'syncPresupuesto']);
     $router->post('/api/rxnpwa/presupuestos/{id}/attachments', [\App\Modules\RxnPwa\RxnPwaController::class, 'uploadAttachment']);
     $router->post('/api/rxnpwa/presupuestos/{id}/emit-tango', [\App\Modules\RxnPwa\RxnPwaController::class, 'emitTango']);
+
+    // --- RXN PWA — Horas mobile (turnero CrmHoras) ---
+    // Sin Tango (no aplica). Adjuntos sí (certificados médicos, fotos del trabajo).
+    $router->get('/rxnpwa/horas', [\App\Modules\RxnPwa\RxnPwaController::class, 'horasShell']);
+    $router->get('/rxnpwa/horas/nuevo', [\App\Modules\RxnPwa\RxnPwaController::class, 'horasNuevo']);
+    $router->get('/rxnpwa/horas/editar/{tmpUuid}', [\App\Modules\RxnPwa\RxnPwaController::class, 'horasEditar']);
+    $router->post('/api/rxnpwa/horas/sync', [\App\Modules\RxnPwa\RxnPwaController::class, 'syncHora']);
+    $router->post('/api/rxnpwa/horas/{id}/attachments', [\App\Modules\RxnPwa\RxnPwaController::class, 'uploadHoraAttachment']);
+
 };

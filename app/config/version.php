@@ -1,9 +1,24 @@
 <?php
 
 return [
-    'current_version' => '1.42.2',
-    'current_build' => '20260430.18',
+    'current_version' => '1.43.0',
+    'current_build' => '20260502.1',
     'history' => [
+        [
+            'version' => '1.43.0',
+            'build' => '20260502.1',
+            'released_at' => '2026-05-02',
+            'title' => 'Iteración 45 — Hub PWA: launcher con todas las apps mobile disponibles',
+            'summary' => 'Pedido del rey: con la PWA de Horas sumándose a la de Presupuestos, vamos a tener varias PWAs y conviene tener una única entrada centralizada. Implementación: nueva ruta /rxnpwa que renderiza un launcher con cards de cada PWA disponible (Presupuestos, Horas, las que vengan). El banner azul "Estás en mobile" del dashboard CRM ahora apunta a /rxnpwa en lugar de /rxnpwa/presupuestos directo — el operador llega al hub y elige. En el dashboard CRM, las 2 cards individuales (pwa_presupuestos + pwa_horas) se consolidan en una sola "PWA Mobile" que también va al launcher. El launcher mismo está pre-cacheado por el SW para que funcione offline después del primer load. SW pasa a v16, suma /rxnpwa al SHELL_URLS + fixea /rxnpwa/horas/diferido (que no existía como ruta) por /rxnpwa/horas/nuevo. Fallback offline contextual ampliado: si /rxnpwa/* no matchea ninguna sub-app cacheada, cae al launcher. Patrón establecido: cada PWA nueva se suma como una entrada en el array $pwaApps de launcher.php — aparece automáticamente sin más cambios.',
+            'items' => [
+                'app/modules/RxnPwa/views/launcher.php: nueva vista. Header RXN PWA con fullscreen toggle + volver al backoffice. Array $pwaApps con Presupuestos y Horas (key, title, desc, icon, color, link). Cards mobile-first con ícono coloreado en gradiente, descripción y chevron derecho. CSS inline para .rxnpwa-launcher-card (hover translate Y) y .rxnpwa-launcher-icon (gradientes por color).',
+                'app/modules/RxnPwa/RxnPwaController.php: método launcher() — render simple con empresa_id. Sin lógica server-side adicional (las cards vienen del array de la vista).',
+                'app/config/routes.php: ruta GET /rxnpwa → RxnPwaController::launcher al inicio del bloque PWA.',
+                'public/sw.js: SHELL_URLS suma /rxnpwa (launcher) y /rxnpwa/horas/nuevo. Quita /rxnpwa/horas/diferido (ruta inexistente — la ruta real es /mi-empresa/crm/horas/diferido del backoffice clásico). Suma /css/rxn-fullscreen.css al pre-cache. Fallback de networkFirst extiende lógica: matches /horas → /rxnpwa/horas, /presupuestos → /rxnpwa/presupuestos, default → /rxnpwa launcher. RXNPWA_VERSION bumpeado a v16-2026-05-02.',
+                'app/modules/Dashboard/views/crm_dashboard.php: pwa_presupuestos + pwa_horas cards reemplazadas por una sola pwa_launcher → /rxnpwa. unset() del UA gate apunta a la nueva clave. Banner azul cambia href a /rxnpwa y subtítulo refleja "varias apps" en lugar de solo presupuestos.',
+                'app/config/version.php: bump a 1.43.0 / build 20260502.1.',
+            ],
+        ],
         [
             'version' => '1.42.2',
             'build' => '20260430.18',

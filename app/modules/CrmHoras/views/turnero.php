@@ -74,7 +74,7 @@ ob_start();
 
                     <div class="mb-3">
                         <label class="form-label small">Concepto (opcional)</label>
-                        <input type="text" name="concepto" class="form-control" placeholder="Ej: Visita técnica - Cliente X" maxlength="255" autocomplete="off">
+                        <textarea name="concepto" class="form-control" placeholder="Ej: Visita técnica - Cliente X. Detalles del servicio, contexto, observaciones..." maxlength="2000" rows="3" autocomplete="off"></textarea>
                     </div>
 
                     <?php if (!empty($tratativas)): ?>
@@ -91,6 +91,21 @@ ob_start();
                         <div class="form-text small">Mostramos las 30 tratativas activas más recientes.</div>
                     </div>
                     <?php endif; ?>
+
+                    <details class="mb-3">
+                        <summary class="small text-muted">Aplicar descuento al tiempo (opcional)</summary>
+                        <div class="row g-2 mt-2">
+                            <div class="col-12 col-md-5">
+                                <label class="form-label small">Descuento (HH:MM:SS)</label>
+                                <input type="text" name="descuento" class="form-control" placeholder="00:00:00" pattern="^\d{1,3}:[0-5]?\d:[0-5]?\d$">
+                            </div>
+                            <div class="col-12 col-md-7">
+                                <label class="form-label small">Motivo del descuento</label>
+                                <textarea name="motivo_descuento" class="form-control" placeholder="Ej: Pausa larga, almuerzo, traslado no facturable..." rows="2"></textarea>
+                            </div>
+                            <div class="form-text small">Si cargás descuento, el motivo es obligatorio. Lo restamos del tiempo neto al cerrar.</div>
+                        </div>
+                    </details>
 
                     <div class="d-grid">
                         <button type="submit" class="btn btn-success btn-lg fw-bold py-3" id="btnIniciar">

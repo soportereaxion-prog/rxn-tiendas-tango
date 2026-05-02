@@ -110,7 +110,27 @@ class RxnPwaCatalogService
             'transportes' => $this->fetchCommercialItems($empresaId, 'transporte'),
             'depositos' => $this->fetchCommercialItems($empresaId, 'deposito'),
             'clasificaciones_pds' => $this->fetchCommercialItems($empresaId, 'clasificacion_pds'),
+            // PWA Horas (release 1.43.0): tratativas activas para vincular en el turnero.
+            'tratativas_activas' => $this->fetchTratativasActivas($empresaId),
         ];
+    }
+
+    /**
+     * Tratativas activas (estados nueva/en_curso/pausada) para alimentar el
+     * selector "Vincular a tratativa" del turnero PWA. Se sirven offline porque
+     * el form de horas vive en el celu del técnico y no siempre tiene red.
+     */
+    private function fetchTratativasActivas(int $empresaId): array
+    {
+        $stmt = $this->db->prepare("SELECT id, numero, titulo
+            FROM crm_tratativas
+            WHERE empresa_id = :empresa_id
+              AND deleted_at IS NULL
+              AND estado IN ('nueva', 'en_curso', 'pausada')
+            ORDER BY created_at DESC
+            LIMIT 100");
+        $stmt->execute([':empresa_id' => $empresaId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     private function fetchClientes(int $empresaId): array

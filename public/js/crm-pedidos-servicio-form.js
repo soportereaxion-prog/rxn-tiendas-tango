@@ -15,6 +15,14 @@
             return;
         }
 
+        // Snapshot del último par (texto, id) considerado VÁLIDO. Se inicializa con
+        // lo que vino del server al cargar y se refresca en cada applyItem(). Sirve
+        // para que tocar el input visible (focus + tipeo accidental + borrado) NO
+        // pierda el id si el texto vuelve al estado válido. Sin esto, cualquier
+        // movimiento sobre el visible deja el hidden vacío y la validación rompe.
+        var validText = input.value;
+        var validHidden = hidden.value;
+
         function closeResults() {
             results.innerHTML = '';
             results.classList.add('d-none');
@@ -46,6 +54,9 @@
             }
             updateMeta(item.caption || 'Seleccionado');
             closeResults();
+            // Refrescar snapshot del par válido tras seleccionar.
+            validText = input.value;
+            validHidden = hidden.value;
         }
 
         function setActive(index) {
@@ -135,7 +146,14 @@
 
         input.addEventListener('input', function () {
             if (!allowManual) {
-                hidden.value = '';
+                // Si el texto coincide con el snapshot válido, restaurar el id.
+                // Caso típico: user hizo focus + tipeo accidental + borrado y
+                // el texto volvió al original. No queremos invalidar el cliente.
+                if (input.value === validText) {
+                    hidden.value = validHidden;
+                } else {
+                    hidden.value = '';
+                }
             }
             if (debounceTimer) {
                 clearTimeout(debounceTimer);

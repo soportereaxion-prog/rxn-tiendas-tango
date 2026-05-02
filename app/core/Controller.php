@@ -24,8 +24,23 @@ abstract class Controller
         if (!CsrfHelper::validate(is_string($token) ? $token : null)) {
             http_response_code(419);
             header('Content-Type: text/html; charset=utf-8');
-            // Respuesta mínima — no revelar info del entorno.
-            echo '<h1>419 — Sesión expirada</h1><p>El formulario expiró o el token de seguridad es inválido. Recargá la página e intentá de nuevo.</p>';
+
+            // Derivar next seguro desde el Referer para que tras re-loguear el user
+            // vuelva a donde estaba. Aplicamos la whitelist de AuthService::isSafeNext.
+            $next = '';
+            $referer = $_SERVER['HTTP_REFERER'] ?? '';
+            if (is_string($referer) && $referer !== '') {
+                $parts = parse_url($referer);
+                $host = $_SERVER['HTTP_HOST'] ?? '';
+                if (isset($parts['host']) && $parts['host'] === $host) {
+                    $candidate = ($parts['path'] ?? '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
+                    if (\App\Modules\Auth\AuthService::isSafeNext($candidate)) {
+                        $next = $candidate;
+                    }
+                }
+            }
+
+            View::render('app/core/views/error_419.php', ['next' => $next]);
             exit;
         }
     }

@@ -114,9 +114,11 @@ class HoraController extends Controller
         $tratativaId = (int) ($_POST['tratativa_id'] ?? 0);
         $pdsId = (int) ($_POST['pds_id'] ?? 0);
         $clienteId = (int) ($_POST['cliente_id'] ?? 0);
+        $descuentoSegundos = $this->parseDurationOrZero((string) ($_POST['descuento'] ?? ''));
+        $motivoDescuento = trim((string) ($_POST['motivo_descuento'] ?? ''));
 
         try {
-            $newId = $this->service->iniciar($empresaId, $userId, $concepto, $lat, $lng, $consent, $tratativaId, $pdsId, $clienteId);
+            $newId = $this->service->iniciar($empresaId, $userId, $concepto, $lat, $lng, $consent, $tratativaId, $pdsId, $clienteId, $descuentoSegundos, $motivoDescuento !== '' ? $motivoDescuento : null);
             $_SESSION['flash_success'] = 'Turno iniciado (#' . $newId . ').';
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = $e->getMessage();
@@ -224,6 +226,8 @@ class HoraController extends Controller
         $tratativaId = (int) ($_POST['tratativa_id'] ?? 0);
         $pdsId = (int) ($_POST['pds_id'] ?? 0);
         $clienteId = (int) ($_POST['cliente_id'] ?? 0);
+        $descuentoSegundos = $this->parseDurationOrZero((string) ($_POST['descuento'] ?? ''));
+        $motivoDescuento = trim((string) ($_POST['motivo_descuento'] ?? ''));
 
         // Quién carga (actor) vs sobre quién se carga (owner). Por default
         // coinciden — solo admins del tenant pueden disociarlos. Validamos
@@ -251,7 +255,9 @@ class HoraController extends Controller
                 $tratativaId,
                 $pdsId,
                 $clienteId,
-                $userId  // actor — quien dispara la operación
+                $userId,  // actor — quien dispara la operación
+                $descuentoSegundos,
+                $motivoDescuento !== '' ? $motivoDescuento : null
             );
             $_SESSION['flash_success'] = $ownerUserId === $userId
                 ? 'Turno cargado.'
@@ -391,6 +397,13 @@ class HoraController extends Controller
         $endedAt   = trim((string) ($_POST['ended_at'] ?? ''));
         $concepto  = trim((string) ($_POST['concepto'] ?? ''));
         $motivo    = trim((string) ($_POST['motivo'] ?? ''));
+        // descuento+motivo descuento: si vienen en el POST, los aplicamos.
+        $descuentoSegundos = isset($_POST['descuento'])
+            ? $this->parseDurationOrZero((string) $_POST['descuento'])
+            : null;
+        $motivoDescuento = isset($_POST['motivo_descuento'])
+            ? trim((string) $_POST['motivo_descuento'])
+            : null;
 
         try {
             $this->service->editar(
@@ -400,7 +413,9 @@ class HoraController extends Controller
                 $endedAt !== '' ? $endedAt : null,
                 $concepto !== '' ? $concepto : null,
                 $motivo,
-                $userId
+                $userId,
+                $descuentoSegundos,
+                $motivoDescuento
             );
             $_SESSION['flash_success'] = 'Turno editado.';
             header('Location: /mi-empresa/crm/horas/listado');
@@ -410,6 +425,90 @@ class HoraController extends Controller
             header('Location: /mi-empresa/crm/horas/' . $id . '/editar');
             exit;
         }
+    }
+
+    /**
+     * POST /mi-empresa/crm/horas/{id}/adjuntos — subida web (multipart con campo `file`).
+     * Reusa AttachmentService con owner_type='crm_hora'.
+     */
+    public function uploadAdjunto(int $id): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        $this->verifyCsrfOrAbort();
+        [$empresaId, $userId] = $this->ctx();
+
+        $hora = $this->repository->findById($id, $empresaId);
+        if ($hora === null) {
+            $_SESSION['flash_error'] = 'El turno no existe o no pertenece a la empresa.';
+            header('Location: /mi-empresa/crm/horas');
+            exit;
+        }
+
+        $file = $_FILES['file'] ?? null;
+        if (!is_array($file)) {
+            $_SESSION['flash_error'] = 'No se recibió ningún archivo.';
+            header('Location: /mi-empresa/crm/horas/' . $id . '/editar');
+            exit;
+        }
+
+        try {
+            $service = new \App\Core\Services\AttachmentService();
+            $service->attach($empresaId, 'crm_hora', $id, $file, $userId);
+            $_SESSION['flash_success'] = 'Adjunto cargado.';
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = 'Error al adjuntar: ' . $e->getMessage();
+        }
+        header('Location: /mi-empresa/crm/horas/' . $id . '/editar');
+        exit;
+    }
+
+    /**
+     * POST /mi-empresa/crm/horas/{id}/adjuntos/{attId}/borrar — soft-delete del adjunto.
+     */
+    public function deleteAdjunto(int $id, int $attId): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        $this->verifyCsrfOrAbort();
+        [$empresaId, $userId] = $this->ctx();
+
+        $hora = $this->repository->findById($id, $empresaId);
+        if ($hora === null) {
+            $_SESSION['flash_error'] = 'El turno no existe.';
+            header('Location: /mi-empresa/crm/horas');
+            exit;
+        }
+
+        try {
+            $service = new \App\Core\Services\AttachmentService();
+            $service->delete($attId, $empresaId);
+            $_SESSION['flash_success'] = 'Adjunto eliminado.';
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = 'Error al borrar: ' . $e->getMessage();
+        }
+        header('Location: /mi-empresa/crm/horas/' . $id . '/editar');
+        exit;
+    }
+
+    /**
+     * Parsea HH:MM:SS o MM:SS o entero de segundos en duración.
+     * Retorna 0 si vacío o inválido (no rompe el form).
+     */
+    private function parseDurationOrZero(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '') return 0;
+        if (preg_match('/^(\d{1,3}):([0-5]?\d):([0-5]?\d)$/', $value, $m)) {
+            return ((int) $m[1]) * 3600 + ((int) $m[2]) * 60 + ((int) $m[3]);
+        }
+        if (preg_match('/^(\d{1,3}):([0-5]?\d)$/', $value, $m)) {
+            return ((int) $m[1]) * 60 + ((int) $m[2]);
+        }
+        if (ctype_digit($value)) {
+            return (int) $value;
+        }
+        return 0;
     }
 
     /**

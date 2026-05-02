@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace App\Modules\Auth;
 use App\Core\Controller;
+use App\Core\CsrfHelper;
 use App\Core\RateLimiter;
 use App\Core\View;
 
@@ -22,11 +23,22 @@ class AuthController extends Controller
 
     public function processLogin(): void
     {
-        $this->verifyCsrfOrAbort();
-
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
         $next = $this->resolveNext($_POST['next'] ?? null);
+
+        // CSRF expirado en /login = sesión inactiva en pestaña abierta. En vez de
+        // pegar 419 (dead-end), redirigimos al GET con flag para mostrar aviso amable
+        // y token fresco. El email NO se preserva en URL (privacidad).
+        $token = $_POST['csrf_token'] ?? null;
+        if (!CsrfHelper::validate(is_string($token) ? $token : null)) {
+            $qs = ['expired' => '1'];
+            if ($next !== '') {
+                $qs['next'] = $next;
+            }
+            header('Location: /login?' . http_build_query($qs));
+            exit;
+        }
 
         // Throttle: 5 intentos cada 15 min por email+IP.
         $rateKey = RateLimiter::clientKey('login_b2b', is_string($email) ? $email : null);

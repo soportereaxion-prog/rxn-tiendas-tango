@@ -34,6 +34,25 @@ class RxnPwaController extends \App\Core\Controller
     }
 
     /**
+     * Launcher / sub-menú raíz de la PWA. Muestra todas las PWAs disponibles
+     * (Presupuestos, Horas, etc.) como cards. Pre-cacheado por el SW. Es la
+     * landing por default cuando el operador toca "Abrir PWA" desde el banner
+     * del backoffice.
+     */
+    public function launcher(): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+
+        $empresaId = (int) Context::getEmpresaId();
+
+        View::render('app/modules/RxnPwa/views/launcher.php', [
+            'empresaId' => $empresaId,
+            'pageTitle' => 'RXN PWA — Apps Mobile',
+        ]);
+    }
+
+    /**
      * Shell HTML de la PWA. Esta vista es lo que termina cacheada por el SW
      * como app shell. Contiene un mínimo: header + zona "preparando offline" +
      * indicador de versión de catálogo. La fase 2 reemplaza/extiende esto con el
@@ -134,6 +153,133 @@ class RxnPwaController extends \App\Core\Controller
             'size_bytes' => $bundle['size_bytes'],
             'data' => $bundle['data'],
         ]);
+    }
+
+    /* =================================================================
+     * PWA HORAS (turnero CrmHoras) — release 1.43.0.
+     * Sin Tango (no aplica). Adjuntos sí (certificados, fotos del trabajo).
+     * ================================================================= */
+
+    public function horasShell(): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        $empresaId = (int) Context::getEmpresaId();
+        View::render('app/modules/RxnPwa/views/horas_shell.php', [
+            'empresaId' => $empresaId,
+            'pageTitle' => 'RXN PWA — Horas',
+        ]);
+    }
+
+    public function horasNuevo(): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        $empresaId = (int) Context::getEmpresaId();
+        View::render('app/modules/RxnPwa/views/horas_form.php', [
+            'empresaId' => $empresaId,
+            'tmpUuid' => '',
+            'pageTitle' => 'Nuevo turno',
+        ]);
+    }
+
+    public function horasEditar(string $tmpUuid): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+        $empresaId = (int) Context::getEmpresaId();
+        $tmpUuid = $this->sanitizeTmpUuid($tmpUuid);
+        View::render('app/modules/RxnPwa/views/horas_form.php', [
+            'empresaId' => $empresaId,
+            'tmpUuid' => $tmpUuid,
+            'pageTitle' => 'Editar turno',
+        ]);
+    }
+
+    /**
+     * POST /api/rxnpwa/horas/sync
+     * Persiste un turno cargado desde la PWA mobile. Idempotente por tmp_uuid_pwa.
+     */
+    public function syncHora(): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['ok' => false, 'error' => 'Método no permitido.'], 405);
+            return;
+        }
+        if (!$this->checkCsrf()) return;
+        if (!$this->checkRateLimit('pwa_horas_sync', 60, 60)) return;
+
+        $empresaId = (int) Context::getEmpresaId();
+        $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+        $usuarioNombre = (string) ($_SESSION['user_name'] ?? 'PWA Mobile');
+
+        $raw = file_get_contents('php://input');
+        $draft = json_decode((string) $raw, true);
+        if (!is_array($draft)) {
+            $this->jsonResponse(['ok' => false, 'error' => 'JSON inválido.'], 400);
+            return;
+        }
+
+        try {
+            $service = new RxnPwaHorasSyncService();
+            $result = $service->syncDraft($draft, $empresaId, $usuarioId, $usuarioNombre);
+            $this->jsonResponse($result, 200);
+        } catch (Throwable $e) {
+            error_log('[RxnPwa::syncHora] ' . $e->getMessage());
+            $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * POST /api/rxnpwa/horas/{id}/attachments
+     * Sube un adjunto al turno ya sincronizado. owner_type='crm_hora'.
+     */
+    public function uploadHoraAttachment(string $id): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAccess();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['ok' => false, 'error' => 'Método no permitido.'], 405);
+            return;
+        }
+        if (!$this->checkCsrf()) return;
+        if (!$this->checkRateLimit('pwa_horas_upload', 120, 60)) return;
+
+        $empresaId = (int) Context::getEmpresaId();
+        $horaId = (int) $id;
+        if ($horaId <= 0) {
+            $this->jsonResponse(['ok' => false, 'error' => 'ID de turno inválido.'], 400);
+            return;
+        }
+
+        // IDOR check: el turno debe pertenecer a la empresa.
+        $repo = new \App\Modules\CrmHoras\HoraRepository();
+        $hora = $repo->findById($horaId, $empresaId);
+        if ($hora === null) {
+            $this->jsonResponse(['ok' => false, 'error' => 'El turno no existe en esta empresa.'], 404);
+            return;
+        }
+
+        $file = $_FILES['file'] ?? null;
+        if (!is_array($file)) {
+            $this->jsonResponse(['ok' => false, 'error' => 'No se recibió ningún archivo (campo "file").'], 400);
+            return;
+        }
+
+        $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+
+        try {
+            $service = new AttachmentService();
+            $attached = $service->attach($empresaId, 'crm_hora', $horaId, $file, $usuarioId);
+            $this->jsonResponse(['ok' => true, 'attachment' => $attached], 200);
+        } catch (Throwable $e) {
+            error_log('[RxnPwa::uploadHoraAttachment] ' . $e->getMessage());
+            $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
     }
 
     /* =================================================================

@@ -19,6 +19,7 @@ return [
     'allowed_owner_types' => [
         'crm_nota',
         'crm_presupuesto',
+        'crm_hora',
     ],
 
     // MIME real detectado por finfo => extensión canónica que grabamos.

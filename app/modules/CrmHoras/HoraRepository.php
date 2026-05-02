@@ -202,18 +202,20 @@ class HoraRepository
         $stmt = $this->db->prepare('
             INSERT INTO crm_horas
                 (empresa_id, usuario_id, started_at, ended_at, modo, estado, concepto,
+                 descuento_segundos, motivo_descuento,
                  tratativa_id, pds_id, cliente_id,
                  geo_start_lat, geo_start_lng, geo_consent_start,
                  geo_end_lat, geo_end_lng, geo_consent_end,
                  geo_diferido_lat, geo_diferido_lng, inconsistencia_geo,
-                 created_by)
+                 created_by, tmp_uuid_pwa)
             VALUES
                 (:empresa_id, :usuario_id, :started_at, :ended_at, :modo, :estado, :concepto,
+                 :descuento_segundos, :motivo_descuento,
                  :tratativa_id, :pds_id, :cliente_id,
                  :gsl, :gsg, :gcs,
                  :gel, :geg, :gce,
                  :gdl, :gdg, :ig,
-                 :created_by)
+                 :created_by, :tmp_uuid_pwa)
         ');
         $stmt->execute([
             ':empresa_id' => $data['empresa_id'],
@@ -223,6 +225,8 @@ class HoraRepository
             ':modo'       => $data['modo'] ?? 'en_vivo',
             ':estado'     => $data['estado'] ?? 'abierto',
             ':concepto'   => $data['concepto'] ?? null,
+            ':descuento_segundos' => (int) ($data['descuento_segundos'] ?? 0),
+            ':motivo_descuento'   => $data['motivo_descuento'] ?? null,
             ':tratativa_id' => $data['tratativa_id'] ?? null,
             ':pds_id'     => $data['pds_id'] ?? null,
             ':cliente_id' => $data['cliente_id'] ?? null,
@@ -236,8 +240,21 @@ class HoraRepository
             ':gdg' => $data['geo_diferido_lng'] ?? null,
             ':ig'  => $data['inconsistencia_geo'] ?? 0,
             ':created_by' => $data['created_by'] ?? null,
+            ':tmp_uuid_pwa' => isset($data['tmp_uuid_pwa']) && $data['tmp_uuid_pwa'] !== '' ? (string) $data['tmp_uuid_pwa'] : null,
         ]);
         return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Busca un turno por su tmp_uuid_pwa (idempotencia del sync mobile).
+     */
+    public function findByTmpUuidPwa(string $tmpUuid, int $empresaId): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM crm_horas
+            WHERE tmp_uuid_pwa = :tmp_uuid AND empresa_id = :e LIMIT 1');
+        $stmt->execute([':tmp_uuid' => $tmpUuid, ':e' => $empresaId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     public function close(int $id, int $empresaId, string $endedAt, ?float $lat = null, ?float $lng = null, bool $consent = false): bool
@@ -267,7 +284,7 @@ class HoraRepository
         // Update parcial — solo campos que la UI permita editar.
         $set = [];
         $params = [':id' => $id, ':e' => $empresaId];
-        foreach (['started_at', 'ended_at', 'concepto', 'tratativa_id', 'pds_id', 'cliente_id'] as $f) {
+        foreach (['started_at', 'ended_at', 'concepto', 'descuento_segundos', 'motivo_descuento', 'tratativa_id', 'pds_id', 'cliente_id'] as $f) {
             if (array_key_exists($f, $data)) {
                 $set[] = "$f = :$f";
                 $params[":$f"] = $data[$f];

@@ -16,7 +16,13 @@
             <p class="text-muted mb-0 rxn-auth-subtitle">Inicia sesión en tu espacio de trabajo para administrar la suite Reaxion con una experiencia simple, segura y responsive.</p>
         </div>
 
-        <?php 
+        <?php if (($_GET['expired'] ?? '') === '1'): ?>
+            <div class="alert alert-warning text-center small">
+                Tu pestaña estuvo inactiva mucho tiempo y el formulario expiró. Volvé a ingresar tus credenciales.
+            </div>
+        <?php endif; ?>
+
+        <?php
         $msg = $_GET['msg'] ?? '';
         if ($msg === 'revisar_correo'): ?>
             <div class="alert alert-info text-center small">Cuenta creada. Por favor revise el correo electrónico para verificarla antes de continuar.</div>
