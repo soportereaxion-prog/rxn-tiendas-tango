@@ -606,6 +606,18 @@ return function (Router $router): void {
     // no se marca como installable). Mantenemos ambas rutas activas.
     $router->get('/rxnpwa/', [\App\Modules\RxnPwa\RxnPwaController::class, 'launcher']);
 
+    // --- Iconos PWA con fallback runtime ---
+    // Si los archivos físicos `public/icons/rxnpwa-{size}.png` existen, Apache los
+    // sirve directo (RewriteCond !-f). Si NO existen (deploy incompleto, permisos),
+    // estas rutas los generan on-the-fly con GD y persisten en disco. Garantiza
+    // que el manifest siempre tenga iconos válidos accesibles.
+    $router->get('/icons/rxnpwa-192.png', function () {
+        (new \App\Modules\RxnPwa\IconController())->serveRxnpwaIcon('192');
+    });
+    $router->get('/icons/rxnpwa-512.png', function () {
+        (new \App\Modules\RxnPwa\IconController())->serveRxnpwaIcon('512');
+    });
+
     // --- RXN PWA (Presupuestos mobile offline) — Bloques A + B ---
     $router->get('/rxnpwa/presupuestos', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestosShell']);
     $router->get('/rxnpwa/presupuestos/nuevo', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestoNuevo']);

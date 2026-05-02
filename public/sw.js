@@ -180,11 +180,12 @@ async function networkFirst(req, cacheName) {
     } catch (err) {
         const cached = await cache.match(req);
         if (cached) return cached;
+        // Una sola declaración de `url` para todo el catch.
+        const url = new URL(req.url);
         // Normalizar trailing slash: si pidieron /rxnpwa/ y solo tenemos /rxnpwa
         // (o viceversa), devolver lo que tengamos. Crítico para el offline check
         // de installability de Chrome — el manifest declara start_url=/rxnpwa/
         // y Chrome verifica que el SW responda EXACTO a esa URL.
-        const url = new URL(req.url);
         const altPath = url.pathname.endsWith('/')
             ? url.pathname.slice(0, -1)
             : url.pathname + '/';
@@ -192,7 +193,6 @@ async function networkFirst(req, cacheName) {
         if (altCached) return altCached;
         // Sin cache y sin red: devolver shell mínimo para que la UI muestre el modo offline.
         // Fallback contextual: si la URL pedida es de /horas, devolver la shell de horas.
-        const url = new URL(req.url);
         const fallbackPath = url.pathname.startsWith('/rxnpwa/horas')
             ? '/rxnpwa/horas'
             : url.pathname.startsWith('/rxnpwa/presupuestos')

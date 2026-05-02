@@ -1,9 +1,22 @@
 <?php
 
 return [
-    'current_version' => '1.43.3',
-    'current_build' => '20260502.4',
+    'current_version' => '1.43.4',
+    'current_build' => '20260502.5',
     'history' => [
+        [
+            'version' => '1.43.4',
+            'build' => '20260502.5',
+            'released_at' => '2026-05-02',
+            'title' => 'Iteración 45 — Hotfix doble: SW roto por const url duplicado + IconController fallback runtime',
+            'summary' => 'DevTools del celu pegado a la PC reveló 2 bugs duros que impedían la instalación PWA. (1) BUG REGRESIÓN del 1.43.3: el sw.js declaraba `const url = new URL(req.url)` DOS VECES en el mismo bloque catch del networkFirst — SyntaxError "Identifier url has already been declared". Como el SW no compilaba, no se registraba en absoluto y todo se caía: catálogo no cacheaba, offline check de installability fallaba seguro. Fix: una sola declaración de `url` arriba del bloque, reusada por ambos cálculos (altPath + fallbackPath). (2) Los iconos `/icons/rxnpwa-192.png` y `/icons/rxnpwa-512.png` daban 404 reales en producción aunque el ZIP del OTA los incluía — probablemente permisos del directorio en Plesk impidieron la creación o extracción. Sin iconos accesibles, Chrome marca la PWA NO installable. Fix: nuevo `IconController` con método `serveRxnpwaIcon($size)` que se ejecuta cuando Apache cae al index.php (porque el archivo no existe en disco) y genera el PNG runtime con GD (fondo #0f172a + texto RXN, mismo design que tools/generate_rxnpwa_icons.php) + persiste a disco para futuras requests + sirve con Cache-Control 30 días. Garantiza que /icons/rxnpwa-{192,512}.png SIEMPRE respondan 200 con un image/png válido, independiente del estado del deploy.',
+            'items' => [
+                'public/sw.js: bug `Identifier url has already been declared` fixeado en networkFirst — una sola declaración de `const url` arriba del bloque, reusada por altPath y fallbackPath. SW no compilaba, todo caía en cascada.',
+                'app/modules/RxnPwa/IconController.php: nuevo. Fallback runtime para `/icons/rxnpwa-192.png` y `/icons/rxnpwa-512.png`. Si el archivo físico existe → emit. Si no → genera con GD (replica de tools/generate_rxnpwa_icons.php) + persiste a disco best-effort + sirve. Cache-Control 30 días al servir desde archivo, 1 día al servir desde fallback.',
+                'app/config/routes.php: 2 rutas nuevas explícitas para los iconos (router actual no soporta puntos en {param}, hicimos paths hardcoded). Solo se invocan si Apache no encuentra el archivo físico (RewriteCond !-f del .htaccess).',
+                'app/config/version.php: bump a 1.43.4 / build 20260502.5.',
+            ],
+        ],
         [
             'version' => '1.43.3',
             'build' => '20260502.4',
