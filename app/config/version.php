@@ -1,9 +1,23 @@
 <?php
 
 return [
-    'current_version' => '1.43.1',
-    'current_build' => '20260502.2',
+    'current_version' => '1.43.2',
+    'current_build' => '20260502.3',
     'history' => [
+        [
+            'version' => '1.43.2',
+            'build' => '20260502.3',
+            'released_at' => '2026-05-02',
+            'title' => 'Iteración 45 — PWA installable: scope/start_url consistentes + plantilla de mail novedades',
+            'summary' => 'Hotfix sobre 1.43.1 con 2 frentes. (1) PWA installable: Chrome consola tiraba "Manifest: property scope ignored. Start url should be within scope" — el start_url era /rxnpwa (sin slash) pero scope era /rxnpwa/ (con slash), y el primero no matchea el prefijo del segundo. Resultado: scope ignorado → PWA NO marcada como installable completa → solo aparecía "Agregar a la pantalla principal" como atajo simple en vez de "Instalar app" como PWA standalone. Fix: manifest pasa a start_url=/rxnpwa/ y scope=/rxnpwa/ (consistentes). En routes.php se suma una ruta extra GET /rxnpwa/ que apunta al mismo launcher (Apache no normaliza trailing slash si no hay directorio físico). Bonus: icons del manifest se separan en 4 entries explícitos any/maskable en lugar de un combinado any maskable — algunos Chrome buggean con el combinado. Bonus 2: .htaccess suma AddType application/manifest+json para .webmanifest (sin esto Apache puede servir como text/plain, lo que algunos Chrome rechazan). Importante: el SystemUpdater excluye .htaccess del OTA (regla "el config del server es sagrado") — el cambio del .htaccess hay que aplicarlo a mano una sola vez en producción. (2) Plantilla de mail "Novedades RXN — Newsletter" lista para usar: header con gradiente dark + saludo personalizado al cliente con {{CrmClientes.razon_social}} + bloque dinámico {{Bloque.html}} donde el BlockRenderer inyecta las cards de customer_notes + CTA "Abrir Reaxion Suite" + footer con datos de contacto. Email-safe (tablas + inline styles, compatible Gmail/Outlook/Apple Mail). Migración seed la inserta en TODAS las empresas activas idempotente por (nombre, empresa_id) — cada tenant tiene su copia editable independiente.',
+            'items' => [
+                'public/manifest.webmanifest: start_url y scope consistentes (ambos /rxnpwa/). Icons separados en 4 entries any/maskable explícitos.',
+                'app/config/routes.php: ruta GET /rxnpwa/ extra que apunta al mismo launcher (compatibilidad con start_url declarado en el manifest).',
+                'public/.htaccess: AddType application/manifest+json .webmanifest dentro de IfModule mod_mime. NO se aplica via OTA — hay que tocarlo a mano UNA VEZ en el server.',
+                'database/migrations/2026_05_02_02_seed_mail_template_novedades_rxn.php: nueva plantilla "Novedades RXN — Newsletter" insertada en todas las empresas activas. Idempotente por nombre+empresa_id. HTML email-safe con header gradiente, saludo personalizado, bloque dinámico, CTA y footer de contacto. Variables disponibles: {{CrmClientes.*}} y {{Bloque.html}}.',
+                'app/config/version.php: bump a 1.43.2 / build 20260502.3.',
+            ],
+        ],
         [
             'version' => '1.43.1',
             'build' => '20260502.2',

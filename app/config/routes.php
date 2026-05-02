@@ -601,6 +601,10 @@ return function (Router $router): void {
 
     // --- RXN PWA — Launcher / sub-menú raíz con todas las PWAs disponibles ---
     $router->get('/rxnpwa', [\App\Modules\RxnPwa\RxnPwaController::class, 'launcher']);
+    // Trailing slash variant — el manifest declara start_url=/rxnpwa/ y scope=/rxnpwa/
+    // (Chrome exige start_url DENTRO del scope; sin slash el scope se ignora y la PWA
+    // no se marca como installable). Mantenemos ambas rutas activas.
+    $router->get('/rxnpwa/', [\App\Modules\RxnPwa\RxnPwaController::class, 'launcher']);
 
     // --- RXN PWA (Presupuestos mobile offline) — Bloques A + B ---
     $router->get('/rxnpwa/presupuestos', [\App\Modules\RxnPwa\RxnPwaController::class, 'presupuestosShell']);

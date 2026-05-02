@@ -1,5 +1,13 @@
 Options -Indexes
 
+# MIME types para PWA. Sin estos, Chrome puede rechazar el manifest o no
+# considerar la app como instalable. webmanifest debe ir como
+# application/manifest+json (estándar W3C).
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+    AddType application/x-web-app-manifest+json .webapp
+</IfModule>
+
 # Estrategia de deploy: Document Root apunta a public/
 # El dominio resuelve rutas directamente desde aqui.
 # NO usar RewriteBase con subpath. BASE = /
