@@ -36,7 +36,11 @@ class IconController
             return;
         }
 
-        $iconsDir = BASE_PATH . '/public/icons';
+        // OJO: NO usar /public/icons/ porque Apache default tiene un alias /icons/
+        // que apunta a los iconitos de mod_autoindex. En Plesk ese alias sobreescribe
+        // al document root del vhost y los archivos nunca se sirven. Por eso vivimos
+        // en /public/img/pwa/.
+        $iconsDir = BASE_PATH . '/public/img/pwa';
         $targetFile = $iconsDir . '/rxnpwa-' . $sizeInt . '.png';
 
         // Caso normal: el archivo existe. Apache debería haberlo servido directo,

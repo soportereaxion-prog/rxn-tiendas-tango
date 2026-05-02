@@ -14,8 +14,8 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
     <title><?= htmlspecialchars($pageTitle) ?></title>
 
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/rxnpwa-192.png">
-    <link rel="apple-touch-icon" href="/icons/rxnpwa-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/img/pwa/rxnpwa-192.png">
+    <link rel="apple-touch-icon" href="/img/pwa/rxnpwa-192.png">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -102,6 +102,7 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
     <!-- Helper global de fullscreen + persistencia (release 1.42.0). -->
     <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
     <!-- Geo gate ANTES que todos los demás — bloquea la PWA si no hay GPS. -->
+    <script src="/js/pwa/rxnpwa-error-collector.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-geo-gate.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-catalog-store.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-drafts-store.js?v=<?= time() ?>"></script>

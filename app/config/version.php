@@ -1,9 +1,28 @@
 <?php
 
 return [
-    'current_version' => '1.43.4',
-    'current_build' => '20260502.5',
+    'current_version' => '1.43.5',
+    'current_build' => '20260502.6',
     'history' => [
+        [
+            'version' => '1.43.5',
+            'build' => '20260502.6',
+            'released_at' => '2026-05-02',
+            'title' => 'Iteración 45 — Mover iconos PWA a /img/pwa/ (Apache /icons/ alias collision) + collector de logs JS',
+            'summary' => 'Tras 4 hotfixes anteriores, los iconos seguían dando 404. Causa raíz descubierta: Apache default tiene un alias /icons/ apuntando a los iconitos de mod_autoindex (los que aparecen en listados de directorios). En Plesk ese alias NO se puede sobreescribir desde el .htaccess del vhost, entonces TODA request a /icons/* va al alias del Apache, no al document root del vhost — ni los archivos físicos del ZIP ni el fallback PHP del IconController podían responder. Fix: mover los iconos a /img/pwa/. Actualizadas todas las referencias (manifest, sw, vistas, _brand_icon, IconController, rutas). Sin colisión de alias = los archivos se sirven y el fallback PHP queda como red de seguridad. SW bumpeado a v18 para invalidar el cache viejo. BONUS pedido por Charly: módulo de captura de logs client-side. Hookea window.onerror, unhandledrejection, console.error y console.warn → POST /api/rxnpwa/log → persiste en storage/logs/rxnpwa-client.log con throttle 30/min/cliente. Endpoint admin /admin/rxnpwa-logs/download para bajar el txt. Útil para debug remoto del celu sin DevTools.',
+            'items' => [
+                'public/img/pwa/rxnpwa-192.png + 512.png: nueva ubicación de los iconos PWA. /icons/ NO se puede usar porque Apache lo reserva para mod_autoindex (alias).',
+                'public/manifest.webmanifest: src de los 4 icons cambiado a /img/pwa/rxnpwa-{192,512}.png.',
+                'public/sw.js: SHELL_URLS y staleWhileRevalidate referencian /img/pwa/. RXNPWA_VERSION bumpeado a v18. /icons/ se mantiene en isPwaAsset por compatibilidad histórica.',
+                'app/config/routes.php: rutas /img/pwa/rxnpwa-{192,512}.png reemplazan las viejas /icons/. Ruta nueva POST /api/rxnpwa/log y GET /admin/rxnpwa-logs/download.',
+                'app/modules/RxnPwa/IconController.php: targetFile apunta a public/img/pwa/. Comentario explicando el alias collision.',
+                'app/modules/RxnPwa/LogCollectorController.php: NUEVO. Captura JSON, sanitiza, throttle 30/min, rota archivo a 5MB, persiste en storage/logs/rxnpwa-client.log. Endpoint download requiere admin.',
+                'public/js/pwa/rxnpwa-error-collector.js: NUEVO. Hookea window.onerror, unhandledrejection, console.error/warn. sendBeacon con fallback fetch keepalive. Throttle local 30/min.',
+                'app/modules/RxnPwa/views/launcher.php + horas_shell + horas_form + presupuestos_shell + presupuesto_form: cargan rxnpwa-error-collector.js antes que geo-gate (para capturar errores tempranos).',
+                'app/modules/RxnPwa/views/_brand_icon.php: rxnpwa-source.png path actualizado a /img/pwa/.',
+                'app/config/version.php: bump a 1.43.5 / build 20260502.6.',
+            ],
+        ],
         [
             'version' => '1.43.4',
             'build' => '20260502.5',

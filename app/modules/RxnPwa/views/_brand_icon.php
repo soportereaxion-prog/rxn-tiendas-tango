@@ -2,18 +2,18 @@
 /**
  * Partial — ícono RXN del header de la PWA.
  *
- * Estrategia: si existe `public/icons/rxnpwa-source.png` (lo provee Charly con
+ * Estrategia: si existe `public/img/pwa/rxnpwa-source.png` (lo provee Charly con
  * el arte final), se usa esa imagen. Sino, se muestra un SVG inline aproximando
  * la estrella RXN (8 puntas alternadas blanco/rojo + flash central). El SVG es
  * robusto: no depende de archivos ni del SW, siempre se ve.
  *
- * Para reemplazar por el arte final: copiar el PNG a public/icons/rxnpwa-source.png
+ * Para reemplazar por el arte final: copiar el PNG a public/img/pwa/rxnpwa-source.png
  * y correr `tools/generate_rxnpwa_icons_from_source.php` (regenera 192/512 con
  * safe-area de 12% para máscaras circulares).
  */
-$sourceAbs = BASE_PATH . '/public/icons/rxnpwa-source.png';
+$sourceAbs = BASE_PATH . '/public/img/pwa/rxnpwa-source.png';
 $hasSource = is_file($sourceAbs);
-$sourcePng = $hasSource ? ('/icons/rxnpwa-source.png?v=' . filemtime($sourceAbs)) : '';
+$sourcePng = $hasSource ? ('/img/pwa/rxnpwa-source.png?v=' . filemtime($sourceAbs)) : '';
 ?>
 <span class="rxnpwa-brand-icon" aria-label="RXN">
     <?php if ($hasSource): ?>

@@ -15,7 +15,7 @@
 //   - GET /api/rxnpwa/catalog/full    → siempre red (lo que persiste es IndexedDB, no Cache API).
 //   - Todo lo demás                   → passthrough (no interceptamos nada del backoffice clásico).
 
-const RXNPWA_VERSION = 'rxnpwa-v17-2026-05-02';
+const RXNPWA_VERSION = 'rxnpwa-v18-2026-05-02';
 const SHELL_CACHE = `${RXNPWA_VERSION}-shell`;
 const ASSETS_CACHE = `${RXNPWA_VERSION}-assets`;
 
@@ -33,8 +33,8 @@ const SHELL_URLS = [
     '/rxnpwa/horas',
     '/rxnpwa/horas/nuevo',
     '/manifest.webmanifest',
-    '/icons/rxnpwa-192.png',
-    '/icons/rxnpwa-512.png',
+    '/img/pwa/rxnpwa-192.png',
+    '/img/pwa/rxnpwa-512.png',
     '/css/rxnpwa.css',
     '/css/rxn-fullscreen.css',
 ];
@@ -157,6 +157,7 @@ self.addEventListener('fetch', (event) => {
 
     const isPwaAsset =
         url.pathname.startsWith('/js/pwa/') ||
+        url.pathname.startsWith('/img/pwa/') ||
         url.pathname.startsWith('/icons/') ||
         url.pathname === '/manifest.webmanifest' ||
         url.pathname === '/css/rxnpwa.css';

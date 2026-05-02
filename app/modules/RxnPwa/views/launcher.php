@@ -47,8 +47,8 @@ $pwaApps = [
     <title><?= htmlspecialchars($pageTitle) ?></title>
 
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/rxnpwa-192.png">
-    <link rel="apple-touch-icon" href="/icons/rxnpwa-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/img/pwa/rxnpwa-192.png">
+    <link rel="apple-touch-icon" href="/img/pwa/rxnpwa-192.png">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -311,6 +311,8 @@ $pwaApps = [
     <!-- Helper global de fullscreen + persistencia. -->
     <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
     <!-- Geo gate: el operador necesita GPS habilitado para entrar a cualquier PWA. -->
+    <!-- Error collector ANTES que todo lo demás para capturar errores tempranos. -->
+    <script src="/js/pwa/rxnpwa-error-collector.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-geo-gate.js?v=<?= time() ?>"></script>
     <!-- Registro del SW para que el launcher mismo quede cacheado offline. -->
     <script>

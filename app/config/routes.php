@@ -607,15 +607,27 @@ return function (Router $router): void {
     $router->get('/rxnpwa/', [\App\Modules\RxnPwa\RxnPwaController::class, 'launcher']);
 
     // --- Iconos PWA con fallback runtime ---
-    // Si los archivos físicos `public/icons/rxnpwa-{size}.png` existen, Apache los
-    // sirve directo (RewriteCond !-f). Si NO existen (deploy incompleto, permisos),
-    // estas rutas los generan on-the-fly con GD y persisten en disco. Garantiza
-    // que el manifest siempre tenga iconos válidos accesibles.
-    $router->get('/icons/rxnpwa-192.png', function () {
+    // CRÍTICO — los iconos viven en `/img/pwa/rxnpwa-*.png` (NO en `/icons/`).
+    // Apache default tiene un alias /icons/ para mod_autoindex que NO podemos
+    // sobreescribir desde el .htaccess del vhost. Por eso usamos /img/pwa/.
+    // Si los archivos físicos existen, Apache los sirve directo (RewriteCond !-f).
+    // Si NO existen (deploy incompleto, permisos), estas rutas los generan
+    // on-the-fly con GD y persisten en disco.
+    $router->get('/img/pwa/rxnpwa-192.png', function () {
         (new \App\Modules\RxnPwa\IconController())->serveRxnpwaIcon('192');
     });
-    $router->get('/icons/rxnpwa-512.png', function () {
+    $router->get('/img/pwa/rxnpwa-512.png', function () {
         (new \App\Modules\RxnPwa\IconController())->serveRxnpwaIcon('512');
+    });
+
+    // --- Captura de errores client-side de la PWA (debug remoto sin DevTools) ---
+    // POST sin auth — cualquier cliente PWA puede reportar.
+    // GET con auth admin — descarga del txt para soporte.
+    $router->post('/api/rxnpwa/log', function () {
+        (new \App\Modules\RxnPwa\LogCollectorController())->record();
+    });
+    $router->get('/admin/rxnpwa-logs/download', function () {
+        (new \App\Modules\RxnPwa\LogCollectorController())->download();
     });
 
     // --- RXN PWA (Presupuestos mobile offline) — Bloques A + B ---
