@@ -15,12 +15,19 @@
 //   - GET /api/rxnpwa/catalog/full    → siempre red (lo que persiste es IndexedDB, no Cache API).
 //   - Todo lo demás                   → passthrough (no interceptamos nada del backoffice clásico).
 
-const RXNPWA_VERSION = 'rxnpwa-v16-2026-05-02';
+const RXNPWA_VERSION = 'rxnpwa-v17-2026-05-02';
 const SHELL_CACHE = `${RXNPWA_VERSION}-shell`;
 const ASSETS_CACHE = `${RXNPWA_VERSION}-assets`;
 
+// CRÍTICO — `/rxnpwa/` (con trailing slash) tiene que estar pre-cacheado porque
+// el manifest declara `start_url: "/rxnpwa/"`. Chrome hace una "offline
+// installability check": pide el start_url simulando offline y exige una
+// respuesta 200 del SW. Si el cache no tiene la URL EXACTA del start_url,
+// la PWA se marca como NO installable y no aparece "Instalar app" en el menú.
+// Por eso /rxnpwa Y /rxnpwa/ van ambas al SHELL_URLS.
 const SHELL_URLS = [
-    '/rxnpwa',                          // Launcher / sub-menú raíz (release 1.43.1).
+    '/rxnpwa',
+    '/rxnpwa/',                         // start_url del manifest (con slash).
     '/rxnpwa/presupuestos',
     '/rxnpwa/presupuestos/nuevo',
     '/rxnpwa/horas',
@@ -173,6 +180,16 @@ async function networkFirst(req, cacheName) {
     } catch (err) {
         const cached = await cache.match(req);
         if (cached) return cached;
+        // Normalizar trailing slash: si pidieron /rxnpwa/ y solo tenemos /rxnpwa
+        // (o viceversa), devolver lo que tengamos. Crítico para el offline check
+        // de installability de Chrome — el manifest declara start_url=/rxnpwa/
+        // y Chrome verifica que el SW responda EXACTO a esa URL.
+        const url = new URL(req.url);
+        const altPath = url.pathname.endsWith('/')
+            ? url.pathname.slice(0, -1)
+            : url.pathname + '/';
+        const altCached = await cache.match(altPath);
+        if (altCached) return altCached;
         // Sin cache y sin red: devolver shell mínimo para que la UI muestre el modo offline.
         // Fallback contextual: si la URL pedida es de /horas, devolver la shell de horas.
         const url = new URL(req.url);

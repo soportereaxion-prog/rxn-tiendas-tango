@@ -1,9 +1,21 @@
 <?php
 
 return [
-    'current_version' => '1.43.2',
-    'current_build' => '20260502.3',
+    'current_version' => '1.43.3',
+    'current_build' => '20260502.4',
     'history' => [
+        [
+            'version' => '1.43.3',
+            'build' => '20260502.4',
+            'released_at' => '2026-05-02',
+            'title' => 'Iteración 45 — Hotfix SW para PWA installable: pre-cache de /rxnpwa/ con trailing slash',
+            'summary' => 'Hotfix sobre 1.43.2. Después de subir el OTA, Chrome todavía no marcaba la PWA como installable completa (solo aparecía "Agregar a la pantalla principal" como atajo simple). Causa raíz: el manifest declara start_url=/rxnpwa/ (con slash, fixeado en 1.43.2) pero el Service Worker pre-cacheaba solo /rxnpwa (sin slash). Chrome hace una "offline installability check" — pide la URL EXACTA del start_url simulando red caída y exige que el SW responda 200. Como el cache solo tenía /rxnpwa (sin slash), el match exacto fallaba y Chrome marcaba la PWA como no installable. Fix: SHELL_URLS suma /rxnpwa/ (con slash) al pre-cache. Bonus: networkFirst normaliza trailing slash en el lookup del cache — si pidieron /rxnpwa/ y solo tenemos /rxnpwa (o viceversa), devolvemos lo que tengamos. SW bumpeado a v17 para invalidar caches viejos. NOTA IMPORTANTE: el prompt nativo de Chrome NO se puede forzar programáticamente; la API solo permite invocar prompt() sobre el evento beforeinstallprompt que el browser entrega cuando la PWA cumple TODOS los criterios. Lo que sí podemos hacer es asegurar que cumpla los criterios (manifest válido, scope coherente, SW que responde al start_url offline, iconos accesibles).',
+            'items' => [
+                'public/sw.js: SHELL_URLS suma /rxnpwa/ con trailing slash (start_url del manifest). Comentario explicativo del por qué. RXNPWA_VERSION bumpeado a v17.',
+                'public/sw.js: networkFirst con fallback de trailing slash. Si el cache no matchea la URL exacta, prueba la variante con/sin slash.',
+                'app/config/version.php: bump a 1.43.3 / build 20260502.4.',
+            ],
+        ],
         [
             'version' => '1.43.2',
             'build' => '20260502.3',
