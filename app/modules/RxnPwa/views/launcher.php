@@ -53,7 +53,6 @@ $pwaApps = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/css/rxnpwa.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="/css/rxn-fullscreen.css?v=<?= time() ?>">
     <style>
         .rxnpwa-launcher-card {
             display: flex;
@@ -115,12 +114,6 @@ $pwaApps = [
             </div>
         </div>
         <div class="d-flex gap-1">
-            <button type="button" class="btn btn-sm btn-outline-light"
-                    data-rxn-fullscreen-toggle
-                    title="Pantalla completa"
-                    aria-pressed="false">
-                <i class="bi bi-fullscreen"></i>
-            </button>
             <a href="/mi-empresa/crm/dashboard" class="btn btn-sm btn-outline-light" title="Volver al backoffice">
                 <i class="bi bi-box-arrow-up-right"></i>
             </a>
@@ -309,7 +302,6 @@ $pwaApps = [
     </script>
 
     <!-- Helper global de fullscreen + persistencia. -->
-    <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
     <!-- Geo gate: el operador necesita GPS habilitado para entrar a cualquier PWA. -->
     <!-- Error collector ANTES que todo lo demás para capturar errores tempranos. -->
     <script src="/js/pwa/rxnpwa-error-collector.js?v=<?= time() ?>"></script>

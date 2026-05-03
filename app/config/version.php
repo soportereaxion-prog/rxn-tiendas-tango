@@ -1,9 +1,25 @@
 <?php
 
 return [
-    'current_version' => '1.43.6',
-    'current_build' => '20260502.7',
+    'current_version' => '1.44.0',
+    'current_build' => '20260502.8',
     'history' => [
+        [
+            'version' => '1.44.0',
+            'build' => '20260502.8',
+            'released_at' => '2026-05-02',
+            'title' => 'Iteración 45 — Limpieza fullscreen toggle de la PWA (ya no se necesita con la app instalada standalone)',
+            'summary' => 'Charly logró instalar la PWA RXN como app standalone en el celu (modo nativo, ícono en escritorio, sin URL bar). Con la app instalada el modo standalone es permanente — no hace falta más el botón de "pantalla completa" que vivía en los headers de las vistas PWA para ocultar headers internos y la URL bar del browser. Limpieza: removidos los botones data-rxn-fullscreen-toggle de las 5 vistas PWA (launcher, horas_shell, horas_form, presupuestos_shell, presupuesto_form) + sus link CSS y script JS inline. El helper global rxn-fullscreen.js / rxn-fullscreen.css QUEDA en el sistema porque el backoffice clásico (admin_layout) lo sigue usando para mobile fuera del PWA. SW pre-cache no incluye más rxn-fullscreen.css (era exclusivo para la PWA, no aplica al admin clásico). RXNPWA_VERSION bumpeado a v19. Headers de las PWAs ahora más limpios: solo botón "Menú PWA" + botón "Volver al backoffice" (en shells) o "Guardar" (en forms). Esta release también sirve para validar el flujo del actualizador OTA con un cambio nuevo después de la cadena de hotfixes.',
+            'items' => [
+                'app/modules/RxnPwa/views/launcher.php: removido botón data-rxn-fullscreen-toggle + link CSS rxn-fullscreen.css + script rxn-fullscreen.js.',
+                'app/modules/RxnPwa/views/horas_shell.php: idem.',
+                'app/modules/RxnPwa/views/horas_form.php: idem.',
+                'app/modules/RxnPwa/views/presupuestos_shell.php: idem.',
+                'app/modules/RxnPwa/views/presupuesto_form.php: idem.',
+                'public/sw.js: SHELL_URLS no incluye más rxn-fullscreen.css. RXNPWA_VERSION bumpeado a v19.',
+                'app/config/version.php: bump a 1.44.0 / build 20260502.8.',
+            ],
+        ],
         [
             'version' => '1.43.6',
             'build' => '20260502.7',

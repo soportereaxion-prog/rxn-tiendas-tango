@@ -22,7 +22,6 @@ $tmpUuid = $tmpUuid ?? '';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/css/rxnpwa.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="/css/rxn-fullscreen.css?v=<?= time() ?>">
 </head>
 <body>
     <header class="rxnpwa-header d-flex align-items-center justify-content-between">
@@ -38,10 +37,6 @@ $tmpUuid = $tmpUuid ?? '';
             <a href="/rxnpwa" class="btn btn-sm btn-outline-light" title="Menú PWA">
                 <i class="bi bi-grid-3x3-gap"></i>
             </a>
-            <button type="button" class="btn btn-sm btn-outline-light"
-                    data-rxn-fullscreen-toggle title="Pantalla completa" aria-pressed="false">
-                <i class="bi bi-fullscreen"></i>
-            </button>
             <button type="button" class="btn btn-sm btn-success" id="rxnpwa-horas-save" title="Guardar borrador">
                 <i class="bi bi-save"></i>
             </button>
@@ -156,7 +151,6 @@ $tmpUuid = $tmpUuid ?? '';
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-error-collector.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-geo-gate.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-catalog-store.js?v=<?= time() ?>"></script>

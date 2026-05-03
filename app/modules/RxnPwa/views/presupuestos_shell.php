@@ -20,7 +20,6 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/css/rxnpwa.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="/css/rxn-fullscreen.css?v=<?= time() ?>">
 </head>
 <body>
 
@@ -36,12 +35,6 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
             <a href="/rxnpwa" class="btn btn-sm btn-outline-light" title="Menú PWA">
                 <i class="bi bi-grid-3x3-gap"></i>
             </a>
-            <button type="button" class="btn btn-sm btn-outline-light"
-                    data-rxn-fullscreen-toggle
-                    title="Pantalla completa"
-                    aria-pressed="false">
-                <i class="bi bi-fullscreen"></i>
-            </button>
             <a href="/mi-empresa/crm/dashboard" class="btn btn-sm btn-outline-light" title="Volver al backoffice">
                 <i class="bi bi-box-arrow-up-right"></i>
             </a>
@@ -100,7 +93,6 @@ $pageTitle = $pageTitle ?? 'RXN PWA';
     </main>
 
     <!-- Helper global de fullscreen + persistencia (release 1.42.0). -->
-    <script src="/js/rxn-fullscreen.js?v=<?= time() ?>"></script>
     <!-- Geo gate ANTES que todos los demás — bloquea la PWA si no hay GPS. -->
     <script src="/js/pwa/rxnpwa-error-collector.js?v=<?= time() ?>"></script>
     <script src="/js/pwa/rxnpwa-geo-gate.js?v=<?= time() ?>"></script>
