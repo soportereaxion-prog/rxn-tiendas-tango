@@ -29,6 +29,7 @@
         placed: {},              // { EntityName: { x, y, fields: Set<string>, el: HTMLElement } }
         relations: [],           // [{from, relation, targetEntity}]
         filters: [],             // [{entity, field, op, value}]
+        filtersLogic: 'AND',     // 'AND' | 'OR' — conector entre filtros del usuario
         mailTarget: null,        // {entity, field} | null
         previewPage: 1,          // página actual del preview (1-based)
         previewPerPage: 25,      // por página
@@ -125,6 +126,17 @@
         dom.filterAddBtn.addEventListener('click', () => {
             state.filters.push({ entity: '', field: '', op: '=', value: '' });
             renderFilters();
+        });
+
+        // Toggle AND/OR
+        document.querySelectorAll('input[name="mm-filters-logic"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    state.filtersLogic = radio.value === 'OR' ? 'OR' : 'AND';
+                    refreshJsonPanel();
+                    renderFilters(); // refresca el separador visual entre filas
+                }
+            });
         });
 
         dom.jsonToggle.addEventListener('click', () => {
@@ -455,6 +467,14 @@
         }
 
         state.filters.forEach((f, idx) => {
+            // Separador con el conector entre filas (a partir de la segunda)
+            if (idx > 0) {
+                const sep = document.createElement('div');
+                sep.className = 'mm-filter-connector';
+                sep.textContent = state.filtersLogic === 'OR' ? 'O' : 'Y';
+                dom.filtersList.appendChild(sep);
+            }
+
             const row = document.createElement('div');
             row.className = 'mm-filter-row';
 
@@ -681,6 +701,7 @@
             relations,
             fields,
             filters,
+            filters_logic: state.filtersLogic || 'AND',
         };
         if (state.mailTarget) {
             cfg.mail_field = { ...state.mailTarget };
@@ -886,6 +907,11 @@
                 state.placed[f.entity].fields.add(f.field);
             }
         });
+
+        // Lógica de filtros (default AND si el reporte es viejo)
+        state.filtersLogic = (cfg.filters_logic === 'OR') ? 'OR' : 'AND';
+        const logicRadio = document.querySelector('input[name="mm-filters-logic"][value="' + state.filtersLogic + '"]');
+        if (logicRadio) logicRadio.checked = true;
 
         // Filtros
         state.filters = (cfg.filters || []).map(f => {

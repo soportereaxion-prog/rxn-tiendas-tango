@@ -1,9 +1,23 @@
 <?php
 
 return [
-    'current_version' => '1.45.0',
-    'current_build' => '20260503.1',
+    'current_version' => '1.45.1',
+    'current_build' => '20260503.2',
     'history' => [
+        [
+            'version' => '1.45.1',
+            'build' => '20260503.2',
+            'released_at' => '2026-05-03',
+            'title' => 'Iteración 46 — Filtros del diseñador con lógica AND/OR seleccionable',
+            'summary' => 'Charly notó al armar el primer reporte de prueba post 1.45.0 que dos filtros se concatenaban siempre con AND hardcodeado, lo que no le servía cuando quería traer registros que matchearan razon_social LIKE "X" OR email = "Y". Sumamos toggle "Coincidir TODOS / Coincidir CUALQUIERA" arriba del panel de filtros del diseñador. ReportQueryBuilder::buildWhere acepta filters_logic ("AND" default por compat con reportes existentes, "OR" cuando el toggle está en CUALQUIERA). Las cláusulas de seguridad (empresa_scope + soft_delete) siguen siendo AND duro — no negociables. Cuando son OR ≥2 filtros se envuelven en paréntesis para que la precedencia respecto del AND de seguridad quede explícita en el SQL. UI: separador visual entre filas con la letra Y/O según el conector activo, así se ve clarísimo qué se está aplicando. Reportes viejos sin filters_logic en config_json siguen funcionando como AND.',
+            'items' => [
+                'app/modules/CrmMailMasivos/Services/ReportQueryBuilder.php: build() lee filters_logic del config (whitelist AND/OR, default AND). buildWhere refactorizado para separar cláusulas hard (empresa_scope + soft_delete, siempre AND) de las del usuario (configurable). OR ≥2 va envuelto en paréntesis.',
+                'app/modules/CrmMailMasivos/views/reportes/designer.php: toggle radio button TODOS/CUALQUIERA arriba del panel de filtros, con tooltips explicando cada opción.',
+                'public/js/mail-masivos-designer.js: state.filtersLogic, binding de los radios, render del separador visual Y/O entre filas, buildConfig() emite filters_logic, loadInitialConfig restaura el toggle al valor guardado.',
+                'public/css/mail-masivos-designer.css: estilos mm-filters-logic (inline-flex con label "Coincidir") y mm-filter-connector (chip pill con la letra Y/O).',
+                'app/config/version.php: bump a 1.45.1 / build 20260503.2.',
+            ],
+        ],
         [
             'version' => '1.45.0',
             'build' => '20260503.1',

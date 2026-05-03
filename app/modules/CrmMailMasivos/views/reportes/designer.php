@@ -118,7 +118,17 @@ ob_start();
                     <div class="mm-filters-panel">
                         <h6>
                             <i class="bi bi-funnel"></i> Filtros
-                            <button type="button" id="mm-filter-add" class="btn btn-sm btn-outline-primary ms-auto">
+                            <div class="mm-filters-logic ms-auto" role="group" aria-label="Lógica de combinación entre filtros">
+                                <span class="small text-muted me-2">Coincidir</span>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <input type="radio" class="btn-check" name="mm-filters-logic" id="mm-logic-and" value="AND" checked>
+                                    <label class="btn btn-outline-secondary" for="mm-logic-and" title="El registro tiene que cumplir TODOS los filtros (AND)">TODOS</label>
+
+                                    <input type="radio" class="btn-check" name="mm-filters-logic" id="mm-logic-or" value="OR">
+                                    <label class="btn btn-outline-secondary" for="mm-logic-or" title="El registro tiene que cumplir AL MENOS UN filtro (OR)">CUALQUIERA</label>
+                                </div>
+                            </div>
+                            <button type="button" id="mm-filter-add" class="btn btn-sm btn-outline-primary ms-2">
                                 <i class="bi bi-plus-lg"></i> Agregar filtro
                             </button>
                         </h6>

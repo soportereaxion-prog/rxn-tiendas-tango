@@ -93,7 +93,11 @@ class ReportQueryBuilder
         [$selectSql, $fieldAliases] = $this->buildSelect($config['fields'] ?? []);
 
         // Construir WHERE (filtros + empresa_scope + soft_delete)
-        $whereSql = $this->buildWhere($config['filters'] ?? [], $empresaId);
+        $filtersLogic = strtoupper(trim((string) ($config['filters_logic'] ?? 'AND')));
+        if ($filtersLogic !== 'AND' && $filtersLogic !== 'OR') {
+            $filtersLogic = 'AND';
+        }
+        $whereSql = $this->buildWhere($config['filters'] ?? [], $empresaId, $filtersLogic);
 
         // Resolver campo de mail (null para reportes de contenido)
         $mailTarget = $this->resolveMailTarget(
@@ -268,11 +272,19 @@ class ReportQueryBuilder
 
     /**
      * Construye el WHERE combinando filtros del usuario + empresa_scope + soft_delete.
+     *
+     * Las cláusulas de seguridad (empresa_scope + soft_delete) van SIEMPRE como
+     * AND duro — no son negociables. El conector entre los filtros del usuario
+     * sí depende de $filtersLogic (AND por default, OR si el reporte lo declara).
+     * Cuando son OR, se envuelven en paréntesis para que la precedencia respecto
+     * de los AND de seguridad quede explícita.
+     *
      * @param list<array<string, mixed>> $filters
+     * @param 'AND'|'OR' $filtersLogic
      */
-    private function buildWhere(array $filters, int $empresaId): string
+    private function buildWhere(array $filters, int $empresaId, string $filtersLogic = 'AND'): string
     {
-        $clauses = [];
+        $hardClauses = [];
 
         // 1. empresa_scope automático en cada entidad del plan.
         //    IMPORTANTE: generamos un placeholder único por cada uso (aunque el
@@ -281,7 +293,7 @@ class ReportQueryBuilder
         foreach ($this->aliases as $entity => $alias) {
             $def = $this->meta->getEntity($entity);
             if (!empty($def['empresa_scope'])) {
-                $clauses[] = sprintf(
+                $hardClauses[] = sprintf(
                     '`%s`.`empresa_id` = %s',
                     $alias,
                     $this->nextParam($empresaId)
@@ -294,23 +306,42 @@ class ReportQueryBuilder
             $def = $this->meta->getEntity($entity);
             $sdCol = $def['soft_delete'] ?? null;
             if ($sdCol && is_string($sdCol)) {
-                $clauses[] = sprintf('`%s`.`%s` IS NULL', $alias, $sdCol);
+                $hardClauses[] = sprintf('`%s`.`%s` IS NULL', $alias, $sdCol);
             }
         }
 
-        // 3. filtros del usuario
+        // 3. filtros del usuario — su conector depende de $filtersLogic.
+        $userClauses = [];
         foreach ($filters as $filter) {
             if (!is_array($filter)) {
                 continue;
             }
-            $clauses[] = $this->buildFilterClause($filter);
+            $userClauses[] = $this->buildFilterClause($filter);
         }
 
-        if (empty($clauses)) {
+        if (empty($hardClauses) && empty($userClauses)) {
             return '1 = 1';
         }
 
-        return implode(' AND ', $clauses);
+        if (empty($userClauses)) {
+            return implode(' AND ', $hardClauses);
+        }
+
+        // Sólo un filtro de usuario → AND/OR es indiferente, no envuelvo.
+        if (count($userClauses) === 1) {
+            return implode(' AND ', array_merge($hardClauses, $userClauses));
+        }
+
+        // ≥2 filtros con OR → envolver en paréntesis para que AND de seguridad
+        // tenga precedencia explícita. Con AND no hace falta envolver.
+        $userBlock = $filtersLogic === 'OR'
+            ? '(' . implode(' OR ', $userClauses) . ')'
+            : implode(' AND ', $userClauses);
+
+        if (empty($hardClauses)) {
+            return $userBlock;
+        }
+        return implode(' AND ', $hardClauses) . ' AND ' . $userBlock;
     }
 
     /**

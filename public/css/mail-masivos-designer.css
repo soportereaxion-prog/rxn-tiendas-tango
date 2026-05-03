@@ -384,6 +384,26 @@
     word-break: break-word;
 }
 
+/* ── Filtros: conector AND/OR entre filas ──────────────────────── */
+.mm-filters-logic {
+    display: inline-flex;
+    align-items: center;
+}
+
+.mm-filter-connector {
+    display: inline-block;
+    margin: 0.25rem 0 0.25rem 0;
+    padding: 0.1rem 0.65rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--card-bg);
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
 /* ── Filtros: input + botón de tokens dinámicos ───────────────── */
 .mm-filter-value-wrap {
     position: relative;
