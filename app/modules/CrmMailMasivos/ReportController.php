@@ -10,6 +10,7 @@ use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
 use App\Modules\CrmMailMasivos\Services\BlockRenderer;
+use App\Modules\CrmMailMasivos\Services\FilterTokenResolver;
 use App\Modules\CrmMailMasivos\Services\ReportMetamodel;
 use App\Modules\CrmMailMasivos\Services\ReportQueryBuilder;
 use InvalidArgumentException;
@@ -204,6 +205,7 @@ class ReportController
         echo json_encode([
             'entities' => $this->meta->toArrayForFrontend(),
             'operators_by_type' => ReportMetamodel::operatorsByType(),
+            'dynamic_tokens' => FilterTokenResolver::availableTokens(),
         ]);
         exit;
     }
@@ -234,6 +236,14 @@ class ReportController
             exit;
         }
 
+        // Paginación server-side. Sin tope total: el módulo cuida la presión
+        // de DB con LIMIT por página, y el preview no se persiste en ningún lado.
+        $page = max(1, (int) ($config['_page'] ?? 1));
+        $perPage = (int) ($config['_per_page'] ?? 25);
+        if ($perPage < 5)   $perPage = 5;
+        if ($perPage > 200) $perPage = 200;
+        $offset = ($page - 1) * $perPage;
+
         try {
             // Los reportes de contenido (root = entidad broadcast) NO requieren
             // mail_field: su preview es simplemente la tabla de filas. Los de
@@ -241,43 +251,67 @@ class ReportController
             $rootEntity = (string) ($config['root_entity'] ?? '');
             $isContent = BlockRenderer::isContentEntity($rootEntity);
 
-            $builder = new ReportQueryBuilder($this->meta);
-            $built = $builder->build($config, $empresaId, 10, !$isContent);
-
             $pdo = Database::getConnection();
+
+            // 1. Total de filas (mismo plan, sin LIMIT). Usa el mismo builder
+            //    para que joins/where/empresa_scope/soft_delete queden iguales.
+            $counter = new ReportQueryBuilder($this->meta);
+            $countQuery = $counter->buildCount($config, $empresaId, !$isContent);
+            $stmtCount = $pdo->prepare($countQuery['sql']);
+            foreach ($countQuery['params'] as $name => $value) {
+                $stmtCount->bindValue($name, $value, $this->pdoType($value));
+            }
+            $stmtCount->execute();
+            $total = (int) ($stmtCount->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+            // 2. Página solicitada
+            $builder = new ReportQueryBuilder($this->meta);
+            $built = $builder->build($config, $empresaId, $perPage, !$isContent, $offset);
+
             $stmt = $pdo->prepare($built['sql']);
             foreach ($built['params'] as $name => $value) {
-                // Bindear con tipo según el valor
-                $paramType = PDO::PARAM_STR;
-                if (is_int($value)) {
-                    $paramType = PDO::PARAM_INT;
-                } elseif (is_bool($value)) {
-                    $paramType = PDO::PARAM_BOOL;
-                } elseif ($value === null) {
-                    $paramType = PDO::PARAM_NULL;
-                }
-                $stmt->bindValue($name, $value, $paramType);
+                $stmt->bindValue($name, $value, $this->pdoType($value));
             }
             $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-            // Extraer los mails destinatarios (solo si el reporte los tiene).
-            $mails = [];
+            // 3. Total de mails únicos. Construimos COUNT(DISTINCT alias) sobre
+            //    el SELECT completo como subquery para reusar joins+where sin
+            //    tocar la API pública del builder.
+            $mailCount = 0;
+            $mailsThisPage = [];
             if ($built['mail_target'] !== null) {
                 $mailAlias = $built['mail_target']['alias'];
+
+                $fullBuilder = new ReportQueryBuilder($this->meta);
+                $fullBuilt = $fullBuilder->build($config, $empresaId, 0, !$isContent);
+                $mcSql = 'SELECT COUNT(DISTINCT `' . $mailAlias . '`) AS total FROM (' . $fullBuilt['sql'] . ') AS sub';
+                $stmtMc = $pdo->prepare($mcSql);
+                foreach ($fullBuilt['params'] as $name => $value) {
+                    $stmtMc->bindValue($name, $value, $this->pdoType($value));
+                }
+                $stmtMc->execute();
+                $mailCount = (int) ($stmtMc->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
                 foreach ($rows as $r) {
                     if (!empty($r[$mailAlias]) && filter_var($r[$mailAlias], FILTER_VALIDATE_EMAIL)) {
-                        $mails[] = $r[$mailAlias];
+                        $mailsThisPage[] = $r[$mailAlias];
                     }
                 }
             }
+
+            $totalPages = $perPage > 0 ? max(1, (int) ceil($total / $perPage)) : 1;
 
             echo json_encode([
                 'success' => true,
                 'rows' => $rows,
                 'row_count' => count($rows),
-                'mail_count' => count(array_unique($mails)),
-                'mails' => array_values(array_unique($mails)),
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'total_pages' => $totalPages,
+                'mail_count' => $mailCount,
+                'mails' => array_values(array_unique($mailsThisPage)),
                 'mail_target' => $built['mail_target'],
                 'is_content_report' => $isContent,
                 'sql_debug' => $built['sql'],
@@ -307,6 +341,14 @@ class ReportController
     // ──────────────────────────────────────────────
     // HELPERS PRIVADOS
     // ──────────────────────────────────────────────
+
+    private function pdoType($value): int
+    {
+        if (is_int($value))   return PDO::PARAM_INT;
+        if (is_bool($value))  return PDO::PARAM_BOOL;
+        if ($value === null)  return PDO::PARAM_NULL;
+        return PDO::PARAM_STR;
+    }
 
     /**
      * @return array<string, mixed>

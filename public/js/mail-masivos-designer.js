@@ -24,12 +24,15 @@
 
     // ── Estado ──────────────────────────────────────────────────────
     const state = {
-        metamodel: null,         // { entities: {...}, operators_by_type: {...} }
+        metamodel: null,         // { entities: {...}, operators_by_type: {...}, dynamic_tokens: [...] }
         rootEntity: '',          // nombre de la entidad raíz
         placed: {},              // { EntityName: { x, y, fields: Set<string>, el: HTMLElement } }
         relations: [],           // [{from, relation, targetEntity}]
         filters: [],             // [{entity, field, op, value}]
         mailTarget: null,        // {entity, field} | null
+        previewPage: 1,          // página actual del preview (1-based)
+        previewPerPage: 25,      // por página
+        previewLast: null,       // snapshot del último response (para repaginar sin reejecutar el form)
     };
 
     // ── Referencias DOM ─────────────────────────────────────────────
@@ -503,7 +506,10 @@
                 refreshJsonPanel();
             });
 
-            // Valor
+            // Valor — wrap con botón calendario para insertar tokens dinámicos
+            const valWrap = document.createElement('div');
+            valWrap.className = 'mm-filter-value-wrap';
+
             const inpVal = document.createElement('input');
             inpVal.type = 'text';
             inpVal.className = 'form-control form-control-sm';
@@ -516,7 +522,7 @@
                 inpVal.placeholder = 'valor1, valor2, ...';
                 inpVal.value = Array.isArray(f.value) ? f.value.join(', ') : (f.value || '');
             } else if (f.op === 'BETWEEN') {
-                inpVal.placeholder = 'min, max';
+                inpVal.placeholder = 'min, max — soporta {{HOY}}, {{INICIO_MES}}, etc.';
                 inpVal.value = Array.isArray(f.value) ? f.value.join(', ') : (f.value || '');
             } else {
                 inpVal.value = f.value != null ? String(f.value) : '';
@@ -525,6 +531,28 @@
                 f.value = inpVal.value;
                 refreshJsonPanel();
             });
+            valWrap.appendChild(inpVal);
+
+            // Botón "📅" — abre menú de tokens dinámicos. Habilitado salvo en operadores nularios.
+            const ftype = f.entity && f.field
+                ? (state.metamodel.entities[f.entity]?.fields?.[f.field]?.type || 'string')
+                : 'string';
+            const isDateLike = ftype === 'date' || ftype === 'datetime';
+            const tokens = state.metamodel.dynamic_tokens || [];
+            if (!nullaryOps.includes(f.op) && tokens.length > 0) {
+                const btnTok = document.createElement('button');
+                btnTok.type = 'button';
+                btnTok.className = 'mm-filter-token-btn' + (isDateLike ? ' is-suggested' : '');
+                btnTok.title = isDateLike
+                    ? 'Insertar valor dinámico (se resuelve al ejecutar el reporte)'
+                    : 'Insertar valor dinámico — útil para fechas';
+                btnTok.innerHTML = '<i class="bi bi-calendar-event"></i>';
+                btnTok.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    openTokenMenu(btnTok, inpVal, f);
+                });
+                valWrap.appendChild(btnTok);
+            }
 
             // Remove
             const btnRemove = document.createElement('button');
@@ -540,10 +568,84 @@
             row.appendChild(selEnt);
             row.appendChild(selField);
             row.appendChild(selOp);
-            row.appendChild(inpVal);
+            row.appendChild(valWrap);
             row.appendChild(btnRemove);
             dom.filtersList.appendChild(row);
         });
+    }
+
+    // ── Menú flotante de tokens dinámicos ───────────────────────────
+    let openTokenMenuEl = null;
+    function closeTokenMenu() {
+        if (openTokenMenuEl) {
+            openTokenMenuEl.remove();
+            openTokenMenuEl = null;
+            document.removeEventListener('click', closeTokenMenu);
+        }
+    }
+    function openTokenMenu(anchor, input, filter) {
+        closeTokenMenu();
+        const tokens = state.metamodel.dynamic_tokens || [];
+        if (tokens.length === 0) return;
+
+        const menu = document.createElement('div');
+        menu.className = 'mm-token-menu';
+        menu.innerHTML = '<div class="mm-token-menu-header">Insertar valor dinámico</div>';
+
+        tokens.forEach(t => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'mm-token-menu-item';
+            item.innerHTML = '<span class="mm-token-label">' + escapeHtml(t.label) + '</span>'
+                + '<code class="mm-token-code">' + escapeHtml(t.token) + '</code>';
+            item.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                insertToken(input, filter, t.token);
+                closeTokenMenu();
+            });
+            menu.appendChild(item);
+        });
+
+        const hint = document.createElement('div');
+        hint.className = 'mm-token-menu-hint';
+        hint.innerHTML = 'Para BETWEEN podés combinar dos: ej. <code>{{INICIO_MES}}, {{FIN_MES}}</code>.';
+        menu.appendChild(hint);
+
+        document.body.appendChild(menu);
+        openTokenMenuEl = menu;
+
+        // Posicionar relativo al botón
+        const r = anchor.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        let top = r.bottom + window.scrollY + 4;
+        let left = r.right - menuRect.width + window.scrollX;
+        if (left < 8) left = 8;
+        // Si se sale por abajo, abrir hacia arriba
+        if (top + menuRect.height > window.scrollY + window.innerHeight - 8) {
+            top = r.top + window.scrollY - menuRect.height - 4;
+        }
+        menu.style.top = top + 'px';
+        menu.style.left = left + 'px';
+
+        // Cerrar con click afuera (en el próximo tick para no autocerrarse)
+        setTimeout(() => document.addEventListener('click', closeTokenMenu), 0);
+    }
+    function insertToken(input, filter, token) {
+        const cur = input.value || '';
+        // Si el operador es BETWEEN/IN y ya hay un valor sin coma final, sumar coma + token.
+        // En todos los otros casos: si hay valor sin token, reemplazar; si no, insertar.
+        let next;
+        if (filter.op === 'BETWEEN' || filter.op === 'IN' || filter.op === 'NOT IN') {
+            if (cur.trim() === '') next = token;
+            else if (cur.trim().endsWith(',')) next = cur + ' ' + token;
+            else next = cur + ', ' + token;
+        } else {
+            next = token;
+        }
+        input.value = next;
+        filter.value = next;
+        input.focus();
+        refreshJsonPanel();
     }
 
     // ── Serialización ───────────────────────────────────────────────
@@ -593,7 +695,7 @@
     }
 
     // ── Preview & Save ──────────────────────────────────────────────
-    async function runPreview() {
+    async function runPreview(page) {
         const cfg = buildConfig();
         if (!cfg.root_entity) {
             alert('Elegí una entidad raíz primero.');
@@ -603,6 +705,13 @@
             alert('Marcá al menos un campo en algún nodo.');
             return;
         }
+        if (typeof page === 'number' && page > 0) {
+            state.previewPage = page;
+        } else {
+            state.previewPage = 1; // reset al ejecutar de nuevo desde el botón
+        }
+        cfg._page = state.previewPage;
+        cfg._per_page = state.previewPerPage;
 
         dom.previewPanel.style.display = '';
         dom.previewContent.innerHTML = '<div class="text-info">⏳ Ejecutando preview...</div>';
@@ -615,7 +724,9 @@
                 body: JSON.stringify(cfg),
             });
             const data = await res.json();
+            state.previewLast = data;
             dom.previewContent.innerHTML = renderPreviewResult(data);
+            wirePreviewPagination();
         } catch (err) {
             dom.previewContent.innerHTML = '<div class="alert alert-danger">Error de red: ' + escapeHtml(err.message) + '</div>';
         } finally {
@@ -631,21 +742,22 @@
                 + '</div>';
         }
 
+        const total = data.total != null ? data.total : data.row_count;
+        const page = data.page || 1;
+        const perPage = data.per_page || 25;
+        const totalPages = data.total_pages || 1;
+
         let html = '<div class="alert alert-success py-2 small mb-3">';
         if (data.is_content_report) {
-            html += '<strong>✓ OK</strong> — ' + data.row_count + ' fila(s) de contenido. ';
+            html += '<strong>✓ OK</strong> — ' + total + ' fila(s) totales · página ' + page + ' de ' + totalPages + '. ';
             html += '<span class="text-muted">Este reporte es de <strong>contenido broadcast</strong> — se elige en el paso "Bloque de contenido" al crear un envío y sus filas se renderizan dentro del cuerpo del mail.</span>';
         } else {
-            html += '<strong>✓ OK</strong> — ' + data.row_count + ' fila(s), ' + data.mail_count + ' mail(s) único(s). ';
+            html += '<strong>✓ OK</strong> — ' + total + ' fila(s) totales · ' + data.mail_count + ' mail(s) único(s) · página ' + page + ' de ' + totalPages + '. ';
             if (data.mail_target) {
                 html += 'Destinatario: <code>' + escapeHtml(data.mail_target.entity + '.' + data.mail_target.field) + '</code>';
             }
         }
         html += '</div>';
-
-        if (!data.is_content_report && data.mails && data.mails.length > 0) {
-            html += '<div class="mb-3"><strong>Mails:</strong><br><code>' + data.mails.map(escapeHtml).join(', ') + '</code></div>';
-        }
 
         if (data.rows && data.rows.length > 0) {
             const cols = Object.keys(data.rows[0]);
@@ -658,6 +770,10 @@
                 html += '</tr>';
             });
             html += '</tbody></table></div>';
+
+            html += renderPaginationControls(page, totalPages, perPage, total);
+        } else {
+            html += '<div class="text-muted small">El reporte no devolvió filas en esta página.</div>';
         }
 
         html += '<details class="mt-3"><summary class="small fw-semibold">SQL generado</summary>';
@@ -665,6 +781,56 @@
         html += '</details>';
 
         return html;
+    }
+
+    function renderPaginationControls(page, totalPages, perPage, total) {
+        if (totalPages <= 1) {
+            return '<div class="mm-preview-pager-info small text-muted mt-2">Mostrando ' + total + ' fila(s).</div>';
+        }
+        const start = (page - 1) * perPage + 1;
+        const end = Math.min(page * perPage, total);
+
+        return '<nav class="mm-preview-pager mt-2" aria-label="Paginación del preview">'
+            + '<div class="mm-preview-pager-info small text-muted">Mostrando ' + start + '–' + end + ' de ' + total + '.</div>'
+            + '<div class="mm-preview-pager-buttons">'
+            + '  <button type="button" class="btn btn-sm btn-outline-secondary" data-page="1" ' + (page <= 1 ? 'disabled' : '') + '>«</button>'
+            + '  <button type="button" class="btn btn-sm btn-outline-secondary" data-page="' + (page - 1) + '" ' + (page <= 1 ? 'disabled' : '') + '>‹</button>'
+            + '  <span class="mx-2 small">Página '
+            + '    <input type="number" min="1" max="' + totalPages + '" value="' + page + '" class="mm-preview-pager-input">'
+            + '    de ' + totalPages
+            + '  </span>'
+            + '  <button type="button" class="btn btn-sm btn-outline-secondary" data-page="' + (page + 1) + '" ' + (page >= totalPages ? 'disabled' : '') + '>›</button>'
+            + '  <button type="button" class="btn btn-sm btn-outline-secondary" data-page="' + totalPages + '" ' + (page >= totalPages ? 'disabled' : '') + '>»</button>'
+            + '  <select class="form-select form-select-sm ms-2 mm-preview-pager-pp" style="width:auto;">'
+            + ['10','25','50','100','200'].map(n => '<option value="' + n + '"' + (Number(n) === perPage ? ' selected' : '') + '>' + n + ' / pág</option>').join('')
+            + '  </select>'
+            + '</div>'
+            + '</nav>';
+    }
+
+    function wirePreviewPagination() {
+        const pager = dom.previewContent.querySelector('.mm-preview-pager');
+        if (!pager) return;
+        pager.querySelectorAll('button[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const p = parseInt(btn.dataset.page, 10);
+                if (p > 0) runPreview(p);
+            });
+        });
+        const inp = pager.querySelector('.mm-preview-pager-input');
+        if (inp) {
+            inp.addEventListener('change', () => {
+                const p = parseInt(inp.value, 10);
+                if (p > 0) runPreview(p);
+            });
+        }
+        const ppSel = pager.querySelector('.mm-preview-pager-pp');
+        if (ppSel) {
+            ppSel.addEventListener('change', () => {
+                state.previewPerPage = parseInt(ppSel.value, 10) || 25;
+                runPreview(1);
+            });
+        }
     }
 
     function saveDesign() {

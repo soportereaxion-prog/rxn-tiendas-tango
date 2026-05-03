@@ -134,6 +134,11 @@ class JobDispatcher
             $bodyHtml = str_replace('{{Bloque.html}}', $blockHtml, $bodyHtml);
         }
 
+        // Resolver placeholders globales de la suite ANTES del snapshot —
+        // no dependen de destinatario y deben quedar fijos en el body congelado.
+        $bodyHtml = SuitePlaceholderResolver::resolve($bodyHtml);
+        $asuntoFinal = SuitePlaceholderResolver::resolve((string) $ctx['template']['asunto']);
+
         // 3. Crear cabecera job
         $jobId = $this->repo->createJob([
             'empresa_id' => $empresaId,
@@ -142,7 +147,7 @@ class JobDispatcher
             'content_report_id' => $contentReportId > 0 ? $contentReportId : null,
             'template_id' => $templateId,
             'smtp_config_id' => (int) $ctx['smtp']['id'],
-            'asunto' => (string) $ctx['template']['asunto'],
+            'asunto' => $asuntoFinal,
             'body_snapshot' => $bodyHtml,
             'attachments_json' => null, // Fase 4b
             'total_destinatarios' => $preview['count'],

@@ -44,6 +44,7 @@ use InvalidArgumentException;
 class ReportQueryBuilder
 {
     private ReportMetamodel $meta;
+    private FilterTokenResolver $tokenResolver;
 
     /** @var array<string, string> map entity => alias */
     private array $aliases = [];
@@ -53,9 +54,10 @@ class ReportQueryBuilder
 
     private int $paramCounter = 0;
 
-    public function __construct(?ReportMetamodel $meta = null)
+    public function __construct(?ReportMetamodel $meta = null, ?FilterTokenResolver $tokenResolver = null)
     {
         $this->meta = $meta ?? new ReportMetamodel();
+        $this->tokenResolver = $tokenResolver ?? new FilterTokenResolver();
     }
 
     /**
@@ -70,7 +72,7 @@ class ReportQueryBuilder
      * @param array<string, mixed> $config
      * @return array{sql: string, params: array<string, mixed>, aliases: array<string, string>, mail_target: array{entity: string, field: string, alias: string}|null, field_aliases: array<string, string>}
      */
-    public function build(array $config, int $empresaId, int $limit = 0, bool $requireMailTarget = true): array
+    public function build(array $config, int $empresaId, int $limit = 0, bool $requireMailTarget = true, int $offset = 0): array
     {
         $this->aliases = [];
         $this->params = [];
@@ -112,6 +114,9 @@ class ReportQueryBuilder
 
         if ($limit > 0) {
             $sql .= ' LIMIT ' . $limit;
+            if ($offset > 0) {
+                $sql .= ' OFFSET ' . $offset;
+            }
         }
 
         return [
@@ -120,6 +125,24 @@ class ReportQueryBuilder
             'aliases' => $this->aliases,
             'mail_target' => $mailTarget,
             'field_aliases' => $fieldAliases,
+        ];
+    }
+
+    /**
+     * Construye un SELECT COUNT(*) sobre el mismo plan de joins/where del reporte.
+     * Útil para paginar el preview sin volver a traer todas las filas.
+     *
+     * @param array<string, mixed> $config
+     * @return array{sql: string, params: array<string, mixed>}
+     */
+    public function buildCount(array $config, int $empresaId, bool $requireMailTarget = true): array
+    {
+        $built = $this->build($config, $empresaId, 0, $requireMailTarget, 0);
+        // Reemplazar el SELECT ... FROM por COUNT(*) FROM (manteniendo el resto).
+        $sql = preg_replace('/^SELECT .+? FROM /s', 'SELECT COUNT(*) AS total FROM ', $built['sql'], 1);
+        return [
+            'sql' => (string) $sql,
+            'params' => $built['params'],
         ];
     }
 
@@ -320,7 +343,7 @@ class ReportQueryBuilder
 
         // IN / NOT IN
         if ($op === 'IN' || $op === 'NOT IN') {
-            $value = $filter['value'] ?? [];
+            $value = $this->tokenResolver->resolve($filter['value'] ?? []);
             if (!is_array($value) || empty($value)) {
                 throw new InvalidArgumentException("Operador {$op} requiere un array no vacío en 'value'");
             }
@@ -333,7 +356,7 @@ class ReportQueryBuilder
 
         // BETWEEN
         if ($op === 'BETWEEN') {
-            $value = $filter['value'] ?? null;
+            $value = $this->tokenResolver->resolve($filter['value'] ?? null);
             if (!is_array($value) || count($value) !== 2) {
                 throw new InvalidArgumentException("Operador BETWEEN requiere array de 2 elementos en 'value'");
             }
@@ -344,7 +367,7 @@ class ReportQueryBuilder
 
         // LIKE / NOT LIKE — wrappear con % si no los tiene
         if ($op === 'LIKE' || $op === 'NOT LIKE') {
-            $value = (string) ($filter['value'] ?? '');
+            $value = (string) $this->tokenResolver->resolve($filter['value'] ?? '');
             if ($value === '') {
                 throw new InvalidArgumentException("Operador {$op} requiere 'value' no vacío");
             }
@@ -356,7 +379,7 @@ class ReportQueryBuilder
         }
 
         // Operadores binarios simples: =, !=, <, <=, >, >=
-        $value = $filter['value'] ?? null;
+        $value = $this->tokenResolver->resolve($filter['value'] ?? null);
         $p = $this->nextParam($value);
         return sprintf('%s %s %s', $colRef, $op, $p);
     }

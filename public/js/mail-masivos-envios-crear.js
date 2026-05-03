@@ -16,6 +16,7 @@
 
     const $selReport = document.getElementById('sel-report');
     const $selTemplate = document.getElementById('sel-template');
+    const $selContentReport = document.getElementById('sel-content-report');
     const $tplHint = document.getElementById('tpl-hint');
     const $asuntoPreview = document.getElementById('asunto-preview');
     const $btnPreview = document.getElementById('btn-preview');
@@ -24,6 +25,19 @@
     const $chkConfirm = document.getElementById('chk-confirm');
     const $btnDisparar = document.getElementById('btn-disparar');
     const $form = document.getElementById('disparo-form');
+
+    // Preview del mail final
+    const $btnMailPreview = document.getElementById('btn-preview-mail');
+    const $btnFullscreen = document.getElementById('btn-preview-fullscreen');
+    const $btnNewTab = document.getElementById('btn-preview-newtab');
+    const $mailStatus = document.getElementById('preview-mail-status');
+    const $mailAsunto = document.getElementById('preview-mail-asunto');
+    const $mailIframe = document.getElementById('preview-mail-iframe');
+    const $mailIframeModal = document.getElementById('preview-mail-iframe-modal');
+    const $mailModal = document.getElementById('preview-mail-modal');
+
+    let lastMailHtml = '';
+    let lastMailAsunto = '';
 
     let lastPreview = null; // { count, capped }
 
@@ -172,6 +186,126 @@
 
     $btnPreview.addEventListener('click', doPreview);
     $chkConfirm.addEventListener('change', updateDisparoEnabled);
+
+    // ───── Preview del mail final ─────
+    async function doMailPreview() {
+        if (!cfg.apiPreviewRender) return;
+        const reportId = parseInt($selReport.value || '0', 10);
+        const templateId = parseInt($selTemplate.value || '0', 10);
+        const contentReportId = parseInt(($selContentReport && $selContentReport.value) || '0', 10);
+
+        if (templateId <= 0) {
+            setMailStatus('Elegí primero una plantilla.', 'warning');
+            return;
+        }
+
+        setMailStatus('⏳ Renderizando preview...', 'loading');
+        $btnMailPreview.disabled = true;
+
+        try {
+            const resp = await fetch(cfg.apiPreviewRender, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    template_id: templateId,
+                    report_id: reportId > 0 ? reportId : 0,
+                    content_report_id: contentReportId > 0 ? contentReportId : 0,
+                }),
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.success) {
+                setMailStatus(data.message || ('Error HTTP ' + resp.status), 'error');
+                clearMailPreview();
+                return;
+            }
+
+            lastMailHtml = data.body_html_rendered || '';
+            lastMailAsunto = data.asunto_rendered || '';
+
+            $mailAsunto.innerHTML = lastMailAsunto
+                ? '<strong>Asunto:</strong> ' + escapeHtml(lastMailAsunto)
+                : '';
+
+            // Render via srcdoc — iframe sandboxed para evitar JS arbitrario.
+            $mailIframe.srcdoc = lastMailHtml;
+
+            const noteParts = [];
+            if (data.note) noteParts.push(data.note);
+            if (Array.isArray(data.missing_tokens) && data.missing_tokens.length > 0) {
+                noteParts.push('Variables sin datos: ' + data.missing_tokens.join(', '));
+            }
+            setMailStatus(noteParts.length ? '⚠ ' + noteParts.join(' · ') : '✓ Preview generado.', noteParts.length ? 'warning' : 'ok');
+
+            $btnFullscreen.disabled = false;
+            $btnNewTab.disabled = false;
+        } catch (err) {
+            setMailStatus('Error de red: ' + err.message, 'error');
+            clearMailPreview();
+        } finally {
+            $btnMailPreview.disabled = false;
+        }
+    }
+
+    function clearMailPreview() {
+        lastMailHtml = '';
+        lastMailAsunto = '';
+        $mailIframe.srcdoc = '';
+        $mailAsunto.innerHTML = '';
+        $btnFullscreen.disabled = true;
+        $btnNewTab.disabled = true;
+    }
+
+    function setMailStatus(msg, kind) {
+        const cls = {
+            loading: 'text-primary',
+            ok: 'text-success',
+            error: 'text-danger',
+            warning: 'text-warning',
+        }[kind] || 'text-muted';
+        $mailStatus.className = 'small mb-2 ' + cls;
+        $mailStatus.textContent = msg;
+    }
+
+    if ($btnMailPreview) {
+        $btnMailPreview.addEventListener('click', doMailPreview);
+    }
+    if ($btnFullscreen && $mailModal) {
+        $btnFullscreen.addEventListener('click', () => {
+            if (!lastMailHtml) return;
+            $mailIframeModal.srcdoc = lastMailHtml;
+            // Bootstrap 5 modal — global bootstrap.Modal esperado por el resto de la suite
+            if (window.bootstrap && window.bootstrap.Modal) {
+                const modal = window.bootstrap.Modal.getOrCreateInstance($mailModal);
+                modal.show();
+            } else {
+                $mailModal.classList.add('show');
+                $mailModal.style.display = 'block';
+            }
+        });
+    }
+    if ($btnNewTab) {
+        $btnNewTab.addEventListener('click', () => {
+            if (!lastMailHtml) return;
+            const w = window.open('', '_blank');
+            if (!w) return;
+            w.document.open();
+            w.document.write(lastMailHtml);
+            w.document.close();
+            w.document.title = lastMailAsunto || 'Preview del mail';
+        });
+    }
+
+    // Si cambia plantilla, reporte o bloque de contenido invalidamos el preview existente
+    [$selReport, $selTemplate, $selContentReport].forEach(sel => {
+        if (sel) {
+            sel.addEventListener('change', () => {
+                if (lastMailHtml) {
+                    setMailStatus('Cambiaste la selección — refrescá el preview.', 'warning');
+                }
+            });
+        }
+    });
 
     // Evitar disparar con Enter en un input
     $form.addEventListener('submit', (ev) => {

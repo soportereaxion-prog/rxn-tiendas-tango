@@ -148,7 +148,7 @@ $smtp = $smtp ?? null;
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm">
+                <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3"><i class="bi bi-6-circle-fill text-primary"></i> Confirmar y disparar</h6>
 
@@ -169,14 +169,59 @@ $smtp = $smtp ?? null;
                         </div>
                     </div>
                 </div>
+
+                <div class="card border-0 shadow-sm" id="preview-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+                            <h6 class="fw-bold mb-0">
+                                <i class="bi bi-eye-fill text-primary"></i> Preview del mail final
+                                <span class="text-muted fw-normal small">(con primer destinatario y bloque renderizado)</span>
+                            </h6>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary" id="btn-preview-mail">
+                                    <i class="bi bi-arrow-clockwise"></i> Refrescar
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="btn-preview-fullscreen" disabled title="Abrir en modal">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="btn-preview-newtab" disabled title="Abrir en nueva pestaña">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="preview-mail-status" class="small text-muted mb-2">Tocá "Refrescar" para ver el preview.</div>
+                        <div id="preview-mail-asunto" class="small mb-2"></div>
+                        <div class="rxn-envios-preview-iframe-wrap">
+                            <iframe id="preview-mail-iframe" sandbox="" title="Preview del mail" loading="lazy"></iframe>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
 </div>
 
+<!-- Modal pantalla completa -->
+<div class="modal fade" id="preview-mail-modal" tabindex="-1" aria-labelledby="preview-mail-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="preview-mail-modal-title">
+                    <i class="bi bi-eye-fill"></i> Preview del mail final
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="preview-mail-iframe-modal" sandbox="" title="Preview pantalla completa" style="width:100%; height:100%; border:0;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 window.MailEnviosCrear = {
     apiPreviewRecipients: '/mi-empresa/crm/mail-masivos/envios/preview-recipients',
+    apiPreviewRender: '/mi-empresa/crm/mail-masivos/plantillas/preview-render',
 };
 </script>
 <script src="/js/mail-masivos-envios-crear.js" defer></script>

@@ -384,6 +384,137 @@
     word-break: break-word;
 }
 
+/* ── Filtros: input + botón de tokens dinámicos ───────────────── */
+.mm-filter-value-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.mm-filter-value-wrap > .form-control {
+    flex: 1 1 auto;
+}
+
+.mm-filter-token-btn {
+    flex: 0 0 auto;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-muted);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 120ms, color 120ms;
+}
+
+.mm-filter-token-btn:hover {
+    background: var(--primary-color, #0d6efd);
+    color: #fff;
+    border-color: var(--primary-color, #0d6efd);
+}
+
+.mm-filter-token-btn.is-suggested {
+    color: var(--primary-color, #0d6efd);
+    border-color: var(--primary-color, #0d6efd);
+}
+
+/* Menú flotante de tokens dinámicos */
+.mm-token-menu {
+    position: absolute;
+    z-index: 2000;
+    min-width: 280px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    padding: 0.5rem 0;
+}
+
+.mm-token-menu-header {
+    padding: 0.25rem 0.75rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0.25rem;
+}
+
+.mm-token-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    padding: 0.4rem 0.75rem;
+    color: var(--text-color, inherit);
+    text-align: left;
+    cursor: pointer;
+}
+
+.mm-token-menu-item:hover {
+    background: var(--primary-color, #0d6efd);
+    color: #fff;
+}
+
+.mm-token-menu-item:hover .mm-token-code {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
+
+.mm-token-label {
+    font-size: 0.85rem;
+}
+
+.mm-token-code {
+    font-size: 0.7rem;
+    background: rgba(0, 0, 0, 0.18);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    margin-left: 0.5rem;
+    white-space: nowrap;
+}
+
+.mm-token-menu-hint {
+    padding: 0.5rem 0.75rem 0.25rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    margin-top: 0.25rem;
+}
+
+/* ── Pager del preview ────────────────────────────────────────── */
+.mm-preview-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.mm-preview-pager-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.mm-preview-pager-input {
+    width: 4rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.25rem;
+    background: var(--card-bg);
+    color: inherit;
+}
+
 /* ── Ajustes responsivos ────────────────────────────────────────── */
 @media (max-width: 992px) {
     .mm-designer-shell {

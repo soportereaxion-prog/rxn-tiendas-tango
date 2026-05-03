@@ -12,6 +12,7 @@ use App\Modules\Auth\AuthService;
 use App\Modules\CrmMailMasivos\Services\BlockRenderer;
 use App\Modules\CrmMailMasivos\Services\ReportMetamodel;
 use App\Modules\CrmMailMasivos\Services\ReportQueryBuilder;
+use App\Modules\CrmMailMasivos\Services\SuitePlaceholderResolver;
 use InvalidArgumentException;
 use PDO;
 use Throwable;
@@ -315,8 +316,51 @@ class TemplateController
         }
 
         $reportId = (int) ($input['report_id'] ?? 0);
+        $contentReportId = (int) ($input['content_report_id'] ?? 0);
+        $templateId = (int) ($input['template_id'] ?? 0);
         $asunto = (string) ($input['asunto'] ?? '');
         $bodyHtml = (string) ($input['body_html'] ?? '');
+
+        // Si viene template_id (caso "preview en pantalla de envío masivo"),
+        // tomamos asunto + body_html de la plantilla guardada y, si no se
+        // mandó report_id, usamos el reporte asociado a la plantilla.
+        if ($templateId > 0) {
+            $tpl = $this->repo->findByIdForEmpresa($templateId, $empresaId);
+            if (!$tpl) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Plantilla no encontrada']);
+                exit;
+            }
+            if ($asunto === '')   $asunto = (string) ($tpl['asunto'] ?? '');
+            if ($bodyHtml === '') $bodyHtml = (string) ($tpl['body_html'] ?? '');
+            if ($reportId <= 0)   $reportId = (int) ($tpl['report_id'] ?? 0);
+        }
+
+        // Resolver bloque de contenido ANTES de reemplazar variables del row.
+        // Mismo orden que JobDispatcher::dispatch — así el preview es fiel al envío real.
+        $blockNote = null;
+        if ($contentReportId > 0) {
+            try {
+                $renderer = new BlockRenderer($this->meta);
+                $blockHtml = $renderer->renderContentReport($contentReportId, $empresaId);
+                $bodyHtml = str_replace('{{Bloque.html}}', $blockHtml, $bodyHtml);
+                if ($blockHtml === '') {
+                    $blockNote = 'El reporte de contenido no devolvió filas — el bloque queda vacío.';
+                }
+            } catch (Throwable $e) {
+                http_response_code(422);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No se pudo renderizar el bloque de contenido: ' . $e->getMessage(),
+                    'kind' => 'block',
+                ]);
+                exit;
+            }
+        }
+
+        // Resolver placeholders globales (logo, base_url) — mismo orden que JobDispatcher.
+        $bodyHtml = SuitePlaceholderResolver::resolve($bodyHtml);
+        $asunto   = SuitePlaceholderResolver::resolve($asunto);
 
         // Sin reporte asociado → preview sin reemplazo (los placeholders quedan visibles)
         if ($reportId <= 0) {
@@ -326,7 +370,7 @@ class TemplateController
                 'body_html_rendered' => $bodyHtml,
                 'sample_row' => null,
                 'missing_tokens' => $this->extractTokens($asunto . ' ' . $bodyHtml),
-                'note' => 'Sin reporte asociado — los placeholders no se reemplazan en el preview.',
+                'note' => $blockNote ?? 'Sin reporte asociado — los placeholders no se reemplazan en el preview.',
             ]);
             exit;
         }
@@ -376,7 +420,7 @@ class TemplateController
                     'body_html_rendered' => $bodyHtml,
                     'sample_row' => null,
                     'missing_tokens' => $this->extractTokens($asunto . ' ' . $bodyHtml),
-                    'note' => 'El reporte no devolvió registros — no hay datos de muestra para el preview.',
+                    'note' => $blockNote ?? 'El reporte no devolvió registros — no hay datos de muestra para el preview.',
                 ]);
                 exit;
             }
@@ -390,6 +434,7 @@ class TemplateController
                 'body_html_rendered' => $bodyOut,
                 'sample_row' => $row,
                 'missing_tokens' => array_values(array_unique(array_merge($missA, $missB))),
+                'note' => $blockNote,
             ]);
             exit;
         } catch (InvalidArgumentException $e) {

@@ -1,9 +1,32 @@
 <?php
 
 return [
-    'current_version' => '1.44.0',
-    'current_build' => '20260502.8',
+    'current_version' => '1.45.0',
+    'current_build' => '20260503.1',
     'history' => [
+        [
+            'version' => '1.45.0',
+            'build' => '20260503.1',
+            'released_at' => '2026-05-03',
+            'title' => 'Iteración 46 — Mejoras al módulo CrmMailMasivos: tokens dinámicos en filtros + preview paginado + preview del mail final + logo en Newsletter',
+            'summary' => 'Cuatro mejoras al módulo de envíos masivos pedidas por Charly antes de mandar la primera campaña real a sus 5k clientes. (1) Filtros con valores dinámicos: nuevo FilterTokenResolver que reemplaza tokens del tipo {{HOY}}, {{AYER}}, {{HOY-7d}}, {{INICIO_MES}}, {{FIN_MES}}, {{INICIO_ANIO}}, {{FIN_ANIO}}, {{AHORA}} y modificadores ±N en días/meses/años. Resolución siempre en backend al ejecutar el query — el config_json del reporte queda con el literal, así no hay que editar el reporte cada vez que se quiera disparar un envío con la fecha del día. UI: botón calendario al lado del input del filtro abre menú flotante con todos los tokens disponibles. Para BETWEEN se pueden combinar dos. Soporta IN/NOT IN/BETWEEN/LIKE además de los operadores binarios simples. (2) Preview del diseñador de reportes paginado server-side: 25 por página por default (configurable a 10/25/50/100/200), sin tope total porque el control humano sobre 5k filas es valioso. La API devuelve total real, mail_count DISTINCT y la página solicitada con offset/limit. Pager en la UI con primer/anterior/siguiente/último + input numérico + selector de tamaño. (3) Preview del mail final en pantalla de envío masivo: card nueva con iframe sandbox que renderiza la plantilla + bloque de contenido + datos del primer destinatario, exactamente como va a viajar al receptor. TemplateController::previewRender extendido para aceptar template_id (autoresuelve asunto + body + report_id desde la plantilla guardada) y content_report_id (aplica BlockRenderer antes del renderTemplate). Tres botones: Refrescar (manual), Pantalla completa (modal Bootstrap fullscreen), Nueva pestaña (window.open). (4) Logo de Reaxion empaquetado: asset en public/img/email/LogoRXN-SinFondo.png que viaja con OTA, embebido en la plantilla "Novedades RXN — Newsletter" via placeholder {{Suite.logo_url}} resuelto en runtime por SuitePlaceholderResolver — multi-tenant: cada suite usa su propio dominio sin compartir config. Migración idempotente que actualiza el body_html de la plantilla para todas las empresas. Bonus: JobDispatcher resuelve {{Suite.*}} ANTES de congelar el body_snapshot del envío para que el regex de BatchProcessor no se confunda con el namespace Suite. y devuelva string vacío.',
+            'items' => [
+                'app/modules/CrmMailMasivos/Services/FilterTokenResolver.php: NUEVO — resuelve {{HOY}}, {{AYER}}, {{MAÑANA}}, {{AHORA}}, {{HOY±Nd|m|y}}, {{INICIO_MES}}, {{FIN_MES}}, {{INICIO_ANIO}}, {{FIN_ANIO}}. Soporta arrays para IN/BETWEEN. Expone availableTokens() para el dropdown del UI.',
+                'app/modules/CrmMailMasivos/Services/SuitePlaceholderResolver.php: NUEVO — resuelve {{Suite.base_url}} y {{Suite.logo_url}} a URLs absolutas usando $_SERVER con fallback a $_ENV[APP_URL]. Multi-tenant by design.',
+                'app/modules/CrmMailMasivos/Services/ReportQueryBuilder.php: hookea FilterTokenResolver en buildFilterClause antes de bindear cada valor. Sumado offset al build() y método buildCount() para paginación. Constructor acepta resolver inyectable.',
+                'app/modules/CrmMailMasivos/ReportController.php: preview() acepta _page y _per_page (default 25, sin tope), devuelve total + total_pages + mail_count DISTINCT (vía subquery). Metamodel endpoint expone dynamic_tokens del FilterTokenResolver.',
+                'app/modules/CrmMailMasivos/TemplateController.php: previewRender() acepta template_id (autoresuelve campos desde DB) y content_report_id (aplica BlockRenderer). Resuelve {{Suite.*}} antes de renderTemplate.',
+                'app/modules/CrmMailMasivos/Services/JobDispatcher.php: resuelve {{Suite.*}} en body_html y asunto antes de crear el job para que queden frozen en body_snapshot — evita que BatchProcessor::renderTemplate los pise con string vacío.',
+                'public/js/mail-masivos-designer.js: pager del preview (« ‹ [N] de M › » + selector per-page), runPreview(page) recibe número, render del menú flotante de tokens dinámicos, openTokenMenu/insertToken con soporte BETWEEN/IN para combinar dos tokens.',
+                'public/css/mail-masivos-designer.css: estilos mm-filter-value-wrap, mm-filter-token-btn (icon calendario), mm-token-menu (flotante z-2000 con header + items + hint), mm-preview-pager (flex con info + buttons).',
+                'app/modules/CrmMailMasivos/views/envios/crear.php: card nueva "Preview del mail final" con iframe sandbox + 3 botones (Refrescar manual, Pantalla completa, Nueva pestaña). Modal fullscreen Bootstrap con segundo iframe.',
+                'public/js/mail-masivos-envios-crear.js: doMailPreview() llama a apiPreviewRender con template_id + report_id + content_report_id. Render via srcdoc del iframe. Modal con bootstrap.Modal.getOrCreateInstance. Nueva pestaña con window.open + document.write.',
+                'public/css/mail-masivos-envios.css: rxn-envios-preview-iframe-wrap (480px height) + reglas del modal fullscreen.',
+                'public/img/email/LogoRXN-SinFondo.png: NUEVO asset (logo Reaxion 1456x444 transparent). Viaja con OTA porque ReleaseBuilder empaqueta toda public/.',
+                'database/migrations/2026_05_03_00_alter_mail_template_novedades_add_logo.php: NUEVO — inyecta <img src="{{Suite.logo_url}}"> arriba del <h1> del header de "Novedades RXN — Newsletter" para todas las empresas. Idempotente por presencia del placeholder.',
+                'app/config/version.php: bump a 1.45.0 / build 20260503.1.',
+            ],
+        ],
         [
             'version' => '1.44.0',
             'build' => '20260502.8',
