@@ -102,9 +102,6 @@ ob_start();
                 <div class="rxn-toolbar-split mb-4">
                     <span class="badge bg-primary text-light fs-6 py-2 px-3"><?= htmlspecialchars((string) $totalBadgeLabel) ?>: <?= (int) $totalItems ?></span>
                     <div class="rxn-toolbar-actions">
-                        <form action="<?= htmlspecialchars($basePath) ?>/purgar" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-danger btn-sm fw-bold shadow-sm">Purgar Todo</button>
-                        </form>
                         <?php if ($showSyncActions): ?>
                             <a href="<?= htmlspecialchars((string) (strpos($basePath, '/crm/') !== false ? '/mi-empresa/crm/rxn-sync' : '/mi-empresa/rxn-sync')) ?>" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark border-0" style="background: linear-gradient(135deg, #f7b733 0%, #fc4a1a 100%);">
                                 <i class="fas fa-sync me-1"></i> Auditoría RXN Sync

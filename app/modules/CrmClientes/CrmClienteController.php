@@ -287,6 +287,32 @@ class CrmClienteController extends Controller
         set_time_limit(60);
 
         try {
+            // Si el form mandó los campos editables, persistimos local ANTES
+            // del push para que: (1) el push lleve los valores que el usuario
+            // ve en pantalla y (2) los cambios queden guardados aunque el
+            // usuario no haya pasado por "Guardar" primero.
+            //
+            // SALVAGUARDA: razon_social es required y nunca debe quedar vacía
+            // — si el form llegó sin ella (bug de FormData, JS roto, etc),
+            // abortamos el _save_form para no destruir el dato local. El push
+            // sigue adelante usando lo que ya hay en DB.
+            if (
+                isset($_POST['_save_form']) && (string) $_POST['_save_form'] === '1'
+                && trim((string) ($_POST['razon_social'] ?? '')) !== ''
+            ) {
+                $cliente = $this->repository->findById($localId, $empresaId);
+                if ($cliente !== null) {
+                    $this->repository->update($localId, $empresaId, [
+                        'razon_social' => trim((string) ($_POST['razon_social'] ?? '')),
+                        'documento'    => trim((string) ($_POST['documento'] ?? '')),
+                        'email'        => trim((string) ($_POST['email'] ?? '')),
+                        'telefono'     => trim((string) ($_POST['telefono'] ?? '')),
+                        'direccion'    => trim((string) ($_POST['direccion'] ?? '')),
+                        'activo'       => isset($_POST['activo']) ? 1 : 0,
+                    ]);
+                }
+            }
+
             $syncService = new \App\Modules\RxnSync\RxnSyncService();
             $payload = $syncService->pushToTangoByLocalId($empresaId, $localId, 'cliente');
             echo json_encode([

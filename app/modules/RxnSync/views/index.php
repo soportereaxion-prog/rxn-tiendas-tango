@@ -226,6 +226,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function showProgress() { if (progressBar) progressBar.classList.remove('d-none'); }
     function hideProgress() { if (progressBar) progressBar.classList.add('d-none'); }
 
+    function updateAuditLabel(entidad) {
+        if (!auditLabel) return;
+        if (entidad === 'articulo')     auditLabel.textContent = 'Sincronizar Artículos';
+        else if (entidad === 'cliente') auditLabel.textContent = 'Sincronizar Clientes';
+        else if (entidad === 'pedido')  auditLabel.textContent = 'Sincronizar Estados de Pedidos';
+        else                            auditLabel.textContent = 'Sincronizar desde Tango';
+    }
+
     function getActiveTabBtn() {
         return document.querySelector('#syncTabs button.active');
     }
@@ -340,11 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnOnlyImport) btnOnlyImport.style.display = isPedido ? 'none' : '';
         if (btnOnlyAudit)  btnOnlyAudit.style.display  = isPedido ? 'none' : '';
 
-        if (auditLabel) {
-            if (entidad === 'articulo') auditLabel.textContent = 'Sincronizar Artículos';
-            else if (entidad === 'cliente') auditLabel.textContent = 'Sincronizar Clientes';
-            else if (entidad === 'pedido')  auditLabel.textContent = 'Sincronizar Estados de Pedidos';
-        }
+        updateAuditLabel(entidad);
 
         container.innerHTML = '<div class="spinner-border text-primary my-4" role="status"></div>';
         showProgress();
@@ -725,7 +729,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Tab activo cambia ────────────────────────────────────────────
     document.querySelectorAll('#syncTabs button[data-bs-toggle="pill"]').forEach(function(btn) {
+        // Click directo: actualizamos el label INMEDIATAMENTE, sin depender
+        // del evento de Bootstrap (que en algunos navegadores/timing queda
+        // pegado con el texto del tab anterior).
+        btn.addEventListener('click', function() {
+            updateAuditLabel(btn.getAttribute('data-entidad'));
+        });
         btn.addEventListener('show.bs.tab', function(e) {
+            updateAuditLabel(e.target.getAttribute('data-entidad'));
             loadTabContent(e.target, true);
             clearSelection();
         });

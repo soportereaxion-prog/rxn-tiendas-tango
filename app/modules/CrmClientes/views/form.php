@@ -65,7 +65,7 @@ ob_start();
 
         <div class="card rxn-form-card border-0 shadow-sm">
             <div class="card-body p-4 p-lg-5">
-                <form action="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) ($cliente['id'] ?? 0) ?>" method="POST">
+                <form id="rxn-cliente-form" action="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) ($cliente['id'] ?? 0) ?>" method="POST">
                     <div class="rxn-form-section">
                         <div class="rxn-form-section-title">Identificadores Tango</div>
                         <div class="rxn-form-grid">
@@ -227,6 +227,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (endpoint === 'push' && base) {
             url = base + '/' + id + '/push-tango';
+            // Capturamos los valores actuales del form principal para que el
+            // push (a) los persista localmente y (b) los lleve a Tango.
+            // CRÍTICO: usamos el #rxn-cliente-form específico — los forms
+            // chiquitos del header (Copiar, Eliminar) NO contienen los
+            // inputs del cliente y caer ahí destruiría los datos locales.
+            var formEl = document.getElementById('rxn-cliente-form');
+            if (!formEl) {
+                window.rxnAlert('No se encontró el formulario del cliente. Recargá la página.', 'danger', 'Error');
+                btn.disabled = false;
+                return;
+            }
+            var fd = new FormData(formEl);
+            fd.append('_save_form', '1');
+            options.body = fd;
         } else {
             var form = new FormData();
             form.append('id', id);

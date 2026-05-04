@@ -5,6 +5,7 @@ namespace App\Modules\Articulos;
 
 use App\Core\Context;
 use App\Core\Controller;
+use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
 use App\Modules\Categorias\CategoriaRepository;
@@ -394,9 +395,15 @@ class ArticuloController extends Controller
                 }
 
                 $this->clearEnvironmentCaches($area, $empresaId);
+                Flash::set('success', 'Artículo actualizado correctamente.');
             }
         }
 
+        // Tras Guardar nos quedamos en el form (no volvemos al listado)
+        // — alineado con el comportamiento del módulo CrmClientes.
+        if ($id > 0) {
+            $this->redirectTo($ui['basePath'] . '/editar?id=' . $id);
+        }
         $this->redirectTo($ui['basePath']);
     }
 
@@ -522,6 +529,41 @@ class ArticuloController extends Controller
         set_time_limit(60);
 
         try {
+            // Si el form mandó los campos editables, persistimos local ANTES
+            // del push para que: (1) el push lleve los valores que el usuario
+            // ve en pantalla y (2) los cambios queden guardados aunque el
+            // usuario no haya pasado por "Guardar" primero.
+            //
+            // SALVAGUARDA: nombre es required y nunca debe quedar vacío
+            // — si el form llegó sin él (bug de FormData, JS roto, etc),
+            // abortamos el _save_form para no destruir el dato local. El push
+            // sigue adelante usando lo que ya hay en DB.
+            if (
+                isset($_POST['_save_form']) && (string) $_POST['_save_form'] === '1'
+                && trim((string) ($_POST['nombre'] ?? '')) !== ''
+            ) {
+                $repository = $this->resolveRepository($area);
+                $articulo = $repository->findById($localId, $empresaId);
+                if ($articulo) {
+                    $articulo->nombre = trim((string) ($_POST['nombre'] ?? ''));
+                    $articulo->descripcion = trim((string) ($_POST['descripcion'] ?? '')) ?: null;
+                    $precioStr = $_POST['precio'] ?? '';
+                    $articulo->precio = $precioStr !== '' ? (float) $precioStr : null;
+                    $precioL1Str = $_POST['precio_lista_1'] ?? '';
+                    $articulo->precio_lista_1 = $precioL1Str !== '' ? (float) $precioL1Str : null;
+                    $precioL2Str = $_POST['precio_lista_2'] ?? '';
+                    $articulo->precio_lista_2 = $precioL2Str !== '' ? (float) $precioL2Str : null;
+                    $stockStr = $_POST['stock_actual'] ?? '';
+                    $articulo->stock_actual = $stockStr !== '' ? (float) $stockStr : null;
+                    $articulo->activo = isset($_POST['activo']) ? 1 : 0;
+                    $ui = $this->buildUiContext($area);
+                    $articulo->categoria_id = ($ui['showCategories'] ?? false)
+                        ? $this->resolveCategoriaId($empresaId, $_POST['categoria_id'] ?? null)
+                        : $articulo->categoria_id;
+                    $repository->update($articulo);
+                }
+            }
+
             $configRepo  = \App\Modules\EmpresaConfig\EmpresaConfigRepository::forArea($area);
             $empresaConf = $configRepo->findByEmpresaId($empresaId);
             $syncBatch   = max(50, (int) ($empresaConf->cantidad_articulos_sync ?? 500));

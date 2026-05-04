@@ -1,9 +1,28 @@
 <?php
 
 return [
-    'current_version' => '1.45.2',
-    'current_build' => '20260504.1',
+    'current_version' => '1.46.0',
+    'current_build' => '20260504.2',
     'history' => [
+        [
+            'version' => '1.46.0',
+            'build' => '20260504.2',
+            'released_at' => '2026-05-04',
+            'title' => 'Iteración 47 — Push individual de clientes/artículos + UX RxnSync + ayuda',
+            'summary' => 'Sesión maratónica de fixes alrededor de la integración Tango Connect. (1) Push individual de clientes y artículos desde el form de edición ahora funciona end-to-end: el código original mandaba un payload acotado que Tango Connect rechazaba con "Se detectó una situación inesperada → El campo X es requerido" (EXPORTA en clientes, PROMO_MENU en artículos, etc). El process 2117/87 de Connect funciona como PUT completo, no PATCH parcial — exige TODOS los required fields del registro aunque no los modifiquemos. Ahora el RxnSyncService::pushToTangoByLocalId arranca del snapshot completo del GetById (filtrando nulls) y solo sobreescribe los campos editables del form (RAZON_SOCI/CUIT/DOMICILIO/E_MAIL/TELEFONO_1 para clientes; DESCRIPCIO para artículos). Tango ve el resto sin cambios y los acepta. (2) UX del Push: el botón ahora guarda los cambios del form ANTES de pushear, así el operador puede editar un campo y darle Push directo sin pasar por "Guardar modificaciones" primero. CrmClienteController y ArticuloController aceptan flag _save_form=1 y reciben los campos editables del form como POST. JS de los forms captura new FormData(form) usando IDs específicos (#rxn-cliente-form / #rxn-articulo-form) — antes el querySelector frágil agarraba los forms chiquitos del header (Copiar/Eliminar) y mandaba todos los campos vacíos, lo que destruía los datos locales. Salvaguarda backend: si por bug el campo required (razón social / nombre) llega vacío, se aborta el _save_form para no destruir DB. (3) Tras Guardar modificaciones de artículo el sistema redirigía al index (en clientes ya andaba bien) — ahora se queda en el form, alineado con el comportamiento de CrmClientes. (4) Limpieza UX en RXN Sync: el label del botón principal de sincronización se actualiza al cambiar de tab (con handler de click directo además del show.bs.tab de Bootstrap, que en algunos timings quedaba pegado). Removido botón "Purgar Todo" del listado de Clientes CRM y Artículos — operación demasiado destructiva para tenerla siempre visible al alcance del operador. (5) Documentación operativa: la pantalla de Ayuda suma sección sobre Push/Pull individual desde la edición y un paso a paso del alta de empresa Connect (consecuencia del fix de 1.45.2 — Listas/Depósitos/Perfiles dependen de Company y solo cargan cuando se elige empresa).',
+            'items' => [
+                'app/modules/RxnSync/RxnSyncService.php: pushToTangoByLocalId arma updatePayload desde array_filter del snapshot completo de getById (filtra nulls) y override SOLO de campos editables. Tango recibe todos sus required fields con sus valores actuales — el push deja de rebotar.',
+                'app/modules/CrmClientes/CrmClienteController.php: pushToTango lee POST con flag _save_form=1, hace UPDATE local en crm_clientes con los 5 campos editables ANTES del push. Salvaguarda: aborta el _save_form si razon_social viene vacía para no destruir el dato.',
+                'app/modules/Articulos/ArticuloController.php: idem para artículos. UPDATE local replicando la lógica de actualizar() (nombre/descripcion/precio/stock/categoria/activo). Tras Guardar redirige a /editar?id=X en lugar del index. Flash success "Artículo actualizado correctamente".',
+                'app/modules/CrmClientes/views/form.php: form principal con id="rxn-cliente-form". doSync() para push captura getElementById en lugar de querySelector frágil; hard fail con alert si no encuentra el form.',
+                'app/modules/Articulos/views/form.php: form principal con id="rxn-articulo-form". Push handler captura el form completo + flag _save_form=1.',
+                'app/modules/RxnSync/views/index.php: nueva función updateAuditLabel(entidad) llamada desde loadTabContent + click directo en el tab + show.bs.tab. Robust contra timing de Bootstrap.',
+                'app/modules/Articulos/views/index.php: removido botón "Purgar Todo" del header.',
+                'app/modules/CrmClientes/views/index.php: removido botón "Purgar Todo" del header.',
+                'app/modules/Help/views/operational_help.php: sumada sección "Push y Pull desde la edición individual" en Articulos y "Alta de una empresa Connect (paso a paso)" en Configuracion de la Empresa.',
+                'app/config/version.php: bump a 1.46.0 / build 20260504.2.',
+            ],
+        ],
         [
             'version' => '1.45.2',
             'build' => '20260504.1',

@@ -211,32 +211,43 @@ class RxnSyncService
             throw new RuntimeException("No se encontró la entidad original en Tango (ID: {$tangoId}).");
         }
 
-        // 4. Hydrate Whitelist (Strict Partial DTO)
-        $updatePayload = [];
+        // 4. Hydrate — Shadow Copy completa + override de SOLO los campos
+        // editables del form CRM.
+        //
+        // Tango Connect process 2117 (clientes) y 87 (artículos) son PUT
+        // completos, NO PATCH parciales: exigen que TODOS los required
+        // fields del registro viajen en el body, aunque no se modifiquen.
+        // Si mandás un subset, rebota con "Se detectó una situación
+        // inesperada → El campo X es requerido" (X = EXPORTA en clientes,
+        // PROMO_MENU en artículos, etc, varía por perfil).
+        //
+        // Estrategia: arrancamos del snapshot completo del GetById (que
+        // tiene todos los campos del registro existente con sus valores
+        // actuales) y SOLO sobreescribimos los del form. Así el resto
+        // queda exactamente igual a como estaba — Tango no ve cambios
+        // en esos campos y los acepta.
+        //
+        // Filtramos nulls porque Connect a veces los rechaza en campos
+        // numéricos/enum donde internamente espera 0/valor por default.
+        $updatePayload = array_filter(
+            $tangoData,
+            static fn ($v) => $v !== null
+        );
 
         if ($entidad === 'cliente') {
-            $updatePayload['ID_GVA14']              = (int)$tangoId;
-            $updatePayload['COD_GVA14']             = $tangoData['COD_GVA14'] ?? '';
-            $updatePayload['ID_TIPO_DOCUMENTO_GV']  = $tangoData['ID_TIPO_DOCUMENTO_GV'] ?? 26;
-            $updatePayload['ID_GVA05']              = $tangoData['ID_GVA05'] ?? 1;
-            $updatePayload['ID_GVA18']              = $tangoData['ID_GVA18'] ?? 1;
-            $updatePayload['ID_CATEGORIA_IVA']      = $tangoData['ID_CATEGORIA_IVA'] ?? 1;
-            $updatePayload['RAZON_SOCI']            = mb_substr(trim((string)($localData['razon_social'] ?? '')), 0, 60);
-            $updatePayload['CUIT']                  = mb_substr(trim((string)($localData['documento'] ?? '')), 0, 20);
-            $updatePayload['DOMICILIO']             = mb_substr(trim((string)($localData['direccion'] ?? ($tangoData['DOMICILIO'] ?? ''))), 0, 60);
-            $updatePayload['LOCALIDAD']             = mb_substr(trim((string)($localData['localidad'] ?? ($tangoData['LOCALIDAD'] ?? ''))), 0, 20);
-            $updatePayload['C_POSTAL']              = mb_substr(trim((string)($localData['codigo_postal'] ?? ($tangoData['C_POSTAL'] ?? ''))), 0, 8);
-            $updatePayload['E_MAIL']                = mb_substr(trim((string)($localData['email'] ?? '')), 0, 255);
-            $updatePayload['TELEFONO_1']            = mb_substr(trim((string)($localData['telefono'] ?? '')), 0, 20);
-            foreach (['TELEFONO_2', 'TELEFONO_MOVIL', 'WEB', 'NOM_COM', 'DIR_COM'] as $field) {
-                if (isset($tangoData[$field])) $updatePayload[$field] = mb_substr(trim((string)$tangoData[$field]), 0, 50);
-            }
+            // Editables en CrmClientes/views/form.php:
+            // razon_social, documento, email, telefono, direccion.
+            $updatePayload['ID_GVA14']   = (int)$tangoId;
+            $updatePayload['RAZON_SOCI'] = mb_substr(trim((string)($localData['razon_social'] ?? '')), 0, 60);
+            $updatePayload['CUIT']       = mb_substr(trim((string)($localData['documento'] ?? '')), 0, 20);
+            $updatePayload['DOMICILIO']  = mb_substr(trim((string)($localData['direccion'] ?? '')), 0, 60);
+            $updatePayload['E_MAIL']     = mb_substr(trim((string)($localData['email'] ?? '')), 0, 255);
+            $updatePayload['TELEFONO_1'] = mb_substr(trim((string)($localData['telefono'] ?? '')), 0, 20);
         } else {
-            // Payload mínimo para artículos: solo campos de texto seguros.
-            // PERFIL_ARTICULO, ID_STA22, COD_BARRA y OBSERVACIONES pueden ser
-            // rechazados por Tango según el perfil configurado (read-only o límite de chars).
+            // Editables en Articulos/views/form.php que mapean a Tango:
+            // nombre → DESCRIPCIO. (precio/stock/categoría son locales o
+            // van por procesos Tango distintos — no se pushean acá.)
             $updatePayload['ID_STA11']   = (int)$tangoId;
-            $updatePayload['COD_STA11']  = $tangoData['COD_STA11'] ?? '';
             $updatePayload['DESCRIPCIO'] = mb_substr(trim((string)($localData['nombre'] ?? '')), 0, 60);
         }
 

@@ -134,12 +134,20 @@ ob_start();
                     <li><strong>Cuando entrar:</strong> si un producto no aparece, tiene precio raro, imagen incorrecta o stock desactualizado.</li>
                 </ul>
                 <h3 class="h6 fw-bold mb-2">Botones que suelen generar dudas</h3>
-                <ul class="help-list-tight mb-0">
+                <ul class="help-list-tight mb-3">
                     <li><strong>Sync Articulos:</strong> trae o actualiza el maestro de articulos.</li>
                     <li><strong>Sync Precios:</strong> actualiza precios desde el sistema comercial.</li>
                     <li><strong>Sync Stock:</strong> refresca existencias locales.</li>
                     <li><strong>Sync Total:</strong> ejecuta una cadena mas completa de actualizaciones. Puede tardar mas.</li>
-                    <li><strong>Purgar Todo:</strong> borra el catalogo local. Solo usar si realmente queres reconstruirlo desde cero.</li>
+                    <li><strong>Auditoría RXN Sync:</strong> abre la consola central de sincronización (clientes, artículos, pedidos) con auditoría bidireccional contra Tango.</li>
+                </ul>
+
+                <h3 class="h6 fw-bold mb-2">Push y Pull desde la edición individual</h3>
+                <ul class="help-list-tight mb-0">
+                    <li><strong>Botón Push (subir a Tango):</strong> primero <em>guarda los cambios del formulario</em> en la base local y después intenta actualizar el registro en Tango. Sirve para corregir un nombre/descripción y mandarlo de un toque.</li>
+                    <li><strong>Botón Pull (bajar de Tango):</strong> trae el registro actualizado desde Tango y reemplaza la copia local. Se usa cuando alguien tocó el dato directo en el ERP y querés reflejarlo acá.</li>
+                    <li><strong>Botón Guardar modificaciones:</strong> persiste solo localmente, sin tocar Tango. Útil si Connect está caído o si querés guardar a medias.</li>
+                    <li><strong>Cómo lee Tango el Push:</strong> el sistema arranca del registro completo que tiene Tango y solo sobreescribe los campos que el operador puede editar (nombre/descripción para artículos; razón social, CUIT, email, teléfono y dirección para clientes). Los IDs internos, códigos y campos comerciales del ERP nunca se modifican desde acá.</li>
                 </ul>
             </div>
         </div>
@@ -606,6 +614,18 @@ ob_start();
                     <li><strong>SMTP:</strong> define como sale el correo desde la plataforma.</li>
                     <li><strong>Tango Connect:</strong> conecta el entorno con el ERP o sistema comercial.</li>
                 </ul>
+
+                <h3 class="h6 fw-bold mt-3 mb-2">Alta de una empresa Connect (paso a paso)</h3>
+                <ul class="help-list-tight mb-3">
+                    <li><strong>1. Cargar credenciales:</strong> URL base de Connect, Llave/Client Key y Token. Validá que estén bien antes de seguir.</li>
+                    <li><strong>2. Tocar "Validar y cargar metadata":</strong> el sistema consulta el maestro de empresas (process 1418) y llena el dropdown <em>ID de Empresa (Connect)</em> con todas las empresas disponibles para esa llave. Listas, depósitos y perfiles todavía NO se cargan en este paso — eso es esperado.</li>
+                    <li><strong>3. Elegir la empresa Connect del dropdown:</strong> apenas seleccionás, el sistema dispara automáticamente la carga de listas de precio, depósitos y perfiles de pedido para esa empresa puntual.</li>
+                    <li><strong>4. Guardar:</strong> recién con la empresa elegida y los catálogos resueltos podés guardar la configuración.</li>
+                </ul>
+                <div class="help-highlight">
+                    <strong>¿Por qué este orden?</strong> Las listas, depósitos y perfiles dependen de la empresa Connect — sin empresa elegida, Tango no puede resolverlos. Si abrís el panel de "Diagnóstico Connect" antes del paso 3 y ves marcado solo Empresas, está bien. Si después del paso 3 algún catálogo aparece en VACÍO o ERROR, ahí sí hay un problema real (credenciales sin permisos, perfil mal configurado en Axoft, etc.) y el detalle del banner te indica qué pasó.
+                </div>
+
                 <div class="help-highlight">
                     <strong>Consejo practico:</strong> si algo falla en correos o integraciones, este suele ser el primer lugar que conviene revisar. En CRM, la configuracion queda separada de Tiendas aunque haya sido clonada al inicio para no arrancar vacio.
                 </div>

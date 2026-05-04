@@ -62,7 +62,7 @@ ob_start();
 
         <div class="card rxn-form-card">
             <div class="card-body p-4 p-lg-5">
-                <form action="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $articulo->id ?>" method="POST" enctype="multipart/form-data">
+                <form id="rxn-articulo-form" action="<?= htmlspecialchars($basePath) ?>/editar?id=<?= (int) $articulo->id ?>" method="POST" enctype="multipart/form-data">
                     <?php $totalImagenes = count($imagenes ?? []); ?>
 
                     <div class="rxn-form-section mb-4 bg-light p-3 p-lg-4 border rounded">
@@ -290,8 +290,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 okText: 'Push', okClass: 'btn-warning',
                 onConfirm: function() {
                     self.disabled = true;
+                    // Capturamos el form principal del artículo. CRÍTICO: usamos
+                    // el #rxn-articulo-form específico — los forms chiquitos
+                    // del header (Copiar, Eliminar) NO contienen los inputs
+                    // y caer ahí destruiría los datos locales en el backend.
+                    var formEl = document.getElementById('rxn-articulo-form');
+                    if (!formEl) {
+                        window.rxnAlert('No se encontró el formulario del artículo. Recargá la página.', 'danger', 'Error');
+                        self.disabled = false;
+                        return;
+                    }
+                    var fd = new FormData(formEl);
+                    fd.append('_save_form', '1');
                     fetchJson(base + '/' + id + '/push-tango', {
                         method: 'POST',
+                        body: fd,
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     })
                     .then(function(d) {

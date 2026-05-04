@@ -81,9 +81,6 @@ ob_start();
                 <div class="rxn-toolbar-split mb-4">
                     <span class="badge bg-primary text-light fs-6 py-2 px-3"><?= htmlspecialchars((string) ($totalBadgeLabel ?? 'Total CRM')) ?>: <?= (int) $totalItems ?></span>
                     <div class="rxn-toolbar-actions">
-                        <form action="<?= htmlspecialchars($basePath) ?>/purgar" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-danger btn-sm fw-bold shadow-sm" data-rxn-confirm="¿Purgar toda la cache local de clientes CRM?" data-confirm-type="danger">Purgar Todo</button>
-                        </form>
                         <a href="/mi-empresa/crm/rxn-sync" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">
                             <i class="fas fa-sync me-1"></i> Auditoría RXN Sync
                         </a>
