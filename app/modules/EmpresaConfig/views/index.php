@@ -786,32 +786,49 @@ ob_start();
                         tangoBtn.classList.replace('btn-primary', 'btn-success');
                     }
 
-                    // 4 fetches atómicos paralelos — cada uno es independiente, ~2-3s c/u.
+                    // Fetches atómicos paralelos — cada uno es independiente, ~2-3s c/u.
                     // Desde release 1.13.1 las clasificaciones PDS dejaron de cargarse acá
                     // (se sincronizan via RXN Sync al catálogo crm_catalogo_comercial_items).
+                    //
+                    // Listas/Depósitos/Perfiles dependen de Company; si todavía no hay
+                    // empresa elegida (alta nueva), Connect responde HTTP 200 con items=0
+                    // que ensucia el banner amarillo. En ese caso solo cargamos Empresas
+                    // y el listener `change` del select dispara la segunda corrida con
+                    // companyId real.
+                    const sCompanyEl = document.getElementById('tango_connect_company_id');
+                    const companyResolved = !!(sCompanyEl && sCompanyEl.value && String(sCompanyEl.value).trim() !== '' && String(sCompanyEl.value).trim() !== '-1');
+                    const totalSteps = companyResolved ? 4 : 1;
                     let done = 0;
                     const tick = () => {
                         done++;
-                        if (tangoHint) tangoHint.textContent = `Cargando catálogos Tango... ${done}/4`;
+                        if (tangoHint) tangoHint.textContent = `Cargando catálogos Tango... ${done}/${totalSteps}`;
                     };
 
-                    await Promise.allSettled([
+                    const tasks = [
                         fetchCatalog('tango-empresas', formData, function(items) {
                             tick(); populateTangoSelects({ empresas: items });
                         }, 'Empresas'),
-                        fetchCatalog('tango-listas', formData, function(items) {
-                            tick(); populateTangoSelects({ listas_precios: items });
-                        }, 'Listas'),
-                        fetchCatalog('tango-depositos', formData, function(items) {
-                            tick(); populateTangoSelects({ depositos: items });
-                        }, 'Depósitos'),
-                        fetchCatalog('tango-perfiles', formData, function(items) {
-                            tick(); populateTangoSelects({ perfiles_pedidos: items });
-                        }, 'Perfiles'),
-                    ]);
+                    ];
+                    if (companyResolved) {
+                        tasks.push(
+                            fetchCatalog('tango-listas', formData, function(items) {
+                                tick(); populateTangoSelects({ listas_precios: items });
+                            }, 'Listas'),
+                            fetchCatalog('tango-depositos', formData, function(items) {
+                                tick(); populateTangoSelects({ depositos: items });
+                            }, 'Depósitos'),
+                            fetchCatalog('tango-perfiles', formData, function(items) {
+                                tick(); populateTangoSelects({ perfiles_pedidos: items });
+                            }, 'Perfiles'),
+                        );
+                    }
+
+                    await Promise.allSettled(tasks);
 
                     if (tangoHint) {
-                        tangoHint.textContent = 'Catálogos Tango resueltos. Si un valor no existe más en Connect, se conserva el guardado.';
+                        tangoHint.textContent = companyResolved
+                            ? 'Catálogos Tango resueltos. Si un valor no existe más en Connect, se conserva el guardado.'
+                            : 'Empresas cargadas. Seleccioná la empresa Connect para resolver listas, depósitos y perfiles.';
                     }
                     renderTangoDiagnosticPanel();
                     return true;
@@ -827,16 +844,19 @@ ob_start();
                     return false;
                 } finally {
                     setTimeout(() => {
-                        if (!tangoBtn.classList.contains('btn-success')) {
+                        tangoBtn.disabled = false;
+                        if (tangoBtn.classList.contains('btn-success')) {
+                            // Validación OK + catálogos resueltos: dejar el verde
+                            // pero RESTAURAR el texto del botón (no quedar pegado en
+                            // "Conectado — cargando catálogos...").
+                            tangoBtn.innerHTML = '✅ Conectado';
+                        } else {
                             tangoBtn.innerHTML = originalBtnHtml;
-                            tangoBtn.disabled = false;
                             tangoBtn.classList.remove('btn-danger');
                             tangoBtn.classList.add('btn-primary');
                             if (tangoHint && originalHint) {
                                 tangoHint.textContent = originalHint;
                             }
-                        } else {
-                            tangoBtn.disabled = false;
                         }
                     }, validateFirst ? 5000 : 800);
                 }
@@ -899,8 +919,11 @@ ob_start();
 
             function renderTangoDiagnosticPanel() {
                 if (!diagnosticPanel) return;
-                // Mostrar SIEMPRE que haya al menos un diagnostic con outcome != 'ok'
-                const anomalies = tangoDiagnostics.filter(d => d && d.outcome && d.outcome !== 'ok');
+                // Mostrar SIEMPRE que haya al menos un diagnostic con outcome != 'ok'.
+                // 'pending_company' es un estado intermedio esperado durante el alta
+                // de una empresa nueva (Listas/Depósitos/Perfiles dependen de Company),
+                // NO una anomalía — se filtra para no encender el banner al pedo.
+                const anomalies = tangoDiagnostics.filter(d => d && d.outcome && d.outcome !== 'ok' && d.outcome !== 'pending_company');
                 if (anomalies.length === 0) {
                     hideTangoDiagnosticPanel();
                     return;

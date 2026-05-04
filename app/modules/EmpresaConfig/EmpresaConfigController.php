@@ -212,6 +212,41 @@ class EmpresaConfigController extends Controller
     }
 
     /**
+     * Determina si el POST/config tiene una empresa Connect seleccionada.
+     * Listas, depósitos y perfiles dependen de Company; sin empresa elegida
+     * Connect responde HTTP 200 con items=0 que ensucia el banner de diagnóstico.
+     */
+    private function hasResolvedCompanyId(): bool
+    {
+        $service  = $this->resolveService($this->resolveArea());
+        $repoConf = $service->getConfig();
+        $companyId = trim($_POST['tango_connect_company_id'] ?? '') ?: (string)($repoConf->tango_connect_company_id ?? '');
+        return $companyId !== '' && $companyId !== '-1';
+    }
+
+    /**
+     * Diagnostic estructural cuando un endpoint dependiente de Company se invoca
+     * sin empresa elegida. El frontend lo trata como info, NO como anomalía.
+     */
+    private function pendingCompanyDiagnostic(int $process, string $label): array
+    {
+        return [
+            'outcome' => 'pending_company',
+            'label' => $label,
+            'process' => $process,
+            'company_header' => '-1',
+            'url' => trim((string)($_POST['tango_api_url'] ?? '')),
+            'items_count' => 0,
+            'error_class' => null,
+            'error_message' => 'Seleccioná primero una empresa Connect — este catálogo depende del Company resuelto.',
+            'http_code' => null,
+            'raw_sample' => null,
+            'id_keys' => [],
+            'first_item_keys' => [],
+        ];
+    }
+
+    /**
      * AJAX atómico: devuelve solo Empresas.
      * Separado del endpoint monolítico para no superar el Apache TimeOut (60s).
      */
@@ -246,6 +281,14 @@ class EmpresaConfigController extends Controller
         AuthService::requireLogin();
         header('Content-Type: application/json');
         set_time_limit(30);
+        if (!$this->hasResolvedCompanyId()) {
+            echo json_encode([
+                'success' => true,
+                'data' => [],
+                'diagnostic' => $this->pendingCompanyDiagnostic(984, 'Listas de precio (process 984)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
         try {
             $client = $this->buildTangoClientFromPost();
             $raw    = $client->getMaestroListasPrecio();
@@ -272,6 +315,14 @@ class EmpresaConfigController extends Controller
         AuthService::requireLogin();
         header('Content-Type: application/json');
         set_time_limit(30);
+        if (!$this->hasResolvedCompanyId()) {
+            echo json_encode([
+                'success' => true,
+                'data' => [],
+                'diagnostic' => $this->pendingCompanyDiagnostic(2941, 'Depositos (process 2941)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
         try {
             $client    = $this->buildTangoClientFromPost();
             $raw       = $client->getMaestroDepositos();
@@ -333,6 +384,14 @@ class EmpresaConfigController extends Controller
         AuthService::requireLogin();
         header('Content-Type: application/json');
         set_time_limit(30);
+        if (!$this->hasResolvedCompanyId()) {
+            echo json_encode([
+                'success' => true,
+                'data' => [],
+                'diagnostic' => $this->pendingCompanyDiagnostic(20020, 'Perfiles de pedido (process 20020)'),
+            ], JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
         try {
             $client   = $this->buildTangoClientFromPost();
             $perfiles = $client->getPerfilesPedidos();

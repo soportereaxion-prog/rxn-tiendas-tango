@@ -1,9 +1,21 @@
 <?php
 
 return [
-    'current_version' => '1.45.1',
-    'current_build' => '20260503.2',
+    'current_version' => '1.45.2',
+    'current_build' => '20260504.1',
     'history' => [
+        [
+            'version' => '1.45.2',
+            'build' => '20260504.1',
+            'released_at' => '2026-05-04',
+            'title' => 'Iteración 47 — Fix carga de catálogos Connect en alta de empresa nueva',
+            'summary' => 'Charly reportó que dar de alta una empresa nueva en Configuración general dejaba el selector "ID de Empresa (Connect)" vacío y el banner amarillo de "Diagnóstico Connect" se encendía marcando Listas (process 984) y Depósitos (process 2941) como VACÍO. Root cause: en la primera carga la empresa Connect todavía no está elegida → el TangoApiClient se construye con Company=-1 (que sirve solo para process=1418, el maestro de empresas). Los 4 fetches paralelos (empresas, listas, depósitos, perfiles) se disparan igual; los 3 dependientes de Company devuelven HTTP 200 con items=0 que ensucian el banner, y la concurrencia paralela contra Connect dejaba colgada la respuesta de empresas — por eso el dropdown nunca se llenaba. Fix en dos capas: (A) frontend detecta si hay companyId resuelto antes de pedir los catálogos hijos. Si no hay → solo pide tango-empresas. El listener change del select ya re-disparaba loadTangoMetadata cuando se elige empresa, así que la segunda corrida resuelve listas/depósitos/perfiles con companyId real. (B) backend short-circuit: getTangoListas/Depositos/Perfiles devuelven success:true con data:[] y diagnostic outcome:"pending_company" si companyId está vacío o es -1, sin viajar a Connect. (C) banner amarillo filtra "pending_company" — es estado intermedio esperado, no anomalía. Yapa: el botón "Validar y cargar metadata" quedaba pegado en "Conectado — cargando catálogos..." aunque las promises ya hubieran terminado, porque el finally no restauraba el texto si btn-success. Ahora pasa a "✅ Conectado" cuando termina.',
+            'items' => [
+                'app/modules/EmpresaConfig/EmpresaConfigController.php: hasResolvedCompanyId() chequea POST + config (vacío o -1 → false). pendingCompanyDiagnostic() arma el envelope estructural. getTangoListas/getTangoDepositos/getTangoPerfiles short-circuit antes de buildTangoClientFromPost cuando no hay company.',
+                'app/modules/EmpresaConfig/views/index.php: loadTangoMetadata lee tango_connect_company_id del DOM y arma la lista de tasks dinámicamente — solo Empresas si no hay company, los 4 catálogos si sí. Hint actualiza al estado correcto. renderTangoDiagnosticPanel filtra outcome="pending_company" del banner amarillo. finally restaura el texto del botón a "✅ Conectado" cuando queda en btn-success.',
+                'app/config/version.php: bump a 1.45.2 / build 20260504.1.',
+            ],
+        ],
         [
             'version' => '1.45.1',
             'build' => '20260503.2',
