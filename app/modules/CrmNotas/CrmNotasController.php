@@ -659,6 +659,10 @@ class CrmNotasController extends Controller
         if (!class_exists('\\OpenSpout\\Writer\\XLSX\\Writer')) {
             die("La exportación requiere que OpenSpout esté instalado.");
         }
+        // Vaciar todos los buffers antes del binario — ver nota en RxnLiveController::exportar().
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
 
         $search = $_GET['search'] ?? '';
         $sortColumn = $_GET['sort'] ?? 'created_at';
@@ -715,6 +719,10 @@ class CrmNotasController extends Controller
         
         if (!class_exists('\\OpenSpout\\Writer\\XLSX\\Writer')) {
             die("La descarga del Excel requiere que OpenSpout esté instalado.");
+        }
+        // Vaciar todos los buffers antes del binario — ver nota en RxnLiveController::exportar().
+        while (ob_get_level() > 0) {
+            ob_end_clean();
         }
 
         $filename = "matriz_notas_importacion.xlsx";

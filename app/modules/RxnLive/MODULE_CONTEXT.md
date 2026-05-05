@@ -289,3 +289,24 @@ Este archivo debe actualizarse si cambian:
 - La estructura de `pivot_metadata`.
 - Las rutas del módulo.
 - La lógica de filtrado, exportación o guardado de vistas.
+
+---
+
+## Dependencia crítica: `openspout/openspout`
+
+La exportación XLSX (`RxnLiveController::exportar()`, rama `format === 'xlsx'`) depende de **`openspout/openspout` (^4.30)**. Sin la lib, el endpoint muestra `"La exportación requiere que OpenSpout esté instalado."` y muere.
+
+**Regla dura** — cualquier `composer require` o `composer update` en este proyecto debe verificar primero que `openspout/openspout` esté declarado en `composer.json`. Si la lib está en `vendor/` pero no en el manifest, el primer reconcile del lock la borra silenciosamente (mismo antipatrón que `dompdf` en 1.27.0).
+
+### Incidente histórico (2026-05-05, hotfix 1.46.2)
+
+- **Síntoma**: el botón "Excel" devolvía la pantalla blanca con el mensaje de OpenSpout faltante. Venía funcionando perfecto en releases anteriores.
+- **Root cause**: `openspout/openspout` jamás había sido declarado en `composer.json` desde su introducción. Algún `composer require` posterior (sin identificar exactamente — el lock no lo registró nunca, así que `git log` por el path no encuentra el commit responsable) reconcilió las deps y barrió `vendor/openspout/`. El código siguió referenciándolo, falló el `class_exists`, y el `die()` defensivo emergió.
+- **Por qué no sabemos el commit exacto**: la lib nunca estuvo en `composer.lock`, entonces no quedó rastro en git de cuándo desapareció. La única pista vino de comparar `vendor/openspout/` ausente vs código vivo usándola.
+- **Fix**: `composer require openspout/openspout:^4.30` para formalizar y reinstalar. La declaración en `composer.json` la ancla — no se vuelve a borrar.
+- **Lección**: este módulo (y `CrmNotas`, que también la usa) asume que la dep existe. Cualquier toque a `composer.json` futuro debe pasar primero por el procedimiento del CLAUDE.md raíz — `composer show --installed` vs `require` del manifest, formalizar lo presente, y recién después agregar lo nuevo.
+
+### Smoke test obligatorio post-cambio en `composer.json`
+
+1. `composer show openspout/openspout` debe devolver versión instalada (no "Package not found").
+2. Abrir `localhost:9021/rxn_live/dataset?dataset=pedidos_servicio` → click en "Excel" → debe descargar `.xlsx` válido (no la pantalla del `die()`).

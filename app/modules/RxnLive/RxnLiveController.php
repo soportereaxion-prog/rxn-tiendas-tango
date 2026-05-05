@@ -308,11 +308,43 @@ class RxnLiveController
             }
         }
 
+        // Formato es-AR para columnas de fecha en el export (regla de UI del proyecto):
+        // date → d/m/Y, datetime/timestamp → d/m/Y H:i:S. Aplica a CSV y XLSX por igual,
+        // antes del split. Cualquier valor que no parsee como DateTime se deja crudo.
+        if (!empty($data)) {
+            $dateCols = [];
+            foreach (array_keys($data[0]) as $col) {
+                $type = $pivotMeta[$col]['type'] ?? null;
+                if ($type === 'date') {
+                    $dateCols[$col] = 'd/m/Y';
+                } elseif ($type === 'datetime' || $type === 'timestamp') {
+                    $dateCols[$col] = 'd/m/Y H:i:s';
+                }
+            }
+            if (!empty($dateCols)) {
+                foreach ($data as &$row) {
+                    foreach ($dateCols as $col => $fmt) {
+                        $raw = $row[$col] ?? null;
+                        if ($raw === null || $raw === '') continue;
+                        try {
+                            $row[$col] = (new \DateTime((string)$raw))->format($fmt);
+                        } catch (\Throwable $e) {
+                            // dejar crudo si no parsea
+                        }
+                    }
+                }
+                unset($row);
+            }
+        }
+
         if ($format === 'xlsx') {
             if (!class_exists('\\OpenSpout\\Writer\\XLSX\\Writer')) {
                 die("La exportación requiere que OpenSpout esté instalado.");
             }
-            if (ob_get_length()) {
+            // Vaciar TODOS los niveles de output buffer antes de escribir el binario.
+            // Open Server / framework pueden tener varios apilados; un solo ob_end_clean
+            // dejaba basura adelante del ZIP y Excel rechazaba el archivo como corrupto.
+            while (ob_get_level() > 0) {
                 ob_end_clean();
             }
 
@@ -348,13 +380,15 @@ class RxnLiveController
             [$headerStyle, $rowStyle, $footerStyle] = $this->buildXlsxStyles();
 
             if (!empty($data)) {
-                $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle(array_keys($data[0]), $headerStyle));
+                // OpenSpout v4: Row::fromValues($values, $style) — el segundo arg es el Style.
+                // El método fromValuesWithStyle (singular) era v3 y no existe más.
+                $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(array_keys($data[0]), $headerStyle));
                 foreach ($data as $row) {
-                    $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle(array_values($row), $rowStyle));
+                    $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(array_values($row), $rowStyle));
                 }
                 // Fila de totales al final con estilo destacado (bold + fondo azul claro #D9E1F2).
                 if ($totalsRow !== null) {
-                    $writer->addRow(\OpenSpout\Common\Entity\Row::fromValuesWithStyle(array_values($totalsRow), $footerStyle));
+                    $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(array_values($totalsRow), $footerStyle));
                 }
             }
 
@@ -410,49 +444,54 @@ class RxnLiveController
         $footerFg   = '000000';
         $borderCol  = '8EA9DB';
 
+        // OpenSpout v4: las constantes de border (TOP/BOTTOM/LEFT/RIGHT, WIDTH_THIN, STYLE_SOLID)
+        // viven en \OpenSpout\Common\Entity\Style\Border. Las clases sueltas BorderName/
+        // BorderWidth/BorderStyle son de v3 — si vuelven a aparecer, el export rompe con
+        // "Class not found" (incidente 1.46.2).
         $border = new \OpenSpout\Common\Entity\Style\Border(
             new \OpenSpout\Common\Entity\Style\BorderPart(
-                \OpenSpout\Common\Entity\Style\BorderName::TOP,
+                \OpenSpout\Common\Entity\Style\Border::TOP,
                 $borderCol,
-                \OpenSpout\Common\Entity\Style\BorderWidth::THIN,
-                \OpenSpout\Common\Entity\Style\BorderStyle::SOLID
+                \OpenSpout\Common\Entity\Style\Border::WIDTH_THIN,
+                \OpenSpout\Common\Entity\Style\Border::STYLE_SOLID
             ),
             new \OpenSpout\Common\Entity\Style\BorderPart(
-                \OpenSpout\Common\Entity\Style\BorderName::BOTTOM,
+                \OpenSpout\Common\Entity\Style\Border::BOTTOM,
                 $borderCol,
-                \OpenSpout\Common\Entity\Style\BorderWidth::THIN,
-                \OpenSpout\Common\Entity\Style\BorderStyle::SOLID
+                \OpenSpout\Common\Entity\Style\Border::WIDTH_THIN,
+                \OpenSpout\Common\Entity\Style\Border::STYLE_SOLID
             ),
             new \OpenSpout\Common\Entity\Style\BorderPart(
-                \OpenSpout\Common\Entity\Style\BorderName::LEFT,
+                \OpenSpout\Common\Entity\Style\Border::LEFT,
                 $borderCol,
-                \OpenSpout\Common\Entity\Style\BorderWidth::THIN,
-                \OpenSpout\Common\Entity\Style\BorderStyle::SOLID
+                \OpenSpout\Common\Entity\Style\Border::WIDTH_THIN,
+                \OpenSpout\Common\Entity\Style\Border::STYLE_SOLID
             ),
             new \OpenSpout\Common\Entity\Style\BorderPart(
-                \OpenSpout\Common\Entity\Style\BorderName::RIGHT,
+                \OpenSpout\Common\Entity\Style\Border::RIGHT,
                 $borderCol,
-                \OpenSpout\Common\Entity\Style\BorderWidth::THIN,
-                \OpenSpout\Common\Entity\Style\BorderStyle::SOLID
+                \OpenSpout\Common\Entity\Style\Border::WIDTH_THIN,
+                \OpenSpout\Common\Entity\Style\Border::STYLE_SOLID
             )
         );
 
+        // OpenSpout v4 usa setters set*() (no with*()). El v3 era inmutable estilo with*; v4 los renombró.
         $headerStyle = (new \OpenSpout\Common\Entity\Style\Style())
-            ->withFontBold(true)
-            ->withFontColor($headerFg)
-            ->withBackgroundColor($headerBg)
-            ->withBorder($border);
+            ->setFontBold()
+            ->setFontColor($headerFg)
+            ->setBackgroundColor($headerBg)
+            ->setBorder($border);
 
         $rowStyle = (new \OpenSpout\Common\Entity\Style\Style())
-            ->withFontColor($rowFg)
-            ->withBackgroundColor($rowBg)
-            ->withBorder($border);
+            ->setFontColor($rowFg)
+            ->setBackgroundColor($rowBg)
+            ->setBorder($border);
 
         $footerStyle = (new \OpenSpout\Common\Entity\Style\Style())
-            ->withFontBold(true)
-            ->withFontColor($footerFg)
-            ->withBackgroundColor($footerBg)
-            ->withBorder($border);
+            ->setFontBold()
+            ->setFontColor($footerFg)
+            ->setBackgroundColor($footerBg)
+            ->setBorder($border);
 
         return [$headerStyle, $rowStyle, $footerStyle];
     }

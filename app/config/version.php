@@ -1,9 +1,28 @@
 <?php
 
 return [
-    'current_version' => '1.46.1',
-    'current_build' => '20260505.1',
+    'current_version' => '1.46.2',
+    'current_build' => '20260505.2',
     'history' => [
+        [
+            'version' => '1.46.2',
+            'build' => '20260505.2',
+            'released_at' => '2026-05-05',
+            'title' => 'Hotfix — Restauración de exportación XLSX en RxnLive y CrmNotas',
+            'summary' => 'Charly reportó que el botón "Excel" de RxnLive (y la matriz de ejemplo + importación de CrmNotas) tiraba la pantalla blanca con el mensaje "La exportación requiere que OpenSpout esté instalado." — venía funcionando en releases anteriores. Lo que parecía un bug simple destapó dos bugs encadenados que se ocultaban mutuamente. (1) Root cause primario: la librería openspout/openspout estaba físicamente ausente de vendor/, y revisando composer.json descubrimos que JAMÁS había sido declarada como dependencia formal. Mismo antipatrón exacto que vivimos con dompdf en 1.27.0: lib presente en vendor/ pero no en el manifest → al primer composer require/update posterior, composer reconcilia el lock y la borra silenciosamente. No podemos identificar el commit responsable porque la lib nunca llegó a estar en composer.lock, así que git no tiene rastro de cuándo desapareció — la única pista fue ver vendor/openspout/ ausente vs código vivo referenciándola. Fix: composer require openspout/openspout:^4.30 (instaló v4.32.0). composer.json ahora la declara formalmente. (2) Root cause secundario destapado al reinstalar: el código de RxnLiveController::buildXlsxStyles() y la rama xlsx de exportar() estaban escritos contra la API de OpenSpout v3, no v4 (la versión moderna). El bug venía conviviendo con el de la lib ausente — el primer error tapaba al segundo. Migración v3 → v4 aplicada en el mismo hotfix: clases sueltas BorderName/BorderWidth/BorderStyle desaparecieron en v4 (todas las constantes ahora viven en Border::TOP, Border::WIDTH_THIN, Border::STYLE_SOLID); los setters renombrados de with*() a set*() (withFontBold→setFontBold, withFontColor→setFontColor, withBackgroundColor→setBackgroundColor, withBorder→setBorder); y Row::fromValuesWithStyle() reemplazado por Row::fromValues($vals, $style). (3) Hardening adicional: el if (ob_get_length()) ob_end_clean() previo solo limpiaba el buffer activo — Open Server / framework apilan varios buffers, y bytes residuales corrompían el binario. Reemplazado por while (ob_get_level() > 0) ob_end_clean() para vaciar toda la pila antes del binario. Mismo patrón aplicado a CrmNotasController::export() y downloadTemplate(). (4) Mejora aprovechada: las columnas de fecha en el export ahora salen en formato es-AR (d/m/Y para date, d/m/Y H:i:s para datetime/timestamp), aplicado a CSV y XLSX por igual antes del split. Aplica a la regla UI del proyecto (es-AR siempre, vigente desde 2026-04-16). (5) Documentación: sección dedicada "Dependencia crítica: openspout/openspout" en RxnLive/MODULE_CONTEXT.md con narrativa completa de los 5 bugs encadenados, regla dura sobre composer.json, y smoke test obligatorio. CrmNotas/MODULE_CONTEXT.md cross-referencia el detalle. Validación end-to-end vía curl autenticado contra localhost: el XLSX descargado tiene magic 504b0304 (PK\\x03\\x04 = ZIP correcto) con xl/styles.xml de 777 bytes embebido (los azules vivos), 12 entradas internas. Lección consolidada: la regla del CLAUDE.md raíz "todo lo de vendor/ debe estar en composer.json" ya nos comió dos libs en producción — los módulos afectados ahora tienen advertencia local explícita.',
+            'items' => [
+                'composer.json: declara openspout/openspout:^4.30 como dependencia formal. composer.lock ahora la registra (v4.32.0).',
+                'vendor/openspout/openspout: reinstalada v4.32.0. class_exists(\\OpenSpout\\Writer\\XLSX\\Writer) vuelve a resolver OK.',
+                'app/modules/RxnLive/RxnLiveController.php: buildXlsxStyles migrado a OpenSpout v4 — Border::TOP/BOTTOM/LEFT/RIGHT en lugar de BorderName::*, Border::WIDTH_THIN en lugar de BorderWidth::THIN, Border::STYLE_SOLID en lugar de BorderStyle::SOLID. Setters renombrados de with*() a set*() (Style v4). Filas creadas con Row::fromValues($vals, $style) en lugar de fromValuesWithStyle. Estilos azules de tabla intactos.',
+                'app/modules/RxnLive/RxnLiveController.php: while (ob_get_level() > 0) ob_end_clean() reemplaza al if/ob_end_clean previo — vacía toda la pila de output buffers antes del binario, no solo el activo. Bytes espurios eran lo que corrompía el ZIP.',
+                'app/modules/RxnLive/RxnLiveController.php: nuevo bloque de transformación de fechas pre-export (CSV y XLSX por igual). Columnas con type=date salen como d/m/Y; datetime/timestamp como d/m/Y H:i:s. Aplicado antes del split de formato para no duplicar lógica.',
+                'app/modules/CrmNotas/CrmNotasController.php: same flush de buffers en export() y downloadTemplate() — preventivo, mismo patrón.',
+                'app/modules/RxnLive/MODULE_CONTEXT.md: sección "Dependencia crítica: openspout/openspout" con narrativa de los 5 bugs encadenados, regla dura, y smoke test obligatorio post-cambio en composer.json.',
+                'app/modules/CrmNotas/MODULE_CONTEXT.md: sumado a "Riesgos conocidos" — la matriz de ejemplo y la importación dependen de OpenSpout, debe estar declarada en composer.json. Cross-ref al MODULE_CONTEXT de RxnLive.',
+                'database/migrations/2026_05_05_01_seed_customer_notes_release_1_46_2.php: seed idempotente con la nota visible al cliente final (lenguaje de capacidad, sin detalle técnico).',
+                'app/config/version.php: bump a 1.46.2 / build 20260505.2.',
+            ],
+        ],
         [
             'version' => '1.46.1',
             'build' => '20260505.1',

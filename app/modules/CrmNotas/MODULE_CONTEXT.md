@@ -93,6 +93,7 @@ Gestionar un sistema de notas internas, permitiendo a los operadores asentar act
 - **Inyección de memoria en importación**: Aunque usa OpenSpout (que es stream-based), importar Excels colosales podría llegar a saturar el worker.
 - **Integridad Referencial**: El guardado de las tags se hace en string texto plano (`tags`), no tiene tabla pivot normalizada. Facilita la carga pero dificulta búsquedas estructurales complejas.
 - **Orden de rutas en router**: `/notas/lista` y `/notas/panel/{id}` deben declararse **antes** de `/notas/{id}` en `app/config/routes.php`. Si se mueven, el catch-all `/{id}` se las come y los partials rompen silenciosamente (404 en fetch). El split view deja de funcionar sin error visible en UI, sólo panel vacío.
+- **Dependencia `openspout/openspout` debe estar declarada en `composer.json`**: la matriz de ejemplo (`exportarMatrizEjemplo`) y la importación (`processImport`) usan OpenSpout. Si la lib aparece en `vendor/` pero no en `composer.json`, el primer `composer require`/`update` posterior la barre silenciosamente y el módulo rompe con `"La descarga del Excel requiere que OpenSpout esté instalado."` / `"La exportación requiere que OpenSpout esté instalado."`. Antes de cualquier toque a `composer.json`, validar que siga declarada (`composer show openspout/openspout`). Misma regla que `dompdf` (incidente 1.27.0) y RxnLive (hotfix 1.46.2 — ver `app/modules/RxnLive/MODULE_CONTEXT.md` para el detalle del incidente).
 
 ## Checklist post-cambio
 - [ ] Formularios de Creación/Edición guardan y asocian el cliente correctamente.
