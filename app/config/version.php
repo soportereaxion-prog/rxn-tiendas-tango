@@ -1,9 +1,23 @@
 <?php
 
 return [
-    'current_version' => '1.46.0',
-    'current_build' => '20260504.2',
+    'current_version' => '1.46.1',
+    'current_build' => '20260505.1',
     'history' => [
+        [
+            'version' => '1.46.1',
+            'build' => '20260505.1',
+            'released_at' => '2026-05-05',
+            'title' => 'Iteración 48 — Refuerzo de seguridad CrmMailMasivos (CSRF + sanitización)',
+            'summary' => 'Auditoría rápida de seguridad post-1.13.0 sobre los módulos sumados desde la auditoría formal del 2026-04-17. Detectamos que el módulo CrmMailMasivos (envíos masivos a clientes finales) tenía cuatro endpoints POST sin validación CSRF: el form de disparo de envío, los forms de cancelación y reactivación de jobs, y el AJAX de preview de destinatarios. Además, en respuestas JSON ante Throwable inesperado se filtraba el detalle del mensaje de excepción al cliente, lo que podía exponer paths del server o detalles internos. Fix en el JobController: ahora extiende el Controller base, los tres POSTs de form llaman verifyCsrfOrAbort() y el AJAX usa una validación equivalente que lee el header X-CSRF-Token (compatible con respuestas JSON). El form de disparo y los forms de cancelar/reactivar emiten <input csrf_token> via CsrfHelper::input(). El JS de preview lee el meta csrf-token del layout y lo manda como header. Las respuestas de error sanitizadas: 500 ahora dice "Error interno" sin getMessage. La defensa cubre el escenario más sensible: un atacante con cuenta logueada engañando a otro usuario con un form/script malicioso para disparar un envío masivo no autorizado a clientes finales. Validación end-to-end con SMTP capturador local (smtp4dev) — se ejercitó el ciclo completo login → CSRF → preview → disparo → CLI worker → mail interceptado, más los tests negativos sin CSRF que rebotan con 419/JSON correctamente. Hallazgo cosmético anotado para próxima iteración: Open Server pisa HTTP 419 a 500 porque 419 no es código RFC (es Laravel-specific) — afecta a todo el sistema vía Controller::verifyCsrfOrAbort base, no solo este módulo. El body de respuesta es correcto, solo el status code se transforma. Funcional intacto porque el JS chequea data.success y el HTML muestra la página correcta de "Sesión expirada".',
+            'items' => [
+                'app/modules/CrmMailMasivos/JobController.php: extiende Controller. Métodos store(), cancel(), reactivate() llaman $this->verifyCsrfOrAbort() al inicio. previewRecipients() usa nuevo helper privado verifyCsrfHeaderOrAbortJson() que valida X-CSRF-Token y devuelve 419 JSON con kind:"csrf" si falla. Sanitizado $e->getMessage() en respuestas: previewRecipients y processBatch ahora devuelven solo "Error interno", store usa Flash genérico. El detalle sigue yendo a error_log() server-side.',
+                'app/modules/CrmMailMasivos/views/envios/crear.php: <?= CsrfHelper::input() ?> dentro del form de disparo.',
+                'app/modules/CrmMailMasivos/views/envios/monitor.php: <?= CsrfHelper::input() ?> dentro de los dos forms (cancelar y reactivar).',
+                'public/js/mail-masivos-envios-crear.js: helper csrfToken() lee del <meta name="csrf-token"> del admin layout. El fetch de preview-recipients suma header X-CSRF-Token.',
+                'app/config/version.php: bump a 1.46.1 / build 20260505.1.',
+            ],
+        ],
         [
             'version' => '1.46.0',
             'build' => '20260504.2',

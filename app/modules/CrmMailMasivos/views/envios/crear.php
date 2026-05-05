@@ -46,6 +46,7 @@ $smtp = $smtp ?? null;
     <?php endif; ?>
 
     <form method="post" action="/mi-empresa/crm/mail-masivos/envios" id="disparo-form">
+        <?= \App\Core\CsrfHelper::input() ?>
         <div class="row g-4">
             <!-- Columna izquierda: selectors -->
             <div class="col-lg-6">

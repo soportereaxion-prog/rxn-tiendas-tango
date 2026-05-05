@@ -14,6 +14,11 @@
         return;
     }
 
+    function csrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') || '' : '';
+    }
+
     const $selReport = document.getElementById('sel-report');
     const $selTemplate = document.getElementById('sel-template');
     const $selContentReport = document.getElementById('sel-content-report');
@@ -87,7 +92,11 @@
         try {
             const resp = await fetch(cfg.apiPreviewRecipients, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': csrfToken(),
+                },
                 credentials: 'same-origin',
                 body: JSON.stringify({ report_id: reportId }),
             });

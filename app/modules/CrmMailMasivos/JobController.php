@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\CrmMailMasivos;
 
 use App\Core\Context;
+use App\Core\Controller;
+use App\Core\CsrfHelper;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
@@ -30,9 +32,33 @@ use Throwable;
  * Endpoint público con token:
  *   callback()          → POST JSON de n8n con updates de estado/items
  */
-class JobController
+class JobController extends Controller
 {
     private JobRepository $repo;
+
+    /**
+     * CSRF para endpoints AJAX que reciben JSON (no form).
+     * Lee el token del header X-CSRF-Token (lo inyecta el JS desde <meta name="csrf-token">).
+     * Si falla, devuelve 419 JSON y corta. Defensa en profundidad equivalente al
+     * verifyCsrfOrAbort() del Controller base, pero JSON-friendly.
+     */
+    private function verifyCsrfHeaderOrAbortJson(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            return;
+        }
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+        if (!CsrfHelper::validate(is_string($token) ? $token : null)) {
+            http_response_code(419);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Sesión expirada o token inválido. Recargá la página.',
+                'kind' => 'csrf',
+            ]);
+            exit;
+        }
+    }
 
     public function __construct()
     {
@@ -123,6 +149,7 @@ class JobController
     public function previewRecipients(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfHeaderOrAbortJson();
         header('Content-Type: application/json; charset=utf-8');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -161,7 +188,7 @@ class JobController
         } catch (Throwable $e) {
             http_response_code(500);
             error_log('JobController::previewRecipients error: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Error interno: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Error interno']);
             exit;
         }
     }
@@ -173,6 +200,7 @@ class JobController
     public function store(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = (int) ($_SESSION['user_id'] ?? 0);
 
@@ -207,7 +235,7 @@ class JobController
             exit;
         } catch (Throwable $e) {
             error_log('JobController::store error: ' . $e->getMessage());
-            Flash::set('danger', 'Error interno al disparar el envío: ' . $e->getMessage());
+            Flash::set('danger', 'Error interno al disparar el envío. Revisá los logs del servidor.');
             header('Location: /mi-empresa/crm/mail-masivos/envios/crear');
             exit;
         }
@@ -248,6 +276,7 @@ class JobController
     public function cancel(string $id): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $empresaId = (int) Context::getEmpresaId();
         $jobId = (int) $id;
 
@@ -287,6 +316,7 @@ class JobController
     public function reactivate(string $id): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $empresaId = (int) Context::getEmpresaId();
         $jobId = (int) $id;
 
@@ -364,7 +394,7 @@ class JobController
         } catch (Throwable $e) {
             error_log('JobController::processBatch error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Error interno: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Error interno']);
             exit;
         }
     }

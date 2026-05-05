@@ -54,6 +54,7 @@ $isFinal = in_array($job['estado'], ['completed', 'cancelled', 'failed'], true);
                     $isZombie = ($job['estado'] === 'queued' && !empty($job['cancel_flag']));
                 ?>
                 <form method="post" action="/mi-empresa/crm/mail-masivos/envios/<?= (int) $job['id'] ?>/cancelar" class="d-inline" onsubmit="return confirm('¿Cancelar este envío? Los mails ya enviados quedan enviados; los pendientes se saltan.');">
+                    <?= \App\Core\CsrfHelper::input() ?>
                     <button type="submit" class="btn btn-outline-danger btn-sm">
                         <?php if ($isZombie): ?>
                             <i class="bi bi-x-octagon-fill"></i> Destrabar y cerrar
@@ -66,6 +67,7 @@ $isFinal = in_array($job['estado'], ['completed', 'cancelled', 'failed'], true);
                 </form>
             <?php elseif (in_array($job['estado'], ['cancelled', 'failed'], true)): ?>
                 <form method="post" action="/mi-empresa/crm/mail-masivos/envios/<?= (int) $job['id'] ?>/reactivar" class="d-inline" onsubmit="return confirm('¿Reactivar este envío? Los destinatarios que quedaron como saltados vuelven a pendientes y se intenta el envío de nuevo.');">
+                    <?= \App\Core\CsrfHelper::input() ?>
                     <button type="submit" class="btn btn-outline-success btn-sm">
                         <i class="bi bi-arrow-clockwise"></i> Reactivar envío
                     </button>
