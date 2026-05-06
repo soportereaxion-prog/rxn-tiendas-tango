@@ -6,6 +6,7 @@ namespace App\Modules\RxnSync;
 
 use App\Core\Controller;
 use App\Core\Context;
+use App\Core\CsrfHelper;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
 use App\Modules\EmpresaConfig\EmpresaConfigRepository;
@@ -18,6 +19,39 @@ class RxnSyncController extends Controller
     public function __construct()
     {
         $this->service = new RxnSyncService();
+    }
+
+    /**
+     * CSRF para endpoints AJAX. Lee del header X-CSRF-Token (lo inyecta el JS
+     * desde <meta name="csrf-token">). 419 JSON si falla. Defensa en profundidad
+     * — la sesión/cookie sola NO autentica la intención del usuario.
+     */
+    private function verifyCsrfHeaderOrAbortJson(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            return;
+        }
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+        if (!CsrfHelper::validate(is_string($token) ? $token : null)) {
+            http_response_code(419);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'kind'    => 'csrf',
+                'message' => 'Tu sesión expiró o el token de seguridad es inválido. Recargá la página y volvé a intentar.',
+            ]);
+            exit;
+        }
+    }
+
+    /**
+     * Loggea la excepción con detalle completo y devuelve mensaje genérico al cliente.
+     * No exponer paths/clases/líneas en JSON — convención 6.3.
+     */
+    private function logAndGenericError(\Throwable $e, string $where, string $userMessage): array
+    {
+        error_log('[RxnSyncController::' . $where . '] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+        return ['success' => false, 'message' => $userMessage];
     }
 
     /**
@@ -97,6 +131,7 @@ class RxnSyncController extends Controller
      */
     public function auditarArticulos(): void
     {
+        $this->verifyCsrfHeaderOrAbortJson();
         $empresaId = Context::getEmpresaId();
         header('Content-Type: application/json');
         set_time_limit(120);
@@ -108,8 +143,8 @@ class RxnSyncController extends Controller
                 'message' => "Auditoría completada. Vinculados: {$result['vinculados']} | Pendientes: {$result['pendientes']}",
                 'stats'   => $result,
             ]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            echo json_encode($this->logAndGenericError($e, 'auditarArticulos', 'Error interno al auditar artículos. Revisá los logs del servidor.'));
         }
         exit;
     }
@@ -121,6 +156,7 @@ class RxnSyncController extends Controller
      */
     public function pushToTango(): void
     {
+        $this->verifyCsrfHeaderOrAbortJson();
         $id        = (int)($_POST['id'] ?? 0);
         $entidad   = $_POST['entidad'] ?? '';
         $empresaId = Context::getEmpresaId();
@@ -139,8 +175,8 @@ class RxnSyncController extends Controller
                 'message' => 'Push a Tango completado.',
                 'payload' => $result,
             ]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            echo json_encode($this->logAndGenericError($e, 'pushToTango', 'Error interno al hacer push a Tango. Revisá los logs del servidor.'));
         }
     }
 
@@ -211,6 +247,7 @@ class RxnSyncController extends Controller
      */
     public function pullSingle(): void
     {
+        $this->verifyCsrfHeaderOrAbortJson();
         $id      = (int)($_POST['id'] ?? 0);
         $entidad = $_POST['entidad'] ?? '';
         $empresaId = Context::getEmpresaId();
@@ -229,8 +266,8 @@ class RxnSyncController extends Controller
                 'message' => 'Pull desde Tango completado. Datos locales actualizados.',
                 'payload' => $result,
             ]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            echo json_encode($this->logAndGenericError($e, 'pullSingle', 'Error interno al hacer pull desde Tango. Revisá los logs del servidor.'));
         }
     }
 
@@ -238,6 +275,7 @@ class RxnSyncController extends Controller
 
     public function auditarClientes(): void
     {
+        $this->verifyCsrfHeaderOrAbortJson();
         $empresaId = Context::getEmpresaId();
         header('Content-Type: application/json');
         set_time_limit(120);
@@ -249,8 +287,8 @@ class RxnSyncController extends Controller
                 'message' => "Auditoría completada. Vinculados: {$result['vinculados']} | Pendientes: {$result['pendientes']}",
                 'stats'   => $result,
             ]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            echo json_encode($this->logAndGenericError($e, 'auditarClientes', 'Error interno al auditar clientes. Revisá los logs del servidor.'));
         }
         exit;
     }
@@ -265,6 +303,7 @@ class RxnSyncController extends Controller
     public function syncPullArticulos(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfHeaderOrAbortJson();
         header('Content-Type: application/json');
         set_time_limit(240);
 
@@ -296,12 +335,7 @@ class RxnSyncController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error en sincronización: ' . $e->getMessage(),
-                'error_class' => (new \ReflectionClass($e))->getShortName(),
-                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
-            ]);
+            echo json_encode($this->logAndGenericError($e, 'syncPullArticulos', 'Error en sincronización de artículos. Revisá los logs del servidor.'));
         }
         exit;
     }
@@ -312,6 +346,7 @@ class RxnSyncController extends Controller
     public function syncPullClientes(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfHeaderOrAbortJson();
         header('Content-Type: application/json');
         set_time_limit(240);
 
@@ -343,12 +378,7 @@ class RxnSyncController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error en sincronización: ' . $e->getMessage(),
-                'error_class' => (new \ReflectionClass($e))->getShortName(),
-                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
-            ]);
+            echo json_encode($this->logAndGenericError($e, 'syncPullClientes', 'Error en sincronización de clientes. Revisá los logs del servidor.'));
         }
         exit;
     }
@@ -365,6 +395,7 @@ class RxnSyncController extends Controller
     public function syncCatalogos(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfHeaderOrAbortJson();
         header('Content-Type: application/json');
         set_time_limit(240);
 
@@ -391,15 +422,9 @@ class RxnSyncController extends Controller
                 'stats'   => $stats,
             ]);
         } catch (\Throwable $e) {
-            // \Throwable para atrapar Fatal errors (class not found, etc) y no
-            // dejar que xdebug devuelva HTML con 200 status. Aplica regla del
-            // proyecto: diagnóstico persistente > error silencioso.
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error en Sync Catálogos: ' . $e->getMessage(),
-                'error_class' => (new \ReflectionClass($e))->getShortName(),
-                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
-            ]);
+            // \Throwable atrapa Fatal errors (class not found, etc). El detalle
+            // se loggea server-side; al cliente solo va mensaje genérico.
+            echo json_encode($this->logAndGenericError($e, 'syncCatalogos', 'Error en Sync Catálogos. Revisá los logs del servidor.'));
         }
         exit;
     }
@@ -426,6 +451,7 @@ class RxnSyncController extends Controller
     public function syncPedidosEstados(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfHeaderOrAbortJson();
         header('Content-Type: application/json');
         set_time_limit(240);
 
@@ -454,12 +480,7 @@ class RxnSyncController extends Controller
                 'stats'   => $stats,
             ]);
         } catch (\Throwable $e) {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error en sync de estados: ' . $e->getMessage(),
-                'error_class' => (new \ReflectionClass($e))->getShortName(),
-                'error_file' => basename($e->getFile()) . ':' . $e->getLine(),
-            ]);
+            echo json_encode($this->logAndGenericError($e, 'syncPedidosEstados', 'Error en sync de estados. Revisá los logs del servidor.'));
         }
         exit;
     }
@@ -469,6 +490,7 @@ class RxnSyncController extends Controller
      */
     public function syncPedidoEstado(): void
     {
+        $this->verifyCsrfHeaderOrAbortJson();
         $id = (int) ($_POST['id'] ?? 0);
         $empresaId = (int) Context::getEmpresaId();
 
@@ -488,7 +510,7 @@ class RxnSyncController extends Controller
                 'payload' => $result,
             ]);
         } catch (\Throwable $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            echo json_encode($this->logAndGenericError($e, 'syncPedidoEstado', 'Error al sincronizar estado del pedido. Revisá los logs del servidor.'));
         }
     }
 
@@ -511,6 +533,7 @@ class RxnSyncController extends Controller
      */
     public function pushMasivo(): void
     {
+        $this->verifyCsrfHeaderOrAbortJson();
         $empresaId = Context::getEmpresaId();
         header('Content-Type: application/json');
         set_time_limit(180);
@@ -528,9 +551,11 @@ class RxnSyncController extends Controller
             try {
                 $this->service->pushToTangoByLocalId($empresaId, (int)$localId, $entidad);
                 $ok++;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $err++;
-                $errors[] = "ID {$localId}: " . $e->getMessage();
+                // Loggeo server-side detalle, al cliente solo ID + mensaje genérico.
+                error_log('[RxnSyncController::pushMasivo] ID ' . $localId . ' / ' . $e::class . ': ' . $e->getMessage());
+                $errors[] = "ID {$localId}: error al hacer push (ver logs).";
             }
         }
 
@@ -549,6 +574,7 @@ class RxnSyncController extends Controller
      */
     public function pullMasivo(): void
     {
+        $this->verifyCsrfHeaderOrAbortJson();
         $empresaId = Context::getEmpresaId();
         header('Content-Type: application/json');
         set_time_limit(180);
@@ -566,9 +592,10 @@ class RxnSyncController extends Controller
             try {
                 $this->service->pullFromTangoByLocalId($empresaId, (int)$localId, $entidad);
                 $ok++;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $err++;
-                $errors[] = "ID {$localId}: " . $e->getMessage();
+                error_log('[RxnSyncController::pullMasivo] ID ' . $localId . ' / ' . $e::class . ': ' . $e->getMessage());
+                $errors[] = "ID {$localId}: error al hacer pull (ver logs).";
             }
         }
 

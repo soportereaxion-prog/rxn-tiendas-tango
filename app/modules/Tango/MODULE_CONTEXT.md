@@ -222,8 +222,8 @@ Módulo de infraestructura de integración con **Tango Connect** (API REST de Ax
 - `TangoService` no diferencia entre tipos de admin. La configuración de credenciales vive en `EmpresaConfig` y es editable por Admin Tenant.
 - Las credenciales de Tango (`tango_connect_token`, `tango_connect_company_id`) son datos sensibles almacenados en la tabla `empresa_config` / `empresa_config_crm`.
 
-### Mutación por método
-- Todos los endpoints de sync operan por **POST**.
+### Mutación por método (release 1.46.4)
+- Todos los endpoints de sync operan por **POST** desde 1.46.4. Antes eran GET — eran explotables vía CSRF triggable por `<img src=…>` en mail HTML / sitio externo. Cambio en `app/config/routes.php` líneas ~236-245.
 - Los catálogos maestros se consultan por **GET** (desde EmpresaConfig, no desde este módulo directamente).
 - No existen endpoints GET en `TangoSyncController` que muten estado.
 
@@ -234,8 +234,13 @@ Módulo de infraestructura de integración con **Tango Connect** (API REST de Ax
 ### Escape / XSS
 - No aplica directamente: el módulo no renderiza HTML. Los datos sincronizados se almacenan en BD y se renderizan por los módulos consumidores.
 
-### CSRF
-- Los endpoints de sync no validan token CSRF. Deuda de seguridad activa.
+### CSRF (release 1.46.4)
+**Resuelto**: cada método del `TangoSyncController` llama `$this->verifyCsrfOrAbort()` (helper del `Controller` base) al inicio. POST sin token válido devuelve página 419 (Open Server la promociona a 500 — funcional, body correcto). El `redirectPath()` y `syncClientes()` aceptan `return` también desde POST (no solo GET) para preservar la UX de "volver al módulo de origen" del flujo PWA/RxnSync.
+
+**Si se agrega un endpoint POST nuevo en este controller**: llamar `$this->verifyCsrfOrAbort()` al inicio y asegurarse de que la vista que dispara el endpoint use `<form method="POST">` con `\App\Core\CsrfHelper::input()`. El patrón vigente está en `app/modules/RxnSync/views/index.php` (helper local `$renderSyncForm`).
+
+### Sanitización de errores (release 1.46.4)
+Cada catch loggea `$e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine()` en `error_log()` server-side y emite Flash genérico ("Error al sincronizar X. Revisá los logs del servidor."). NO se filtra el getMessage al usuario — antes la fuga revelaba detalles del SQL/credenciales/paths del server.
 
 ### Acceso local
 - Las credenciales de Tango se almacenan en BD. No hay archivos sensibles en disco.
@@ -261,8 +266,7 @@ Módulo de infraestructura de integración con **Tango Connect** (API REST de Ax
 3. **Paginación limitada**: `fetchArticulos()` y `fetchPrecios()` solo consultan la primera página. Solo `syncClientes()` implementa paginación completa (hasta 100 páginas).
 4. **Timeouts en masivos**: `set_time_limit` no se aplica en `TangoSyncService` directamente (se aplica en `RxnSyncService`). Syncs muy grandes podrían exceder el timeout del servidor.
 5. **Override de moneda hardcodeado**: `TangoOrderHeaderResolver::MONEDA_LOCAL_OVERRIDE_BY_COMPANY` tiene IDs de empresa Tango hardcodeados para sandbox y producción. Nuevas empresas pueden necesitar agregarse manualmente.
-6. **Sin CSRF en endpoints de sync**.
-7. **Sin guard de admin para sync**: cualquier usuario del tenant puede disparar una sincronización masiva que afecte datos compartidos.
+6. **Sin guard de admin para sync**: cualquier usuario del tenant puede disparar una sincronización masiva que afecte datos compartidos. Pendiente: gating por rol/permiso.
 
 ---
 

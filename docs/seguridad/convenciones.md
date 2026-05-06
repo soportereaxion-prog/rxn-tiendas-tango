@@ -124,6 +124,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !CsrfHelper::validate($_POST['csrf_
 - **APIs públicas con auth por token**: el token de auth ya sustituye al CSRF.
 - **Endpoints AJAX con custom header** (ej: `X-Requested-With: XMLHttpRequest` + `SameSite=Lax` cookie): aceptable pero preferir CSRF explícito.
 
+### 3.4 Endpoints AJAX que devuelven JSON — patrón `verifyCsrfHeaderOrAbortJson` (release 1.46.4)
+
+Para endpoints POST AJAX que devuelven JSON (no HTML), `verifyCsrfOrAbort()` del Controller base no aplica porque renderiza la página HTML 419 y rompe el contrato JSON. Patrón canónico:
+
+```php
+// En el Controller (extender App\Core\Controller para no duplicar):
+private function verifyCsrfHeaderOrAbortJson(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') return;
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+    if (!\App\Core\CsrfHelper::validate(is_string($token) ? $token : null)) {
+        http_response_code(419);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => false,
+            'kind'    => 'csrf',
+            'message' => 'Tu sesión expiró o el token de seguridad es inválido. Recargá la página y volvé a intentar.',
+        ]);
+        exit;
+    }
+}
+```
+
+En el JS del módulo:
+
+```javascript
+function csrfToken() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+fetch(url, {
+    method: 'POST',
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': csrfToken()
+    }
+});
+```
+
+El JS debe chequear `data.success` (no el status code) — Open Server promociona 419 a 500 en transit, pero el body es correcto.
+
+**Implementaciones de referencia**: `CrmMailMasivos\JobController` (release 1.46.1), `RxnSync\RxnSyncController` (release 1.46.4).
+
+### 3.5 Acciones que mutan estado deben ser POST, NUNCA GET
+
+Cualquier endpoint que modifique datos, dispare una sincronización, mande un email, o invoque un sistema externo debe ser **POST**. GET solo para lectura idempotente.
+
+**Razón**: GET es triggable por `<img src="…">`, `<link href="…">`, `fetch(…)` desde cualquier origen externo. Aunque la cookie de sesión esté `SameSite=Lax`, hay vectores donde el browser igual envía la cookie (ej: navegación top-level desde un link). Si el endpoint es GET y muta estado, un atacante puede disparar la mutación con solo lograr que la víctima abra un mail HTML o un link.
+
+**Caso real (1.46.4)**: `TangoSyncController` exponía 9 endpoints de sync como GET (`/mi-empresa/sync/articulos`, `/precios`, `/stock`, etc). Eran triggables con `<img src="https://rxn.empresa/mi-empresa/crm/sync/articulos">` en cualquier mail HTML. Pasaron a POST + CSRF.
+
+**Patrón en vistas**: convertir `<a href="/sync/...">` a:
+
+```php
+<form method="POST" action="/sync/articulos" class="d-inline">
+    <?= \App\Core\CsrfHelper::input() ?>
+    <button type="submit" class="btn ...">Sync Artículos</button>
+</form>
+```
+
 ---
 
 ## 4. Uploads de archivos
@@ -206,6 +267,29 @@ Excepciones permitidas (debe ser obvio al leer):
 ### 6.3 No filtrar datos sensibles
 `password_hash`, `verification_token`, `reset_token`, credenciales Tango, config SMTP **nunca** en respuestas JSON ni en HTML. Las queries explícitas de read deben enumerar columnas, no usar `SELECT *`.
 
+**Sanitización de excepciones en respuestas (release 1.46.4)** — patrón canónico para endpoints públicos que pueden capturar errores inesperados:
+
+```php
+try {
+    $result = $this->service->doSomething(...);
+    echo json_encode(['success' => true, 'data' => $result]);
+} catch (\InvalidArgumentException | \RuntimeException $e) {
+    // Excepciones controladas del service: mensaje user-friendly seguro al cliente.
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+} catch (\Throwable $e) {
+    // Cualquier otra (PDO, filesystem, ReflectionException, etc): NO exponer detalle.
+    error_log('[Module::method] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+    echo json_encode(['success' => false, 'message' => 'Error interno al procesar X. Revisá los logs del servidor.']);
+}
+```
+
+**PROHIBIDO**:
+- `echo json_encode(['error' => $e->getMessage()])` directo — filtra paths del server, nombres de clases, detalles SQL, en errores inesperados.
+- Devolver `error_class` (ReflectionClass) o `error_file` (basename + línea) en JSON — reconnaissance gratis para un atacante.
+- En auth: ya cubierto por sección 2.5 — solo mensajes genéricos.
+
+**Helper recomendado** para módulos con muchos catches: definir un método privado `logAndGenericError(\Throwable $e, string $where, string $userMessage): array` que devuelva el array para `json_encode` y haga el `error_log`. Implementación de referencia: `RxnSync\RxnSyncController::logAndGenericError`.
+
 ### 6.4 Redirects validados
 Parámetros tipo `?next=`, `?redirect=`, `?return_url=`:
 ```php
@@ -254,14 +338,19 @@ Antes de dar por cerrado un módulo, revisar:
 - [ ] Todo método mutador del repositorio recibe `int $empresaId` como parámetro.
 - [ ] Controllers validan ownership con `findById($id, $empresaId)` antes de operar.
 - [ ] Todos los forms POST tienen `<?= CsrfHelper::input() ?>` y los controllers validan el token.
+- [ ] Todos los endpoints AJAX POST validan CSRF via header `X-CSRF-Token` (patrón sección 3.4) y el JS los envía leyendo del meta tag.
+- [ ] Acciones que mutan estado son **POST**, nunca GET (sección 3.5). Verificar especialmente `<a href>` que disparen syncs/envíos/borrados.
 - [ ] Endpoints de auth tienen rate limiting aplicado.
 - [ ] Uploads pasan por `UploadValidator`, con destino que incluye `empresa_id`.
 - [ ] Mensajes de error de auth son genéricos.
+- [ ] Catches de `Throwable` en endpoints AJAX **NO** filtran `$e->getMessage()` directo al cliente — patrón sanitizado de sección 6.3 (log server-side + mensaje genérico).
+- [ ] El JSON de error NO devuelve `error_class`, `error_file` ni paths internos del server.
 - [ ] Output en vistas está escapado con `htmlspecialchars()` (salvo casts `(int)` obvios).
 - [ ] Redirects externos validan destino relativo.
 - [ ] No se exponen campos sensibles en responses.
 - [ ] Sesión se regenera tras login/reset.
 - [ ] Webhooks externos validan HMAC y son idempotentes.
+- [ ] Si el módulo tiene `forceDelete` (hard-delete) sobre tabla transaccional crítica: considerar audit log via trigger SQL `BEFORE DELETE` con snapshot completo en `before_json` y atribución vía `@audit_user_id` / `@audit_user_name`. Patrón en `app/modules/CrmPedidosServicio/MODULE_CONTEXT.md` y `app/modules/CrmPresupuestos/MODULE_CONTEXT.md`.
 
 Si marcaste "no aplica" en alguno, dejalo documentado en el MODULE_CONTEXT.md del módulo con la razón.
 

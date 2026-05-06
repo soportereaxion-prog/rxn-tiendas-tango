@@ -103,6 +103,34 @@ class RxnLiveService
                 'diagnostico' => ['label' => 'Diagnóstico', 'type' => 'string', 'groupable' => false, 'aggregatable' => false],
                 'cantidad' => ['label' => 'Cant.', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true]
             ]
+        ],
+        'presupuestos_eliminados' => [
+            'name' => 'Presupuestos Eliminados (Auditoría)',
+            'view' => 'RXN_LIVE_VW_PRESUPUESTOS_DELETES',
+            'description' => 'Histórico de Presupuestos eliminados permanentemente. Detecta huérfanos en Tango (presupuestos borrados de RXN que ya tenían comprobante Tango asignado).',
+            'chart_label' => 'Presupuestos Eliminados',
+            'chart_group_col' => 'eliminado_por',
+            'chart_val_col' => 'cantidad',
+            'chart_type' => 'bar',
+            'pivot_metadata' => [
+                'deleted_at' => ['label' => 'Fecha Eliminación', 'type' => 'datetime', 'groupable' => true, 'aggregatable' => false],
+                'presupuesto_id' => ['label' => 'ID Original', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'numero' => ['label' => 'Número Presupuesto', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'fecha' => ['label' => 'Fecha Presupuesto', 'type' => 'datetime', 'groupable' => true, 'aggregatable' => false],
+                'cliente' => ['label' => 'Cliente', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'total' => ['label' => 'Total', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true],
+                'estado' => ['label' => 'Estado', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'tango_sync_status' => ['label' => 'Estado Sync Tango', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'nro_comprobante_tango' => ['label' => 'Nro. Comprobante Tango', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'estaba_en_tango' => ['label' => '¿Quedó en Tango?', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'tratativa_id' => ['label' => 'ID Tratativa', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'version_numero' => ['label' => 'Versión', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'vendedor' => ['label' => 'Vendedor', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'eliminado_por' => ['label' => 'Eliminado por', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'comentarios' => ['label' => 'Comentarios', 'type' => 'string', 'groupable' => false, 'aggregatable' => false],
+                'observaciones' => ['label' => 'Observaciones', 'type' => 'string', 'groupable' => false, 'aggregatable' => false],
+                'cantidad' => ['label' => 'Cant.', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true]
+            ]
         ]
     ];
 

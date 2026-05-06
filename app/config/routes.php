@@ -233,16 +233,18 @@ return function (Router $router): void {
     $router->post('/mi-empresa/crm/configuracion/tango-diagnose', $action(\App\Modules\EmpresaConfig\EmpresaConfigController::class, 'diagnoseTangoConnect', $requireCrm));
 
     // --- MODULO TANGO CONNECT (Legacy) ---
-    $router->get('/mi-empresa/sync/todo', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncTodo', $requireTiendas));
-    $router->get('/mi-empresa/sync/articulos', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncArticulos', $requireTiendas));
-    $router->get('/mi-empresa/sync/precios', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncPrecios', $requireTiendas));
-    $router->get('/mi-empresa/sync/stock', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncStock', $requireTiendas));
+    // POST (no GET): syncs son acciones que mutan estado y tocan Tango. GET las dejaba
+    // explotables vía CSRF triggable por <img src=…>. Cambio aplicado en release 1.46.4.
+    $router->post('/mi-empresa/sync/todo', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncTodo', $requireTiendas));
+    $router->post('/mi-empresa/sync/articulos', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncArticulos', $requireTiendas));
+    $router->post('/mi-empresa/sync/precios', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncPrecios', $requireTiendas));
+    $router->post('/mi-empresa/sync/stock', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncStock', $requireTiendas));
 
-    $router->get('/mi-empresa/crm/sync/todo', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncTodo', $requireCrm));
-    $router->get('/mi-empresa/crm/sync/articulos', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncArticulos', $requireCrm));
-    $router->get('/mi-empresa/crm/sync/clientes', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncClientes', $requireCrm));
-    $router->get('/mi-empresa/crm/sync/precios', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncPrecios', $requireCrm));
-    $router->get('/mi-empresa/crm/sync/stock', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncStock', $requireCrm));
+    $router->post('/mi-empresa/crm/sync/todo', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncTodo', $requireCrm));
+    $router->post('/mi-empresa/crm/sync/articulos', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncArticulos', $requireCrm));
+    $router->post('/mi-empresa/crm/sync/clientes', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncClientes', $requireCrm));
+    $router->post('/mi-empresa/crm/sync/precios', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncPrecios', $requireCrm));
+    $router->post('/mi-empresa/crm/sync/stock', $action(\App\Modules\Tango\Controllers\TangoSyncController::class, 'syncStock', $requireCrm));
 
     // --- MODULO ARTICULOS ---
     $router->get('/mi-empresa/articulos', $action(\App\Modules\Articulos\ArticuloController::class, 'index', $requireTiendas));

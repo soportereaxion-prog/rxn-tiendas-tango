@@ -189,6 +189,14 @@ class PresupuestoRepository
             // Best-effort: si el service falla seguimos con el delete de presupuestos.
         }
 
+        // Atribución del DELETE para el trigger de audit (tr_crm_presupuestos_audit_before_delete).
+        // El trigger lee estas variables de sesión MySQL al insertar en crm_presupuestos_audit_deletes.
+        // Si vienen NULL (delete fuera del repo), el audit queda señalizado como "no atribuible".
+        $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+        $userName = isset($_SESSION['user_name']) ? (string)$_SESSION['user_name'] : null;
+        $this->db->exec('SET @audit_user_id = ' . ($userId !== null ? $userId : 'NULL'));
+        $this->db->exec('SET @audit_user_name = ' . ($userName !== null ? $this->db->quote($userName) : 'NULL'));
+
         $inQuery = implode(',', array_fill(0, count($ids), '?'));
         $sql = "DELETE FROM crm_presupuestos WHERE id IN ($inQuery) AND empresa_id = ?";
         $stmt = $this->db->prepare($sql);

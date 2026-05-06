@@ -200,8 +200,20 @@ El parámetro `?return=` en syncPrecios/syncStock solo acepta rutas con prefijo 
 - La whitelist de campos para Push protege datos sistémicos del ERP.
 - Los largos se truncan con `mb_substr` antes de enviar a Connect.
 
-### CSRF
-Sin validación de token CSRF en endpoints AJAX. Deuda de seguridad activa.
+### CSRF (release 1.46.4)
+**Resuelto**: todos los endpoints POST AJAX de este módulo validan CSRF via header `X-CSRF-Token`. Patrón estándar:
+
+- **Backend**: helper privado `verifyCsrfHeaderOrAbortJson()` en `RxnSyncController` (líneas iniciales de la clase). Devuelve 419 con `{success:false, kind:"csrf"}` si falla. Se llama al inicio de cada método POST (auditarArticulos, auditarClientes, pushToTango, pullSingle, pushMasivo, pullMasivo, syncPullArticulos, syncPullClientes, syncCatalogos, syncPedidosEstados, syncPedidoEstado).
+- **Frontend** (`views/index.php`): helper JS `csrfToken()` lee del `<meta name="csrf-token">` que inyecta `admin_layout.php`. Cada `fetch` POST suma header `X-CSRF-Token: csrfToken()`.
+
+**Si se agrega un endpoint POST nuevo**: copiar el patrón. Llamar `$this->verifyCsrfHeaderOrAbortJson()` al inicio del método y agregar el header `X-CSRF-Token` al fetch del JS. NO usar form-data sin CSRF — el cookie de sesión solo NO autentica intención del usuario.
+
+### Sanitización de errores en JSON (release 1.46.4)
+Helper privado `logAndGenericError(\Throwable $e, string $where, string $userMessage): array`:
+- Loggea `$e->getMessage()` + clase + file:line en `error_log()` server-side.
+- Devuelve `{success:false, message:<userMessage>}` al cliente — sin filtrar paths/clases/líneas internas.
+
+**Antes de 1.46.4** los catches devolvían `error_class` (ReflectionClass shortname) y `error_file` (basename + línea) en el JSON — eso era reconnaissance gratis para un atacante. Quedó eliminado. Si se agrega un catch nuevo, usar `logAndGenericError` en lugar de exponer `$e->getMessage()` directo.
 
 ---
 

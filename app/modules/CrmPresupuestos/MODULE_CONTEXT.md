@@ -34,6 +34,23 @@ Sustentar el motor de cotizaciones del CRM, permitiendo armar presupuestos, sele
 - **Validación Server-Side**: Los datos del form que representan el maestro-detalle (cabecera + N renglones de artículos con cantidades, precios y bonificaciones) deben ser validados estructuradamente antes de guardar o enviar a Tango para no emitir comprobantes inválidos.
 - **Escape Seguro (XSS)**: Textos de observaciones, comentarios para el cliente y descripciones custom en renglones deben ir escapados al renderizar la vista y el builder del PDF.
 - **Acceso Local**: Sujeto al token de la empresa en la sesión.
+- **Estándar de seguridad transversal**: Cualquier endpoint nuevo de este módulo debe respetar `docs/seguridad/convenciones.md` — en particular CSRF en POST forms y AJAX, sanitización de `getMessage` en catches, y las reglas de auditoría de eliminación permanente listadas abajo.
+
+## Auditoría de eliminación permanente (1.46.4)
+
+Desde la 1.46.4 todo `forceDelete` (hard-delete) sobre `crm_presupuestos` queda registrado automáticamente en `crm_presupuestos_audit_deletes` vía trigger SQL `BEFORE DELETE`. Mismo patrón que CrmPedidosServicio (1.46.3). Red de seguridad triple:
+
+1. **Trigger SQL** (`tr_crm_presupuestos_audit_before_delete`): captura cualquier `DELETE FROM crm_presupuestos`, incluyendo deletes hechos desde phpMyAdmin/HeidiSQL/SQL manual.
+2. **`PresupuestoRepository::forceDeleteByIds`**: setea `@audit_user_id` y `@audit_user_name` (MySQL session vars) antes del `DELETE` para que el trigger las lea como atribución. Si vienen NULL (delete sin contexto de sesión), el audit registra NULL → "delete no atribuible" sin perder el snapshot.
+3. **Snapshot completo en `before_json` (LONGTEXT)**: el trigger emite `JSON_OBJECT(...)` con 34 campos del row borrado. Cualquier campo del presupuesto queda capturado.
+
+**Vista expuesta**: `RXN_LIVE_VW_PRESUPUESTOS_DELETES` registrada en `RxnLiveService::$datasets` como dataset `presupuestos_eliminados`. Agrega flag calculado `estaba_en_tango = "Sí — quedó huérfano en Tango"` cuando `nro_comprobante_tango` no está vacío — análogo al flag de PDS para `tango_nro_pedido`.
+
+**Si se modifica `forceDeleteByIds`**: mantener el bloque que setea `@audit_user_id` y `@audit_user_name` antes del `$stmt->execute()`. Sin eso, los registros de audit van a quedar sin atribución.
+
+**Si se modifica el schema de `crm_presupuestos`** (agregar columnas): el `before_json` del trigger las captura solo si se actualiza la lista de `OLD.<col>` en `JSON_OBJECT(...)` dentro del trigger. Ver `database/migrations/2026_05_06_01_create_crm_presupuestos_audit_deletes.php` como referencia. Los campos columnados explícitos (numero, nro_comprobante_tango, total, etc) NO se actualizan automáticamente — agregar la columna al `INSERT INTO ... VALUES (OLD....)` también si querés que aparezca en RxnLive como columna propia.
+
+**Mitigación pendiente**: confirm UX en el botón de hard-delete cuando `nro_comprobante_tango != NULL` (mismo pendiente que PDS).
 
 ## Dependencias directas
 - `App\Modules\CrmClientes\CrmClienteRepository` para cargar el receptor de la cotización.

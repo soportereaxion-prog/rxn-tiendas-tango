@@ -39,8 +39,40 @@ ob_start();
                     <?php if ($isCrm): ?>
                         <button type="button" id="btn-sync-catalogos" class="btn btn-sm btn-outline-warning <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>" title="Sincroniza condiciones de venta, listas de precio, vendedores, transportes, depósitos y clasificaciones PDS desde Tango Connect. Prerequisito de Sync Precios y Sync Stock en CRM." <?= empty($syncCircuit['catalogos_ready']) ? 'disabled' : '' ?>><i class="bi bi-arrow-repeat"></i> Sync Catálogos</button>
                     <?php endif; ?>
-                    <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_precios_path'] ?? '/mi-empresa/sync/precios')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['precios_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['precios_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Precios</a>
-                    <a href="<?= htmlspecialchars((string) ($syncCircuit['sync_stock_path'] ?? '/mi-empresa/sync/stock')) ?>" class="btn btn-sm btn-outline-info <?= empty($syncCircuit['stock_ready']) ? 'disabled' : '' ?>" <?= empty($syncCircuit['stock_ready']) ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Sync Stock</a>
+                    <?php
+                    // Sync Precios y Sync Stock disparan acciones en Tango (mutación de estado).
+                    // POST con CSRF — antes eran GET y eran explotables vía CSRF triggable por <img>.
+                    $renderSyncForm = function (string $rawPath, string $label, bool $disabled): void {
+                        $parts = parse_url($rawPath);
+                        $action = $parts['path'] ?? $rawPath;
+                        $return = '';
+                        if (!empty($parts['query'])) {
+                            parse_str($parts['query'], $qs);
+                            $return = (string) ($qs['return'] ?? '');
+                        }
+                        ?>
+                        <form method="POST" action="<?= htmlspecialchars($action) ?>" class="d-inline">
+                            <?= \App\Core\CsrfHelper::input() ?>
+                            <?php if ($return !== ''): ?>
+                                <input type="hidden" name="return" value="<?= htmlspecialchars($return) ?>">
+                            <?php endif; ?>
+                            <button type="submit" class="btn btn-sm btn-outline-info<?= $disabled ? ' disabled' : '' ?>"<?= $disabled ? ' disabled' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
+                            </button>
+                        </form>
+                        <?php
+                    };
+                    $renderSyncForm(
+                        (string) ($syncCircuit['sync_precios_path'] ?? '/mi-empresa/sync/precios'),
+                        'Sync Precios',
+                        empty($syncCircuit['precios_ready'])
+                    );
+                    $renderSyncForm(
+                        (string) ($syncCircuit['sync_stock_path'] ?? '/mi-empresa/sync/stock'),
+                        'Sync Stock',
+                        empty($syncCircuit['stock_ready'])
+                    );
+                    ?>
                 </div>
             </div>
         </div>
@@ -197,6 +229,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var countEl    = document.getElementById('rxnsync-selected-count');
     var auditLabel = document.getElementById('audit-tab-label');
     var progressBar = document.getElementById('rxnsync-progress-bar');
+
+    // CSRF token: leído del <meta name="csrf-token"> que el admin_layout inyecta.
+    // Se manda como header X-CSRF-Token en cada fetch POST. Si la sesión expiró,
+    // el backend devuelve 419 con kind:"csrf" y el JS muestra alerta amigable.
+    function csrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
 
     // Rows-por-página por tab (estado). Sort persiste en localStorage (sobrevive navegación).
     function loadSortState(key) {
@@ -809,7 +849,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 fetch(basePath + '/' + opts.endpoint, {
                     method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': csrfToken()
+                    }
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
@@ -943,7 +986,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         fetch(basePath + '/sync-catalogos', {
                             method: 'POST',
-                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-Token': csrfToken()
+                            }
                         })
                         .then(function (r) {
                             console.log('[SyncCatalogos] response recibida, status=' + r.status);
@@ -1032,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', function () {
         [btnPush, btnPull].forEach(function(b) { b.disabled = true; });
         showProgress();
 
-        fetch(url, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch(url, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': csrfToken() } })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             hideProgress();

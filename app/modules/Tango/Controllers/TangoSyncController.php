@@ -11,9 +11,10 @@ class TangoSyncController extends Controller
     public function syncClientes(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $syncService = $this->resolveService();
         // Respeta ?return= si viene de RxnSync u otro modulo; si no, vuelve al listado de clientes.
-        $return = trim((string) ($_GET['return'] ?? ''));
+        $return = trim((string) ($_GET['return'] ?? $_POST['return'] ?? ''));
         $redirectPath = ($return !== '' && str_starts_with($return, '/mi-empresa/'))
             ? $return
             : '/mi-empresa/crm/clientes';
@@ -25,8 +26,9 @@ class TangoSyncController extends Controller
             header('Location: ' . $redirectPath);
             exit;
 
-        } catch (\Exception $e) {
-            \App\Core\Flash::set('danger', 'Error de Sincronización de Clientes: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log('[TangoSyncController::syncClientes] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            \App\Core\Flash::set('danger', 'Error al sincronizar clientes desde Tango. Revisá los logs del servidor.');
             header('Location: ' . $redirectPath);
             exit;
         }
@@ -35,18 +37,20 @@ class TangoSyncController extends Controller
     public function syncArticulos(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $syncService = $this->resolveService();
         $redirectPath = $this->redirectPath();
-        
+
         try {
             $stats = $syncService->syncArticulos();
-            
+
             \App\Core\Flash::set('success', 'Sincronización finalizada exitosamente.', $stats);
             header('Location: ' . $redirectPath);
             exit;
-            
-        } catch (\Exception $e) {
-            \App\Core\Flash::set('danger', 'Error de Sincronización: ' . $e->getMessage());
+
+        } catch (\Throwable $e) {
+            error_log('[TangoSyncController::syncArticulos] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            \App\Core\Flash::set('danger', 'Error al sincronizar artículos desde Tango. Revisá los logs del servidor.');
             header('Location: ' . $redirectPath);
             exit;
         }
@@ -55,6 +59,7 @@ class TangoSyncController extends Controller
     public function syncTodo(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $syncService = $this->resolveService();
         $redirectPath = $this->redirectPath();
 
@@ -74,8 +79,9 @@ class TangoSyncController extends Controller
             header('Location: ' . $redirectPath);
             exit;
 
-        } catch (\Exception $e) {
-            \App\Core\Flash::set('danger', 'Error de Sincronización Total: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log('[TangoSyncController::syncTodo] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            \App\Core\Flash::set('danger', 'Error en la sincronización total. Revisá los logs del servidor.');
             header('Location: ' . $redirectPath);
             exit;
         }
@@ -84,9 +90,10 @@ class TangoSyncController extends Controller
     public function syncPrecios(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $syncService = $this->resolveService();
         $redirectPath = $this->redirectPath();
-        
+
         try {
             $stats = $syncService->syncPrecios();
 
@@ -98,9 +105,10 @@ class TangoSyncController extends Controller
             \App\Core\Flash::set('success', 'Sincronización de Precios finalizada exitosamente.', $stats);
             header('Location: ' . $redirectPath);
             exit;
-            
-        } catch (\Exception $e) {
-            \App\Core\Flash::set('danger', 'Error de Sincronización de Precios: ' . $e->getMessage());
+
+        } catch (\Throwable $e) {
+            error_log('[TangoSyncController::syncPrecios] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            \App\Core\Flash::set('danger', 'Error al sincronizar precios desde Tango. Revisá los logs del servidor.');
             header('Location: ' . $redirectPath);
             exit;
         }
@@ -109,9 +117,10 @@ class TangoSyncController extends Controller
     public function syncStock(): void
     {
         AuthService::requireLogin();
+        $this->verifyCsrfOrAbort();
         $syncService = $this->resolveService();
         $redirectPath = $this->redirectPath();
-        
+
         try {
             $stats = $syncService->syncStock();
 
@@ -123,9 +132,10 @@ class TangoSyncController extends Controller
             \App\Core\Flash::set('success', 'Sincronización de Stock finalizada exitosamente.', $stats);
             header('Location: ' . $redirectPath);
             exit;
-            
-        } catch (\Exception $e) {
-            \App\Core\Flash::set('danger', 'Error de Sincronización de Stock: ' . $e->getMessage());
+
+        } catch (\Throwable $e) {
+            error_log('[TangoSyncController::syncStock] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            \App\Core\Flash::set('danger', 'Error al sincronizar stock desde Tango. Revisá los logs del servidor.');
             header('Location: ' . $redirectPath);
             exit;
         }
@@ -146,7 +156,7 @@ class TangoSyncController extends Controller
 
     private function redirectPath(): string
     {
-        $return = trim((string) ($_GET['return'] ?? ''));
+        $return = trim((string) ($_GET['return'] ?? $_POST['return'] ?? ''));
         if ($return !== '' && str_starts_with($return, '/mi-empresa/')) {
             return $return;
         }

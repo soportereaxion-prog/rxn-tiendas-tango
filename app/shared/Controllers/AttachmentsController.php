@@ -80,8 +80,13 @@ class AttachmentsController extends Controller
                 'attachment' => $result,
             ]);
             exit;
-        } catch (Throwable $e) {
+        } catch (\InvalidArgumentException | \RuntimeException $e) {
+            // Excepciones controladas del service: mensaje user-friendly seguro.
             $this->jsonError($e->getMessage(), 422);
+        } catch (Throwable $e) {
+            // Cualquier otra (PDO, filesystem, etc.): no exponer detalle.
+            error_log('[AttachmentsController::upload] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $this->jsonError('Error interno al procesar el adjunto.', 500);
         }
     }
 
@@ -101,8 +106,11 @@ class AttachmentsController extends Controller
             $ok = $this->service->delete((int) $id, (int) $empresaId);
             echo json_encode(['success' => $ok]);
             exit;
-        } catch (Throwable $e) {
+        } catch (\InvalidArgumentException | \RuntimeException $e) {
             $this->jsonError($e->getMessage(), 422);
+        } catch (Throwable $e) {
+            error_log('[AttachmentsController::delete] ' . $e::class . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $this->jsonError('Error interno al eliminar el adjunto.', 500);
         }
     }
 
