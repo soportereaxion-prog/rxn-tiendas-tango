@@ -378,6 +378,16 @@ class PedidoServicioRepository
             return 0;
         }
 
+        // Setear MySQL session vars para que el trigger BEFORE DELETE
+        // (tr_crm_pds_audit_before_delete) las loguee como atribución.
+        // Si por alguna razón la sesión no las setea, el audit queda con NULL
+        // y eso señaliza "delete no atribuible" sin perder el snapshot.
+        $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+        $userName = isset($_SESSION['user_name']) ? (string)$_SESSION['user_name'] : null;
+
+        $this->db->exec('SET @audit_user_id = ' . ($userId !== null ? $userId : 'NULL'));
+        $this->db->exec('SET @audit_user_name = ' . ($userName !== null ? $this->db->quote($userName) : 'NULL'));
+
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $sql = 'DELETE FROM crm_pedidos_servicio WHERE empresa_id = ? AND id IN (' . $placeholders . ')';
         $stmt = $this->db->prepare($sql);

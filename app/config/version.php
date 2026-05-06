@@ -1,9 +1,23 @@
 <?php
 
 return [
-    'current_version' => '1.46.2',
-    'current_build' => '20260505.2',
+    'current_version' => '1.46.3',
+    'current_build' => '20260505.3',
     'history' => [
+        [
+            'version' => '1.46.3',
+            'build' => '20260505.3',
+            'released_at' => '2026-05-05',
+            'title' => 'Auditoría de eliminación de PDS + dataset RxnLive',
+            'summary' => 'Charly investigó esta sesión un PDS desaparecido (X0065400007931) que había pusheado a Tango y luego borrado desde la papelera de RXN. Quedó huérfano en Tango sin ningún rastro en RXN — cero log, sin tabla audit, sin sync log (la tabla rxn_sync_log llegó después con 1.46.0 y nunca cubrió PDS porque la sincronización es one-way RXN→Tango). Para tapar este hueco implementamos auditoría de eliminación permanente en CrmPedidosServicio. (1) Tabla nueva crm_pedidos_servicio_audit_deletes con todos los campos clave del PDS al momento del borrado + snapshot completo en before_json (campo LONGTEXT con JSON_OBJECT de TODAS las columnas) + atribución (deleted_by, deleted_by_nombre, deleted_at). (2) Trigger SQL BEFORE DELETE ON crm_pedidos_servicio que captura cualquier delete sobre la tabla principal — incluye DELETEs hechos desde phpMyAdmin / HeidiSQL / scripts SQL manuales, no solo los del repository PHP. Es la red de seguridad más completa: aunque alguien evite el código de aplicación, el trigger igual captura. (3) PedidoServicioRepository::forceDeleteByIds setea las MySQL session vars @audit_user_id y @audit_user_name antes del DELETE para que el trigger las lea como atribución. Si vienen NULL (delete manual sin contexto de sesión), el registro queda con NULL en deleted_by — eso señaliza "delete no atribuible" sin perder el snapshot. (4) Vista SQL RXN_LIVE_VW_PDS_DELETES con campos legibles (tango_estado_label resuelve los códigos numéricos a "Aprobado/Cumplido/Cerrado/Anulado/Sin sync", flag calculado estaba_en_tango = "Sí — quedó huérfano en Tango" cuando tango_nro_pedido != NULL — exactamente el caso del incidente original). (5) Dataset nuevo "PDS Eliminados (Auditoría)" registrado en RxnLiveService::$datasets con pivot_metadata completo. Validación end-to-end vía smoke test SQL: inserción + delete + verificación de que el audit capturó el row con atribución correcta y before_json íntegro. Aplicación práctica inmediata: si el caso del 7931 vuelve a pasar, en 30 segundos el operador entra a /rxn_live/dataset?dataset=pds_eliminados, filtra por estaba_en_tango="Sí" y ve TODOS los huérfanos pendientes de anular en el ERP. Próxima sesión: replicar el patrón en CrmPresupuestos (anotado).',
+            'items' => [
+                'database/migrations/2026_05_05_02_create_crm_pds_audit_deletes.php: tabla crm_pedidos_servicio_audit_deletes + trigger BEFORE DELETE + vista RXN_LIVE_VW_PDS_DELETES. Migración idempotente (DROP TRIGGER/VIEW IF EXISTS antes de CREATE).',
+                'app/modules/CrmPedidosServicio/PedidoServicioRepository.php: forceDeleteByIds ahora setea @audit_user_id y @audit_user_name (MySQL session vars) antes del DELETE. Lee de $_SESSION; si no hay session válida, las vars quedan NULL (no falla, el audit registra NULL en deleted_by).',
+                'app/modules/RxnLive/RxnLiveService.php: nuevo dataset "pds_eliminados" registrado, con pivot_metadata completo y chart_type=bar agrupado por eliminado_por.',
+                'database/migrations/2026_05_05_03_seed_customer_notes_release_1_46_3.php: seed idempotente con nota visible al cliente final.',
+                'app/config/version.php: bump a 1.46.3 / build 20260505.3.',
+            ],
+        ],
         [
             'version' => '1.46.2',
             'build' => '20260505.2',

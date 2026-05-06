@@ -78,6 +78,31 @@ class RxnLiveService
                 'totalpds' => ['label' => 'Tiempo (Hs)', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true],
                 'cantidad' => ['label' => 'Cant. PDS', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true]
             ]
+        ],
+        'pds_eliminados' => [
+            'name' => 'PDS Eliminados (Auditoría)',
+            'view' => 'RXN_LIVE_VW_PDS_DELETES',
+            'description' => 'Histórico de Pedidos de Servicio eliminados permanentemente. Detecta huérfanos en Tango (PDS borrados de RXN que ya tenían número Tango asignado).',
+            'chart_label' => 'PDS Eliminados',
+            'chart_group_col' => 'eliminado_por',
+            'chart_val_col' => 'cantidad',
+            'chart_type' => 'bar',
+            'pivot_metadata' => [
+                'deleted_at' => ['label' => 'Fecha Eliminación', 'type' => 'datetime', 'groupable' => true, 'aggregatable' => false],
+                'pedido_id' => ['label' => 'ID Original', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'numero' => ['label' => 'Número PDS', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'cliente' => ['label' => 'Cliente', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'fecha_inicio' => ['label' => 'Fecha Inicio', 'type' => 'datetime', 'groupable' => true, 'aggregatable' => false],
+                'fecha_finalizado' => ['label' => 'Fecha Fin', 'type' => 'datetime', 'groupable' => true, 'aggregatable' => false],
+                'tango_nro_pedido' => ['label' => 'Nro. Tango', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'tango_estado_label' => ['label' => 'Estado Tango', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'estaba_en_tango' => ['label' => '¿Quedó en Tango?', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'tecnico' => ['label' => 'Técnico Asignado', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'solicitante' => ['label' => 'Solicitante', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'eliminado_por' => ['label' => 'Eliminado por', 'type' => 'string', 'groupable' => true, 'aggregatable' => false],
+                'diagnostico' => ['label' => 'Diagnóstico', 'type' => 'string', 'groupable' => false, 'aggregatable' => false],
+                'cantidad' => ['label' => 'Cant.', 'type' => 'numeric', 'groupable' => false, 'aggregatable' => true]
+            ]
         ]
     ];
 

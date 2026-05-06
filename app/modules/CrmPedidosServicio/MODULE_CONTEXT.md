@@ -63,6 +63,21 @@ Gestionar un ABM avanzado de "Pedidos de Servicio", permitiendo al equipo del CR
 ## Riesgos conocidos
 - **Sincronización desfasada**: Si la orden se guarda localmente pero Tango devuelve HTTP 500, el registro queda "en espera". Carece de background-workers de reintentos; depende del operador darle "Enviar a Tango" de nuevo.
 - **Payloads Pesados**: Guardar imágenes directamente codificadas en Base64 enviadas en POST form-data exige el límite del `post_max_size` de PHP.
+- **PDS huérfano en Tango al borrar desde papelera**: Si el operador hace hard-delete (forceDelete) de un PDS que ya tiene `tango_nro_pedido` asignado, el PDS desaparece de RXN pero queda vivo en Tango sin contraparte. Caso real: incidente del PDS X0065400007931 (2026-05-05). **Mitigación implementada en 1.46.3**: audit log de eliminación captura snapshot completo + atribución → ver dataset "PDS Eliminados (Auditoría)" en RxnLive con flag `estaba_en_tango = "Sí — quedó huérfano en Tango"` para detectar pendientes a anular en el ERP. **Mitigación pendiente**: confirm UX en el botón de hard-delete cuando `tango_nro_pedido != NULL`.
+
+## Auditoría de eliminación permanente (1.46.3)
+
+Desde la 1.46.3 todo `forceDelete` (hard-delete) sobre `crm_pedidos_servicio` queda registrado automáticamente en `crm_pedidos_servicio_audit_deletes` vía trigger SQL `BEFORE DELETE`. La red de seguridad es triple:
+
+1. **Trigger SQL** (`tr_crm_pds_audit_before_delete`): captura cualquier `DELETE FROM crm_pedidos_servicio`, incluyendo deletes hechos desde phpMyAdmin/HeidiSQL/SQL manual. Aunque alguien evite el código de aplicación, el trigger igual loguea.
+2. **`PedidoServicioRepository::forceDeleteByIds`**: setea `@audit_user_id` y `@audit_user_name` (MySQL session vars) antes del `DELETE` para que el trigger las lea como atribución. Si vienen NULL (delete sin contexto de sesión), el audit registra NULL y eso señaliza "delete no atribuible" sin perder el snapshot.
+3. **Snapshot completo en `before_json` (LONGTEXT)**: el trigger emite `JSON_OBJECT(...)` con todas las columnas del row borrado. Cualquier campo del PDS queda capturado — incluso campos nuevos que se sumen al schema sin tocar el trigger.
+
+**Vista expuesta**: `RXN_LIVE_VW_PDS_DELETES` registrada en `RxnLiveService::$datasets` como dataset `pds_eliminados`. Resuelve `tango_estado_label` legible y agrega flag calculado `estaba_en_tango` para detectar huérfanos en el ERP.
+
+**Si se modifica `forceDeleteByIds`**: mantener el bloque que setea `@audit_user_id` y `@audit_user_name` antes del `$stmt->execute()`. Sin eso, los registros de audit van a quedar sin atribución.
+
+**Si se modifica el schema de `crm_pedidos_servicio`** (agregar columnas): el `before_json` del trigger las captura solo si se actualiza la lista de `OLD.<col>` en `JSON_OBJECT(...)` dentro del trigger. La migración `2026_05_05_02_create_crm_pds_audit_deletes.php` muestra el patrón. Los campos columnados explícitos (numero, tango_nro_pedido, etc) NO se actualizan automáticamente — agregar la columna al `INSERT INTO ... VALUES (OLD....)` también si querés que aparezca en RxnLive como columna propia.
 
 ## Checklist post-cambio
 - [ ] ABM completo salva y edita registros.
