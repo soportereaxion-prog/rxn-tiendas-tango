@@ -126,6 +126,59 @@ ob_start();
                         </div>
                     </div>
 
+                    <?php
+                    $modulesMap = [
+                        ['key' => 'notas',             'col_user' => 'usuario_modulo_notas',             'col_emp' => 'crm_modulo_notas',             'label' => 'Notas'],
+                        ['key' => 'llamadas',          'col_user' => 'usuario_modulo_llamadas',          'col_emp' => 'crm_modulo_llamadas',          'label' => 'Llamadas CRM'],
+                        ['key' => 'monitoreo',         'col_user' => 'usuario_modulo_monitoreo',         'col_emp' => 'crm_modulo_monitoreo',         'label' => 'Monitoreo de Usuarios'],
+                        ['key' => 'rxn_live',          'col_user' => 'usuario_modulo_rxn_live',          'col_emp' => 'crm_modulo_rxn_live',          'label' => 'RXN Live'],
+                        ['key' => 'pedidos_servicio',  'col_user' => 'usuario_modulo_pedidos_servicio',  'col_emp' => 'crm_modulo_pedidos_servicio',  'label' => 'Pedidos de Servicio'],
+                        ['key' => 'agenda',            'col_user' => 'usuario_modulo_agenda',            'col_emp' => 'crm_modulo_agenda',            'label' => 'Agenda'],
+                        ['key' => 'mail_masivos',      'col_user' => 'usuario_modulo_mail_masivos',      'col_emp' => 'crm_modulo_mail_masivos',      'label' => 'Mail Masivos'],
+                        ['key' => 'horas_turnero',     'col_user' => 'usuario_modulo_horas_turnero',     'col_emp' => 'crm_modulo_horas_turnero',     'label' => 'Horas (Turnero)'],
+                        ['key' => 'geo_tracking',      'col_user' => 'usuario_modulo_geo_tracking',      'col_emp' => 'crm_modulo_geo_tracking',      'label' => 'Geo Tracking'],
+                        ['key' => 'presupuestos_pwa',  'col_user' => 'usuario_modulo_presupuestos_pwa',  'col_emp' => 'crm_modulo_presupuestos_pwa',  'label' => 'Presupuestos PWA'],
+                        ['key' => 'horas_pwa',         'col_user' => 'usuario_modulo_horas_pwa',         'col_emp' => 'crm_modulo_horas_pwa',         'label' => 'Horas PWA'],
+                    ];
+                    $contractedModules = array_filter($modulesMap, function ($m) use ($empresaTarget) {
+                        return $empresaTarget && (int) ($empresaTarget->{$m['col_emp']} ?? 0) === 1;
+                    });
+                    $canEditModules = !empty($canManageAdminPrivileges);
+                    ?>
+                    <?php if (!empty($contractedModules)): ?>
+                    <div class="rxn-form-section">
+                        <div class="rxn-form-section-title">Módulos habilitados</div>
+                        <div class="rxn-form-section-text">
+                            <?php if ($canEditModules): ?>
+                                Decidí qué módulos podrá usar este usuario. Solo aparecen los contratados a nivel empresa. Por defecto se crean todos habilitados.
+                            <?php else: ?>
+                                Estos son los módulos que tendrá habilitados el usuario al crearse. Solo un administrador puede modificarlos.
+                            <?php endif; ?>
+                        </div>
+                        <div class="rxn-form-switches">
+                            <div class="rxn-form-switch-card">
+                                <?php foreach ($contractedModules as $mod): ?>
+                                    <?php
+                                    $colUser = $mod['col_user'];
+                                    $checked = isset($old[$colUser])
+                                        ? ($old[$colUser] === 'on' || $old[$colUser] === '1' || $old[$colUser] === 1)
+                                        : true;
+                                    ?>
+                                    <div class="form-check form-switch m-0 mb-2">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="<?= htmlspecialchars($colUser) ?>"
+                                               name="<?= htmlspecialchars($colUser) ?>"
+                                               value="1"
+                                               <?= $checked ? 'checked' : '' ?>
+                                               <?= $canEditModules ? '' : 'disabled' ?>>
+                                        <label class="form-check-label" for="<?= htmlspecialchars($colUser) ?>"><?= htmlspecialchars($mod['label']) ?></label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="rxn-form-actions">
                         <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-light border">Cancelar</a>
                         <button type="submit" class="btn btn-primary px-4 fw-bold">Crear Usuario</button>

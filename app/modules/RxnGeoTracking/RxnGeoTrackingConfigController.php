@@ -8,6 +8,8 @@ use App\Core\Context;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
+use App\Modules\Empresas\EmpresaAccessService;
 use App\Shared\Services\OperationalAreaService;
 
 /**
@@ -28,9 +30,16 @@ class RxnGeoTrackingConfigController extends \App\Core\Controller
         $this->repository = new GeoTrackingConfigRepository();
     }
 
-    public function show(): void
+    private function requireGeoTrackingAccess(): void
     {
         AuthService::requireBackofficeAdmin();
+        EmpresaAccessService::requireCrmGeoTrackingAccess();
+        UserModuleAccessService::requireUserAccess('geo_tracking', 'Geo Tracking');
+    }
+
+    public function show(): void
+    {
+        $this->requireGeoTrackingAccess();
         $empresaId = (int) Context::getEmpresaId();
         $config = $this->repository->getConfig($empresaId);
 
@@ -47,7 +56,7 @@ class RxnGeoTrackingConfigController extends \App\Core\Controller
 
     public function update(): void
     {
-        AuthService::requireBackofficeAdmin();
+        $this->requireGeoTrackingAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         $habilitado = !empty($_POST['habilitado']);

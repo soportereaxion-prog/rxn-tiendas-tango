@@ -12,6 +12,13 @@ ob_start();
         $rxnLiveActual = $activaActual && (isset($old) ? isset($old['modulo_rxn_live']) : (bool) ($empresa->modulo_rxn_live ?? 0));
         $crmLlamadasActual = $crmActual && (isset($old) ? isset($old['crm_modulo_llamadas']) : (bool) ($empresa->crm_modulo_llamadas ?? 0));
         $crmMonitoreoActual = $crmActual && (isset($old) ? isset($old['crm_modulo_monitoreo']) : (bool) ($empresa->crm_modulo_monitoreo ?? 0));
+        $crmPedidosServicioActual = $crmActual && (isset($old) ? isset($old['crm_modulo_pedidos_servicio']) : (bool) ($empresa->crm_modulo_pedidos_servicio ?? 0));
+        $crmAgendaActual = $crmActual && (isset($old) ? isset($old['crm_modulo_agenda']) : (bool) ($empresa->crm_modulo_agenda ?? 0));
+        $crmMailMasivosActual = $crmActual && (isset($old) ? isset($old['crm_modulo_mail_masivos']) : (bool) ($empresa->crm_modulo_mail_masivos ?? 0));
+        $crmHorasTurneroActual = $crmActual && (isset($old) ? isset($old['crm_modulo_horas_turnero']) : (bool) ($empresa->crm_modulo_horas_turnero ?? 0));
+        $crmGeoTrackingActual = $crmActual && (isset($old) ? isset($old['crm_modulo_geo_tracking']) : (bool) ($empresa->crm_modulo_geo_tracking ?? 0));
+        $crmPresupuestosPwaActual = $crmActual && (isset($old) ? isset($old['crm_modulo_presupuestos_pwa']) : (bool) ($empresa->crm_modulo_presupuestos_pwa ?? 0));
+        $crmHorasPwaActual = $crmActual && (isset($old) ? isset($old['crm_modulo_horas_pwa']) : (bool) ($empresa->crm_modulo_horas_pwa ?? 0));
         ?>
         <div class="rxn-module-header mb-4">
             <div>
@@ -124,6 +131,34 @@ ob_start();
                                     <div class="form-check form-switch m-0">
                                         <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_rxn_live" name="crm_modulo_rxn_live" <?= $empresa->crm_modulo_rxn_live === 1 ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
                                         <label class="form-check-label" for="crm_modulo_rxn_live">RXN Live</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_pedidos_servicio" name="crm_modulo_pedidos_servicio" <?= $crmPedidosServicioActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_pedidos_servicio">Pedidos de Servicio</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_agenda" name="crm_modulo_agenda" <?= $crmAgendaActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_agenda">Agenda</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_mail_masivos" name="crm_modulo_mail_masivos" <?= $crmMailMasivosActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_mail_masivos">Mail Masivos</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_horas_turnero" name="crm_modulo_horas_turnero" <?= $crmHorasTurneroActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_horas_turnero">Horas (Turnero)</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_geo_tracking" name="crm_modulo_geo_tracking" <?= $crmGeoTrackingActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_geo_tracking">Geo Tracking</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_presupuestos_pwa" name="crm_modulo_presupuestos_pwa" <?= $crmPresupuestosPwaActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_presupuestos_pwa">Presupuestos PWA</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_horas_pwa" name="crm_modulo_horas_pwa" <?= $crmHorasPwaActual ? 'checked' : '' ?> <?= $crmActual ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_horas_pwa">Horas PWA</label>
                                     </div>
                                 </div>
                             </div>

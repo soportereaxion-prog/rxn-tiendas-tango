@@ -8,6 +8,7 @@ use App\Core\Context;
 use App\Core\Controller;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
 use App\Modules\Empresas\EmpresaAccessService;
 
 class HoraController extends Controller
@@ -19,6 +20,13 @@ class HoraController extends Controller
     {
         $this->repository = new HoraRepository();
         $this->service = new HoraService($this->repository);
+    }
+
+    private function requireHorasTurneroAccess(): void
+    {
+        AuthService::requireLogin();
+        EmpresaAccessService::requireCrmHorasTurneroAccess();
+        UserModuleAccessService::requireUserAccess('horas_turnero', 'Horas (Turnero)');
     }
 
     private function ctx(): array
@@ -66,8 +74,7 @@ class HoraController extends Controller
 
     public function turnero(): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
 
         [$empresaId, $userId] = $this->ctx();
 
@@ -102,8 +109,7 @@ class HoraController extends Controller
      */
     public function iniciar(): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         $this->verifyCsrfOrAbort();
         [$empresaId, $userId] = $this->ctx();
 
@@ -133,8 +139,7 @@ class HoraController extends Controller
      */
     public function cerrar(): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         $this->verifyCsrfOrAbort();
         [$empresaId, $userId] = $this->ctx();
 
@@ -162,8 +167,7 @@ class HoraController extends Controller
      */
     public function diferido(): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         [$empresaId] = $this->ctx();
 
         $usuariosTenant = [];
@@ -212,8 +216,7 @@ class HoraController extends Controller
      */
     public function diferidoStore(): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         $this->verifyCsrfOrAbort();
         [$empresaId, $userId] = $this->ctx();
 
@@ -277,8 +280,7 @@ class HoraController extends Controller
      */
     public function listado(): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         [$empresaId] = $this->ctx();
 
         $usuarioFilter = (int) ($_GET['usuario_id'] ?? 0) ?: null;
@@ -353,8 +355,7 @@ class HoraController extends Controller
      */
     public function editarForm(int $id): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         if (!AuthService::hasAdminPrivileges()) {
             http_response_code(403);
             echo "<h2>403 — Solo admin</h2>";
@@ -383,8 +384,7 @@ class HoraController extends Controller
      */
     public function editarStore(int $id): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         $this->verifyCsrfOrAbort();
         if (!AuthService::hasAdminPrivileges()) {
             http_response_code(403);
@@ -435,8 +435,7 @@ class HoraController extends Controller
      */
     public function detalle(int $id): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         [$empresaId, $userId] = $this->ctx();
 
         $hora = $this->repository->findById($id, $empresaId);
@@ -482,8 +481,7 @@ class HoraController extends Controller
      */
     public function uploadAdjunto(int $id): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         $this->verifyCsrfOrAbort();
         [$empresaId, $userId] = $this->ctx();
 
@@ -517,8 +515,7 @@ class HoraController extends Controller
      */
     public function deleteAdjunto(int $id, int $attId): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         $this->verifyCsrfOrAbort();
         [$empresaId, $userId] = $this->ctx();
 
@@ -565,8 +562,7 @@ class HoraController extends Controller
      */
     public function anular(int $id): void
     {
-        AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasTurneroAccess();
         $this->verifyCsrfOrAbort();
         [$empresaId, $userId] = $this->ctx();
 

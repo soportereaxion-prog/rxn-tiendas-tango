@@ -106,6 +106,34 @@ ob_start();
                                         <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_rxn_live" name="crm_modulo_rxn_live" <?= (isset($old) && isset($old['crm_modulo_rxn_live'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
                                         <label class="form-check-label" for="crm_modulo_rxn_live">RXN Live</label>
                                     </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_pedidos_servicio" name="crm_modulo_pedidos_servicio" <?= (isset($old) && isset($old['crm_modulo_pedidos_servicio'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_pedidos_servicio">Pedidos de Servicio</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_agenda" name="crm_modulo_agenda" <?= (isset($old) && isset($old['crm_modulo_agenda'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_agenda">Agenda</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_mail_masivos" name="crm_modulo_mail_masivos" <?= (isset($old) && isset($old['crm_modulo_mail_masivos'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_mail_masivos">Mail Masivos</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_horas_turnero" name="crm_modulo_horas_turnero" <?= (isset($old) && isset($old['crm_modulo_horas_turnero'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_horas_turnero">Horas (Turnero)</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_geo_tracking" name="crm_modulo_geo_tracking" <?= (isset($old) && isset($old['crm_modulo_geo_tracking'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_geo_tracking">Geo Tracking</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_presupuestos_pwa" name="crm_modulo_presupuestos_pwa" <?= (isset($old) && isset($old['crm_modulo_presupuestos_pwa'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_presupuestos_pwa">Presupuestos PWA</label>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="crm_modulo_horas_pwa" name="crm_modulo_horas_pwa" <?= (isset($old) && isset($old['crm_modulo_horas_pwa'])) ? 'checked' : '' ?> <?= $modCrm ? '' : 'disabled' ?> data-empresa-subdependiente="crm">
+                                        <label class="form-check-label" for="crm_modulo_horas_pwa">Horas PWA</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -87,6 +87,48 @@ class EmpresaAccessService
         return self::hasCrmAccess() && (int) $empresa->crm_modulo_monitoreo === 1;
     }
 
+    public static function hasCrmPedidosServicioAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_pedidos_servicio === 1;
+    }
+
+    public static function hasCrmAgendaAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_agenda === 1;
+    }
+
+    public static function hasCrmMailMasivosAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_mail_masivos === 1;
+    }
+
+    public static function hasCrmHorasTurneroAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_horas_turnero === 1;
+    }
+
+    public static function hasCrmGeoTrackingAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_geo_tracking === 1;
+    }
+
+    public static function hasCrmPresupuestosPwaAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_presupuestos_pwa === 1;
+    }
+
+    public static function hasCrmHorasPwaAccess(): bool
+    {
+        $empresa = self::current();
+        return self::hasCrmAccess() && (int) $empresa->crm_modulo_horas_pwa === 1;
+    }
+
     public static function hasAnyOperationalAccess(): bool
     {
         return self::hasTiendasAccess() || self::hasCrmAccess();
@@ -152,6 +194,69 @@ class EmpresaAccessService
 
         if (!self::hasCrmMonitoreoAccess()) {
             self::deny('Módulo de Monitoreo de Usuarios en CRM');
+        }
+    }
+
+    public static function requireCrmPedidosServicioAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmPedidosServicioAccess()) {
+            self::deny('Módulo de Pedidos de Servicio en CRM');
+        }
+    }
+
+    public static function requireCrmAgendaAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmAgendaAccess()) {
+            self::deny('Módulo de Agenda en CRM');
+        }
+    }
+
+    public static function requireCrmMailMasivosAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmMailMasivosAccess()) {
+            self::deny('Módulo de Mail Masivos en CRM');
+        }
+    }
+
+    public static function requireCrmHorasTurneroAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmHorasTurneroAccess()) {
+            self::deny('Módulo de Horas (Turnero) en CRM');
+        }
+    }
+
+    public static function requireCrmGeoTrackingAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmGeoTrackingAccess()) {
+            self::deny('Módulo de Geo Tracking en CRM');
+        }
+    }
+
+    public static function requireCrmPresupuestosPwaAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmPresupuestosPwaAccess()) {
+            self::deny('Módulo de Presupuestos PWA');
+        }
+    }
+
+    public static function requireCrmHorasPwaAccess(): void
+    {
+        AuthService::requireLogin();
+
+        if (!self::hasCrmHorasPwaAccess()) {
+            self::deny('Módulo de Horas PWA');
         }
     }
 

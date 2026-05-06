@@ -56,6 +56,12 @@ ob_start();
     }
     .rxn-geo-filters .form-label { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; }
     .rxn-geo-event-row small { color: var(--bs-secondary-color); }
+    .rxn-geo-event-row.rxn-geo-row-clickable { cursor: pointer; }
+    .rxn-geo-event-row.rxn-geo-row-clickable:hover { background: rgba(13, 110, 253, 0.08); }
+    .rxn-geo-event-row.rxn-geo-row-clickable td:first-child { border-left: 3px solid transparent; transition: border-color 0.12s ease; }
+    .rxn-geo-event-row.rxn-geo-row-clickable:hover td:first-child { border-left-color: #0d6efd; }
+    .rxn-geo-event-row.rxn-geo-row-active { background: rgba(13, 110, 253, 0.14) !important; }
+    .rxn-geo-event-row.rxn-geo-row-active td:first-child { border-left-color: #0d6efd !important; }
     .rxn-geo-accuracy-badge { font-size: 0.7rem; }
     .rxn-geo-accuracy-gps { background: #198754; color: #fff; }
     .rxn-geo-accuracy-wifi { background: #0d6efd; color: #fff; }
@@ -220,8 +226,19 @@ ob_start();
                             $ciudad = trim((string) ($ev['resolved_city'] ?? ''));
                             $pais = trim((string) ($ev['resolved_country'] ?? ''));
                             $ubicacion = $ciudad !== '' ? ($ciudad . ($pais !== '' ? ', ' . $pais : '')) : ($pais !== '' ? $pais : '—');
+                            $evLat = isset($ev['lat']) && $ev['lat'] !== null ? (float) $ev['lat'] : null;
+                            $evLng = isset($ev['lng']) && $ev['lng'] !== null ? (float) $ev['lng'] : null;
+                            $hasGeoPoint = $evLat !== null && $evLng !== null;
+                            $rowClasses = 'rxn-geo-event-row' . ($hasGeoPoint ? ' rxn-geo-row-clickable' : '');
+                            $rowAttrs = '';
+                            if ($hasGeoPoint) {
+                                $rowAttrs = ' data-event-id="' . (int) ($ev['id'] ?? 0) . '"'
+                                    . ' data-lat="' . htmlspecialchars((string) $evLat, ENT_QUOTES, 'UTF-8') . '"'
+                                    . ' data-lng="' . htmlspecialchars((string) $evLng, ENT_QUOTES, 'UTF-8') . '"'
+                                    . ' title="Click para centrar el mapa en este evento"';
+                            }
                             ?>
-                            <tr class="rxn-geo-event-row">
+                            <tr class="<?= $rowClasses ?>"<?= $rowAttrs ?>>
                                 <td><small><?= htmlspecialchars((string) $ev['created_at']) ?></small></td>
                                 <td>
                                     <strong><?= htmlspecialchars((string) ($ev['user_nombre'] ?? 'Usuario #' . (int) $ev['user_id'])) ?></strong>

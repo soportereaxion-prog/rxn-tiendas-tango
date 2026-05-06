@@ -10,6 +10,8 @@ use App\Core\CsrfHelper;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
+use App\Modules\Empresas\EmpresaAccessService;
 use App\Modules\CrmMailMasivos\Services\BatchProcessor;
 use App\Modules\CrmMailMasivos\Services\BlockRenderer;
 use App\Modules\CrmMailMasivos\Services\JobDispatcher;
@@ -72,6 +74,8 @@ class JobController extends Controller
     public function index(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
 
         $search = trim((string) ($_GET['search'] ?? ''));
@@ -86,6 +90,8 @@ class JobController extends Controller
     public function create(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = (int) ($_SESSION['user_id'] ?? 0);
 
@@ -120,6 +126,8 @@ class JobController extends Controller
     public function monitor(string $id): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
         $jobId = (int) $id;
 
@@ -149,6 +157,8 @@ class JobController extends Controller
     public function previewRecipients(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $this->verifyCsrfHeaderOrAbortJson();
         header('Content-Type: application/json; charset=utf-8');
 
@@ -200,6 +210,8 @@ class JobController extends Controller
     public function store(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $this->verifyCsrfOrAbort();
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = (int) ($_SESSION['user_id'] ?? 0);
@@ -247,6 +259,8 @@ class JobController extends Controller
     public function status(string $id): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         header('Content-Type: application/json; charset=utf-8');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -276,6 +290,8 @@ class JobController extends Controller
     public function cancel(string $id): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $this->verifyCsrfOrAbort();
         $empresaId = (int) Context::getEmpresaId();
         $jobId = (int) $id;
@@ -316,6 +332,8 @@ class JobController extends Controller
     public function reactivate(string $id): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $this->verifyCsrfOrAbort();
         $empresaId = (int) Context::getEmpresaId();
         $jobId = (int) $id;

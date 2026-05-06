@@ -10,6 +10,7 @@ use App\Core\RateLimiter;
 use App\Core\Services\AttachmentService;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
 use App\Modules\CrmPresupuestos\PresupuestoTangoService;
 use App\Modules\Empresas\EmpresaAccessService;
 use Throwable;
@@ -46,9 +47,38 @@ class RxnPwaController extends \App\Core\Controller
 
         $empresaId = (int) Context::getEmpresaId();
 
+        // Construye dinámicamente las cards visibles. Cada card aparece solo si:
+        //   1) la empresa tiene contratado el módulo (flag en `empresas`),
+        //   2) el usuario tiene habilitado ese módulo (flag en `usuarios`,
+        //      con bypass automático para es_admin / es_rxn_admin).
+        $pwaApps = [];
+
+        if (EmpresaAccessService::hasCrmPresupuestosPwaAccess() && UserModuleAccessService::userHas('presupuestos_pwa')) {
+            $pwaApps[] = [
+                'key' => 'presupuestos',
+                'title' => 'Presupuestos',
+                'desc' => 'Cotizá en campo offline con cliente, adjuntos y cámara. Sincroniza al volver online y emite a Tango.',
+                'icon' => 'bi-receipt',
+                'color' => 'primary',
+                'link' => '/rxnpwa/presupuestos',
+            ];
+        }
+
+        if (EmpresaAccessService::hasCrmHorasPwaAccess() && UserModuleAccessService::userHas('horas_pwa')) {
+            $pwaApps[] = [
+                'key' => 'horas',
+                'title' => 'Horas',
+                'desc' => 'Turnero mobile para registrar horas en campo. Iniciar/cerrar turno con un toque, descuentos y certificados.',
+                'icon' => 'bi-stopwatch',
+                'color' => 'success',
+                'link' => '/rxnpwa/horas',
+            ];
+        }
+
         View::render('app/modules/RxnPwa/views/launcher.php', [
             'empresaId' => $empresaId,
             'pageTitle' => 'RXN PWA — Apps Mobile',
+            'pwaApps' => $pwaApps,
         ]);
     }
 
@@ -61,7 +91,7 @@ class RxnPwaController extends \App\Core\Controller
     public function presupuestosShell(): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requirePresupuestosPwa();
 
         $empresaId = (int) Context::getEmpresaId();
 
@@ -78,7 +108,7 @@ class RxnPwaController extends \App\Core\Controller
     public function presupuestoNuevo(): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requirePresupuestosPwa();
 
         $empresaId = (int) Context::getEmpresaId();
 
@@ -96,7 +126,7 @@ class RxnPwaController extends \App\Core\Controller
     public function presupuestoEditar(string $tmpUuid): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requirePresupuestosPwa();
 
         $empresaId = (int) Context::getEmpresaId();
         $tmpUuid = $this->sanitizeTmpUuid($tmpUuid);
@@ -115,6 +145,22 @@ class RxnPwaController extends \App\Core\Controller
             return '';
         }
         return $tmpUuid;
+    }
+
+    /**
+     * Doble compuerta para Presupuestos PWA: empresa contratada + usuario habilitado.
+     * Cada método público que sirve esta PWA arranca con esta llamada.
+     */
+    private function requirePresupuestosPwa(): void
+    {
+        EmpresaAccessService::requireCrmPresupuestosPwaAccess();
+        UserModuleAccessService::requireUserAccess('presupuestos_pwa', 'Presupuestos PWA');
+    }
+
+    private function requireHorasPwa(): void
+    {
+        EmpresaAccessService::requireCrmHorasPwaAccess();
+        UserModuleAccessService::requireUserAccess('horas_pwa', 'Horas PWA');
     }
 
     public function catalogVersion(): void
@@ -163,7 +209,7 @@ class RxnPwaController extends \App\Core\Controller
     public function horasShell(): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasPwa();
         $empresaId = (int) Context::getEmpresaId();
         View::render('app/modules/RxnPwa/views/horas_shell.php', [
             'empresaId' => $empresaId,
@@ -174,7 +220,7 @@ class RxnPwaController extends \App\Core\Controller
     public function horasNuevo(): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasPwa();
         $empresaId = (int) Context::getEmpresaId();
         View::render('app/modules/RxnPwa/views/horas_form.php', [
             'empresaId' => $empresaId,
@@ -186,7 +232,7 @@ class RxnPwaController extends \App\Core\Controller
     public function horasEditar(string $tmpUuid): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasPwa();
         $empresaId = (int) Context::getEmpresaId();
         $tmpUuid = $this->sanitizeTmpUuid($tmpUuid);
         View::render('app/modules/RxnPwa/views/horas_form.php', [
@@ -203,7 +249,7 @@ class RxnPwaController extends \App\Core\Controller
     public function syncHora(): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasPwa();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['ok' => false, 'error' => 'Método no permitido.'], 405);
@@ -240,7 +286,7 @@ class RxnPwaController extends \App\Core\Controller
     public function uploadHoraAttachment(string $id): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requireHorasPwa();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['ok' => false, 'error' => 'Método no permitido.'], 405);
@@ -299,7 +345,7 @@ class RxnPwaController extends \App\Core\Controller
     public function syncPresupuesto(): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requirePresupuestosPwa();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['ok' => false, 'error' => 'Método no permitido.'], 405);
@@ -384,7 +430,7 @@ class RxnPwaController extends \App\Core\Controller
     public function uploadAttachment(string $id): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requirePresupuestosPwa();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['ok' => false, 'error' => 'Método no permitido.'], 405);
@@ -440,7 +486,7 @@ class RxnPwaController extends \App\Core\Controller
     public function emitTango(string $id): void
     {
         AuthService::requireLogin();
-        EmpresaAccessService::requireCrmAccess();
+        $this->requirePresupuestosPwa();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['ok' => false, 'error' => 'Método no permitido.'], 405);

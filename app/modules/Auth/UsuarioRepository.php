@@ -26,13 +26,30 @@ class UsuarioRepository
     public function __construct()
     {
         $this->db = Database::getConnection();
-        
+
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_pedido_id INT NULL AFTER verification_expires;'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_pedido_codigo VARCHAR(50) NULL AFTER tango_perfil_pedido_id;'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_pedido_nombre VARCHAR(150) NULL AFTER tango_perfil_pedido_codigo;'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_snapshot_json LONGTEXT NULL AFTER tango_perfil_pedido_nombre;'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN tango_perfil_snapshot_date DATETIME NULL AFTER tango_perfil_snapshot_json;'); } catch (\Throwable $e) {}
         try { $this->db->exec('ALTER TABLE usuarios ADD COLUMN es_rxn_admin TINYINT(1) DEFAULT 0 AFTER es_admin;'); } catch (\Throwable $e) {}
+
+        // Permisos modulares por usuario (release 1.47.0). DEFAULT 1.
+        foreach ([
+            'usuario_modulo_notas',
+            'usuario_modulo_llamadas',
+            'usuario_modulo_monitoreo',
+            'usuario_modulo_rxn_live',
+            'usuario_modulo_pedidos_servicio',
+            'usuario_modulo_agenda',
+            'usuario_modulo_mail_masivos',
+            'usuario_modulo_horas_turnero',
+            'usuario_modulo_geo_tracking',
+            'usuario_modulo_presupuestos_pwa',
+            'usuario_modulo_horas_pwa',
+        ] as $col) {
+            try { $this->db->exec("ALTER TABLE usuarios ADD COLUMN {$col} TINYINT(1) NOT NULL DEFAULT 1"); } catch (\Throwable $e) {}
+        }
     }
 
     public function findByEmail(string $email, ?int $excludeId = null): ?Usuario
@@ -261,6 +278,11 @@ class UsuarioRepository
             // (el portero de carga). Acá el WHERE solo necesita la PK; y movemos
             // empresa_id al SET para que un superadmin pueda transferir un usuario
             // de una empresa a otra de forma legítima cuando lo intenta.
+            // Atribución del audit trigger tr_usuarios_modulos_audit_after_update.
+            // Si la sesión no tiene user_id (caller no autenticado), queda NULL.
+            $auditUserId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+            $this->db->exec("SET @audit_user_id = " . ($auditUserId > 0 ? $auditUserId : 'NULL'));
+
             $sql = "UPDATE usuarios SET
                     empresa_id = :empresa_id,
                     nombre = :nombre,
@@ -277,7 +299,18 @@ class UsuarioRepository
                     es_rxn_admin = :es_rxn_admin,
                     email_verificado = :email_verificado,
                     verification_token = :verification_token,
-                    verification_expires = :verification_expires
+                    verification_expires = :verification_expires,
+                    usuario_modulo_notas = :usuario_modulo_notas,
+                    usuario_modulo_llamadas = :usuario_modulo_llamadas,
+                    usuario_modulo_monitoreo = :usuario_modulo_monitoreo,
+                    usuario_modulo_rxn_live = :usuario_modulo_rxn_live,
+                    usuario_modulo_pedidos_servicio = :usuario_modulo_pedidos_servicio,
+                    usuario_modulo_agenda = :usuario_modulo_agenda,
+                    usuario_modulo_mail_masivos = :usuario_modulo_mail_masivos,
+                    usuario_modulo_horas_turnero = :usuario_modulo_horas_turnero,
+                    usuario_modulo_geo_tracking = :usuario_modulo_geo_tracking,
+                    usuario_modulo_presupuestos_pwa = :usuario_modulo_presupuestos_pwa,
+                    usuario_modulo_horas_pwa = :usuario_modulo_horas_pwa
                     WHERE id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
@@ -296,6 +329,17 @@ class UsuarioRepository
                 ':email_verificado' => $usuario->email_verificado ?? 0,
                 ':verification_token' => $usuario->verification_token ?? null,
                 ':verification_expires' => $usuario->verification_expires ?? null,
+                ':usuario_modulo_notas' => $usuario->usuario_modulo_notas ?? 1,
+                ':usuario_modulo_llamadas' => $usuario->usuario_modulo_llamadas ?? 1,
+                ':usuario_modulo_monitoreo' => $usuario->usuario_modulo_monitoreo ?? 1,
+                ':usuario_modulo_rxn_live' => $usuario->usuario_modulo_rxn_live ?? 1,
+                ':usuario_modulo_pedidos_servicio' => $usuario->usuario_modulo_pedidos_servicio ?? 1,
+                ':usuario_modulo_agenda' => $usuario->usuario_modulo_agenda ?? 1,
+                ':usuario_modulo_mail_masivos' => $usuario->usuario_modulo_mail_masivos ?? 1,
+                ':usuario_modulo_horas_turnero' => $usuario->usuario_modulo_horas_turnero ?? 1,
+                ':usuario_modulo_geo_tracking' => $usuario->usuario_modulo_geo_tracking ?? 1,
+                ':usuario_modulo_presupuestos_pwa' => $usuario->usuario_modulo_presupuestos_pwa ?? 1,
+                ':usuario_modulo_horas_pwa' => $usuario->usuario_modulo_horas_pwa ?? 1,
                 ':id' => $usuario->id,
                 ':empresa_id' => $usuario->empresa_id
             ]);
@@ -308,8 +352,8 @@ class UsuarioRepository
                 throw new \RuntimeException('No se actualizó ninguna fila de usuarios (id #' . (int) $usuario->id . '). Verificá que el usuario exista.');
             }
         } else {
-            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, anura_interno, es_rxn_admin) 
-                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :anura_interno, :es_rxn_admin)";
+            $sql = "INSERT INTO usuarios (empresa_id, nombre, email, password_hash, activo, es_admin, email_verificado, verification_token, verification_expires, tango_perfil_pedido_id, tango_perfil_pedido_codigo, tango_perfil_pedido_nombre, tango_perfil_snapshot_json, tango_perfil_snapshot_date, anura_interno, es_rxn_admin, usuario_modulo_notas, usuario_modulo_llamadas, usuario_modulo_monitoreo, usuario_modulo_rxn_live, usuario_modulo_pedidos_servicio, usuario_modulo_agenda, usuario_modulo_mail_masivos, usuario_modulo_horas_turnero, usuario_modulo_geo_tracking, usuario_modulo_presupuestos_pwa, usuario_modulo_horas_pwa)
+                    VALUES (:empresa_id, :nombre, :email, :password_hash, :activo, :es_admin, :email_verificado, :verification_token, :verification_expires, :tango_perfil_pedido_id, :tango_perfil_pedido_codigo, :tango_perfil_pedido_nombre, :tango_perfil_snapshot_json, :tango_perfil_snapshot_date, :anura_interno, :es_rxn_admin, :usuario_modulo_notas, :usuario_modulo_llamadas, :usuario_modulo_monitoreo, :usuario_modulo_rxn_live, :usuario_modulo_pedidos_servicio, :usuario_modulo_agenda, :usuario_modulo_mail_masivos, :usuario_modulo_horas_turnero, :usuario_modulo_geo_tracking, :usuario_modulo_presupuestos_pwa, :usuario_modulo_horas_pwa)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':empresa_id' => $usuario->empresa_id,
@@ -327,7 +371,18 @@ class UsuarioRepository
                 ':tango_perfil_pedido_nombre' => $usuario->tango_perfil_pedido_nombre ?? null,
                 ':tango_perfil_snapshot_json' => $usuario->tango_perfil_snapshot_json ?? null,
                 ':tango_perfil_snapshot_date' => $usuario->tango_perfil_snapshot_date ?? null,
-                ':es_rxn_admin' => $usuario->es_rxn_admin ?? 0
+                ':es_rxn_admin' => $usuario->es_rxn_admin ?? 0,
+                ':usuario_modulo_notas' => $usuario->usuario_modulo_notas ?? 1,
+                ':usuario_modulo_llamadas' => $usuario->usuario_modulo_llamadas ?? 1,
+                ':usuario_modulo_monitoreo' => $usuario->usuario_modulo_monitoreo ?? 1,
+                ':usuario_modulo_rxn_live' => $usuario->usuario_modulo_rxn_live ?? 1,
+                ':usuario_modulo_pedidos_servicio' => $usuario->usuario_modulo_pedidos_servicio ?? 1,
+                ':usuario_modulo_agenda' => $usuario->usuario_modulo_agenda ?? 1,
+                ':usuario_modulo_mail_masivos' => $usuario->usuario_modulo_mail_masivos ?? 1,
+                ':usuario_modulo_horas_turnero' => $usuario->usuario_modulo_horas_turnero ?? 1,
+                ':usuario_modulo_geo_tracking' => $usuario->usuario_modulo_geo_tracking ?? 1,
+                ':usuario_modulo_presupuestos_pwa' => $usuario->usuario_modulo_presupuestos_pwa ?? 1,
+                ':usuario_modulo_horas_pwa' => $usuario->usuario_modulo_horas_pwa ?? 1,
             ]);
             $usuario->id = (int) $this->db->lastInsertId();
         }

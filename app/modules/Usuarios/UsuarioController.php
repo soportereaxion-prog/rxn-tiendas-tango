@@ -175,12 +175,14 @@ class UsuarioController extends Controller
         }
 
         $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
+        $empresaTarget = (new EmpresaRepository())->findById((int) (\App\Core\Context::getEmpresaId() ?? 0));
 
         View::render('app/modules/Usuarios/views/crear.php', array_merge($ui, [
             'isGlobalAdmin' => $isGlobalAdmin,
             'empresas' => $empresas,
             'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
             'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
+            'empresaTarget' => $empresaTarget,
         ]));
     }
 
@@ -215,6 +217,7 @@ class UsuarioController extends Controller
             }
 
             $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
+            $empresaTarget = (new EmpresaRepository())->findById((int) (\App\Core\Context::getEmpresaId() ?? 0));
 
             View::render('app/modules/Usuarios/views/crear.php', array_merge($ui, [
                 'error' => $e->getMessage(),
@@ -223,6 +226,7 @@ class UsuarioController extends Controller
                 'empresas' => $empresas,
                 'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
                 'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
+                'empresaTarget' => $empresaTarget,
             ]));
         }
     }
@@ -253,6 +257,7 @@ class UsuarioController extends Controller
             }
 
             $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
+            $empresaTarget = (new EmpresaRepository())->findById((int) $usuario->empresa_id);
 
             View::render('app/modules/Usuarios/views/editar.php', array_merge($ui, [
                 'usuario' => $usuario,
@@ -260,6 +265,7 @@ class UsuarioController extends Controller
                 'empresas' => $empresas,
                 'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
                 'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
+                'empresaTarget' => $empresaTarget,
             ]));
         } catch (\Exception $e) {
             $this->renderDenegado($e->getMessage(), $ui['indexPath']);
@@ -307,6 +313,7 @@ class UsuarioController extends Controller
             }
 
             $tangoProfiles = !empty($tangoProfilesJson) ? json_decode($tangoProfilesJson, true) : [];
+            $empresaTarget = (new EmpresaRepository())->findById((int) $usuario->empresa_id);
 
             View::render('app/modules/Usuarios/views/editar.php', array_merge($ui, [
                 'error' => $e->getMessage(),
@@ -316,6 +323,7 @@ class UsuarioController extends Controller
                 'empresas' => $empresas,
                 'tangoProfiles' => is_array($tangoProfiles) ? $tangoProfiles : [],
                 'canManageAdminPrivileges' => $this->canManageAdminPrivileges(),
+                'empresaTarget' => $empresaTarget,
             ]));
         }
     }

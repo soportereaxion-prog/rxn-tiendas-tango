@@ -6,6 +6,8 @@ namespace App\Modules\CrmMailMasivos;
 
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
+use App\Modules\Empresas\EmpresaAccessService;
 
 /**
  * Landing del módulo CrmMailMasivos con las 3 subsecciones: Envíos,
@@ -17,6 +19,8 @@ class MailMasivosDashboardController
     public function index(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
 
         View::render('app/modules/CrmMailMasivos/views/dashboard.php', [
             'cards' => [

@@ -15,26 +15,10 @@
  */
 $pageTitle = $pageTitle ?? 'RXN PWA';
 
-// Catálogo de PWAs disponibles. Para sumar una nueva basta con agregar una
-// entrada acá. Convención: la clave coincide con el slug de la URL.
-$pwaApps = [
-    [
-        'key' => 'presupuestos',
-        'title' => 'Presupuestos',
-        'desc' => 'Cotizá en campo offline con cliente, adjuntos y cámara. Sincroniza al volver online y emite a Tango.',
-        'icon' => 'bi-receipt',
-        'color' => 'primary',
-        'link' => '/rxnpwa/presupuestos',
-    ],
-    [
-        'key' => 'horas',
-        'title' => 'Horas',
-        'desc' => 'Turnero mobile para registrar horas en campo. Iniciar/cerrar turno con un toque, descuentos y certificados.',
-        'icon' => 'bi-stopwatch',
-        'color' => 'success',
-        'link' => '/rxnpwa/horas',
-    ],
-];
+// $pwaApps lo construye RxnPwaController::launcher() filtrando por
+// permisos empresa + usuario. Si está vacío, mostramos un mensaje claro
+// en lugar del listado.
+$pwaApps = $pwaApps ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="es-AR">
@@ -128,18 +112,28 @@ $pwaApps = [
         </div>
 
         <div class="d-flex flex-column gap-2 mb-4">
-            <?php foreach ($pwaApps as $app): ?>
-                <a href="<?= htmlspecialchars($app['link']) ?>" class="rxnpwa-launcher-card">
-                    <span class="rxnpwa-launcher-icon bg-<?= htmlspecialchars($app['color']) ?>">
-                        <i class="bi <?= htmlspecialchars($app['icon']) ?>"></i>
-                    </span>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold mb-1"><?= htmlspecialchars($app['title']) ?></div>
-                        <div class="small text-muted"><?= htmlspecialchars($app['desc']) ?></div>
+            <?php if (empty($pwaApps)): ?>
+                <div class="rxnpwa-card rxnpwa-card-compact text-center">
+                    <div class="small rxnpwa-launcher-text">
+                        <i class="bi bi-shield-exclamation"></i>
+                        Tu empresa no tiene contratada ninguna PWA, o tu usuario no las tiene habilitadas.
+                        Pedile al administrador de tu empresa que te las active.
                     </div>
-                    <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
-                </a>
-            <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <?php foreach ($pwaApps as $app): ?>
+                    <a href="<?= htmlspecialchars($app['link']) ?>" class="rxnpwa-launcher-card">
+                        <span class="rxnpwa-launcher-icon bg-<?= htmlspecialchars($app['color']) ?>">
+                            <i class="bi <?= htmlspecialchars($app['icon']) ?>"></i>
+                        </span>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold mb-1"><?= htmlspecialchars($app['title']) ?></div>
+                            <div class="small text-muted"><?= htmlspecialchars($app['desc']) ?></div>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+                    </a>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
 
         <!-- Instalar como app. Botón siempre visible:

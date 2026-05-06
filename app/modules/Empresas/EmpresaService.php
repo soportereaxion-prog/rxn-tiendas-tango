@@ -147,6 +147,13 @@ class EmpresaService
         $empresa->crm_modulo_rxn_live = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_rxn_live'])) ? 1 : 0;
         $empresa->crm_modulo_llamadas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_llamadas'])) ? 1 : 0;
         $empresa->crm_modulo_monitoreo = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_monitoreo'])) ? 1 : 0;
+        $empresa->crm_modulo_pedidos_servicio = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_pedidos_servicio'])) ? 1 : 0;
+        $empresa->crm_modulo_agenda = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_agenda'])) ? 1 : 0;
+        $empresa->crm_modulo_mail_masivos = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_mail_masivos'])) ? 1 : 0;
+        $empresa->crm_modulo_horas_turnero = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_horas_turnero'])) ? 1 : 0;
+        $empresa->crm_modulo_geo_tracking = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_geo_tracking'])) ? 1 : 0;
+        $empresa->crm_modulo_presupuestos_pwa = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_presupuestos_pwa'])) ? 1 : 0;
+        $empresa->crm_modulo_horas_pwa = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_horas_pwa'])) ? 1 : 0;
 
         $this->repository->save($empresa);
     }
@@ -169,9 +176,17 @@ class EmpresaService
         $empresa->tiendas_modulo_notas = 0;
         $empresa->modulo_crm = 0;
         $empresa->crm_modulo_notas = 0;
-        $empresa->modulo_rxn_live = 0;
+        $empresa->tiendas_modulo_rxn_live = 0;
+        $empresa->crm_modulo_rxn_live = 0;
         $empresa->crm_modulo_llamadas = 0;
         $empresa->crm_modulo_monitoreo = 0;
+        $empresa->crm_modulo_pedidos_servicio = 0;
+        $empresa->crm_modulo_agenda = 0;
+        $empresa->crm_modulo_mail_masivos = 0;
+        $empresa->crm_modulo_horas_turnero = 0;
+        $empresa->crm_modulo_geo_tracking = 0;
+        $empresa->crm_modulo_presupuestos_pwa = 0;
+        $empresa->crm_modulo_horas_pwa = 0;
 
         $this->repository->save($empresa);
     }
@@ -270,6 +285,13 @@ class EmpresaService
         $empresa->crm_modulo_rxn_live = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_rxn_live'])) ? 1 : 0;
         $empresa->crm_modulo_llamadas = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_llamadas'])) ? 1 : 0;
         $empresa->crm_modulo_monitoreo = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_monitoreo'])) ? 1 : 0;
+        $empresa->crm_modulo_pedidos_servicio = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_pedidos_servicio'])) ? 1 : 0;
+        $empresa->crm_modulo_agenda = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_agenda'])) ? 1 : 0;
+        $empresa->crm_modulo_mail_masivos = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_mail_masivos'])) ? 1 : 0;
+        $empresa->crm_modulo_horas_turnero = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_horas_turnero'])) ? 1 : 0;
+        $empresa->crm_modulo_geo_tracking = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_geo_tracking'])) ? 1 : 0;
+        $empresa->crm_modulo_presupuestos_pwa = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_presupuestos_pwa'])) ? 1 : 0;
+        $empresa->crm_modulo_horas_pwa = ($empresa->modulo_crm === 1 && isset($data['crm_modulo_horas_pwa'])) ? 1 : 0;
 
         $this->repository->update($empresa);
     }

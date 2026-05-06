@@ -7,6 +7,8 @@ use App\Core\Context;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
+use App\Modules\Empresas\EmpresaAccessService;
 use App\Shared\Services\OperationalAreaService;
 use DateTimeImmutable;
 use Exception;
@@ -22,9 +24,16 @@ class PedidoServicioController extends \App\Core\Controller
         $this->repository = new PedidoServicioRepository();
     }
 
-    public function index(): void
+    private function requirePedidosServicioAccess(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmPedidosServicioAccess();
+        UserModuleAccessService::requireUserAccess('pedidos_servicio', 'Pedidos de Servicio');
+    }
+
+    public function index(): void
+    {
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         // 1. Truculencia: Levantar estado de sesión si aplica
@@ -65,7 +74,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function eliminar(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $idInt = (int) $id;
 
         if ($idInt > 0) {
@@ -79,7 +88,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function restore(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $idInt = (int) $id;
 
         if ($idInt > 0) {
@@ -93,7 +102,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function forceDelete(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $idInt = (int) $id;
 
         if ($idInt > 0) {
@@ -107,7 +116,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function eliminarMasivo(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ids = $_POST['ids'] ?? [];
@@ -125,7 +134,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function restoreMasivo(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ids = $_POST['ids'] ?? [];
@@ -143,7 +152,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function forceDeleteMasivo(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ids = $_POST['ids'] ?? [];
@@ -161,7 +170,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function suggestions(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         header('Content-Type: application/json');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -205,7 +214,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function create(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         View::render('app/modules/CrmPedidosServicio/views/form.php', array_merge($this->buildUiContext(), [
@@ -218,7 +227,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function store(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         try {
@@ -273,7 +282,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function edit(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
         $pedido = $this->repository->findById((int) $id, $empresaId);
 
@@ -293,7 +302,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function update(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
         $pedidoActual = $this->repository->findById((int) $id, $empresaId);
 
@@ -337,7 +346,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function copy(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
         $pedidoOriginal = $this->repository->findById((int) $id, $empresaId);
 
@@ -383,7 +392,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function printPreview(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
         $pedido = $this->repository->findById((int) $id, $empresaId);
 
@@ -446,7 +455,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function sendEmail(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         $empresaId = (int) Context::getEmpresaId();
         $pedido = $this->repository->findById((int) $id, $empresaId);
 
@@ -520,7 +529,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function clientSuggestions(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         header('Content-Type: application/json');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -547,7 +556,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function articleSuggestions(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         header('Content-Type: application/json');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -572,7 +581,7 @@ class PedidoServicioController extends \App\Core\Controller
 
     public function classificationSuggestions(): void
     {
-        AuthService::requireLogin();
+        $this->requirePedidosServicioAccess();
         header('Content-Type: application/json');
 
         $empresaId = (int) Context::getEmpresaId();

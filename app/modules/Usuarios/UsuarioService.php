@@ -38,6 +38,40 @@ class UsuarioService
             || (!empty($_SESSION['es_admin']) && $_SESSION['es_admin'] == 1);
     }
 
+    /**
+     * Aplica los 11 flags de módulos por usuario desde el POST.
+     * Sólo el editor admin puede tocar estos flags — el no-admin que ABRE la
+     * vista los ve disabled y, aunque manipulara el HTML, este chequeo de
+     * servidor descarta cualquier intento.
+     *
+     * Para usuarios nuevos creados por no-admin, los flags quedan en el
+     * default del modelo (1 = todos habilitados).
+     */
+    private function applyModuleFlags(\App\Modules\Auth\Usuario $usuario, array $data): void
+    {
+        if (!$this->canManageAdminPrivileges()) {
+            return;
+        }
+
+        $modules = [
+            'usuario_modulo_notas',
+            'usuario_modulo_llamadas',
+            'usuario_modulo_monitoreo',
+            'usuario_modulo_rxn_live',
+            'usuario_modulo_pedidos_servicio',
+            'usuario_modulo_agenda',
+            'usuario_modulo_mail_masivos',
+            'usuario_modulo_horas_turnero',
+            'usuario_modulo_geo_tracking',
+            'usuario_modulo_presupuestos_pwa',
+            'usuario_modulo_horas_pwa',
+        ];
+
+        foreach ($modules as $col) {
+            $usuario->$col = isset($data[$col]) ? 1 : 0;
+        }
+    }
+
     public function getAllForContext(): array
     {
         return $this->findAllForContext();
@@ -212,6 +246,8 @@ class UsuarioService
         $usuario->verification_token = bin2hex(random_bytes(16));
         $usuario->verification_expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
+        $this->applyModuleFlags($usuario, $data);
+
         $this->repository->save($usuario);
 
         $mailService = new \App\Core\Services\MailService();
@@ -227,7 +263,18 @@ class UsuarioService
 
         $usuario->nombre = strip_tags(trim($data['nombre'] ?? ''));
         $usuario->email = filter_var(trim($data['email'] ?? ''), FILTER_SANITIZE_EMAIL);
-        $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
+
+        // Defensa server-side del flag `activo`. Reglas:
+        //   1) Nadie puede auto-desactivarse (ni siquiera super admin) — el operador
+        //      perdería su propia sesión. Eliminación/baja se hace por papelera.
+        //   2) Solo admin (es_admin o es_rxn_admin) puede tocar este flag de otros.
+        // Si alguna regla falla, preservamos el valor actual del DB en lugar de leer del POST,
+        // así un POST manipulado no rompe el invariante.
+        $isSelfEdit = ((int) $id === (int) ($_SESSION['user_id'] ?? 0));
+        $canToggleActivo = !$isSelfEdit && $this->canManageAdminPrivileges();
+        if ($canToggleActivo) {
+            $usuario->activo = isset($data['activo']) && $data['activo'] === 'on' ? 1 : 0;
+        }
         $usuario->es_admin = $this->canManageAdminPrivileges() && isset($data['es_admin']) && $data['es_admin'] === 'on' ? 1 : 0;
 
         if (\App\Modules\Auth\AuthService::isRxnAdmin()) {
@@ -244,6 +291,8 @@ class UsuarioService
         if ($isGlobalAdmin && !empty($data['empresa_id'])) {
             $usuario->empresa_id = (int)$data['empresa_id'];
         }
+
+        $this->applyModuleFlags($usuario, $data);
 
         if (isset($data['tango_perfil_pedido'])) {
             $currentProfileId = $usuario->tango_perfil_pedido_id;

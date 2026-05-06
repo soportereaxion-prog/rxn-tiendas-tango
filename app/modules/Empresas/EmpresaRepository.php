@@ -173,9 +173,9 @@ class EmpresaRepository
 
     public function save(Empresa $empresa): void
     {
-        $sql = "INSERT INTO empresas (codigo, nombre, titulo_pestana, razon_social, cuit, slug, activa, modulo_tiendas, tiendas_modulo_notas, modulo_crm, crm_modulo_notas, crm_modulo_llamadas, crm_modulo_monitoreo, tiendas_modulo_rxn_live, crm_modulo_rxn_live) 
-                VALUES (:codigo, :nombre, :titulo_pestana, :razon_social, :cuit, :slug, :activa, :modulo_tiendas, :tiendas_modulo_notas, :modulo_crm, :crm_modulo_notas, :crm_modulo_llamadas, :crm_modulo_monitoreo, :tiendas_modulo_rxn_live, :crm_modulo_rxn_live)";
-        
+        $sql = "INSERT INTO empresas (codigo, nombre, titulo_pestana, razon_social, cuit, slug, activa, modulo_tiendas, tiendas_modulo_notas, modulo_crm, crm_modulo_notas, crm_modulo_llamadas, crm_modulo_monitoreo, tiendas_modulo_rxn_live, crm_modulo_rxn_live, crm_modulo_pedidos_servicio, crm_modulo_agenda, crm_modulo_mail_masivos, crm_modulo_horas_turnero, crm_modulo_geo_tracking, crm_modulo_presupuestos_pwa, crm_modulo_horas_pwa)
+                VALUES (:codigo, :nombre, :titulo_pestana, :razon_social, :cuit, :slug, :activa, :modulo_tiendas, :tiendas_modulo_notas, :modulo_crm, :crm_modulo_notas, :crm_modulo_llamadas, :crm_modulo_monitoreo, :tiendas_modulo_rxn_live, :crm_modulo_rxn_live, :crm_modulo_pedidos_servicio, :crm_modulo_agenda, :crm_modulo_mail_masivos, :crm_modulo_horas_turnero, :crm_modulo_geo_tracking, :crm_modulo_presupuestos_pwa, :crm_modulo_horas_pwa)";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':codigo' => $empresa->codigo,
@@ -193,8 +193,15 @@ class EmpresaRepository
             ':crm_modulo_monitoreo' => $empresa->crm_modulo_monitoreo,
             ':tiendas_modulo_rxn_live' => $empresa->tiendas_modulo_rxn_live,
             ':crm_modulo_rxn_live' => $empresa->crm_modulo_rxn_live,
+            ':crm_modulo_pedidos_servicio' => $empresa->crm_modulo_pedidos_servicio,
+            ':crm_modulo_agenda' => $empresa->crm_modulo_agenda,
+            ':crm_modulo_mail_masivos' => $empresa->crm_modulo_mail_masivos,
+            ':crm_modulo_horas_turnero' => $empresa->crm_modulo_horas_turnero,
+            ':crm_modulo_geo_tracking' => $empresa->crm_modulo_geo_tracking,
+            ':crm_modulo_presupuestos_pwa' => $empresa->crm_modulo_presupuestos_pwa,
+            ':crm_modulo_horas_pwa' => $empresa->crm_modulo_horas_pwa,
         ]);
-        
+
         $empresa->id = (int) $this->db->lastInsertId();
     }
 
@@ -258,6 +265,13 @@ class EmpresaRepository
         $empresa->crm_modulo_monitoreo = isset($row['crm_modulo_monitoreo']) ? (int)$row['crm_modulo_monitoreo'] : 0;
         $empresa->tiendas_modulo_rxn_live = isset($row['tiendas_modulo_rxn_live']) ? (int)$row['tiendas_modulo_rxn_live'] : 0;
         $empresa->crm_modulo_rxn_live = isset($row['crm_modulo_rxn_live']) ? (int)$row['crm_modulo_rxn_live'] : 0;
+        $empresa->crm_modulo_pedidos_servicio = isset($row['crm_modulo_pedidos_servicio']) ? (int)$row['crm_modulo_pedidos_servicio'] : 0;
+        $empresa->crm_modulo_agenda = isset($row['crm_modulo_agenda']) ? (int)$row['crm_modulo_agenda'] : 0;
+        $empresa->crm_modulo_mail_masivos = isset($row['crm_modulo_mail_masivos']) ? (int)$row['crm_modulo_mail_masivos'] : 0;
+        $empresa->crm_modulo_horas_turnero = isset($row['crm_modulo_horas_turnero']) ? (int)$row['crm_modulo_horas_turnero'] : 0;
+        $empresa->crm_modulo_geo_tracking = isset($row['crm_modulo_geo_tracking']) ? (int)$row['crm_modulo_geo_tracking'] : 0;
+        $empresa->crm_modulo_presupuestos_pwa = isset($row['crm_modulo_presupuestos_pwa']) ? (int)$row['crm_modulo_presupuestos_pwa'] : 0;
+        $empresa->crm_modulo_horas_pwa = isset($row['crm_modulo_horas_pwa']) ? (int)$row['crm_modulo_horas_pwa'] : 0;
         $empresa->created_at = $row['created_at'] ?? null;
         $empresa->updated_at = $row['updated_at'] ?? null;
         return $empresa;
@@ -265,12 +279,12 @@ class EmpresaRepository
 
     public function update(Empresa $empresa): void
     {
-        $sql = "UPDATE empresas SET 
-                codigo = :codigo, 
-                nombre = :nombre, 
+        $sql = "UPDATE empresas SET
+                codigo = :codigo,
+                nombre = :nombre,
                 titulo_pestana = :titulo_pestana,
-                razon_social = :razon_social, 
-                cuit = :cuit, 
+                razon_social = :razon_social,
+                cuit = :cuit,
                 slug = :slug,
                 activa = :activa,
                 modulo_tiendas = :modulo_tiendas,
@@ -281,9 +295,16 @@ class EmpresaRepository
                 crm_modulo_monitoreo = :crm_modulo_monitoreo,
                 tiendas_modulo_rxn_live = :tiendas_modulo_rxn_live,
                 crm_modulo_rxn_live = :crm_modulo_rxn_live,
+                crm_modulo_pedidos_servicio = :crm_modulo_pedidos_servicio,
+                crm_modulo_agenda = :crm_modulo_agenda,
+                crm_modulo_mail_masivos = :crm_modulo_mail_masivos,
+                crm_modulo_horas_turnero = :crm_modulo_horas_turnero,
+                crm_modulo_geo_tracking = :crm_modulo_geo_tracking,
+                crm_modulo_presupuestos_pwa = :crm_modulo_presupuestos_pwa,
+                crm_modulo_horas_pwa = :crm_modulo_horas_pwa,
                 updated_at = NOW()
                 WHERE id = :id";
-                
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':codigo' => $empresa->codigo,
@@ -301,6 +322,13 @@ class EmpresaRepository
             ':crm_modulo_monitoreo' => $empresa->crm_modulo_monitoreo,
             ':tiendas_modulo_rxn_live' => $empresa->tiendas_modulo_rxn_live,
             ':crm_modulo_rxn_live' => $empresa->crm_modulo_rxn_live,
+            ':crm_modulo_pedidos_servicio' => $empresa->crm_modulo_pedidos_servicio,
+            ':crm_modulo_agenda' => $empresa->crm_modulo_agenda,
+            ':crm_modulo_mail_masivos' => $empresa->crm_modulo_mail_masivos,
+            ':crm_modulo_horas_turnero' => $empresa->crm_modulo_horas_turnero,
+            ':crm_modulo_geo_tracking' => $empresa->crm_modulo_geo_tracking,
+            ':crm_modulo_presupuestos_pwa' => $empresa->crm_modulo_presupuestos_pwa,
+            ':crm_modulo_horas_pwa' => $empresa->crm_modulo_horas_pwa,
             ':id' => $empresa->id,
         ]);
     }

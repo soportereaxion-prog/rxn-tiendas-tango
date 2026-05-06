@@ -7,6 +7,8 @@ use App\Core\Context;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
+use App\Modules\Empresas\EmpresaAccessService;
 use App\Shared\Services\OperationalAreaService;
 use DateTimeImmutable;
 
@@ -21,9 +23,16 @@ class AgendaController extends \App\Core\Controller
         $this->oauthService = new GoogleOAuthService();
     }
 
-    public function index(): void
+    private function requireAgendaAccess(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmAgendaAccess();
+        UserModuleAccessService::requireUserAccess('agenda', 'Agenda');
+    }
+
+    public function index(): void
+    {
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
@@ -58,7 +67,7 @@ class AgendaController extends \App\Core\Controller
      */
     public function googleConfig(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -84,7 +93,7 @@ class AgendaController extends \App\Core\Controller
      */
     public function eventsFeed(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         header('Content-Type: application/json');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -143,7 +152,7 @@ class AgendaController extends \App\Core\Controller
 
     public function create(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
 
         $now = new DateTimeImmutable();
         $defaults = [
@@ -175,7 +184,7 @@ class AgendaController extends \App\Core\Controller
 
     public function store(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         try {
@@ -202,7 +211,7 @@ class AgendaController extends \App\Core\Controller
 
     public function edit(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
         $evento = $this->repository->findById((int) $id, $empresaId);
 
@@ -222,7 +231,7 @@ class AgendaController extends \App\Core\Controller
 
     public function update(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
         $actual = $this->repository->findById((int) $id, $empresaId);
 
@@ -265,7 +274,7 @@ class AgendaController extends \App\Core\Controller
 
     public function eliminar(string $id): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
         $evento = $this->repository->findById((int) $id, $empresaId);
 
@@ -302,7 +311,7 @@ class AgendaController extends \App\Core\Controller
      */
     public function rescan(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -381,7 +390,7 @@ class AgendaController extends \App\Core\Controller
 
     public function googleConnect(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
@@ -408,7 +417,7 @@ class AgendaController extends \App\Core\Controller
 
     public function googleCallback(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
 
         $code = trim((string) ($_GET['code'] ?? ''));
         $state = trim((string) ($_GET['state'] ?? ''));
@@ -439,7 +448,7 @@ class AgendaController extends \App\Core\Controller
 
     public function googleDisconnect(): void
     {
-        AuthService::requireLogin();
+        $this->requireAgendaAccess();
         $empresaId = (int) Context::getEmpresaId();
         $usuarioId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 

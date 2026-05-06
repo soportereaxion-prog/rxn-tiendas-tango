@@ -7,6 +7,8 @@ namespace App\Modules\RxnGeoTracking;
 use App\Core\Context;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
+use App\Modules\Empresas\EmpresaAccessService;
 use App\Shared\Services\OperationalAreaService;
 
 /**
@@ -36,9 +38,16 @@ class RxnGeoTrackingController extends \App\Core\Controller
         $this->config = new GeoTrackingConfigRepository();
     }
 
-    public function index(): void
+    private function requireGeoTrackingAccess(): void
     {
         AuthService::requireBackofficeAdmin();
+        EmpresaAccessService::requireCrmGeoTrackingAccess();
+        UserModuleAccessService::requireUserAccess('geo_tracking', 'Geo Tracking');
+    }
+
+    public function index(): void
+    {
+        $this->requireGeoTrackingAccess();
         $empresaId = (int) Context::getEmpresaId();
 
         $filters = $this->parseFiltersFromRequest();
@@ -79,7 +88,7 @@ class RxnGeoTrackingController extends \App\Core\Controller
      */
     public function mapPoints(): void
     {
-        AuthService::requireBackofficeAdmin();
+        $this->requireGeoTrackingAccess();
         header('Content-Type: application/json');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -107,7 +116,7 @@ class RxnGeoTrackingController extends \App\Core\Controller
      */
     public function export(): void
     {
-        AuthService::requireBackofficeAdmin();
+        $this->requireGeoTrackingAccess();
         $empresaId = (int) Context::getEmpresaId();
         $filters = $this->parseFiltersFromRequest();
 

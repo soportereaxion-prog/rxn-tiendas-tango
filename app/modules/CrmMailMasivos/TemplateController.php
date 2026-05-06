@@ -9,6 +9,8 @@ use App\Core\Database;
 use App\Core\Flash;
 use App\Core\View;
 use App\Modules\Auth\AuthService;
+use App\Modules\Auth\UserModuleAccessService;
+use App\Modules\Empresas\EmpresaAccessService;
 use App\Modules\CrmMailMasivos\Services\BlockRenderer;
 use App\Modules\CrmMailMasivos\Services\ReportMetamodel;
 use App\Modules\CrmMailMasivos\Services\ReportQueryBuilder;
@@ -50,6 +52,8 @@ class TemplateController
     public function index(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
 
         $search = trim((string) ($_GET['search'] ?? ''));
@@ -68,6 +72,8 @@ class TemplateController
     public function create(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
 
         View::render('app/modules/CrmMailMasivos/views/plantillas/editor.php', [
@@ -90,6 +96,8 @@ class TemplateController
     public function edit(string $id): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
         $id = (int) $id;
 
@@ -116,6 +124,8 @@ class TemplateController
     public function store(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
 
         $payload = $this->readFormPayload();
@@ -151,6 +161,8 @@ class TemplateController
     public function update(string $id): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
         $id = (int) $id;
 
@@ -193,6 +205,8 @@ class TemplateController
     public function delete(string $id): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         $empresaId = (int) Context::getEmpresaId();
         $id = (int) $id;
 
@@ -230,6 +244,8 @@ class TemplateController
     public function availableVars(string $reportId): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         header('Content-Type: application/json; charset=utf-8');
 
         $empresaId = (int) Context::getEmpresaId();
@@ -297,6 +313,8 @@ class TemplateController
     public function previewRender(): void
     {
         AuthService::requireLogin();
+        EmpresaAccessService::requireCrmMailMasivosAccess();
+        UserModuleAccessService::requireUserAccess('mail_masivos', 'Mail Masivos');
         header('Content-Type: application/json; charset=utf-8');
 
         $empresaId = (int) Context::getEmpresaId();

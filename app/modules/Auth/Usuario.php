@@ -49,4 +49,17 @@ class Usuario
     // Almacenamiento cacheado del perfil de tango en formato JSON para el resolver local (evita latencia API)
     public ?string $tango_perfil_snapshot_json = null;
     public ?string $tango_perfil_snapshot_date = null;
+
+    // Permisos modulares por usuario (release 1.47.0). DEFAULT 1 a nivel DB.
+    public int $usuario_modulo_notas = 1;
+    public int $usuario_modulo_llamadas = 1;
+    public int $usuario_modulo_monitoreo = 1;
+    public int $usuario_modulo_rxn_live = 1;
+    public int $usuario_modulo_pedidos_servicio = 1;
+    public int $usuario_modulo_agenda = 1;
+    public int $usuario_modulo_mail_masivos = 1;
+    public int $usuario_modulo_horas_turnero = 1;
+    public int $usuario_modulo_geo_tracking = 1;
+    public int $usuario_modulo_presupuestos_pwa = 1;
+    public int $usuario_modulo_horas_pwa = 1;
 }

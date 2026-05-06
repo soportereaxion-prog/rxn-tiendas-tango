@@ -117,14 +117,26 @@ ob_start();
                         </div>
                     </div>
 
+                    <?php
+                    $isSelfEdit = ((int) $usuario->id === (int) ($_SESSION['user_id'] ?? 0));
+                    $canToggleActivo = !$isSelfEdit && !empty($canManageAdminPrivileges);
+                    ?>
                     <div class="rxn-form-section">
                         <div class="rxn-form-section-title">Permisos y estado</div>
                         <div class="rxn-form-switches">
                             <div class="rxn-form-switch-card">
                                 <div class="form-check form-switch m-0">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="activo" name="activo" <?= (isset($old['activo']) ? ($old['activo']==='on') : ($usuario->activo == 1)) ? 'checked' : '' ?>>
+                                    <input class="form-check-input" type="checkbox" role="switch" id="activo" name="activo" <?= (isset($old['activo']) ? ($old['activo']==='on') : ($usuario->activo == 1)) ? 'checked' : '' ?> <?= $canToggleActivo ? '' : 'disabled' ?>>
                                     <label class="form-check-label fw-semibold" for="activo">Usuario activo</label>
-                                    <div class="form-text mb-0">Permite seguir operando dentro del entorno.</div>
+                                    <div class="form-text mb-0">
+                                        <?php if ($isSelfEdit): ?>
+                                            No podés desactivar tu propia cuenta.
+                                        <?php elseif (!$canManageAdminPrivileges): ?>
+                                            Solo un administrador puede activar o desactivar usuarios.
+                                        <?php else: ?>
+                                            Permite seguir operando dentro del entorno.
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
 
@@ -149,6 +161,59 @@ ob_start();
                             <?php endif; ?>
                         </div>
                     </div>
+
+                    <?php
+                    $modulesMap = [
+                        ['key' => 'notas',             'col_user' => 'usuario_modulo_notas',             'col_emp' => 'crm_modulo_notas',             'label' => 'Notas'],
+                        ['key' => 'llamadas',          'col_user' => 'usuario_modulo_llamadas',          'col_emp' => 'crm_modulo_llamadas',          'label' => 'Llamadas CRM'],
+                        ['key' => 'monitoreo',         'col_user' => 'usuario_modulo_monitoreo',         'col_emp' => 'crm_modulo_monitoreo',         'label' => 'Monitoreo de Usuarios'],
+                        ['key' => 'rxn_live',          'col_user' => 'usuario_modulo_rxn_live',          'col_emp' => 'crm_modulo_rxn_live',          'label' => 'RXN Live'],
+                        ['key' => 'pedidos_servicio',  'col_user' => 'usuario_modulo_pedidos_servicio',  'col_emp' => 'crm_modulo_pedidos_servicio',  'label' => 'Pedidos de Servicio'],
+                        ['key' => 'agenda',            'col_user' => 'usuario_modulo_agenda',            'col_emp' => 'crm_modulo_agenda',            'label' => 'Agenda'],
+                        ['key' => 'mail_masivos',      'col_user' => 'usuario_modulo_mail_masivos',      'col_emp' => 'crm_modulo_mail_masivos',      'label' => 'Mail Masivos'],
+                        ['key' => 'horas_turnero',     'col_user' => 'usuario_modulo_horas_turnero',     'col_emp' => 'crm_modulo_horas_turnero',     'label' => 'Horas (Turnero)'],
+                        ['key' => 'geo_tracking',      'col_user' => 'usuario_modulo_geo_tracking',      'col_emp' => 'crm_modulo_geo_tracking',      'label' => 'Geo Tracking'],
+                        ['key' => 'presupuestos_pwa',  'col_user' => 'usuario_modulo_presupuestos_pwa',  'col_emp' => 'crm_modulo_presupuestos_pwa',  'label' => 'Presupuestos PWA'],
+                        ['key' => 'horas_pwa',         'col_user' => 'usuario_modulo_horas_pwa',         'col_emp' => 'crm_modulo_horas_pwa',         'label' => 'Horas PWA'],
+                    ];
+                    $contractedModules = array_filter($modulesMap, function ($m) use ($empresaTarget) {
+                        return $empresaTarget && (int) ($empresaTarget->{$m['col_emp']} ?? 0) === 1;
+                    });
+                    $canEditModules = !empty($canManageAdminPrivileges);
+                    ?>
+                    <?php if (!empty($contractedModules)): ?>
+                    <div class="rxn-form-section">
+                        <div class="rxn-form-section-title">Módulos habilitados</div>
+                        <div class="rxn-form-section-text">
+                            <?php if ($canEditModules): ?>
+                                Decidí qué módulos puede usar este usuario. Solo aparecen los contratados a nivel empresa.
+                            <?php else: ?>
+                                Estos son los módulos asignados al usuario. Solo un administrador puede modificarlos.
+                            <?php endif; ?>
+                        </div>
+                        <div class="rxn-form-switches">
+                            <div class="rxn-form-switch-card">
+                                <?php foreach ($contractedModules as $mod): ?>
+                                    <?php
+                                    $colUser = $mod['col_user'];
+                                    $checked = isset($old[$colUser])
+                                        ? ($old[$colUser] === 'on' || $old[$colUser] === '1' || $old[$colUser] === 1)
+                                        : ((int) ($usuario->{$colUser} ?? 1) === 1);
+                                    ?>
+                                    <div class="form-check form-switch m-0 mb-2">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="<?= htmlspecialchars($colUser) ?>"
+                                               name="<?= htmlspecialchars($colUser) ?>"
+                                               value="1"
+                                               <?= $checked ? 'checked' : '' ?>
+                                               <?= $canEditModules ? '' : 'disabled' ?>>
+                                        <label class="form-check-label" for="<?= htmlspecialchars($colUser) ?>"><?= htmlspecialchars($mod['label']) ?></label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <div class="rxn-form-actions">
                         <a href="<?= htmlspecialchars($indexPath) ?>" class="btn btn-light border">Cancelar</a>

@@ -22,6 +22,13 @@ class Empresa
     public int $crm_modulo_monitoreo = 0;
     public int $tiendas_modulo_rxn_live = 0;
     public int $crm_modulo_rxn_live = 0;
+    public int $crm_modulo_pedidos_servicio = 0;
+    public int $crm_modulo_agenda = 0;
+    public int $crm_modulo_mail_masivos = 0;
+    public int $crm_modulo_horas_turnero = 0;
+    public int $crm_modulo_geo_tracking = 0;
+    public int $crm_modulo_presupuestos_pwa = 0;
+    public int $crm_modulo_horas_pwa = 0;
     public ?string $created_at = null;
     public ?string $updated_at = null;
     public ?string $deleted_at = null;
